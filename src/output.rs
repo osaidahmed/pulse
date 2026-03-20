@@ -30,6 +30,55 @@ pub fn format(findings: &[Finding], filename: &str) -> String {
     out
 }
 
+pub fn format_stop(regressions: &[(String, Vec<Finding>)]) -> String {
+    let mut out = String::new();
+
+    let actionable: Vec<String> = regressions
+        .iter()
+        .flat_map(|(filename, findings)| {
+            findings
+                .iter()
+                .filter(|f| is_actionable(f.smell))
+                .map(move |f| format!("{} in {} ({})", f.smell, filename, f.detail))
+        })
+        .collect();
+
+    if !actionable.is_empty() {
+        out.push_str(&format!(
+            "pulse: {} regression{} — {}\n",
+            actionable.len(),
+            if actionable.len() == 1 { "" } else { "s" },
+            actionable.join(", ")
+        ));
+    }
+
+    let notes: Vec<String> = regressions
+        .iter()
+        .flat_map(|(filename, findings)| {
+            findings
+                .iter()
+                .filter(|f| !is_actionable(f.smell))
+                .map(move |f| format!("{} crossed {} ({})", filename, f.smell, f.detail))
+        })
+        .collect();
+
+    if !notes.is_empty() {
+        out.push_str(&format!("pulse: note — {}\n", notes.join(", ")));
+    }
+
+    out
+}
+
+fn is_actionable(smell: &str) -> bool {
+    matches!(
+        smell,
+        "Code Duplication"
+            | "Global Conditionals"
+            | "Deep Global Nesting"
+            | "Duplicated Assertion Blocks"
+    )
+}
+
 pub fn format_compact(findings: &[Finding], filename: &str) -> String {
     let parts: Vec<String> = findings
         .iter()

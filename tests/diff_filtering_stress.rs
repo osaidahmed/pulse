@@ -53,17 +53,18 @@ fn edit_outside_smelly_function_skips_it() {
 }
 
 #[test]
-fn module_findings_always_present_with_edit() {
+fn module_findings_excluded_from_hook_output() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(
         path.to_str().unwrap(),
         "import json",
         "import json",
     );
-    // Module-level findings should always be present even when editing far from functions
-    // (Low Cohesion is a module finding)
-    assert!(has_smell(&out, "Low Cohesion") || has_smell(&out, "Code Duplication"),
-        "module findings should appear regardless of edit position, got: {}", out);
+    // Module-level findings should NOT appear in hook output (handled by Stop hook)
+    assert!(!has_smell(&out, "Low Cohesion"),
+        "module findings should not appear in hook output, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"),
+        "module findings should not appear in hook output, got: {}", out);
 }
 
 // ===========================================================================

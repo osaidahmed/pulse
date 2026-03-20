@@ -155,14 +155,14 @@ fn check_mode_still_uses_verbose_format() {
 }
 
 // ===========================================================================
-// Module-level findings always included
+// Module-level findings excluded from hook mode (handled by Stop hook)
 // ===========================================================================
 
 #[test]
-fn module_findings_always_shown_even_with_edit_range() {
+fn module_findings_excluded_from_hook_output() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
-    // Generate a file that's too large (> 400 LOC)
+    // Generate a file that's too large (> 400 LOC) with too many functions
     let mut code = "import os\n\n".to_string();
     for i in 0..25 {
         code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
@@ -172,14 +172,16 @@ fn module_findings_always_shown_even_with_edit_range() {
     }
     std::fs::write(&path, &code).unwrap();
 
-    // Edit at line 1 — no function overlap, but Module findings should still appear
+    // Edit at line 1 — module findings should NOT appear in hook output
     let json = format!(
         r#"{{"tool_input":{{"file_path":"{}","old_string":"import os","new_string":"import os"}}}}"#,
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.contains("File Too Large") || output.contains("Too Many Functions"),
-        "Module findings should be shown regardless of edit position: {}", output);
+    assert!(!output.contains("File Too Large"),
+        "Module findings should not appear in hook output: {}", output);
+    assert!(!output.contains("Too Many Functions"),
+        "Module findings should not appear in hook output: {}", output);
 }
 
 // ===========================================================================
