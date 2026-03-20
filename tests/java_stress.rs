@@ -3,8 +3,12 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String { pulse_check_code(code, "java") }
-fn debug(code: &str) -> String { pulse_debug_code(code, "java") }
+fn check(code: &str) -> String {
+    pulse_check_code(code, "java")
+}
+fn debug(code: &str) -> String {
+    pulse_debug_code(code, "java")
+}
 
 // CC precision
 #[test]
@@ -15,13 +19,16 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug("class T {\n    void f(int x) {\n        if (x == 1) {} else if (x == 2) {}\n    }\n}\n");
+    let out = debug(
+        "class T {\n    void f(int x) {\n        if (x == 1) {} else if (x == 2) {}\n    }\n}\n",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_for() {
-    let out = debug("class T {\n    void f() {\n        for (int i = 0; i < 10; i++) {}\n    }\n}\n");
+    let out =
+        debug("class T {\n    void f() {\n        for (int i = 0; i < 10; i++) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -51,13 +58,15 @@ fn cc_counts_catch() {
 
 #[test]
 fn cc_counts_and() {
-    let out = debug("class T {\n    void f(boolean a, boolean b) {\n        if (a && b) {}\n    }\n}\n");
+    let out =
+        debug("class T {\n    void f(boolean a, boolean b) {\n        if (a && b) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_or() {
-    let out = debug("class T {\n    void f(boolean a, boolean b) {\n        if (a || b) {}\n    }\n}\n");
+    let out =
+        debug("class T {\n    void f(boolean a, boolean b) {\n        if (a || b) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -198,7 +207,8 @@ fn constructor_reports_over_injection() {
 
 #[test]
 fn regular_method_reports_excess_args() {
-    let out = check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
+    let out =
+        check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
     assert!(has_smell(&out, "Excess Arguments"));
     assert!(!has_smell(&out, "Constructor Over-Injection"));
 }
@@ -206,7 +216,9 @@ fn regular_method_reports_excess_args() {
 // Multiple smells
 #[test]
 fn multiple_smells_same_function() {
-    let mut code = String::from("class T {\n    void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
+    let mut code = String::from(
+        "class T {\n    void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n",
+    );
     code.push_str("        for (int i = 0; i < a; i++) {\n");
     code.push_str("            if (i > 0) {\n");
     code.push_str("                for (int j = 0; j < b; j++) {\n");
@@ -305,7 +317,11 @@ fn cc_multiple_catch() {
 fn nesting_try_catch_counts_depth() {
     let out = debug("class T {\n    void f() {\n        try {\n            if (true) {}\n        } catch (Exception e) {}\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 1, "try-catch should contribute nesting, got: {}", depth);
+    assert!(
+        depth >= 1,
+        "try-catch should contribute nesting, got: {}",
+        depth
+    );
 }
 
 // ===========================================================================
@@ -585,7 +601,10 @@ fn small_string_not_flagged() {
 fn multiline_string_flagged() {
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
     for i in 0..20 {
-        code.push_str(&format!("            SELECT field_{} FROM table_{}\n", i, i));
+        code.push_str(&format!(
+            "            SELECT field_{} FROM table_{}\n",
+            i, i
+        ));
     }
     code.push_str("            \"\"\";\n        return q;\n    }\n}\n");
     let out = check(&code);
@@ -610,7 +629,10 @@ fn shallow_global_not_flagged() {
 fn constructor_reports_injection_not_excess() {
     let out = check("class S {\n    S(int a, int b, int c, int d, int e, int f) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
-    let lines: Vec<&str> = out.lines().filter(|l| l.contains("S(") || l.contains(".S")).collect();
+    let lines: Vec<&str> = out
+        .lines()
+        .filter(|l| l.contains("S(") || l.contains(".S"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
 
@@ -620,10 +642,15 @@ fn constructor_reports_injection_not_excess() {
 
 #[test]
 fn function_can_have_multiple_smells() {
-    let mut code = String::from("class T {\n    void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
+    let mut code = String::from(
+        "class T {\n    void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n",
+    );
     code.push_str("        String q = \"\"\"\n");
     for i in 0..20 {
-        code.push_str(&format!("            SELECT field_{} FROM table_{}\n", i, i));
+        code.push_str(&format!(
+            "            SELECT field_{} FROM table_{}\n",
+            i, i
+        ));
     }
     code.push_str("            \"\"\";\n");
     code.push_str("        for (int i = 0; i < a; i++) {\n");
@@ -657,7 +684,12 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"other\": 1}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -673,7 +705,12 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -714,7 +751,11 @@ fn clean_java_module_not_flagged() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "clean Java code should not be flagged, got: {}", out);
+    assert!(
+        out.is_empty(),
+        "clean Java code should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -832,7 +873,8 @@ fn nesting_deep_for_if_for() {
 
 #[test]
 fn output_starts_with_pulse() {
-    let out = check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
+    let out =
+        check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
     assert!(out.starts_with("pulse:"));
 }
 
@@ -842,7 +884,8 @@ fn output_starts_with_pulse() {
 
 #[test]
 fn output_has_line_numbers() {
-    let out = check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
+    let out =
+        check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
     let has_loc = out.lines().any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc);
 }
@@ -853,7 +896,9 @@ fn output_has_line_numbers() {
 
 #[test]
 fn excess_args_count_verified() {
-    let out = debug("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g, int h) {}\n}\n");
+    let out = debug(
+        "class T {\n    void f(int a, int b, int c, int d, int e, int f, int g, int h) {}\n}\n",
+    );
     assert_eq!(function_metric(&out, "f", "args"), Some(8));
 }
 
@@ -961,7 +1006,8 @@ fn output_has_module_prefix() {
 
 #[test]
 fn issue_count_matches() {
-    let out = check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
+    let out =
+        check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
     assert!(first.contains(&format!("{} issue", findings)));

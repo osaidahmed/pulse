@@ -81,7 +81,9 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.c");
-    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output
+        .lines()
+        .any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -126,7 +128,11 @@ fn void_param_is_zero_args() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("int f(void) {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n    return 0;\n}\n", "c");
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "cc=9 should trigger, got: {}",
+        out
+    );
 }
 
 #[test]
@@ -256,7 +262,10 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("process_data_pipeline")).collect();
+    let lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("process_data_pipeline"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -267,19 +276,22 @@ fn god_method_not_reported_as_separate_complex_and_large() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "int check_eligibility(int age, int score, int active) {\n",
-        "    if (age > 18 && score > 50 && active) {\n",
-        "        if (score > 80 || (age > 25 && active)) {\n",
-        "            return 1;\n",
-        "        }\n",
-        "    }\n",
-        "    if (age > 65 || score < 10) {\n",
-        "        return 1;\n",
-        "    }\n",
-        "    return 0;\n",
-        "}\n",
-    ), "c");
+    let out = pulse_check_code(
+        concat!(
+            "int check_eligibility(int age, int score, int active) {\n",
+            "    if (age > 18 && score > 50 && active) {\n",
+            "        if (score > 80 || (age > 25 && active)) {\n",
+            "            return 1;\n",
+            "        }\n",
+            "    }\n",
+            "    if (age > 65 || score < 10) {\n",
+            "        return 1;\n",
+            "    }\n",
+            "    return 0;\n",
+            "}\n",
+        ),
+        "c",
+    );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -293,14 +305,17 @@ fn complex_conditional_detected() {
 
 #[test]
 fn global_conditionals_detected() {
-    let out = pulse_check_code(concat!(
-        "int debug_mode = 0;\n",
-        "int verbose = 0;\n",
-        "#ifdef DEBUG\n",
-        "int x = 1;\n",
-        "#endif\n",
-        "void setup(void) {}\n",
-    ), "c");
+    let out = pulse_check_code(
+        concat!(
+            "int debug_mode = 0;\n",
+            "int verbose = 0;\n",
+            "#ifdef DEBUG\n",
+            "int x = 1;\n",
+            "#endif\n",
+            "void setup(void) {}\n",
+        ),
+        "c",
+    );
     // C files with preprocessor conditionals may or may not trigger
     // At minimum, verify no crash
     assert!(true);
@@ -376,7 +391,10 @@ fn hook_invalid_json_silent() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code("void f(int a, int b, int c) {\n    if (a && b && c) {}\n}\n", "c");
+    let debug = pulse_debug_code(
+        "void f(int a, int b, int c) {\n    if (a && b && c) {}\n}\n",
+        "c",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {}", cc);
 }
@@ -487,23 +505,30 @@ fn code_duplication_detected() {
 
 #[test]
 fn switch_case_increments_cc() {
-    let out = pulse_check_code(concat!(
-        "const char* handle(int action) {\n",
-        "    switch (action) {\n",
-        "        case 1: return \"a\";\n",
-        "        case 2: return \"b\";\n",
-        "        case 3: return \"c\";\n",
-        "        case 4: return \"d\";\n",
-        "        case 5: return \"e\";\n",
-        "        case 6: return \"f\";\n",
-        "        case 7: return \"g\";\n",
-        "        case 8: return \"h\";\n",
-        "        case 9: return \"i\";\n",
-        "        default: return \"?\";\n",
-        "    }\n",
-        "}\n",
-    ), "c");
-    assert!(has_smell(&out, "Complex Method"), "9 switch cases should trigger, got: {}", out);
+    let out = pulse_check_code(
+        concat!(
+            "const char* handle(int action) {\n",
+            "    switch (action) {\n",
+            "        case 1: return \"a\";\n",
+            "        case 2: return \"b\";\n",
+            "        case 3: return \"c\";\n",
+            "        case 4: return \"d\";\n",
+            "        case 5: return \"e\";\n",
+            "        case 6: return \"f\";\n",
+            "        case 7: return \"g\";\n",
+            "        case 8: return \"h\";\n",
+            "        case 9: return \"i\";\n",
+            "        default: return \"?\";\n",
+            "    }\n",
+            "}\n",
+        ),
+        "c",
+    );
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "9 switch cases should trigger, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -512,33 +537,36 @@ fn switch_case_increments_cc() {
 
 #[test]
 fn nested_conditional_chunks_detected() {
-    let out = pulse_check_code(concat!(
-        "void validate(int* data, int n) {\n",
-        "    if (n > 0) {\n",
-        "        if (data[0] > 0) {\n",
-        "            if (data[0] > 10) {\n",
-        "                int x = 1;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    int gap = 1;\n",
-        "    if (n > 5) {\n",
-        "        if (data[5] > 0) {\n",
-        "            if (data[5] > 10) {\n",
-        "                int y = 2;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    int gap2 = 2;\n",
-        "    if (n > 10) {\n",
-        "        if (data[10] > 0) {\n",
-        "            if (data[10] > 10) {\n",
-        "                int z = 3;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "}\n",
-    ), "c");
+    let out = pulse_check_code(
+        concat!(
+            "void validate(int* data, int n) {\n",
+            "    if (n > 0) {\n",
+            "        if (data[0] > 0) {\n",
+            "            if (data[0] > 10) {\n",
+            "                int x = 1;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    int gap = 1;\n",
+            "    if (n > 5) {\n",
+            "        if (data[5] > 0) {\n",
+            "            if (data[5] > 10) {\n",
+            "                int y = 2;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    int gap2 = 2;\n",
+            "    if (n > 10) {\n",
+            "        if (data[10] > 0) {\n",
+            "            if (data[10] > 10) {\n",
+            "                int z = 3;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "c",
+    );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -610,7 +638,11 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "Overall Function Size"),
+        "got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================

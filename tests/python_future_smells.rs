@@ -12,20 +12,30 @@ const LANG: &str = "python";
 #[test]
 fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.py");
-    assert!(has_smell(&output, "Low Cohesion"), "should detect low cohesion in KitchenSink, got: {}", output);
+    assert!(
+        has_smell(&output, "Low Cohesion"),
+        "should detect low cohesion in KitchenSink, got: {}",
+        output
+    );
 }
 
 #[test]
 fn low_cohesion_reports_cluster_count() {
     let output = run_check(LANG, "low_cohesion.py");
-    assert!(output.contains("LCOM4=4"), "should report 4 disconnected clusters, got: {}", output);
+    assert!(
+        output.contains("LCOM4=4"),
+        "should report 4 disconnected clusters, got: {}",
+        output
+    );
 }
 
 #[test]
 fn cohesive_class_not_flagged() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("cohesive.py");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 class Service:
     def __init__(self):
         self.data = []
@@ -40,13 +50,19 @@ class Service:
     def process(self):
         for d in self.data:
             self.cache[d.id] = d
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!has_smell(&stdout, "Low Cohesion"), "bridged clusters should not trigger, got: {}", stdout);
+    assert!(
+        !has_smell(&stdout, "Low Cohesion"),
+        "bridged clusters should not trigger, got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -56,7 +72,11 @@ class Service:
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.py");
-    assert!(has_smell(&output, "Code Duplication"), "should detect duplicated report functions, got: {}", output);
+    assert!(
+        has_smell(&output, "Code Duplication"),
+        "should detect duplicated report functions, got: {}",
+        output
+    );
 }
 
 #[test]
@@ -71,13 +91,17 @@ fn code_duplication_identifies_all_clones() {
 fn non_duplicate_similar_functions_not_flagged() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("similar.py");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 def process_users(users):
     return [{"id": u.id, "name": u.name, "type": "user"} for u in users]
 
 def process_orders(orders):
     return [{"id": o.id, "total": o.total, "type": "order"} for o in orders]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
@@ -100,7 +124,9 @@ fn test_file_duplication_not_flagged() {
 fn small_duplicate_functions_not_flagged() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("small_dupes.py");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 def get_x(obj):
     return obj.x
 
@@ -109,7 +135,9 @@ def get_y(obj):
 
 def get_z(obj):
     return obj.z
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
@@ -140,7 +168,9 @@ fn primitive_obsession_detected() {
 fn domain_typed_params_not_flagged() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("typed.py");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 from dataclasses import dataclass
 
 @dataclass
@@ -150,13 +180,19 @@ class Address:
 
 def create_user(name: str, address: Address):
     pass
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!has_smell(&stdout, "Primitive Obsession"), "domain-typed params should not trigger, got: {}", stdout);
+    assert!(
+        !has_smell(&stdout, "Primitive Obsession"),
+        "domain-typed params should not trigger, got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -177,7 +213,11 @@ fn excessive_declarations_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Declarations"), "25 classes in one file should be flagged, got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "Declarations"),
+        "25 classes in one file should be flagged, got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -202,7 +242,11 @@ fn overall_function_size_pattern_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "pattern of large functions should be flagged, got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "Overall Function Size"),
+        "pattern of large functions should be flagged, got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -212,26 +256,42 @@ fn overall_function_size_pattern_detected() {
 #[test]
 fn large_assertion_block_detected() {
     let output = run_check(LANG, "test_smells.py");
-    assert!(has_smell(&output, "Large Assertion Block"), "should detect large assertion blocks, got: {}", output);
+    assert!(
+        has_smell(&output, "Large Assertion Block"),
+        "should detect large assertion blocks, got: {}",
+        output
+    );
 }
 
 #[test]
 fn duplicated_assertion_blocks_detected() {
     let output = run_check(LANG, "test_smells.py");
-    assert!(has_smell(&output, "Duplicated Assertion"), "should detect duplicated assertion blocks, got: {}", output);
+    assert!(
+        has_smell(&output, "Duplicated Assertion"),
+        "should detect duplicated assertion blocks, got: {}",
+        output
+    );
 }
 
 #[test]
 fn small_assertion_block_not_flagged() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("small_test.py");
-    std::fs::write(&path, "def test_simple():\n    assert 1 + 1 == 2\n    assert True\n").unwrap();
+    std::fs::write(
+        &path,
+        "def test_simple():\n    assert 1 + 1 == 2\n    assert True\n",
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!has_smell(&stdout, "Assertion Block"), "small assertion groups should not trigger, got: {}", stdout);
+    assert!(
+        !has_smell(&stdout, "Assertion Block"),
+        "small assertion groups should not trigger, got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -241,7 +301,11 @@ fn small_assertion_block_not_flagged() {
 #[test]
 fn deep_global_nesting_detected() {
     let output = run_check(LANG, "global_conditionals.py");
-    assert!(has_smell(&output, "Deep Global Nesting"), "should detect deep nesting at module scope, got: {}", output);
+    assert!(
+        has_smell(&output, "Deep Global Nesting"),
+        "should detect deep nesting at module scope, got: {}",
+        output
+    );
 }
 
 // ===========================================================================

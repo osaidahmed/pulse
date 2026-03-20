@@ -1,9 +1,10 @@
 use tree_sitter::{Node, Tree};
 
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, measure_nesting_depth,
-    node_text, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    find_child_by_kind, measure_nesting_depth, node_text, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["#"];
@@ -57,9 +58,8 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 }
 
 fn try_add_function(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let fn_node = match unwrap_decorated(node) {
-        Some(n) => n,
-        None => return,
+    let Some(fn_node) = unwrap_decorated(node) else {
+        return;
     };
     if let Some(m) = analyze_function(fn_node, source) {
         functions.push(m);
@@ -75,12 +75,11 @@ fn unwrap_decorated(node: Node) -> Option<Node> {
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let body = match find_child_by_kind(class_node, "block") {
-        Some(b) => b,
-        None => return,
+    let Some(body) = find_child_by_kind(class_node, "block") else {
+        return;
     };
     let class_name = find_child_by_kind(class_node, "identifier")
-        .map(|n| node_text(n, source))
+        .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
 
     let mut cursor = body.walk();
@@ -88,16 +87,14 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
         if child.kind() != "function_definition" && child.kind() != "decorated_definition" {
             continue;
         }
-        let fn_node = match unwrap_decorated(child) {
-            Some(n) => n,
-            None => continue,
+        let Some(fn_node) = unwrap_decorated(child) else {
+            continue;
         };
-        let mut metrics = match analyze_function(fn_node, source) {
-            Some(m) => m,
-            None => continue,
+        let Some(mut metrics) = analyze_function(fn_node, source) else {
+            continue;
         };
         let method_name = metrics.name.clone();
-        metrics.name = format!("{}.{}", class_name, method_name);
+        metrics.name = format!("{class_name}.{method_name}");
         metrics.is_constructor = method_name == "__init__";
         metrics.class_name = Some(class_name.clone());
         collect_field_accesses_for(fn_node, source, SELF_NAMES, &mut metrics.field_accesses);
@@ -110,8 +107,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let name = find_child_by_kind(node, "identifier")
-        .map(|n| node_text(n, source))
-        .unwrap_or_else(|| "<anonymous>".into());
+        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
@@ -133,6 +129,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         end_line,
         loc,
         cc: s.cc,
+        cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,
         bump_count: s.bump_count,
         arg_count,
@@ -158,18 +155,32 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         match child.kind() {
             "if_statement" => {
                 s.track_if(depth);
+                s.track_cogc_branch();
+                count_cogc_boolean_sequences(child, &mut s.cogc);
                 check_condition_complexity(child, source, &mut s.compound_condition_count);
                 count_boolean_operators(child, &mut s.cc);
                 walk_children(child, source, depth + 1, s);
             }
             "for_statement" | "while_statement" | "with_statement" => {
                 s.track_loop(depth);
+                s.track_cogc_branch();
                 walk_children(child, source, depth + 1, s);
             }
-            "except_clause" => { s.cc += 1; walk_children(child, source, depth, s); }
+            "except_clause" => {
+                s.cc += 1;
+                s.track_cogc_branch();
+                walk_children(child, source, depth, s);
+            }
             "else_clause" | "try_statement" => walk_children(child, source, depth, s),
-            "conditional_expression" => s.cc += 1,
-            "assert_statement" => { if has_boolean_child(child) { s.cc += 1; } }
+            "conditional_expression" => {
+                s.cc += 1;
+                s.track_cogc_branch();
+            }
+            "assert_statement" => {
+                if has_boolean_child(child) {
+                    s.cc += 1;
+                }
+            }
             "string" | "concatenated_string" => s.track_embedded(child),
             _ => walk_body(child, source, depth, s),
         }
@@ -180,18 +191,38 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "block" => walk_body(child, source, depth, s),
+            "block" => {
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
+                walk_body(child, source, depth, s);
+                s.cogc_nesting = saved;
+            }
             "elif_clause" => {
                 s.cc += 1;
-                if depth > s.max_nesting { s.max_nesting = depth; }
+                s.track_cogc_branch();
+                if depth > s.max_nesting {
+                    s.max_nesting = depth;
+                }
                 check_condition_complexity(child, source, &mut s.compound_condition_count);
                 count_boolean_operators(child, &mut s.cc);
+                count_cogc_boolean_sequences(child, &mut s.cogc);
                 walk_block_children(child, source, depth, s);
             }
-            "else_clause" | "finally_clause" => walk_block_children(child, source, depth, s),
+            "else_clause" => {
+                s.track_cogc_flat();
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
+                walk_block_children(child, source, depth, s);
+                s.cogc_nesting = saved;
+            }
+            "finally_clause" => walk_block_children(child, source, depth, s),
             "except_clause" => {
                 s.cc += 1;
+                s.track_cogc_branch();
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
                 walk_block_children(child, source, depth, s);
+                s.cogc_nesting = saved;
             }
             _ => {}
         }
@@ -227,15 +258,18 @@ fn check_condition_complexity(node: Node, source: &str, count: &mut u32) {
         .or_else(|| find_child_by_kind(node, "not_operator"));
     if let Some(cond) = condition {
         let text = node_text(cond, source);
-        let ops = text.matches(" and ").count() + text.matches(" or ").count() + text.matches(" not ").count();
-        if ops >= 2 { *count += 1; }
+        let ops = text.matches(" and ").count()
+            + text.matches(" or ").count()
+            + text.matches(" not ").count();
+        if ops >= 2 {
+            *count += 1;
+        }
     }
 }
 
 fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
-    let params = match find_child_by_kind(func_node, "parameters") {
-        Some(p) => p,
-        None => return (0, 0, 0),
+    let Some(params) = find_child_by_kind(func_node, "parameters") else {
+        return (0, 0, 0);
     };
     let mut count: u32 = 0;
     let mut primitive_count: u32 = 0;
@@ -243,13 +277,18 @@ fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
     let mut cursor = params.walk();
     for child in params.children(&mut cursor) {
         match child.kind() {
-            "identifier" | "list_splat_pattern" | "dictionary_splat_pattern" | "default_parameter" => {
+            "identifier"
+            | "list_splat_pattern"
+            | "dictionary_splat_pattern"
+            | "default_parameter" => {
                 count += 1;
             }
             "typed_parameter" | "typed_default_parameter" => {
                 count += 1;
                 typed_count += 1;
-                if has_primitive_type(child, source) { primitive_count += 1; }
+                if has_primitive_type(child, source) {
+                    primitive_count += 1;
+                }
             }
             _ => {}
         }
@@ -258,13 +297,11 @@ fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
 }
 
 fn has_primitive_type(param_node: Node, source: &str) -> bool {
-    let type_node = match find_child_by_kind(param_node, "type") {
-        Some(t) => t,
-        None => return false,
+    let Some(type_node) = find_child_by_kind(param_node, "type") else {
+        return false;
     };
-    let id_node = match find_child_by_kind(type_node, "identifier") {
-        Some(n) => n,
-        None => return false,
+    let Some(id_node) = find_child_by_kind(type_node, "identifier") else {
+        return false;
     };
     let name = &source[id_node.byte_range()];
     PRIMITIVE_TYPES.contains(&name)
@@ -277,13 +314,16 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
             "if_statement" => {
                 *conditional_count += 1;
                 let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting { *max_nesting = depth; }
+                if depth > *max_nesting {
+                    *max_nesting = depth;
+                }
             }
             "for_statement" | "while_statement" => {
                 let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting { *max_nesting = depth; }
+                if depth > *max_nesting {
+                    *max_nesting = depth;
+                }
             }
-            "function_definition" | "class_definition" | "decorated_definition" => {}
             _ => {}
         }
     }
@@ -296,8 +336,49 @@ fn count_declarations(root: Node) -> u32 {
         .count() as u32
 }
 
+fn count_cogc_boolean_sequences(node: Node, cogc: &mut u32) {
+    let mut last_op: Option<String> = None;
+    collect_boolean_ops_python(node, cogc, &mut last_op);
+}
+
+fn collect_boolean_ops_python(node: Node, cogc: &mut u32, last_op: &mut Option<String>) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        match child.kind() {
+            "boolean_operator" => {
+                track_python_operator(child, cogc, last_op);
+                collect_boolean_ops_python(child, cogc, last_op);
+            }
+            "block" | "function_definition" | "class_definition" => {}
+            _ => collect_boolean_ops_python(child, cogc, last_op),
+        }
+    }
+}
+
+fn track_python_operator(boolean_op: Node, cogc: &mut u32, last_op: &mut Option<String>) {
+    let Some(op_node) = find_operator_keyword(boolean_op) else {
+        return;
+    };
+    let op = op_node.kind().to_string();
+    if last_op.as_deref() == Some(&op) {
+        return;
+    }
+    *cogc += 1;
+    *last_op = Some(op);
+}
+
+fn find_operator_keyword(boolean_op: Node) -> Option<Node> {
+    let mut cursor = boolean_op.walk();
+    let result = boolean_op
+        .children(&mut cursor)
+        .find(|c| c.kind() == "and" || c.kind() == "or" || c.kind() == "not");
+    result
+}
+
 fn has_boolean_child(node: Node) -> bool {
     let mut cursor = node.walk();
-    let result = node.children(&mut cursor).any(|c| c.kind() == "boolean_operator");
+    let result = node
+        .children(&mut cursor)
+        .any(|c| c.kind() == "boolean_operator");
     result
 }

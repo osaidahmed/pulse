@@ -3,8 +3,12 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String { pulse_check_code(code, "js") }
-fn debug(code: &str) -> String { pulse_debug_code(code, "js") }
+fn check(code: &str) -> String {
+    pulse_check_code(code, "js")
+}
+fn debug(code: &str) -> String {
+    pulse_debug_code(code, "js")
+}
 
 // ===========================================================================
 // CC counting precision
@@ -232,7 +236,9 @@ fn overall_size_below_threshold() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("function lg{}() {{\n", i));
-        for j in 0..45 { code.push_str(&format!("    const x{} = {};\n", j, j)); }
+        for j in 0..45 {
+            code.push_str(&format!("    const x{} = {};\n", j, j));
+        }
         code.push_str("}\n\n");
     }
     let out = check(&code);
@@ -244,7 +250,9 @@ fn overall_size_above_threshold() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("function lg{}() {{\n", i));
-        for j in 0..45 { code.push_str(&format!("    const x{} = {};\n", j, j)); }
+        for j in 0..45 {
+            code.push_str(&format!("    const x{} = {};\n", j, j));
+        }
         code.push_str("}\n\n");
     }
     let out = check(&code);
@@ -258,7 +266,9 @@ fn overall_size_above_threshold() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 { code.push_str(&format!("class T{} {{}}\n", i)); }
+    for i in 0..25 {
+        code.push_str(&format!("class T{} {{}}\n", i));
+    }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
 }
@@ -269,7 +279,9 @@ fn declarations_above_threshold() {
 
 #[test]
 fn global_nesting_3_flagged() {
-    let out = check("if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n");
+    let out = check(
+        "if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n",
+    );
     assert!(has_smell(&out, "Deep Global Nesting"));
 }
 
@@ -342,8 +354,13 @@ fn multiple_smells_same_function() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("function func{}(data) {{\n    const r = {{}};\n", i));
-        for j in 0..18 { code.push_str(&format!("    r.f{} = data.f{};\n", j, j)); }
+        code.push_str(&format!(
+            "function func{}(data) {{\n    const r = {{}};\n",
+            i
+        ));
+        for j in 0..18 {
+            code.push_str(&format!("    r.f{} = data.f{};\n", j, j));
+        }
         code.push_str("    return r;\n}\n\n");
     }
     let dir = tempfile::tempdir().unwrap();
@@ -413,7 +430,11 @@ fn cc_switch_many_cases() {
 fn nesting_try_catch_counts_depth() {
     let out = debug("function f() {\n    try {\n        if (x) {}\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 1, "try-catch should contribute nesting, got: {}", depth);
+    assert!(
+        depth >= 1,
+        "try-catch should contribute nesting, got: {}",
+        depth
+    );
 }
 
 // ===========================================================================
@@ -422,7 +443,8 @@ fn nesting_try_catch_counts_depth() {
 
 #[test]
 fn lcom4_single_method_not_flagged() {
-    let out = check("class T {\n    constructor() { this.x = 1; }\n    get() { return this.x; }\n}\n");
+    let out =
+        check("class T {\n    constructor() { this.x = 1; }\n    get() { return this.x; }\n}\n");
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
@@ -668,7 +690,11 @@ fn clean_express_handler_not_flagged() {
         "    res.json(users);\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "clean Express handler should not be flagged, got: {}", out);
+    assert!(
+        out.is_empty(),
+        "clean Express handler should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -684,7 +710,12 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"other\": 1}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -700,7 +731,12 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -730,7 +766,10 @@ fn hook_empty_stdin() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class Service{} {{\n    constructor() {{ this.data{} = []; }}\n", i, i));
+        code.push_str(&format!(
+            "class Service{} {{\n    constructor() {{ this.data{} = []; }}\n",
+            i, i
+        ));
         for j in 0..5 {
             code.push_str(&format!("    method{}() {{ return this.data{}; }}\n", j, i));
         }

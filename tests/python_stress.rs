@@ -3,8 +3,12 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String { pulse_check_code(code, "py") }
-fn debug(code: &str) -> String { pulse_debug_code(code, "py") }
+fn check(code: &str) -> String {
+    pulse_check_code(code, "py")
+}
+fn debug(code: &str) -> String {
+    pulse_debug_code(code, "py")
+}
 
 // ===========================================================================
 // CC counting precision
@@ -114,7 +118,9 @@ fn nesting_depth_2_for_nested_if() {
 
 #[test]
 fn nesting_depth_tracks_for_in_if() {
-    let out = debug("def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n");
+    let out = debug(
+        "def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n",
+    );
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -284,7 +290,8 @@ fn lcom4_transitive_connection() {
 #[test]
 fn duplication_decorators_dont_affect_hash() {
     // same body, different decorators — should be flagged as duplicates
-    let out = check(r#"
+    let out = check(
+        r#"
 def decorator_a(f):
     return f
 def decorator_b(f):
@@ -307,14 +314,16 @@ def func_b(data):
     result["value"] = data.get("value", 0)
     result["active"] = data.get("active", True)
     return result
-"#);
+"#,
+    );
     assert!(has_smell(&out, "Code Duplication"));
 }
 
 #[test]
 fn duplication_async_vs_sync_same_body() {
     // async and sync versions with same body
-    let out = check(r#"
+    let out = check(
+        r#"
 async def fetch_a(url):
     result = {}
     result["data"] = await get(url)
@@ -330,13 +339,15 @@ async def fetch_b(endpoint):
     result["timestamp"] = now()
     result["source"] = endpoint
     return result
-"#);
+"#,
+    );
     assert!(has_smell(&out, "Code Duplication"));
 }
 
 #[test]
 fn duplication_two_functions_is_minimum_group() {
-    let out = check(r#"
+    let out = check(
+        r#"
 def report_a(data):
     r = {}
     r["id"] = data.get("id")
@@ -352,14 +363,16 @@ def report_b(items):
     r["value"] = items.get("value")
     r["status"] = "active"
     return r
-"#);
+"#,
+    );
     assert!(has_smell(&out, "Code Duplication"));
 }
 
 #[test]
 fn duplication_mixed_test_and_prod_still_flagged() {
     // if one function is NOT a test_, the group should still be flagged
-    let out = check(r#"
+    let out = check(
+        r#"
 def test_something(data):
     result = {}
     result["id"] = data.get("id")
@@ -375,7 +388,8 @@ def process_data(data):
     result["value"] = data.get("value")
     result["extra"] = data.get("extra")
     return result
-"#);
+"#,
+    );
     assert!(has_smell(&out, "Code Duplication"));
 }
 
@@ -431,7 +445,8 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
 #[test]
 fn assertion_block_interrupted_by_code_resets_count() {
     // asserts broken by a non-assert statement
-    let out = check(r#"
+    let out = check(
+        r#"
 def test_interleaved():
     assert x == 1
     assert y == 2
@@ -439,7 +454,8 @@ def test_interleaved():
     do_something()
     assert a == 4
     assert b == 5
-"#);
+"#,
+    );
     // max consecutive is 3, below threshold of 10
     assert!(!has_smell(&out, "Large Assertion Block"));
 }
@@ -565,13 +581,13 @@ fn global_nesting_depth_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection_not_excess_args() {
-    let out = check(
-        "class S:\n    def __init__(self, a, b, c, d, e, f):\n        pass\n",
-    );
+    let out = check("class S:\n    def __init__(self, a, b, c, d, e, f):\n        pass\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     // Should say "Constructor Over-Injection", not "Excess Arguments"
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("__init__")).collect();
-    assert!(lines.iter().any(|l| l.contains("Constructor Over-Injection")));
+    assert!(lines
+        .iter()
+        .any(|l| l.contains("Constructor Over-Injection")));
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
 
@@ -588,7 +604,8 @@ fn regular_function_reports_excess_args_not_constructor() {
 
 #[test]
 fn function_can_have_multiple_smells() {
-    let out = check(r#"
+    let out = check(
+        r#"
 def terrible(a, b, c, d, e, f, g, h):
     query = """
         SELECT *
@@ -632,7 +649,8 @@ def terrible(a, b, c, d, e, f, g, h):
 
 #[test]
 fn clean_django_view_not_flagged() {
-    let out = check(r#"
+    let out = check(
+        r#"
 class ItemListView:
     def get_queryset(self):
         return self.model.objects.filter(active=True)
@@ -641,8 +659,13 @@ class ItemListView:
         context = super().get_context_data(**kwargs)
         context["title"] = "Items"
         return context
-"#);
-    assert!(out.is_empty(), "clean Django view should not be flagged, got: {}", out);
+"#,
+    );
+    assert!(
+        out.is_empty(),
+        "clean Django view should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -651,7 +674,8 @@ class ItemListView:
 
 #[test]
 fn pytest_fixture_parametrize_not_flagged() {
-    let out = check(r#"
+    let out = check(
+        r#"
 import pytest
 
 @pytest.fixture
@@ -667,9 +691,14 @@ def test_user_name(user):
 
 def test_admin_name(admin):
     assert admin["name"] == "admin"
-"#);
+"#,
+    );
     // Small functions, few assertions — nothing should trigger
-    assert!(out.is_empty(), "pytest fixture pattern should not be flagged, got: {}", out);
+    assert!(
+        out.is_empty(),
+        "pytest fixture pattern should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -769,9 +798,15 @@ fn performance_deeply_nested_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
         code.push_str(&format!("class Service{}:\n", i));
-        code.push_str(&format!("    def __init__(self):\n        self.data_{} = []\n\n", i));
+        code.push_str(&format!(
+            "    def __init__(self):\n        self.data_{} = []\n\n",
+            i
+        ));
         for j in 0..5 {
-            code.push_str(&format!("    def method_{}(self):\n        return self.data_{}\n\n", j, i));
+            code.push_str(&format!(
+                "    def method_{}(self):\n        return self.data_{}\n\n",
+                j, i
+            ));
         }
     }
     let dir = tempfile::tempdir().unwrap();

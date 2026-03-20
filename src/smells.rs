@@ -20,11 +20,7 @@ pub enum Location {
     Module,
 }
 
-pub fn detect(
-    (functions, module): &FileMetrics,
-    _source: &str,
-    t: &Thresholds,
-) -> Vec<Finding> {
+pub fn detect((functions, module): &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Finding> {
     let mut findings = Vec::new();
     let mut has_god_method = false;
 
@@ -68,37 +64,75 @@ fn detect_complexity_smells(
     findings: &mut Vec<Finding>,
     has_god_method: &mut bool,
 ) {
-    let is_complex = f.cc >= t.cc_warning;
+    let cc_complex = f.cc >= t.cc_warning;
+    let cogc_complex = f.cognitive_complexity >= t.cogc_warning;
+    let is_complex = cc_complex || cogc_complex;
     let is_large = f.loc >= t.fn_loc_warning;
 
     if is_complex && is_large {
         *has_god_method = true;
+        let detail = complexity_detail(f, t, cc_complex, cogc_complex);
         findings.push(Finding {
             smell: "God Method",
             location: func_loc(f),
-            detail: format!("cc={}, {} lines (both thresholds exceeded)", f.cc, f.loc),
+            detail: format!("{}, {} lines (both thresholds exceeded)", detail, f.loc),
         });
         return;
     }
 
-    check_complex_method(f, t, is_complex, findings);
+    check_complex_method(f, t, cc_complex, cogc_complex, findings);
     check_large_method(f, t, is_large, findings);
+}
+
+fn complexity_detail(
+    f: &FunctionMetrics,
+    t: &Thresholds,
+    cc_complex: bool,
+    cogc_complex: bool,
+) -> String {
+    match (cc_complex, cogc_complex) {
+        (true, true) => {
+            let sev = if f.cc > t.cc_alert || f.cognitive_complexity > t.cogc_alert {
+                "alert"
+            } else {
+                "warning"
+            };
+            format!("cc={}, cogc={} [{}]", f.cc, f.cognitive_complexity, sev)
+        }
+        (false, true) => {
+            let sev = if f.cognitive_complexity > t.cogc_alert {
+                "alert"
+            } else {
+                "warning"
+            };
+            format!("cogc={} [{}]", f.cognitive_complexity, sev)
+        }
+        _ => {
+            let sev = if f.cc > t.cc_alert {
+                "alert"
+            } else {
+                "warning"
+            };
+            format!("cc={} [{}]", f.cc, sev)
+        }
+    }
 }
 
 fn check_complex_method(
     f: &FunctionMetrics,
     t: &Thresholds,
-    is_complex: bool,
+    cc_complex: bool,
+    cogc_complex: bool,
     findings: &mut Vec<Finding>,
 ) {
-    if !is_complex {
+    if !cc_complex && !cogc_complex {
         return;
     }
-    let severity = if f.cc > t.cc_alert { "alert" } else { "warning" };
+    let detail = complexity_detail(f, t, cc_complex, cogc_complex);
     findings.push(Finding {
         smell: "Complex Method",
         location: func_loc(f),
-        detail: format!("cc={} [{}]", f.cc, severity),
+        detail,
     });
 }
 
@@ -111,7 +145,11 @@ fn check_large_method(
     if !is_large {
         return;
     }
-    let severity = if f.loc > t.fn_loc_alert { "alert" } else { "warning" };
+    let severity = if f.loc > t.fn_loc_alert {
+        "alert"
+    } else {
+        "warning"
+    };
     findings.push(Finding {
         smell: "Large Method",
         location: func_loc(f),
@@ -128,7 +166,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
         });
     }
 
-    if f.max_nesting > t.nesting_depth {
+    if f.max_nesting >= t.nesting_depth {
         findings.push(Finding {
             smell: "Deep Nested Complexity",
             location: func_loc(f),
@@ -146,11 +184,19 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
 }
 
 fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    let threshold = if f.is_constructor { t.constructor_arg_max } else { t.arg_max };
+    let threshold = if f.is_constructor {
+        t.constructor_arg_max
+    } else {
+        t.arg_max
+    };
     if f.arg_count <= threshold {
         return;
     }
-    let smell = if f.is_constructor { "Constructor Over-Injection" } else { "Excess Arguments" };
+    let smell = if f.is_constructor {
+        "Constructor Over-Injection"
+    } else {
+        "Excess Arguments"
+    };
     findings.push(Finding {
         smell,
         location: func_loc(f),
@@ -193,7 +239,11 @@ fn detect_size_smells(
 
 fn check_file_loc(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     if m.total_loc > t.file_loc_warning {
-        let severity = if m.total_loc > t.file_loc_alert { "alert" } else { "warning" };
+        let severity = if m.total_loc > t.file_loc_alert {
+            "alert"
+        } else {
+            "warning"
+        };
         findings.push(Finding {
             smell: "File Too Large",
             location: Location::Module,
@@ -258,7 +308,10 @@ fn detect_global_scope_smells(m: &ModuleMetrics, _t: &Thresholds, findings: &mut
         findings.push(Finding {
             smell: "Global Conditionals",
             location: Location::Module,
-            detail: format!("{} conditionals at module scope", m.global_conditional_count),
+            detail: format!(
+                "{} conditionals at module scope",
+                m.global_conditional_count
+            ),
         });
     }
 
@@ -295,7 +348,10 @@ fn detect_exact_clones(
 ) {
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
     for &i in eligible {
-        groups.entry(functions[i].structural_hash).or_default().push(i);
+        groups
+            .entry(functions[i].structural_hash)
+            .or_default()
+            .push(i);
     }
     emit_duplication_findings(&groups, functions, t, findings, "identical structure");
 }
@@ -308,7 +364,10 @@ fn detect_similar_clones(
 ) {
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
     for &i in eligible {
-        groups.entry(functions[i].skeleton_hash).or_default().push(i);
+        groups
+            .entry(functions[i].skeleton_hash)
+            .or_default()
+            .push(i);
     }
 
     // Only report skeleton groups that weren't already caught by exact matching
@@ -365,7 +424,9 @@ fn emit_duplication_findings(
 ) {
     let duplicated = groups.values().filter(|indices| {
         indices.len() >= t.duplication_min_group as usize
-            && !indices.iter().all(|&i| is_test_function(&functions[i].name))
+            && !indices
+                .iter()
+                .all(|&i| is_test_function(&functions[i].name))
     });
 
     for indices in duplicated {
@@ -471,10 +532,7 @@ fn detect_large_assertion_blocks(
     }
 }
 
-fn detect_duplicated_assertion_blocks(
-    functions: &[FunctionMetrics],
-    findings: &mut Vec<Finding>,
-) {
+fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
     let test_fns: Vec<(usize, &FunctionMetrics)> = functions
         .iter()
         .enumerate()
@@ -507,11 +565,7 @@ fn detect_duplicated_assertion_blocks(
     }
 }
 
-fn detect_lcom4(
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-    findings: &mut Vec<Finding>,
-) {
+fn detect_lcom4(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     let class_methods = group_methods_by_class(functions);
 
     for (class_name, methods) in &class_methods {
@@ -521,8 +575,7 @@ fn detect_lcom4(
                 smell: "Low Cohesion",
                 location: Location::Module,
                 detail: format!(
-                    "{}: LCOM4={} ({} disconnected method groups)",
-                    class_name, components, components
+                    "{class_name}: LCOM4={components} ({components} disconnected method groups)"
                 ),
             });
         }
@@ -551,7 +604,10 @@ fn compute_lcom4(methods: &[&FunctionMetrics]) -> u32 {
 
     let n = non_init.len();
     let shared_field = |i: usize, j: usize| -> bool {
-        non_init[i].field_accesses.iter().any(|f| non_init[j].field_accesses.contains(f))
+        non_init[i]
+            .field_accesses
+            .iter()
+            .any(|f| non_init[j].field_accesses.contains(f))
     };
 
     count_connected_components(n, shared_field)
@@ -572,8 +628,8 @@ fn count_connected_components(n: usize, connected: impl Fn(usize, usize) -> bool
                 continue;
             }
             visited[node] = true;
-            for neighbor in 0..n {
-                if !visited[neighbor] && connected(node, neighbor) {
+            for (neighbor, visited_flag) in visited.iter().enumerate() {
+                if !visited_flag && connected(node, neighbor) {
                     stack.push(neighbor);
                 }
             }

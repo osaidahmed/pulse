@@ -5,7 +5,7 @@ mod thresholds;
 mod walk;
 
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 
@@ -28,13 +28,12 @@ enum Command {
 
 fn parse_args() -> Command {
     let args: Vec<String> = std::env::args().collect();
-    let cmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+    let cmd = args.get(1).map_or("", std::string::String::as_str);
 
     match cmd {
         "--hook" => {
-            let hook = match parse_hook_input() {
-                Some(h) => h,
-                None => process::exit(0),
+            let Some(hook) = parse_hook_input() else {
+                process::exit(0);
             };
             Command::Hook(hook)
         }
@@ -60,8 +59,8 @@ fn run_debug(file_path: &str) {
     );
     for f in &functions {
         eprintln!(
-            "  {} (L{}-{}): loc={} cc={} nesting={} bumps={} args={} conditions={} embedded={} asserts={} primitives={}/{} fields={:?}",
-            f.name, f.start_line, f.end_line, f.loc, f.cc, f.max_nesting, f.bump_count,
+            "  {} (L{}-{}): loc={} cc={} cogc={} nesting={} bumps={} args={} conditions={} embedded={} asserts={} primitives={}/{} fields={:?}",
+            f.name, f.start_line, f.end_line, f.loc, f.cc, f.cognitive_complexity, f.max_nesting, f.bump_count,
             f.arg_count, f.compound_condition_count, f.max_embedded_block_loc,
             f.consecutive_asserts, f.primitive_type_count, f.typed_param_count, f.field_accesses
         );
@@ -123,13 +122,11 @@ fn compute_baseline_counts(hook: &HookInput) -> HashMap<String, usize> {
         Some(s) if !s.is_empty() => s,
         _ => return HashMap::new(),
     };
-    let lang = match parse::detect_language(Path::new(&hook.file_path)) {
-        Some(l) => l,
-        None => return HashMap::new(),
+    let Some(lang) = parse::detect_language(Path::new(&hook.file_path)) else {
+        return HashMap::new();
     };
-    let metrics = match parse::parse_and_walk(&source, lang) {
-        Some(m) => m,
-        None => return HashMap::new(),
+    let Some(metrics) = parse::parse_and_walk(&source, lang) else {
+        return HashMap::new();
     };
     let thresholds = thresholds::Thresholds::default();
     let findings = smells::detect(&metrics, &source, &thresholds);
@@ -162,9 +159,8 @@ fn write_baseline(path: &Path, counts: &HashMap<String, usize>) {
 
 fn load_baseline(file_path: &str) -> HashMap<String, usize> {
     let bp = baseline_path(file_path);
-    let json = match std::fs::read_to_string(&bp) {
-        Ok(j) => j,
-        Err(_) => return HashMap::new(),
+    let Ok(json) = std::fs::read_to_string(&bp) else {
+        return HashMap::new();
     };
     serde_json::from_str(&json).unwrap_or_default()
 }
@@ -175,21 +171,19 @@ fn append_manifest(file_path: &str) {
     if existing.lines().any(|l| l == file_path) {
         return;
     }
-    use std::io::Write;
     let _ = std::fs::create_dir_all(baseline_dir());
     if let Ok(mut f) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&manifest)
     {
-        let _ = writeln!(f, "{}", file_path);
+        let _ = writeln!(f, "{file_path}");
     }
 }
 
 fn run_check(file_path: &str) {
-    let (findings, filename) = match analyze_file(file_path) {
-        Some(r) => r,
-        None => process::exit(0),
+    let Some((findings, filename)) = analyze_file(file_path) else {
+        process::exit(0);
     };
     if findings.is_empty() {
         process::exit(0);
@@ -199,9 +193,8 @@ fn run_check(file_path: &str) {
 
 fn run_hook(hook: HookInput) {
     cache_baseline(&hook);
-    let (all_findings, filename) = match analyze_file(&hook.file_path) {
-        Some(r) => r,
-        None => process::exit(0),
+    let Some((all_findings, filename)) = analyze_file(&hook.file_path) else {
+        process::exit(0);
     };
     let findings = filter_by_edit_range(all_findings, hook.edit_range);
     if findings.is_empty() {
@@ -221,9 +214,8 @@ fn main() {
 }
 
 fn run_stop() {
-    let manifest = match std::fs::read_to_string(baseline_dir().join("manifest.txt")) {
-        Ok(m) => m,
-        Err(_) => return,
+    let Ok(manifest) = std::fs::read_to_string(baseline_dir().join("manifest.txt")) else {
+        return;
     };
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
@@ -245,7 +237,10 @@ fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
     let (findings, filename) = analyze_file(file_path)?;
 
     let mut current_counts: HashMap<&str, usize> = HashMap::new();
-    for f in findings.iter().filter(|f| matches!(f.location, Location::Module)) {
+    for f in findings
+        .iter()
+        .filter(|f| matches!(f.location, Location::Module))
+    {
         *current_counts.entry(f.smell).or_default() += 1;
     }
 
@@ -279,11 +274,11 @@ fn parse_hook_input() -> Option<HookInput> {
     let old_string = tool_input
         .get("old_string")
         .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+        .map(std::string::ToString::to_string);
     let new_string = tool_input
         .get("new_string")
         .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+        .map(std::string::ToString::to_string);
 
     let edit_range = compute_edit_range(tool_input, &file_path);
 
@@ -295,15 +290,14 @@ fn parse_hook_input() -> Option<HookInput> {
     })
 }
 
-fn compute_edit_range(
-    tool_input: &serde_json::Value,
-    file_path: &str,
-) -> Option<(u32, u32)> {
+fn compute_edit_range(tool_input: &serde_json::Value, file_path: &str) -> Option<(u32, u32)> {
     let new_string = tool_input.get("new_string")?.as_str()?;
     let old_string = tool_input.get("old_string")?.as_str()?;
 
     let source = std::fs::read_to_string(file_path).ok()?;
-    let start_byte = source.find(new_string).or_else(|| source.find(old_string))?;
+    let start_byte = source
+        .find(new_string)
+        .or_else(|| source.find(old_string))?;
 
     let start_line = source[..start_byte].matches('\n').count() as u32 + 1;
     let new_lines = new_string.matches('\n').count() as u32;
@@ -312,18 +306,12 @@ fn compute_edit_range(
     Some((start_line, end_line))
 }
 
-pub fn filter_by_edit_range(
-    findings: Vec<Finding>,
-    range: Option<(u32, u32)>,
-) -> Vec<Finding> {
-    let (start, end) = match range {
-        Some(r) => r,
-        None => {
-            return findings
-                .into_iter()
-                .filter(|f| !matches!(f.location, Location::Module))
-                .collect();
-        }
+pub fn filter_by_edit_range(findings: Vec<Finding>, range: Option<(u32, u32)>) -> Vec<Finding> {
+    let Some((start, end)) = range else {
+        return findings
+            .into_iter()
+            .filter(|f| !matches!(f.location, Location::Module))
+            .collect();
     };
 
     findings

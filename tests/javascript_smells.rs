@@ -8,27 +8,43 @@ const LANG: &str = "javascript";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.js");
-    assert!(output.is_empty(), "clean JS file should produce no output, got: {}", output);
+    assert!(
+        output.is_empty(),
+        "clean JS file should produce no output, got: {}",
+        output
+    );
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_method.js");
-    assert!(has_smell(&output, "Complex Method"), "should detect complex method in JS, got: {}", output);
+    assert!(
+        has_smell(&output, "Complex Method"),
+        "should detect complex method in JS, got: {}",
+        output
+    );
     assert!(has_function(&output, "processOrder"));
 }
 
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.js");
-    assert!(has_smell(&output, "Excess Arguments"), "should detect excess args in JS, got: {}", output);
+    assert!(
+        has_smell(&output, "Excess Arguments"),
+        "should detect excess args in JS, got: {}",
+        output
+    );
     assert!(has_function(&output, "createUser"));
 }
 
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.js");
-    assert!(has_smell(&output, "Constructor Over-Injection"), "should detect constructor over-injection in JS, got: {}", output);
+    assert!(
+        has_smell(&output, "Constructor Over-Injection"),
+        "should detect constructor over-injection in JS, got: {}",
+        output
+    );
 }
 
 #[test]
@@ -41,13 +57,21 @@ fn simple_func_not_flagged() {
 fn primitive_obsession_never_triggers_in_javascript() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("many_args.js");
-    std::fs::write(&path, "function f(a, b, c, d, e, f, g, h, i) {\n    return a;\n}\n").unwrap();
+    std::fs::write(
+        &path,
+        "function f(a, b, c, d, e, f, g, h, i) {\n    return a;\n}\n",
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!has_smell(&stdout, "Primitive Obsession"), "JS has no types — should never trigger, got: {}", stdout);
+    assert!(
+        !has_smell(&stdout, "Primitive Obsession"),
+        "JS has no types — should never trigger, got: {}",
+        stdout
+    );
 }
 
 #[test]
@@ -87,7 +111,11 @@ fn mjs_extension_supported() {
 fn cjs_extension_supported() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("module.cjs");
-    std::fs::write(&path, "function add(a, b) {\n    return a + b;\n}\nmodule.exports = { add };\n").unwrap();
+    std::fs::write(
+        &path,
+        "function add(a, b) {\n    return a + b;\n}\nmodule.exports = { add };\n",
+    )
+    .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
@@ -136,7 +164,11 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.js");
-    assert!(has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(
+        has_smell(&output, "Large Embedded Block"),
+        "got: {}",
+        output
+    );
     assert!(has_function(&output, "getActiveUsers"));
 }
 
@@ -172,7 +204,9 @@ fn cc_base_case_is_1() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.js");
-    let has_loc = output.lines().any(|l| l.contains("(L") && l.contains("): "));
+    let has_loc = output
+        .lines()
+        .any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc);
 }
 
@@ -197,7 +231,11 @@ fn comments_only_file() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("function f() {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n}\n", "js");
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "cc=9 should trigger, got: {}",
+        out
+    );
 }
 
 #[test]
@@ -332,7 +370,10 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("processDataPipeline")).collect();
+    let lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("processDataPipeline"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -358,19 +399,22 @@ fn nested_conditional_chunks_detected() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "function checkEligibility(age, score, status) {\n",
-        "    if (age > 18 && score > 50 && status === 'active') {\n",
-        "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
-        "            return true;\n",
-        "        }\n",
-        "    }\n",
-        "    if (age > 65 || score < 10 || status === 'exempt') {\n",
-        "        return true;\n",
-        "    }\n",
-        "    return false;\n",
-        "}\n",
-    ), "js");
+    let out = pulse_check_code(
+        concat!(
+            "function checkEligibility(age, score, status) {\n",
+            "    if (age > 18 && score > 50 && status === 'active') {\n",
+            "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
+            "            return true;\n",
+            "        }\n",
+            "    }\n",
+            "    if (age > 65 || score < 10 || status === 'exempt') {\n",
+            "        return true;\n",
+            "    }\n",
+            "    return false;\n",
+            "}\n",
+        ),
+        "js",
+    );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -380,19 +424,22 @@ fn complex_conditional_detected() {
 
 #[test]
 fn simple_check_not_flagged_in_conditional() {
-    let out = pulse_check_code(concat!(
-        "function checkEligibility(age, score, status) {\n",
-        "    if (age > 18 && score > 50 && status === 'active') {\n",
-        "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
-        "            return true;\n",
-        "        }\n",
-        "    }\n",
-        "    return false;\n",
-        "}\n",
-        "function simpleCheck(x) {\n",
-        "    return x > 0;\n",
-        "}\n",
-    ), "js");
+    let out = pulse_check_code(
+        concat!(
+            "function checkEligibility(age, score, status) {\n",
+            "    if (age > 18 && score > 50 && status === 'active') {\n",
+            "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
+            "            return true;\n",
+            "        }\n",
+            "    }\n",
+            "    return false;\n",
+            "}\n",
+            "function simpleCheck(x) {\n",
+            "    return x > 0;\n",
+            "}\n",
+        ),
+        "js",
+    );
     assert!(!has_function(&out, "simpleCheck"));
 }
 
@@ -402,18 +449,21 @@ fn simple_check_not_flagged_in_conditional() {
 
 #[test]
 fn global_conditionals_detected() {
-    let out = pulse_check_code(concat!(
-        "const x = 1;\n",
-        "if (process.env.NODE_ENV === 'development') {\n",
-        "    console.log('dev mode');\n",
-        "}\n",
-        "if (process.env.DEBUG) {\n",
-        "    console.log('debug');\n",
-        "}\n",
-        "if (process.env.VERBOSE) {\n",
-        "    console.log('verbose');\n",
-        "}\n",
-    ), "js");
+    let out = pulse_check_code(
+        concat!(
+            "const x = 1;\n",
+            "if (process.env.NODE_ENV === 'development') {\n",
+            "    console.log('dev mode');\n",
+            "}\n",
+            "if (process.env.DEBUG) {\n",
+            "    console.log('debug');\n",
+            "}\n",
+            "if (process.env.VERBOSE) {\n",
+            "    console.log('verbose');\n",
+            "}\n",
+        ),
+        "js",
+    );
     assert!(has_smell(&out, "Global Conditionals"), "got: {}", out);
 }
 
@@ -489,7 +539,11 @@ fn hook_invalid_json_silent() {
 fn boolean_operators_increment_cc() {
     let debug = pulse_debug_code("function f() {\n    if (a && b && c) {}\n}\n", "js");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "boolean operators should increment cc, got: {}", cc);
+    assert!(
+        cc >= 4,
+        "boolean operators should increment cc, got: {}",
+        cc
+    );
 }
 
 // ===========================================================================
@@ -586,24 +640,27 @@ fn constructor_args_count_correct() {
 
 #[test]
 fn lcom4_detects_low_cohesion() {
-    let out = pulse_check_code(concat!(
-        "class KitchenSink {\n",
-        "    constructor() {\n",
-        "        this.users = [];\n",
-        "        this.orders = [];\n",
-        "        this.logs = [];\n",
-        "    }\n",
-        "    addUser(user) { this.users.push(user); }\n",
-        "    getUser(id) { return this.users.find(u => u.id === id); }\n",
-        "    removeUser(id) { this.users = this.users.filter(u => u.id !== id); }\n",
-        "    addOrder(order) { this.orders.push(order); }\n",
-        "    getOrder(id) { return this.orders.find(o => o.id === id); }\n",
-        "    cancelOrder(id) { this.orders = this.orders.filter(o => o.id !== id); }\n",
-        "    logEvent(event) { this.logs.push(event); }\n",
-        "    getLogs() { return this.logs; }\n",
-        "    clearLogs() { this.logs = []; }\n",
-        "}\n",
-    ), "js");
+    let out = pulse_check_code(
+        concat!(
+            "class KitchenSink {\n",
+            "    constructor() {\n",
+            "        this.users = [];\n",
+            "        this.orders = [];\n",
+            "        this.logs = [];\n",
+            "    }\n",
+            "    addUser(user) { this.users.push(user); }\n",
+            "    getUser(id) { return this.users.find(u => u.id === id); }\n",
+            "    removeUser(id) { this.users = this.users.filter(u => u.id !== id); }\n",
+            "    addOrder(order) { this.orders.push(order); }\n",
+            "    getOrder(id) { return this.orders.find(o => o.id === id); }\n",
+            "    cancelOrder(id) { this.orders = this.orders.filter(o => o.id !== id); }\n",
+            "    logEvent(event) { this.logs.push(event); }\n",
+            "    getLogs() { return this.logs; }\n",
+            "    clearLogs() { this.logs = []; }\n",
+            "}\n",
+        ),
+        "js",
+    );
     assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
@@ -613,23 +670,30 @@ fn lcom4_detects_low_cohesion() {
 
 #[test]
 fn switch_case_increments_cc() {
-    let out = pulse_check_code(concat!(
-        "function handleAction(action) {\n",
-        "    switch (action) {\n",
-        "        case 'a': return 'A';\n",
-        "        case 'b': return 'B';\n",
-        "        case 'c': return 'C';\n",
-        "        case 'd': return 'D';\n",
-        "        case 'e': return 'E';\n",
-        "        case 'f': return 'F';\n",
-        "        case 'g': return 'G';\n",
-        "        case 'h': return 'H';\n",
-        "        case 'i': return 'I';\n",
-        "        default: return '?';\n",
-        "    }\n",
-        "}\n",
-    ), "js");
-    assert!(has_smell(&out, "Complex Method"), "9 switch cases should trigger cc >= 9, got: {}", out);
+    let out = pulse_check_code(
+        concat!(
+            "function handleAction(action) {\n",
+            "    switch (action) {\n",
+            "        case 'a': return 'A';\n",
+            "        case 'b': return 'B';\n",
+            "        case 'c': return 'C';\n",
+            "        case 'd': return 'D';\n",
+            "        case 'e': return 'E';\n",
+            "        case 'f': return 'F';\n",
+            "        case 'g': return 'G';\n",
+            "        case 'h': return 'H';\n",
+            "        case 'i': return 'I';\n",
+            "        default: return '?';\n",
+            "    }\n",
+            "}\n",
+        ),
+        "js",
+    );
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "9 switch cases should trigger cc >= 9, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -642,7 +706,11 @@ fn arrow_function_analyzed() {
         "const handler = (a, b, c, d, e, f, g) => {\n    return a + b;\n};\n",
         "js",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "arrow function with 7 args should be flagged, got: {}", out);
+    assert!(
+        has_smell(&out, "Excess Arguments"),
+        "arrow function with 7 args should be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================

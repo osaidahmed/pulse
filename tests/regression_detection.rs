@@ -84,16 +84,26 @@ impl TestEnv {
     fn edit_hook_json(&self, path: &std::path::Path, old: &str, new: &str) -> String {
         format!(
             r#"{{"tool_input":{{"file_path":"{}","old_string":"{}","new_string":"{}"}}}}"#,
-            path.to_str().unwrap().replace('\\', "\\\\").replace('"', "\\\""),
-            old.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"),
-            new.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"),
+            path.to_str()
+                .unwrap()
+                .replace('\\', "\\\\")
+                .replace('"', "\\\""),
+            old.replace('\\', "\\\\")
+                .replace('"', "\\\"")
+                .replace('\n', "\\n"),
+            new.replace('\\', "\\\\")
+                .replace('"', "\\\"")
+                .replace('\n', "\\n"),
         )
     }
 
     fn write_hook_json(&self, path: &std::path::Path) -> String {
         format!(
             r#"{{"tool_input":{{"file_path":"{}","content":"..."}}}}"#,
-            path.to_str().unwrap().replace('\\', "\\\\").replace('"', "\\\""),
+            path.to_str()
+                .unwrap()
+                .replace('\\', "\\\\")
+                .replace('"', "\\\""),
         )
     }
 
@@ -242,7 +252,10 @@ fn baseline_created_for_unsupported_language() {
         "baseline should exist even for unsupported language"
     );
     let counts = env.baseline_counts(path.to_str().unwrap());
-    assert!(counts.is_empty(), "unsupported language baseline should be empty");
+    assert!(
+        counts.is_empty(),
+        "unsupported language baseline should be empty"
+    );
 }
 
 #[test]
@@ -255,9 +268,16 @@ fn baseline_reconstruction_reverses_edit() {
     std::fs::write(&path, &code).unwrap();
 
     // "Edit" that adds a 20th function (simulated)
-    let new_code = format!("{}def fn_19():\n    return 19\n\nMARKER = 2\n", simple_functions(19));
+    let new_code = format!(
+        "{}def fn_19():\n    return 19\n\nMARKER = 2\n",
+        simple_functions(19)
+    );
     std::fs::write(&path, &new_code).unwrap();
-    let json = env.edit_hook_json(&path, "MARKER = 1", "def fn_19():\n    return 19\n\nMARKER = 2");
+    let json = env.edit_hook_json(
+        &path,
+        "MARKER = 1",
+        "def fn_19():\n    return 19\n\nMARKER = 2",
+    );
     env.run_hook(&json);
 
     // Baseline should reflect the pre-edit state (19 functions, no Too Many Functions)
@@ -345,7 +365,11 @@ fn stop_silent_when_file_shrinks_below_threshold() {
     std::fs::write(&path, "def foo():\n    return 1\n").unwrap();
 
     let out = env.run_stop();
-    assert!(out.is_empty(), "shrinking below threshold is not a regression: {}", out);
+    assert!(
+        out.is_empty(),
+        "shrinking below threshold is not a regression: {}",
+        out
+    );
 }
 
 #[test]
@@ -361,7 +385,11 @@ fn stop_silent_when_file_deleted_between_hook_and_stop() {
     std::fs::remove_file(&path).unwrap();
 
     let out = env.run_stop();
-    assert!(out.is_empty(), "deleted file should not cause errors: {}", out);
+    assert!(
+        out.is_empty(),
+        "deleted file should not cause errors: {}",
+        out
+    );
 }
 
 #[test]
@@ -375,7 +403,11 @@ fn stop_silent_when_unsupported_file_in_manifest() {
     env.run_hook(&json);
 
     let out = env.run_stop();
-    assert!(out.is_empty(), "unsupported file should not trigger regressions: {}", out);
+    assert!(
+        out.is_empty(),
+        "unsupported file should not trigger regressions: {}",
+        out
+    );
 }
 
 #[test]
@@ -421,8 +453,16 @@ fn stop_detects_file_too_large_regression() {
 
     let out = env.run_stop();
     assert!(out.contains("File Too Large"), "should detect: {}", out);
-    assert!(out.contains("note"), "informational finding should use 'note' framing: {}", out);
-    assert!(out.contains("crossed"), "informational finding should use 'crossed' framing: {}", out);
+    assert!(
+        out.contains("note"),
+        "informational finding should use 'note' framing: {}",
+        out
+    );
+    assert!(
+        out.contains("crossed"),
+        "informational finding should use 'crossed' framing: {}",
+        out
+    );
 }
 
 #[test]
@@ -642,7 +682,11 @@ fn stop_reports_regressions_across_multiple_files() {
     std::fs::write(&path_b, &big_b).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("File Too Large"), "should report A's regression: {}", out);
+    assert!(
+        out.contains("File Too Large"),
+        "should report A's regression: {}",
+        out
+    );
     assert!(
         out.contains("Too Many Functions"),
         "should report B's regression: {}",
@@ -674,7 +718,11 @@ fn stop_one_file_regresses_other_stays_clean() {
     std::fs::write(&path_dirty, &big).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("File Too Large"), "dirty file should regress: {}", out);
+    assert!(
+        out.contains("File Too Large"),
+        "dirty file should regress: {}",
+        out
+    );
     assert!(
         out.contains("dirty.py"),
         "output should reference the right file: {}",
@@ -689,8 +737,11 @@ fn stop_many_files_in_manifest() {
 
     for i in 0..10 {
         let path = env.file_path(&format!("file_{}.py", i));
-        std::fs::write(&path, &format!("def fn_{}():\n    return {}\nMARKER = 1\n", i, i))
-            .unwrap();
+        std::fs::write(
+            &path,
+            &format!("def fn_{}():\n    return {}\nMARKER = 1\n", i, i),
+        )
+        .unwrap();
         let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
         std::fs::write(
             &path,
@@ -711,7 +762,11 @@ fn stop_many_files_in_manifest() {
 
     // No regressions — all clean
     let out = env.run_stop();
-    assert!(out.is_empty(), "10 clean files should produce no regressions: {}", out);
+    assert!(
+        out.is_empty(),
+        "10 clean files should produce no regressions: {}",
+        out
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -734,8 +789,16 @@ fn stop_informational_uses_note_not_regression() {
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("note"), "informational should use 'note': {}", out);
-    assert!(!out.contains("regression"), "informational should NOT use 'regression': {}", out);
+    assert!(
+        out.contains("note"),
+        "informational should use 'note': {}",
+        out
+    );
+    assert!(
+        !out.contains("regression"),
+        "informational should NOT use 'regression': {}",
+        out
+    );
 }
 
 #[test]
@@ -755,8 +818,16 @@ fn stop_actionable_uses_regression_framing() {
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("1 regression"), "actionable should use singular 'regression': {}", out);
-    assert!(!out.contains("1 regressions"), "should not pluralize 1: {}", out);
+    assert!(
+        out.contains("1 regression"),
+        "actionable should use singular 'regression': {}",
+        out
+    );
+    assert!(
+        !out.contains("1 regressions"),
+        "should not pluralize 1: {}",
+        out
+    );
 }
 
 #[test]
@@ -779,7 +850,11 @@ fn stop_mixed_produces_both_lines() {
     let out = env.run_stop();
     let lines: Vec<&str> = out.trim().lines().collect();
     assert_eq!(lines.len(), 2, "mixed output should have 2 lines: {}", out);
-    assert!(out.contains("regression"), "should have regression line: {}", out);
+    assert!(
+        out.contains("regression"),
+        "should have regression line: {}",
+        out
+    );
     assert!(out.contains("note"), "should have note line: {}", out);
 }
 
@@ -802,7 +877,11 @@ fn stop_output_is_single_line() {
     if !out.is_empty() {
         let lines = out.trim().lines().count();
         assert_eq!(lines, 1, "stop output must be single line: {}", out);
-        assert!(out.starts_with("pulse:"), "must start with 'pulse:': {}", out);
+        assert!(
+            out.starts_with("pulse:"),
+            "must start with 'pulse:': {}",
+            out
+        );
     }
 }
 
@@ -845,7 +924,11 @@ fn stop_output_contains_detail() {
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("LOC"), "output should include detail with LOC count: {}", out);
+    assert!(
+        out.contains("LOC"),
+        "output should include detail with LOC count: {}",
+        out
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -903,7 +986,11 @@ fn hook_edit_mode_excludes_module_findings() {
     let json = env.edit_hook_json(&path, "def fn_0", "def fn_0");
     let out = env.run_hook(&json);
 
-    assert!(!out.contains("File Too Large"), "no module findings in edit mode: {}", out);
+    assert!(
+        !out.contains("File Too Large"),
+        "no module findings in edit mode: {}",
+        out
+    );
     assert!(
         !out.contains("Too Many Functions"),
         "no module findings in edit mode: {}",
@@ -934,7 +1021,11 @@ fn hook_write_mode_excludes_module_findings() {
         "write mode should show function findings: {}",
         out
     );
-    assert!(!out.contains("File Too Large"), "write mode must exclude module: {}", out);
+    assert!(
+        !out.contains("File Too Large"),
+        "write mode must exclude module: {}",
+        out
+    );
     assert!(
         !out.contains("Too Many Functions"),
         "write mode must exclude module: {}",
@@ -976,7 +1067,11 @@ fn manifest_deduplicates_same_file() {
 
     let manifest = env.manifest_contents();
     let count = manifest.lines().filter(|l| l.contains("dedup.py")).count();
-    assert_eq!(count, 1, "manifest should have exactly one entry per file, got {}", count);
+    assert_eq!(
+        count, 1,
+        "manifest should have exactly one entry per file, got {}",
+        count
+    );
 }
 
 #[test]
@@ -991,7 +1086,11 @@ fn manifest_tracks_multiple_files() {
         .collect();
 
     for (i, path) in paths.iter().enumerate() {
-        let json = env.edit_hook_json(path, &format!("return {}", i), &format!("return {}", i + 10));
+        let json = env.edit_hook_json(
+            path,
+            &format!("return {}", i),
+            &format!("return {}", i + 10),
+        );
         std::fs::write(path, &format!("def fn():\n    return {}\n", i + 10)).unwrap();
         env.run_hook(&json);
     }
@@ -1015,7 +1114,10 @@ fn cleanup_removes_directory() {
     let env = TestEnv::new();
     std::fs::write(env.baseline_path().join("test.json"), "{}").unwrap();
     env.run_cleanup();
-    assert!(!env.baseline_path().exists(), "cleanup should remove baseline dir");
+    assert!(
+        !env.baseline_path().exists(),
+        "cleanup should remove baseline dir"
+    );
 }
 
 #[test]
@@ -1036,7 +1138,10 @@ fn stop_cleans_up_after_itself() {
     std::fs::write(&path, "def foo():\n    return 2\n").unwrap();
     env.run_hook(&json);
 
-    assert!(env.baseline_path().exists(), "baselines should exist before stop");
+    assert!(
+        env.baseline_path().exists(),
+        "baselines should exist before stop"
+    );
     env.run_stop();
     assert!(
         !env.baseline_path().exists(),
@@ -1065,7 +1170,11 @@ fn baseline_works_for_typescript() {
     std::fs::write(&path, &code).unwrap();
 
     let json = env.edit_hook_json(&path, "const MARKER = 1;", "const MARKER = 2;");
-    std::fs::write(&path, code.replace("const MARKER = 1;", "const MARKER = 2;")).unwrap();
+    std::fs::write(
+        &path,
+        code.replace("const MARKER = 1;", "const MARKER = 2;"),
+    )
+    .unwrap();
     env.run_hook(&json);
 
     let counts = env.baseline_counts(path.to_str().unwrap());
@@ -1242,7 +1351,11 @@ fn stop_full_lifecycle_three_edits_then_stop() {
     let current = std::fs::read_to_string(&path).unwrap();
     let added = format!("{}{}", current, var_lines("x", 100));
     std::fs::write(&path, &added).unwrap();
-    let json2 = env.edit_hook_json(&path, "MARKER = 2", &format!("MARKER = 2\n{}", var_lines("x", 100)));
+    let json2 = env.edit_hook_json(
+        &path,
+        "MARKER = 2",
+        &format!("MARKER = 2\n{}", var_lines("x", 100)),
+    );
     env.run_hook(&json2);
 
     // Edit 3: add more code, pushing past threshold

@@ -1,13 +1,16 @@
+use std::fmt::Write;
+
 use crate::smells::{Finding, Location};
 
 pub fn format(findings: &[Finding], filename: &str) -> String {
     let mut out = String::new();
-    out.push_str(&format!(
-        "pulse: {} issue{} in {}\n",
+    let _ = writeln!(
+        out,
+        "pulse: {} issue{} in {}",
         findings.len(),
         if findings.len() == 1 { "" } else { "s" },
         filename
-    ));
+    );
 
     for f in findings {
         match &f.location {
@@ -16,13 +19,14 @@ pub fn format(findings: &[Finding], filename: &str) -> String {
                 start_line,
                 end_line,
             } => {
-                out.push_str(&format!(
-                    "  {} (L{}-{}): {} — {}\n",
+                let _ = writeln!(
+                    out,
+                    "  {} (L{}-{}): {} — {}",
                     name, start_line, end_line, f.smell, f.detail
-                ));
+                );
             }
             Location::Module => {
-                out.push_str(&format!("  Module: {} — {}\n", f.smell, f.detail));
+                let _ = writeln!(out, "  Module: {} — {}", f.smell, f.detail);
             }
         }
     }
@@ -44,12 +48,13 @@ pub fn format_stop(regressions: &[(String, Vec<Finding>)]) -> String {
         .collect();
 
     if !actionable.is_empty() {
-        out.push_str(&format!(
-            "pulse: {} regression{} — {}\n",
+        let _ = writeln!(
+            out,
+            "pulse: {} regression{} — {}",
             actionable.len(),
             if actionable.len() == 1 { "" } else { "s" },
             actionable.join(", ")
-        ));
+        );
     }
 
     let notes: Vec<String> = regressions
@@ -63,7 +68,7 @@ pub fn format_stop(regressions: &[(String, Vec<Finding>)]) -> String {
         .collect();
 
     if !notes.is_empty() {
-        out.push_str(&format!("pulse: note — {}\n", notes.join(", ")));
+        let _ = writeln!(out, "pulse: note — {}", notes.join(", "));
     }
 
     out

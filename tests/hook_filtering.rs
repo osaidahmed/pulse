@@ -12,7 +12,12 @@ fn run_hook_with_json(json: &str) -> String {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(json.as_bytes())
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run pulse --hook");
@@ -28,16 +33,20 @@ fn edit_near_function_shows_only_that_function() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
     // Write a file with two smelly functions at different locations
-    std::fs::write(&path, concat!(
-        "def func_a(a, b, c, d, e, f, g, h):\n",
-        "    return a\n",
-        "\n",
-        "def clean():\n",
-        "    return 1\n",
-        "\n",
-        "def func_b(a, b, c, d, e, f, g, h):\n",
-        "    return a\n",
-    )).unwrap();
+    std::fs::write(
+        &path,
+        concat!(
+            "def func_a(a, b, c, d, e, f, g, h):\n",
+            "    return a\n",
+            "\n",
+            "def clean():\n",
+            "    return 1\n",
+            "\n",
+            "def func_b(a, b, c, d, e, f, g, h):\n",
+            "    return a\n",
+        ),
+    )
+    .unwrap();
 
     // Edit near func_a (line 1) — should see func_a but not func_b
     let json = format!(
@@ -45,23 +54,35 @@ fn edit_near_function_shows_only_that_function() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.contains("func_a"), "should see func_a near edit, got: {}", output);
-    assert!(!output.contains("func_b"), "should NOT see func_b far from edit, got: {}", output);
+    assert!(
+        output.contains("func_a"),
+        "should see func_a near edit, got: {}",
+        output
+    );
+    assert!(
+        !output.contains("func_b"),
+        "should NOT see func_b far from edit, got: {}",
+        output
+    );
 }
 
 #[test]
 fn edit_far_from_functions_shows_nothing() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
-    std::fs::write(&path, concat!(
-        "import os\n",
-        "\n",
-        "\n",
-        "\n",
-        "\n",
-        "def smelly(a, b, c, d, e, f, g, h):\n",
-        "    return a\n",
-    )).unwrap();
+    std::fs::write(
+        &path,
+        concat!(
+            "import os\n",
+            "\n",
+            "\n",
+            "\n",
+            "\n",
+            "def smelly(a, b, c, d, e, f, g, h):\n",
+            "    return a\n",
+        ),
+    )
+    .unwrap();
 
     // Edit at line 1 (import) — function is at line 6, no overlap
     let json = format!(
@@ -69,20 +90,28 @@ fn edit_far_from_functions_shows_nothing() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.is_empty(), "edit at line 1 should not show function at line 6, got: {}", output);
+    assert!(
+        output.is_empty(),
+        "edit at line 1 should not show function at line 6, got: {}",
+        output
+    );
 }
 
 #[test]
 fn write_mode_shows_all_findings() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
-    std::fs::write(&path, concat!(
-        "def func_a(a, b, c, d, e, f, g, h):\n",
-        "    return a\n",
-        "\n",
-        "def func_b(a, b, c, d, e, f, g, h):\n",
-        "    return a\n",
-    )).unwrap();
+    std::fs::write(
+        &path,
+        concat!(
+            "def func_a(a, b, c, d, e, f, g, h):\n",
+            "    return a\n",
+            "\n",
+            "def func_b(a, b, c, d, e, f, g, h):\n",
+            "    return a\n",
+        ),
+    )
+    .unwrap();
 
     // Write mode — content field, no old_string/new_string → None edit range → all findings
     let json = format!(
@@ -90,8 +119,16 @@ fn write_mode_shows_all_findings() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.contains("func_a"), "Write mode should show all: {}", output);
-    assert!(output.contains("func_b"), "Write mode should show all: {}", output);
+    assert!(
+        output.contains("func_a"),
+        "Write mode should show all: {}",
+        output
+    );
+    assert!(
+        output.contains("func_b"),
+        "Write mode should show all: {}",
+        output
+    );
 }
 
 #[test]
@@ -122,7 +159,11 @@ fn hook_output_is_compact_single_line() {
     );
     let output = run_hook_with_json(&json);
     let line_count = output.lines().count();
-    assert_eq!(line_count, 1, "hook output should be a single line, got {} lines: {}", line_count, output);
+    assert_eq!(
+        line_count, 1,
+        "hook output should be a single line, got {} lines: {}",
+        line_count, output
+    );
 }
 
 #[test]
@@ -136,7 +177,11 @@ fn hook_output_starts_with_pulse() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.starts_with("pulse:"), "should start with pulse:, got: {}", output);
+    assert!(
+        output.starts_with("pulse:"),
+        "should start with pulse:, got: {}",
+        output
+    );
 }
 
 #[test]
@@ -151,7 +196,11 @@ fn check_mode_still_uses_verbose_format() {
         .expect("failed to run");
     let stdout = String::from_utf8(output.stdout).unwrap();
     // Check mode should use multi-line format with indented findings
-    assert!(stdout.contains("\n  "), "check mode should have indented findings: {}", stdout);
+    assert!(
+        stdout.contains("\n  "),
+        "check mode should have indented findings: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -178,10 +227,16 @@ fn module_findings_excluded_from_hook_output() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(!output.contains("File Too Large"),
-        "Module findings should not appear in hook output: {}", output);
-    assert!(!output.contains("Too Many Functions"),
-        "Module findings should not appear in hook output: {}", output);
+    assert!(
+        !output.contains("File Too Large"),
+        "Module findings should not appear in hook output: {}",
+        output
+    );
+    assert!(
+        !output.contains("Too Many Functions"),
+        "Module findings should not appear in hook output: {}",
+        output
+    );
 }
 
 // ===========================================================================
@@ -199,7 +254,11 @@ fn hook_on_clean_file_still_silent() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(output.is_empty(), "clean file should be silent, got: {}", output);
+    assert!(
+        output.is_empty(),
+        "clean file should be silent, got: {}",
+        output
+    );
 }
 
 #[test]

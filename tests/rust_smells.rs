@@ -8,13 +8,21 @@ const LANG: &str = "rust";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.rs");
-    assert!(output.is_empty(), "clean Rust file should produce no output, got: {}", output);
+    assert!(
+        output.is_empty(),
+        "clean Rust file should produce no output, got: {}",
+        output
+    );
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_method.rs");
-    assert!(has_smell(&output, "Complex Method"), "should detect complex method, got: {}", output);
+    assert!(
+        has_smell(&output, "Complex Method"),
+        "should detect complex method, got: {}",
+        output
+    );
     assert!(has_function(&output, "process_order"));
 }
 
@@ -41,7 +49,11 @@ fn simple_func_not_flagged() {
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.rs");
-    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {}", output);
+    assert!(
+        has_smell(&output, "Constructor Over-Injection"),
+        "got: {}",
+        output
+    );
     assert!(has_function(&output, "UserService.new"));
 }
 
@@ -49,7 +61,11 @@ fn constructor_over_injection_detected() {
 fn self_param_excluded_from_arg_count() {
     let debug = run_debug(LANG, "excess_args.rs");
     let args = function_metric(&debug, "UserService.get_user", "args").unwrap_or(99);
-    assert_eq!(args, 1, "get_user takes &self + user_id, should report 1, got: {}", args);
+    assert_eq!(
+        args, 1,
+        "get_user takes &self + user_id, should report 1, got: {}",
+        args
+    );
 }
 
 #[test]
@@ -62,14 +78,20 @@ fn primitive_obsession_detected() {
 fn hook_mode_works_with_rs() {
     let path = fixtures_dir(LANG).join("clean.rs");
     let output = run_hook(path.to_str().unwrap());
-    assert!(output.is_empty(), "hook on clean Rust file should be silent");
+    assert!(
+        output.is_empty(),
+        "hook on clean Rust file should be silent"
+    );
 }
 
 #[test]
 fn hook_mode_detects_smells_in_rs() {
     let path = fixtures_dir(LANG).join("complex_method.rs");
     let output = run_hook(path.to_str().unwrap());
-    assert!(!output.is_empty(), "hook on smelly Rust file should produce output");
+    assert!(
+        !output.is_empty(),
+        "hook on smelly Rust file should produce output"
+    );
 }
 
 #[test]
@@ -113,7 +135,9 @@ fn method_arg_count_excludes_self() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.rs");
-    let has_loc = output.lines().any(|l| l.contains("(L") && l.contains("): "));
+    let has_loc = output
+        .lines()
+        .any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc);
 }
 
@@ -132,7 +156,11 @@ fn comments_only_file() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("fn f() {\n    if true {}\n    if true {}\n    if true {}\n    if true {}\n    if true {}\n    if true {}\n    if true {}\n    if true {}\n}\n", "rs");
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "cc=9 should trigger, got: {}",
+        out
+    );
 }
 
 #[test]
@@ -247,7 +275,10 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("process_data_pipeline")).collect();
+    let lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("process_data_pipeline"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -258,33 +289,36 @@ fn god_method_not_reported_as_separate_complex_and_large() {
 
 #[test]
 fn nested_conditional_chunks_detected() {
-    let out = pulse_check_code(concat!(
-        "fn validate_and_process(data: &[i32]) {\n",
-        "    if data.len() > 0 {\n",
-        "        if data[0] > 0 {\n",
-        "            if data[0] > 10 {\n",
-        "                let x = 1;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    let gap = 1;\n",
-        "    if data.len() > 5 {\n",
-        "        if data[5] > 0 {\n",
-        "            if data[5] > 10 {\n",
-        "                let y = 2;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    let gap2 = 2;\n",
-        "    if data.len() > 10 {\n",
-        "        if data[10] > 0 {\n",
-        "            if data[10] > 10 {\n",
-        "                let z = 3;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "}\n",
-    ), "rs");
+    let out = pulse_check_code(
+        concat!(
+            "fn validate_and_process(data: &[i32]) {\n",
+            "    if data.len() > 0 {\n",
+            "        if data[0] > 0 {\n",
+            "            if data[0] > 10 {\n",
+            "                let x = 1;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    let gap = 1;\n",
+            "    if data.len() > 5 {\n",
+            "        if data[5] > 0 {\n",
+            "            if data[5] > 10 {\n",
+            "                let y = 2;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    let gap2 = 2;\n",
+            "    if data.len() > 10 {\n",
+            "        if data[10] > 0 {\n",
+            "            if data[10] > 10 {\n",
+            "                let z = 3;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "rs",
+    );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -298,19 +332,22 @@ fn nested_conditional_chunks_detected() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "fn check_eligibility(age: i32, score: i32, active: bool) -> bool {\n",
-        "    if age > 18 && score > 50 && active {\n",
-        "        if score > 80 || (age > 25 && active) {\n",
-        "            return true;\n",
-        "        }\n",
-        "    }\n",
-        "    if age > 65 || score < 10 {\n",
-        "        return true;\n",
-        "    }\n",
-        "    false\n",
-        "}\n",
-    ), "rs");
+    let out = pulse_check_code(
+        concat!(
+            "fn check_eligibility(age: i32, score: i32, active: bool) -> bool {\n",
+            "    if age > 18 && score > 50 && active {\n",
+            "        if score > 80 || (age > 25 && active) {\n",
+            "            return true;\n",
+            "        }\n",
+            "    }\n",
+            "    if age > 65 || score < 10 {\n",
+            "        return true;\n",
+            "    }\n",
+            "    false\n",
+            "}\n",
+        ),
+        "rs",
+    );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -324,11 +361,14 @@ fn complex_conditional_detected() {
 
 #[test]
 fn global_conditionals_detected() {
-    let out = pulse_check_code(concat!(
-        "const X: i32 = 1;\n",
-        "static mut FLAG: bool = false;\n",
-        "fn main() {}\n",
-    ), "rs");
+    let out = pulse_check_code(
+        concat!(
+            "const X: i32 = 1;\n",
+            "static mut FLAG: bool = false;\n",
+            "fn main() {}\n",
+        ),
+        "rs",
+    );
     // Rust rarely has global if-blocks; this verifies no false positive
     assert!(!has_smell(&out, "Global Conditionals"));
 }
@@ -403,9 +443,16 @@ fn hook_invalid_json_silent() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code("fn f(a: bool, b: bool, c: bool) {\n    if a && b && c {}\n}\n", "rs");
+    let debug = pulse_debug_code(
+        "fn f(a: bool, b: bool, c: bool) {\n    if a && b && c {}\n}\n",
+        "rs",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "boolean operators should increment cc, got: {}", cc);
+    assert!(
+        cc >= 4,
+        "boolean operators should increment cc, got: {}",
+        cc
+    );
 }
 
 // ===========================================================================
@@ -496,7 +543,10 @@ fn deep_nesting_depth_exceeds_4() {
 
 #[test]
 fn moderate_nesting_not_flagged() {
-    let out = pulse_check_code("fn moderate() {\n    if true {\n        if true {}\n    }\n}\n", "rs");
+    let out = pulse_check_code(
+        "fn moderate() {\n    if true {\n        if true {}\n    }\n}\n",
+        "rs",
+    );
     assert!(!has_function(&out, "moderate"));
 }
 
@@ -527,24 +577,27 @@ fn simple_string_not_flagged() {
 
 #[test]
 fn code_duplication_detected() {
-    let out = pulse_check_code(concat!(
-        "fn report_a(data: &[i32]) -> Vec<i32> {\n",
-        "    let mut r = Vec::new();\n",
-        "    for item in data {\n",
-        "        let e = item * 2;\n",
-        "        r.push(e);\n",
-        "    }\n",
-        "    r\n",
-        "}\n\n",
-        "fn report_b(data: &[i32]) -> Vec<i32> {\n",
-        "    let mut r = Vec::new();\n",
-        "    for item in data {\n",
-        "        let e = item * 2;\n",
-        "        r.push(e);\n",
-        "    }\n",
-        "    r\n",
-        "}\n",
-    ), "rs");
+    let out = pulse_check_code(
+        concat!(
+            "fn report_a(data: &[i32]) -> Vec<i32> {\n",
+            "    let mut r = Vec::new();\n",
+            "    for item in data {\n",
+            "        let e = item * 2;\n",
+            "        r.push(e);\n",
+            "    }\n",
+            "    r\n",
+            "}\n\n",
+            "fn report_b(data: &[i32]) -> Vec<i32> {\n",
+            "    let mut r = Vec::new();\n",
+            "    for item in data {\n",
+            "        let e = item * 2;\n",
+            "        r.push(e);\n",
+            "    }\n",
+            "    r\n",
+            "}\n",
+        ),
+        "rs",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
 }
 
@@ -554,37 +607,45 @@ fn code_duplication_detected() {
 
 #[test]
 fn nested_conditional_chunks_bump_count() {
-    let out = pulse_debug_code(concat!(
-        "fn validate_and_process(data: &[i32]) {\n",
-        "    if data.len() > 0 {\n",
-        "        if data[0] > 0 {\n",
-        "            if data[0] > 10 {\n",
-        "                let x = 1;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    let gap = 1;\n",
-        "    if data.len() > 5 {\n",
-        "        if data[5] > 0 {\n",
-        "            if data[5] > 10 {\n",
-        "                let y = 2;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "    let gap2 = 2;\n",
-        "    if data.len() > 10 {\n",
-        "        if data[10] > 0 {\n",
-        "            if data[10] > 10 {\n",
-        "                let z = 3;\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "}\n",
-    ), "rs");
+    let out = pulse_debug_code(
+        concat!(
+            "fn validate_and_process(data: &[i32]) {\n",
+            "    if data.len() > 0 {\n",
+            "        if data[0] > 0 {\n",
+            "            if data[0] > 10 {\n",
+            "                let x = 1;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    let gap = 1;\n",
+            "    if data.len() > 5 {\n",
+            "        if data[5] > 0 {\n",
+            "            if data[5] > 10 {\n",
+            "                let y = 2;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "    let gap2 = 2;\n",
+            "    if data.len() > 10 {\n",
+            "        if data[10] > 0 {\n",
+            "            if data[10] > 10 {\n",
+            "                let z = 3;\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "rs",
+    );
     let bumps = function_metric(&out, "validate_and_process", "bumps");
     // If bumps metric exists, verify it; cc should also be high enough
     let cc = function_metric(&out, "validate_and_process", "cc").unwrap_or(0);
-    assert!(bumps.unwrap_or(0) >= 2 || cc >= 9, "should have >= 2 bumps or cc >= 9, got bumps: {:?}, cc: {}", bumps, cc);
+    assert!(
+        bumps.unwrap_or(0) >= 2 || cc >= 9,
+        "should have >= 2 bumps or cc >= 9, got bumps: {:?}, cc: {}",
+        bumps,
+        cc
+    );
 }
 
 // ===========================================================================
@@ -593,14 +654,17 @@ fn nested_conditional_chunks_bump_count() {
 
 #[test]
 fn lcom4_detects_low_cohesion() {
-    let out = pulse_check_code(concat!(
-        "struct Sink { x: i32, y: i32, z: i32 }\n",
-        "impl Sink {\n",
-        "    fn use_x(&self) -> i32 { self.x }\n",
-        "    fn use_y(&self) -> i32 { self.y }\n",
-        "    fn use_z(&self) -> i32 { self.z }\n",
-        "}\n",
-    ), "rs");
+    let out = pulse_check_code(
+        concat!(
+            "struct Sink { x: i32, y: i32, z: i32 }\n",
+            "impl Sink {\n",
+            "    fn use_x(&self) -> i32 { self.x }\n",
+            "    fn use_y(&self) -> i32 { self.y }\n",
+            "    fn use_z(&self) -> i32 { self.z }\n",
+            "}\n",
+        ),
+        "rs",
+    );
     assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
@@ -610,20 +674,27 @@ fn lcom4_detects_low_cohesion() {
 
 #[test]
 fn match_arms_increment_cc() {
-    let out = pulse_check_code(concat!(
-        "fn handle(action: i32) -> &'static str {\n",
-        "    match action {\n",
-        "        1 => \"a\",\n",
-        "        2 => \"b\",\n",
-        "        3 => \"c\",\n",
-        "        4 => \"d\",\n",
-        "        5 => \"e\",\n",
-        "        6 => \"f\",\n",
-        "        7 => \"g\",\n",
-        "        8 => \"h\",\n",
-        "        _ => \"?\",\n",
-        "    }\n",
-        "}\n",
-    ), "rs");
-    assert!(has_smell(&out, "Complex Method"), "8 match arms should trigger cc >= 9, got: {}", out);
+    let out = pulse_check_code(
+        concat!(
+            "fn handle(action: i32) -> &'static str {\n",
+            "    match action {\n",
+            "        1 => \"a\",\n",
+            "        2 => \"b\",\n",
+            "        3 => \"c\",\n",
+            "        4 => \"d\",\n",
+            "        5 => \"e\",\n",
+            "        6 => \"f\",\n",
+            "        7 => \"g\",\n",
+            "        8 => \"h\",\n",
+            "        _ => \"?\",\n",
+            "    }\n",
+            "}\n",
+        ),
+        "rs",
+    );
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "8 match arms should trigger cc >= 9, got: {}",
+        out
+    );
 }

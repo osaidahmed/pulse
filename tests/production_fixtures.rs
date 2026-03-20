@@ -80,10 +80,15 @@ fn py_production_primitive_obsession() {
 fn py_production_clean_functions_not_flagged_individually() {
     let output = run_check("python", "production_service.py");
     // get_user has no individual smell (it may appear in duplication groups, which is fine)
-    let function_lines: Vec<&str> = output.lines()
+    let function_lines: Vec<&str> = output
+        .lines()
         .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("get_user"))
         .collect();
-    assert!(function_lines.is_empty(), "get_user should have no individual smells, got: {:?}", function_lines);
+    assert!(
+        function_lines.is_empty(),
+        "get_user should have no individual smells, got: {:?}",
+        function_lines
+    );
 }
 
 // ===========================================================================

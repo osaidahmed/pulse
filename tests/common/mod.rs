@@ -36,7 +36,12 @@ pub fn run_hook(file_path: &str) -> String {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(json.as_bytes())
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run pulse --hook");

@@ -3,8 +3,12 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String { pulse_check_code(code, "ts") }
-fn debug(code: &str) -> String { pulse_debug_code(code, "ts") }
+fn check(code: &str) -> String {
+    pulse_check_code(code, "ts")
+}
+fn debug(code: &str) -> String {
+    pulse_debug_code(code, "ts")
+}
 
 // ===========================================================================
 // CC counting precision
@@ -86,7 +90,8 @@ fn cc_counts_switch_cases() {
 
 #[test]
 fn cc_nested_if_in_for() {
-    let out = debug("function f(): void {\n    for (const x of y) {\n        if (x) {}\n    }\n}\n");
+    let out =
+        debug("function f(): void {\n    for (const x of y) {\n        if (x) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -351,7 +356,9 @@ fn shallow_global_if_not_flagged() {
 
 #[test]
 fn global_nesting_depth_3_flagged() {
-    let out = check("if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n");
+    let out = check(
+        "if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n",
+    );
     assert!(has_smell(&out, "Deep Global Nesting"));
 }
 
@@ -361,7 +368,8 @@ fn global_nesting_depth_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection() {
-    let out = check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
+    let out =
+        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
@@ -369,7 +377,8 @@ fn constructor_reports_over_injection() {
 
 #[test]
 fn regular_function_reports_excess_args() {
-    let out = check("function f(a: any, b: any, c: any, d: any, e: any, f: any, g: any): void {}\n");
+    let out =
+        check("function f(a: any, b: any, c: any, d: any, e: any, f: any, g: any): void {}\n");
     assert!(has_smell(&out, "Excess Arguments"));
     assert!(!has_smell(&out, "Constructor Over-Injection"));
 }
@@ -431,7 +440,12 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"other\": 1}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -462,7 +476,8 @@ fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
         code.push_str(&format!(
-            "function func{}(data: any): any {{\n    const r: any = {{}};\n", i
+            "function func{}(data: any): any {{\n    const r: any = {{}};\n",
+            i
         ));
         for j in 0..18 {
             code.push_str(&format!("    r.f{} = data.f{};\n", j, j));
@@ -485,7 +500,10 @@ fn performance_1000_loc() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class Service{} {{\n    private data{}: any[] = [];\n", i, i));
+        code.push_str(&format!(
+            "class Service{} {{\n    private data{}: any[] = [];\n",
+            i, i
+        ));
         for j in 0..5 {
             code.push_str(&format!("    method{}() {{ return this.data{}; }}\n", j, i));
         }
@@ -522,7 +540,11 @@ fn cc_counts_not_operator() {
 fn nesting_depth_with_try_catch() {
     let out = debug("function f(): void {\n    try {\n        if (x) {}\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 1, "try-catch should add nesting depth, got: {}", depth);
+    assert!(
+        depth >= 1,
+        "try-catch should add nesting depth, got: {}",
+        depth
+    );
 }
 
 // ===========================================================================
@@ -757,7 +779,11 @@ fn clean_react_component_not_flagged() {
         "    return items;\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "clean React component should not be flagged, got: {}", out);
+    assert!(
+        out.is_empty(),
+        "clean React component should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -773,7 +799,12 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -921,7 +952,8 @@ fn overall_function_size_below_threshold_not_flagged() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out = check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
+    let out =
+        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));

@@ -1,17 +1,17 @@
 use tree_sitter::{Node, Tree};
 
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, measure_nesting_depth,
-    node_text, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    find_child_by_kind, measure_nesting_depth, node_text, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["self"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "i8", "i16", "i32", "i64", "i128", "isize",
-    "u8", "u16", "u32", "u64", "u128", "usize",
-    "f32", "f64", "bool", "char", "str", "String",
+    "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32",
+    "f64", "bool", "char", "str", "String",
 ];
 const NESTING_BRANCH_KINDS: &[&str] = &[
     "if_expression",
@@ -67,12 +67,11 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 
 fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let type_name = find_child_by_kind(impl_node, "type_identifier")
-        .map(|n| node_text(n, source))
+        .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
 
-    let body = match find_child_by_kind(impl_node, "declaration_list") {
-        Some(b) => b,
-        None => return,
+    let Some(body) = find_child_by_kind(impl_node, "declaration_list") else {
+        return;
     };
 
     let mut cursor = body.walk();
@@ -80,12 +79,11 @@ fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<Funct
         if child.kind() != "function_item" {
             continue;
         }
-        let mut metrics = match analyze_function(child, source) {
-            Some(m) => m,
-            None => continue,
+        let Some(mut metrics) = analyze_function(child, source) else {
+            continue;
         };
         let method_name = metrics.name.clone();
-        metrics.name = format!("{}.{}", type_name, method_name);
+        metrics.name = format!("{type_name}.{method_name}");
         metrics.is_constructor = method_name == "new";
         metrics.class_name = Some(type_name.clone());
         collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
@@ -98,8 +96,7 @@ fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<Funct
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let name = find_child_by_kind(node, "identifier")
-        .map(|n| node_text(n, source))
-        .unwrap_or_else(|| "<anonymous>".into());
+        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
@@ -122,6 +119,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         end_line,
         loc,
         cc: s.cc,
+        cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,
         bump_count: s.bump_count,
         arg_count,
@@ -147,17 +145,24 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         match child.kind() {
             "if_expression" => {
                 s.track_if(depth);
+                s.track_cogc_branch();
                 count_boolean_operators(child, &mut s.cc);
+                count_cogc_boolean_sequences(child, &mut s.cogc);
                 check_condition_complexity(child, source, &mut s.compound_condition_count);
                 walk_children(child, source, depth + 1, s);
             }
             "for_expression" | "while_expression" | "loop_expression" => {
                 s.track_loop(depth);
+                s.track_cogc_branch();
                 walk_children(child, source, depth + 1, s);
             }
             "match_expression" => {
                 s.track_nesting(depth);
+                s.track_cogc_branch();
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
                 walk_match_arms(child, source, depth + 1, s);
+                s.cogc_nesting = saved;
             }
             "closure_expression" => {}
             "string_literal" | "raw_string_literal" => s.track_embedded(child),
@@ -167,22 +172,19 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_match_arms(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let body = match find_child_by_kind(node, "match_block") {
-        Some(b) => b,
-        None => return,
+    let Some(body) = find_child_by_kind(node, "match_block") else {
+        return;
     };
     let mut arm_cursor = body.walk();
     for arm in body.children(&mut arm_cursor) {
         if arm.kind() != "match_arm" {
             continue;
         }
-        let is_wildcard = find_child_by_kind(arm, "match_pattern")
-            .map(|p| {
-                let mut pc = p.walk();
-                let result = p.children(&mut pc).any(|c| c.kind() == "_");
-                result
-            })
-            .unwrap_or(false);
+        let is_wildcard = find_child_by_kind(arm, "match_pattern").is_some_and(|p| {
+            let mut pc = p.walk();
+            let result = p.children(&mut pc).any(|c| c.kind() == "_");
+            result
+        });
         if !is_wildcard {
             s.cc += 1;
         }
@@ -194,7 +196,12 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "block" => walk_body(child, source, depth, s),
+            "block" => {
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
+                walk_body(child, source, depth, s);
+                s.cogc_nesting = saved;
+            }
             "else_clause" => walk_else_clause(child, source, depth, s),
             _ => {}
         }
@@ -205,10 +212,18 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "block" => walk_body(child, source, depth, s),
+            "block" => {
+                s.track_cogc_flat();
+                let saved = s.cogc_nesting;
+                s.cogc_nesting += 1;
+                walk_body(child, source, depth, s);
+                s.cogc_nesting = saved;
+            }
             "if_expression" => {
                 s.cc += 1;
+                s.track_cogc_branch();
                 count_boolean_operators(child, &mut s.cc);
+                count_cogc_boolean_sequences(child, &mut s.cogc);
                 check_condition_complexity(child, source, &mut s.compound_condition_count);
                 walk_children(child, source, depth, s);
             }
@@ -221,9 +236,33 @@ fn count_boolean_operators(node: Node, cc: &mut u32) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "&&" | "||" => { *cc += 1; }
+            "&&" | "||" => {
+                *cc += 1;
+            }
             "block" | "function_item" | "closure_expression" => {}
             _ => count_boolean_operators(child, cc),
+        }
+    }
+}
+
+fn count_cogc_boolean_sequences(node: Node, cogc: &mut u32) {
+    let mut last_op: Option<&str> = None;
+    collect_boolean_ops_rust(node, cogc, &mut last_op);
+}
+
+fn collect_boolean_ops_rust(node: Node, cogc: &mut u32, last_op: &mut Option<&str>) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        match child.kind() {
+            "&&" | "||" => {
+                let op = child.kind();
+                if *last_op != Some(op) {
+                    *cogc += 1;
+                    *last_op = Some(op);
+                }
+            }
+            "block" | "function_item" | "closure_expression" => {}
+            _ => collect_boolean_ops_rust(child, cogc, last_op),
         }
     }
 }
@@ -243,9 +282,8 @@ fn check_condition_complexity(node: Node, source: &str, compound_conditions: &mu
 }
 
 fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
-    let params = match find_child_by_kind(func_node, "parameters") {
-        Some(p) => p,
-        None => return (0, 0, 0),
+    let Some(params) = find_child_by_kind(func_node, "parameters") else {
+        return (0, 0, 0);
     };
     let mut count: u32 = 0;
     let mut primitive_count: u32 = 0;
@@ -271,27 +309,26 @@ fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
 
 fn has_primitive_type(param_node: Node, source: &str) -> bool {
     let type_node = find_type_leaf(param_node)
-        .or_else(|| {
-            find_child_by_kind(param_node, "reference_type")
-                .and_then(find_type_leaf)
-        });
-    type_node.map_or(false, |n| PRIMITIVE_TYPES.contains(&&source[n.byte_range()]))
+        .or_else(|| find_child_by_kind(param_node, "reference_type").and_then(find_type_leaf));
+    type_node.is_some_and(|n| PRIMITIVE_TYPES.contains(&&source[n.byte_range()]))
 }
 
 fn find_type_leaf(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
-    let result = node.children(&mut cursor)
+    let result = node
+        .children(&mut cursor)
         .find(|c| c.kind() == "type_identifier" || c.kind() == "primitive_type");
     result
 }
 
 fn has_self_param(func_node: Node) -> bool {
-    let params = match find_child_by_kind(func_node, "parameters") {
-        Some(p) => p,
-        None => return false,
+    let Some(params) = find_child_by_kind(func_node, "parameters") else {
+        return false;
     };
     let mut cursor = params.walk();
-    let result = params.children(&mut cursor).any(|c| c.kind() == "self_parameter");
+    let result = params
+        .children(&mut cursor)
+        .any(|c| c.kind() == "self_parameter");
     result
 }
 
@@ -312,7 +349,6 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
                     *max_nesting = depth;
                 }
             }
-            "function_item" | "impl_item" | "struct_item" | "enum_item" | "mod_item" => {}
             _ => {}
         }
     }

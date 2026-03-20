@@ -48,7 +48,11 @@ fn simple_func_not_flagged() {
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "ExcessArgs.java");
-    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {}", output);
+    assert!(
+        has_smell(&output, "Constructor Over-Injection"),
+        "got: {}",
+        output
+    );
 }
 
 #[test]
@@ -87,7 +91,9 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "ComplexMethod.java");
-    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output
+        .lines()
+        .any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -119,7 +125,11 @@ fn empty_file() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("class T {\n    void f() {\n        if (a) {}\n        if (b) {}\n        if (c) {}\n        if (d) {}\n        if (e) {}\n        if (f) {}\n        if (g) {}\n        if (h) {}\n    }\n}\n", "java");
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "cc=9 should trigger, got: {}",
+        out
+    );
 }
 
 #[test]
@@ -155,7 +165,11 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
+        "got: {}",
+        stdout
+    );
 }
 
 #[test]
@@ -221,7 +235,10 @@ fn god_method_not_reported_as_separate() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("processDataPipeline")).collect();
+    let lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("processDataPipeline"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -232,22 +249,29 @@ fn god_method_not_reported_as_separate() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "class T {\n",
-        "    boolean check(int age, int score, boolean active) {\n",
-        "        if (age > 18 && score > 50 && active) {\n",
-        "            if (score > 80 || (age > 25 && active)) {\n",
-        "                return true;\n",
-        "            }\n",
-        "        }\n",
-        "        if (age > 65 || score < 10) {\n",
-        "            return true;\n",
-        "        }\n",
-        "        return false;\n",
-        "    }\n",
-        "}\n",
-    ), "java");
-    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {}", out);
+    let out = pulse_check_code(
+        concat!(
+            "class T {\n",
+            "    boolean check(int age, int score, boolean active) {\n",
+            "        if (age > 18 && score > 50 && active) {\n",
+            "            if (score > 80 || (age > 25 && active)) {\n",
+            "                return true;\n",
+            "            }\n",
+            "        }\n",
+            "        if (age > 65 || score < 10) {\n",
+            "            return true;\n",
+            "        }\n",
+            "        return false;\n",
+            "    }\n",
+            "}\n",
+        ),
+        "java",
+    );
+    assert!(
+        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
+        "got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -272,7 +296,11 @@ fn file_too_large_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "File Too Large") || has_smell(&stdout, "Too Many Functions"), "got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "File Too Large") || has_smell(&stdout, "Too Many Functions"),
+        "got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -386,7 +414,10 @@ fn embedded_block_detected() {
     // Use a text block (Java 15+) for embedded block detection
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
     for i in 0..20 {
-        code.push_str(&format!("            SELECT field_{} FROM table_{}\n", i, i));
+        code.push_str(&format!(
+            "            SELECT field_{} FROM table_{}\n",
+            i, i
+        ));
     }
     code.push_str("            \"\"\";\n        return q;\n    }\n}\n");
     let out = pulse_check_code(&code, "java");
@@ -395,7 +426,10 @@ fn embedded_block_detected() {
 
 #[test]
 fn simple_string_not_flagged() {
-    let out = pulse_check_code("class T {\n    String f() {\n        return \"hello\";\n    }\n}\n", "java");
+    let out = pulse_check_code(
+        "class T {\n    String f() {\n        return \"hello\";\n    }\n}\n",
+        "java",
+    );
     assert!(!has_smell(&out, "Large Embedded Block"));
 }
 
@@ -418,24 +452,27 @@ fn annotated_function_analyzed() {
 
 #[test]
 fn switch_case_increments_cc() {
-    let out = pulse_check_code(concat!(
-        "class T {\n",
-        "    String handle(int action) {\n",
-        "        switch (action) {\n",
-        "            case 1: return \"a\";\n",
-        "            case 2: return \"b\";\n",
-        "            case 3: return \"c\";\n",
-        "            case 4: return \"d\";\n",
-        "            case 5: return \"e\";\n",
-        "            case 6: return \"f\";\n",
-        "            case 7: return \"g\";\n",
-        "            case 8: return \"h\";\n",
-        "            case 9: return \"i\";\n",
-        "            default: return \"?\";\n",
-        "        }\n",
-        "    }\n",
-        "}\n",
-    ), "java");
+    let out = pulse_check_code(
+        concat!(
+            "class T {\n",
+            "    String handle(int action) {\n",
+            "        switch (action) {\n",
+            "            case 1: return \"a\";\n",
+            "            case 2: return \"b\";\n",
+            "            case 3: return \"c\";\n",
+            "            case 4: return \"d\";\n",
+            "            case 5: return \"e\";\n",
+            "            case 6: return \"f\";\n",
+            "            case 7: return \"g\";\n",
+            "            case 8: return \"h\";\n",
+            "            case 9: return \"i\";\n",
+            "            default: return \"?\";\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "java",
+    );
     assert!(has_smell(&out, "Complex Method"), "got: {}", out);
 }
 
@@ -445,22 +482,25 @@ fn switch_case_increments_cc() {
 
 #[test]
 fn code_duplication_detected() {
-    let out = pulse_check_code(concat!(
-        "class T {\n",
-        "    int rptA(int[] d) {\n",
-        "        int r = 0;\n",
-        "        for (int v : d) { r += v; }\n",
-        "        r = r * 2;\n",
-        "        return r;\n",
-        "    }\n",
-        "    int rptB(int[] d) {\n",
-        "        int r = 0;\n",
-        "        for (int v : d) { r += v; }\n",
-        "        r = r * 2;\n",
-        "        return r;\n",
-        "    }\n",
-        "}\n",
-    ), "java");
+    let out = pulse_check_code(
+        concat!(
+            "class T {\n",
+            "    int rptA(int[] d) {\n",
+            "        int r = 0;\n",
+            "        for (int v : d) { r += v; }\n",
+            "        r = r * 2;\n",
+            "        return r;\n",
+            "    }\n",
+            "    int rptB(int[] d) {\n",
+            "        int r = 0;\n",
+            "        for (int v : d) { r += v; }\n",
+            "        r = r * 2;\n",
+            "        return r;\n",
+            "    }\n",
+            "}\n",
+        ),
+        "java",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
 }
 
@@ -470,7 +510,10 @@ fn code_duplication_detected() {
 
 #[test]
 fn primitive_obsession_recognizes_boolean_char() {
-    let out = pulse_check_code("class T {\n    void f(boolean a, char b, byte c, short d) {}\n}\n", "java");
+    let out = pulse_check_code(
+        "class T {\n    void f(boolean a, char b, byte c, short d) {}\n}\n",
+        "java",
+    );
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
@@ -480,35 +523,38 @@ fn primitive_obsession_recognizes_boolean_char() {
 
 #[test]
 fn nested_conditional_chunks_detected() {
-    let out = pulse_check_code(concat!(
-        "class T {\n",
-        "    void validate(int[] data) {\n",
-        "        if (data.length > 0) {\n",
-        "            if (data[0] > 0) {\n",
-        "                if (data[0] > 10) {\n",
-        "                    int x = 1;\n",
-        "                }\n",
-        "            }\n",
-        "        }\n",
-        "        int gap = 1;\n",
-        "        if (data.length > 5) {\n",
-        "            if (data[5] > 0) {\n",
-        "                if (data[5] > 10) {\n",
-        "                    int y = 2;\n",
-        "                }\n",
-        "            }\n",
-        "        }\n",
-        "        int gap2 = 2;\n",
-        "        if (data.length > 10) {\n",
-        "            if (data[10] > 0) {\n",
-        "                if (data[10] > 10) {\n",
-        "                    int z = 3;\n",
-        "                }\n",
-        "            }\n",
-        "        }\n",
-        "    }\n",
-        "}\n",
-    ), "java");
+    let out = pulse_check_code(
+        concat!(
+            "class T {\n",
+            "    void validate(int[] data) {\n",
+            "        if (data.length > 0) {\n",
+            "            if (data[0] > 0) {\n",
+            "                if (data[0] > 10) {\n",
+            "                    int x = 1;\n",
+            "                }\n",
+            "            }\n",
+            "        }\n",
+            "        int gap = 1;\n",
+            "        if (data.length > 5) {\n",
+            "            if (data[5] > 0) {\n",
+            "                if (data[5] > 10) {\n",
+            "                    int y = 2;\n",
+            "                }\n",
+            "            }\n",
+            "        }\n",
+            "        int gap2 = 2;\n",
+            "        if (data.length > 10) {\n",
+            "            if (data[10] > 0) {\n",
+            "                if (data[10] > 10) {\n",
+            "                    int z = 3;\n",
+            "                }\n",
+            "            }\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "java",
+    );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
         "got: {}",
@@ -582,7 +628,11 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "got: {}", stdout);
+    assert!(
+        has_smell(&stdout, "Overall Function Size"),
+        "got: {}",
+        stdout
+    );
 }
 
 // ===========================================================================
@@ -650,17 +700,20 @@ fn god_class_triggers_with_god_method() {
 
 #[test]
 fn lcom4_detects_low_cohesion() {
-    let out = pulse_check_code(concat!(
-        "class Sink {\n",
-        "    private int x; private int y; private int z;\n",
-        "    void useX() { this.x = 1; }\n",
-        "    int getX() { return this.x; }\n",
-        "    void useY() { this.y = 1; }\n",
-        "    int getY() { return this.y; }\n",
-        "    void useZ() { this.z = 1; }\n",
-        "    int getZ() { return this.z; }\n",
-        "}\n",
-    ), "java");
+    let out = pulse_check_code(
+        concat!(
+            "class Sink {\n",
+            "    private int x; private int y; private int z;\n",
+            "    void useX() { this.x = 1; }\n",
+            "    int getX() { return this.x; }\n",
+            "    void useY() { this.y = 1; }\n",
+            "    int getY() { return this.y; }\n",
+            "    void useZ() { this.z = 1; }\n",
+            "    int getZ() { return this.z; }\n",
+            "}\n",
+        ),
+        "java",
+    );
     assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
@@ -683,6 +736,9 @@ fn annotated_class_method_analyzed() {
 
 #[test]
 fn primitive_obsession_mixed_not_flagged_smells() {
-    let out = pulse_check_code("class T {\n    void f(int a, String b, Object c, Object d) {}\n}\n", "java");
+    let out = pulse_check_code(
+        "class T {\n    void f(int a, String b, Object c, Object d) {}\n}\n",
+        "java",
+    );
     assert!(!has_smell(&out, "Primitive Obsession"));
 }

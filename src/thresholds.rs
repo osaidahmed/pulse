@@ -2,6 +2,8 @@ pub struct Thresholds {
     // Function-level
     pub cc_warning: u32,
     pub cc_alert: u32,
+    pub cogc_warning: u32,
+    pub cogc_alert: u32,
     pub fn_loc_warning: u32,
     pub fn_loc_alert: u32,
     pub nesting_depth: u32,
@@ -44,6 +46,8 @@ impl Default for Thresholds {
         Self {
             cc_warning: 9,
             cc_alert: 15,
+            cogc_warning: 15,
+            cogc_alert: 25,
             fn_loc_warning: 50,
             fn_loc_alert: 100,
             nesting_depth: 4,

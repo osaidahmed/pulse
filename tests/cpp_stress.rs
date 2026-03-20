@@ -3,8 +3,12 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String { pulse_check_code(code, "cpp") }
-fn debug(code: &str) -> String { pulse_debug_code(code, "cpp") }
+fn check(code: &str) -> String {
+    pulse_check_code(code, "cpp")
+}
+fn debug(code: &str) -> String {
+    pulse_debug_code(code, "cpp")
+}
 
 // CC precision
 #[test]
@@ -27,7 +31,9 @@ fn cc_counts_for() {
 
 #[test]
 fn cc_counts_range_for() {
-    let out = debug("#include <vector>\nvoid f() {\n    std::vector<int> v;\n    for (auto x : v) {}\n}\n");
+    let out = debug(
+        "#include <vector>\nvoid f() {\n    std::vector<int> v;\n    for (auto x : v) {}\n}\n",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -82,7 +88,8 @@ fn cc_chained_boolean() {
 
 #[test]
 fn cc_nested_if_in_for() {
-    let out = debug("void f() {\n    for (int i = 0; i < 10; i++) {\n        if (i > 5) {}\n    }\n}\n");
+    let out =
+        debug("void f() {\n    for (int i = 0; i < 10; i++) {\n        if (i > 5) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -194,7 +201,8 @@ fn regular_function_reports_excess_args() {
 // Multiple smells
 #[test]
 fn multiple_smells_same_function() {
-    let mut code = String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
+    let mut code =
+        String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
     code.push_str("    for (int i = 0; i < a; i++) {\n");
     code.push_str("        if (i > 0) {\n");
     code.push_str("            for (int j = 0; j < b; j++) {\n");
@@ -276,7 +284,11 @@ fn cc_counts_not_operator() {
 fn nesting_try_catch_counts_depth() {
     let out = debug("void f() {\n    try {\n        if (x) {}\n    } catch (...) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 1, "try-catch should contribute nesting, got: {}", depth);
+    assert!(
+        depth >= 1,
+        "try-catch should contribute nesting, got: {}",
+        depth
+    );
 }
 
 // ===========================================================================
@@ -551,7 +563,10 @@ fn shallow_global_not_flagged() {
 fn constructor_reports_injection_not_excess() {
     let out = check("class S {\npublic:\n    S(int a, int b, int c, int d, int e, int f) {}\n};\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
-    let lines: Vec<&str> = out.lines().filter(|l| l.contains("S(") || l.contains("S.S")).collect();
+    let lines: Vec<&str> = out
+        .lines()
+        .filter(|l| l.contains("S(") || l.contains("S.S"))
+        .collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
 
@@ -572,7 +587,8 @@ fn regular_function_reports_excess() {
 
 #[test]
 fn function_can_have_multiple_smells() {
-    let mut code = String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
+    let mut code =
+        String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
     code.push_str("    const char* q = R\"(\n");
     for i in 0..20 {
         code.push_str(&format!("        SELECT field_{}\n", i));
@@ -609,7 +625,12 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"other\": 1}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -625,7 +646,12 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
+                .unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -653,7 +679,8 @@ fn hook_empty_stdin() {
 
 #[test]
 fn primitive_obsession_mixed_not_flagged() {
-    let out = check("#include <string>\nvoid f(int a, std::string b, std::string c, std::string d) {}\n");
+    let out =
+        check("#include <string>\nvoid f(int a, std::string b, std::string c, std::string d) {}\n");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
@@ -674,7 +701,11 @@ fn clean_cpp_module_not_flagged() {
         "    int port_;\n",
         "};\n",
     ));
-    assert!(out.is_empty(), "clean C++ code should not be flagged, got: {}", out);
+    assert!(
+        out.is_empty(),
+        "clean C++ code should not be flagged, got: {}",
+        out
+    );
 }
 
 // ===========================================================================
@@ -753,7 +784,8 @@ fn cc_do_while() {
 
 #[test]
 fn cc_multiple_catch() {
-    let out = debug("void f() {\n    try {} catch (int e) {} catch (float e) {} catch (...) {}\n}\n");
+    let out =
+        debug("void f() {\n    try {} catch (int e) {} catch (float e) {} catch (...) {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(cc >= 4, "base + 3 catch = 4, got: {}", cc);
 }
@@ -839,7 +871,8 @@ fn duplication_two_is_minimum() {
 
 #[test]
 fn attributed_function_analyzed() {
-    let out = check("[[nodiscard]]\nvoid f(int a, int b, int c, int d, int e, int f, int g, int h) {}\n");
+    let out =
+        check("[[nodiscard]]\nvoid f(int a, int b, int c, int d, int e, int f, int g, int h) {}\n");
     assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
 }
 
@@ -873,7 +906,8 @@ fn deep_nesting_with_switch() {
 
 #[test]
 fn cc_else_if_chain() {
-    let out = debug("void f(int x) {\n    if (x == 1) {} else if (x == 2) {} else if (x == 3) {}\n}\n");
+    let out =
+        debug("void f(int x) {\n    if (x == 1) {} else if (x == 2) {} else if (x == 3) {}\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(4));
 }
 
