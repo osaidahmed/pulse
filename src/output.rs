@@ -29,3 +29,23 @@ pub fn format(findings: &[Finding], filename: &str) -> String {
 
     out
 }
+
+pub fn format_compact(findings: &[Finding], filename: &str) -> String {
+    let parts: Vec<String> = findings
+        .iter()
+        .map(|f| match &f.location {
+            Location::Function {
+                name, start_line, ..
+            } => format!("{} at {}:{} ({})", f.smell, name, start_line, f.detail),
+            Location::Module => format!("{} ({})", f.smell, f.detail),
+        })
+        .collect();
+
+    format!(
+        "pulse: {} issue{} in {} — {}\n",
+        findings.len(),
+        if findings.len() == 1 { "" } else { "s" },
+        filename,
+        parts.join(", ")
+    )
+}

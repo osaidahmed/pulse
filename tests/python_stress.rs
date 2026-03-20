@@ -3,29 +3,8 @@ mod common;
 use common::*;
 use std::process::Command;
 
-const LANG: &str = "python";
-
-fn pulse_check(code: &str) -> String {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("test.py");
-    std::fs::write(&path, code).unwrap();
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(["check", path.to_str().unwrap()])
-        .output()
-        .expect("failed to run pulse");
-    String::from_utf8(out.stdout).unwrap()
-}
-
-fn pulse_debug(code: &str) -> String {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("test.py");
-    std::fs::write(&path, code).unwrap();
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(["debug", path.to_str().unwrap()])
-        .output()
-        .expect("failed to run pulse");
-    String::from_utf8(out.stderr).unwrap()
-}
+fn check(code: &str) -> String { pulse_check_code(code, "py") }
+fn debug(code: &str) -> String { pulse_debug_code(code, "py") }
 
 // ===========================================================================
 // CC counting precision
@@ -33,63 +12,63 @@ fn pulse_debug(code: &str) -> String {
 
 #[test]
 fn cc_counts_if() {
-    let out = pulse_debug("def f():\n    if x:\n        pass\n");
+    let out = debug("def f():\n    if x:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_elif() {
-    let out = pulse_debug("def f():\n    if x:\n        pass\n    elif y:\n        pass\n");
+    let out = debug("def f():\n    if x:\n        pass\n    elif y:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_for() {
-    let out = pulse_debug("def f():\n    for x in y:\n        pass\n");
+    let out = debug("def f():\n    for x in y:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_while() {
-    let out = pulse_debug("def f():\n    while x:\n        pass\n");
+    let out = debug("def f():\n    while x:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_except() {
-    let out = pulse_debug("def f():\n    try:\n        pass\n    except:\n        pass\n");
+    let out = debug("def f():\n    try:\n        pass\n    except:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_and_operator() {
-    let out = pulse_debug("def f():\n    if a and b:\n        pass\n");
+    let out = debug("def f():\n    if a and b:\n        pass\n");
     // base(1) + if(1) + and(1) = 3
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_or_operator() {
-    let out = pulse_debug("def f():\n    if a or b:\n        pass\n");
+    let out = debug("def f():\n    if a or b:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_not_operator() {
-    let out = pulse_debug("def f():\n    if not a:\n        pass\n");
+    let out = debug("def f():\n    if not a:\n        pass\n");
     // base(1) + if(1) + not(1) = 3
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_ternary() {
-    let out = pulse_debug("def f():\n    x = 1 if a else 2\n");
+    let out = debug("def f():\n    x = 1 if a else 2\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_chained_boolean() {
-    let out = pulse_debug("def f():\n    if a and b and c and d:\n        pass\n");
+    let out = debug("def f():\n    if a and b and c and d:\n        pass\n");
     // base(1) + if(1) + 3 boolean_operators (a and b) and c) and d) = 5
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(cc >= 4, "chained boolean should increase cc, got: {}", cc);
@@ -97,7 +76,7 @@ fn cc_counts_chained_boolean() {
 
 #[test]
 fn cc_multiple_except_clauses() {
-    let out = pulse_debug(
+    let out = debug(
         "def f():\n    try:\n        pass\n    except ValueError:\n        pass\n    except TypeError:\n        pass\n    except:\n        pass\n",
     );
     // base(1) + 3 excepts = 4
@@ -106,7 +85,7 @@ fn cc_multiple_except_clauses() {
 
 #[test]
 fn cc_nested_if_in_for() {
-    let out = pulse_debug("def f():\n    for x in y:\n        if x:\n            pass\n");
+    let out = debug("def f():\n    for x in y:\n        if x:\n            pass\n");
     // base(1) + for(1) + if(1) = 3
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
@@ -117,31 +96,31 @@ fn cc_nested_if_in_for() {
 
 #[test]
 fn nesting_depth_0_for_flat_function() {
-    let out = pulse_debug("def f():\n    return 1\n");
+    let out = debug("def f():\n    return 1\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(0));
 }
 
 #[test]
 fn nesting_depth_1_for_single_if() {
-    let out = pulse_debug("def f():\n    if x:\n        pass\n");
+    let out = debug("def f():\n    if x:\n        pass\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(1));
 }
 
 #[test]
 fn nesting_depth_2_for_nested_if() {
-    let out = pulse_debug("def f():\n    if x:\n        if y:\n            pass\n");
+    let out = debug("def f():\n    if x:\n        if y:\n            pass\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(2));
 }
 
 #[test]
 fn nesting_depth_tracks_for_in_if() {
-    let out = pulse_debug("def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n");
+    let out = debug("def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
 #[test]
 fn nesting_depth_with_counts_depth() {
-    let out = pulse_debug("def f():\n    with open('f') as fh:\n        if x:\n            pass\n");
+    let out = debug("def f():\n    with open('f') as fh:\n        if x:\n            pass\n");
     // with(1) + if(1) = 2
     assert_eq!(function_metric(&out, "f", "nesting"), Some(2));
 }
@@ -152,49 +131,49 @@ fn nesting_depth_with_counts_depth() {
 
 #[test]
 fn args_counts_positional() {
-    let out = pulse_debug("def f(a, b, c):\n    pass\n");
+    let out = debug("def f(a, b, c):\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(3));
 }
 
 #[test]
 fn args_counts_default_values() {
-    let out = pulse_debug("def f(a, b=1, c=None):\n    pass\n");
+    let out = debug("def f(a, b=1, c=None):\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(3));
 }
 
 #[test]
 fn args_counts_splats() {
-    let out = pulse_debug("def f(a, *args, **kwargs):\n    pass\n");
+    let out = debug("def f(a, *args, **kwargs):\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(3));
 }
 
 #[test]
 fn args_counts_typed_params() {
-    let out = pulse_debug("def f(a: int, b: str, c: float):\n    pass\n");
+    let out = debug("def f(a: int, b: str, c: float):\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(3));
 }
 
 #[test]
 fn args_counts_typed_with_defaults() {
-    let out = pulse_debug("def f(a: int = 0, b: str = ''):\n    pass\n");
+    let out = debug("def f(a: int = 0, b: str = ''):\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(2));
 }
 
 #[test]
 fn args_excludes_self_in_method() {
-    let out = pulse_debug("class C:\n    def m(self, a, b):\n        pass\n");
+    let out = debug("class C:\n    def m(self, a, b):\n        pass\n");
     assert_eq!(function_metric(&out, "C.m", "args"), Some(2));
 }
 
 #[test]
 fn args_excludes_cls_in_classmethod() {
-    let out = pulse_debug("class C:\n    @classmethod\n    def m(cls, a):\n        pass\n");
+    let out = debug("class C:\n    @classmethod\n    def m(cls, a):\n        pass\n");
     assert_eq!(function_metric(&out, "C.m", "args"), Some(1));
 }
 
 #[test]
 fn args_zero_for_no_params() {
-    let out = pulse_debug("def f():\n    pass\n");
+    let out = debug("def f():\n    pass\n");
     assert_eq!(function_metric(&out, "f", "args"), Some(0));
 }
 
@@ -204,40 +183,40 @@ fn args_zero_for_no_params() {
 
 #[test]
 fn primitive_obsession_all_str() {
-    let out = pulse_check("def f(a: str, b: str, c: str, d: str, e: str):\n    pass\n");
+    let out = check("def f(a: str, b: str, c: str, d: str, e: str):\n    pass\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_mixed_below_threshold() {
     // 2 out of 4 typed = 50%, below 70% threshold
-    let out = pulse_check("def f(a: str, b: str, c: MyObj, d: OtherObj):\n    pass\n");
+    let out = check("def f(a: str, b: str, c: MyObj, d: OtherObj):\n    pass\n");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_untyped_params_not_counted() {
     // untyped params don't count toward the ratio
-    let out = pulse_check("def f(a, b, c, d, e):\n    pass\n");
+    let out = check("def f(a, b, c, d, e):\n    pass\n");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_below_min_typed_params() {
     // only 3 typed params (threshold is 4), even though all are primitive
-    let out = pulse_check("def f(a: str, b: int, c: float):\n    pass\n");
+    let out = check("def f(a: str, b: int, c: float):\n    pass\n");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_recognizes_bool() {
-    let out = pulse_check("def f(a: bool, b: bool, c: bool, d: bool):\n    pass\n");
+    let out = check("def f(a: bool, b: bool, c: bool, d: bool):\n    pass\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_recognizes_int_float_bytes() {
-    let out = pulse_check("def f(a: int, b: float, c: bytes, d: complex):\n    pass\n");
+    let out = check("def f(a: int, b: float, c: bytes, d: complex):\n    pass\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
@@ -247,7 +226,7 @@ fn primitive_obsession_recognizes_int_float_bytes() {
 
 #[test]
 fn lcom4_single_method_class_not_flagged() {
-    let out = pulse_check(
+    let out = check(
         "class Tiny:\n    def __init__(self):\n        self.x = 1\n    def get(self):\n        return self.x\n",
     );
     assert!(!has_smell(&out, "Low Cohesion"));
@@ -255,7 +234,7 @@ fn lcom4_single_method_class_not_flagged() {
 
 #[test]
 fn lcom4_all_methods_share_field() {
-    let out = pulse_check(
+    let out = check(
         "class Cohesive:\n    def __init__(self):\n        self.data = []\n    def add(self, x):\n        self.data.append(x)\n    def get(self):\n        return self.data\n    def clear(self):\n        self.data = []\n",
     );
     assert!(!has_smell(&out, "Low Cohesion"));
@@ -264,7 +243,7 @@ fn lcom4_all_methods_share_field() {
 #[test]
 fn lcom4_two_disconnected_groups() {
     // methods split into 2 groups: (a_work, a_read) share field_a, (b_work, b_read) share field_b
-    let out = pulse_check(
+    let out = check(
         "class Split:\n    def __init__(self):\n        self.field_a = 1\n        self.field_b = 2\n    def a_work(self):\n        return self.field_a\n    def a_read(self):\n        return self.field_a + 1\n    def b_work(self):\n        return self.field_b\n    def b_read(self):\n        return self.field_b + 1\n",
     );
     // 2 components, threshold is 3 — should NOT trigger
@@ -273,7 +252,7 @@ fn lcom4_two_disconnected_groups() {
 
 #[test]
 fn lcom4_three_disconnected_groups() {
-    let out = pulse_check(
+    let out = check(
         "class Messy:\n    def __init__(self):\n        self.x = 1\n        self.y = 2\n        self.z = 3\n    def use_x(self):\n        return self.x\n    def use_y(self):\n        return self.y\n    def use_z(self):\n        return self.z\n",
     );
     assert!(has_smell(&out, "Low Cohesion"));
@@ -282,7 +261,7 @@ fn lcom4_three_disconnected_groups() {
 #[test]
 fn lcom4_init_excluded_from_analysis() {
     // __init__ accesses all fields but shouldn't count as connecting them
-    let out = pulse_check(
+    let out = check(
         "class Init:\n    def __init__(self):\n        self.a = 1\n        self.b = 2\n        self.c = 3\n    def use_a(self):\n        return self.a\n    def use_b(self):\n        return self.b\n    def use_c(self):\n        return self.c\n",
     );
     assert!(has_smell(&out, "Low Cohesion"));
@@ -292,7 +271,7 @@ fn lcom4_init_excluded_from_analysis() {
 fn lcom4_transitive_connection() {
     // m1 uses field_a, m2 uses field_a+field_b, m3 uses field_b
     // m1-m2 connected via field_a, m2-m3 connected via field_b -> all in one component
-    let out = pulse_check(
+    let out = check(
         "class Connected:\n    def __init__(self):\n        self.a = 1\n        self.b = 2\n    def m1(self):\n        return self.a\n    def m2(self):\n        return self.a + self.b\n    def m3(self):\n        return self.b\n",
     );
     assert!(!has_smell(&out, "Low Cohesion"));
@@ -305,7 +284,7 @@ fn lcom4_transitive_connection() {
 #[test]
 fn duplication_decorators_dont_affect_hash() {
     // same body, different decorators — should be flagged as duplicates
-    let out = pulse_check(r#"
+    let out = check(r#"
 def decorator_a(f):
     return f
 def decorator_b(f):
@@ -335,7 +314,7 @@ def func_b(data):
 #[test]
 fn duplication_async_vs_sync_same_body() {
     // async and sync versions with same body
-    let out = pulse_check(r#"
+    let out = check(r#"
 async def fetch_a(url):
     result = {}
     result["data"] = await get(url)
@@ -357,7 +336,7 @@ async def fetch_b(endpoint):
 
 #[test]
 fn duplication_two_functions_is_minimum_group() {
-    let out = pulse_check(r#"
+    let out = check(r#"
 def report_a(data):
     r = {}
     r["id"] = data.get("id")
@@ -380,7 +359,7 @@ def report_b(items):
 #[test]
 fn duplication_mixed_test_and_prod_still_flagged() {
     // if one function is NOT a test_, the group should still be flagged
-    let out = pulse_check(r#"
+    let out = check(r#"
 def test_something(data):
     result = {}
     result["id"] = data.get("id")
@@ -415,7 +394,7 @@ fn god_class_requires_god_method() {
     for i in 0..200 {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
 }
 
@@ -440,7 +419,7 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     for i in 0..350 {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(has_smell(&out, "God Method"));
     assert!(has_smell(&out, "God Class"));
 }
@@ -452,7 +431,7 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
 #[test]
 fn assertion_block_interrupted_by_code_resets_count() {
     // asserts broken by a non-assert statement
-    let out = pulse_check(r#"
+    let out = check(r#"
 def test_interleaved():
     assert x == 1
     assert y == 2
@@ -471,7 +450,7 @@ fn assertion_block_exactly_at_threshold() {
     for i in 0..10 {
         code.push_str(&format!("    assert x_{} == {}\n", i, i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     // 10 consecutive, threshold is > 10 (so 11+ to trigger)
     assert!(!has_smell(&out, "Large Assertion Block"));
 }
@@ -482,7 +461,7 @@ fn assertion_block_above_threshold() {
     for i in 0..15 {
         code.push_str(&format!("    assert x_{} == {}\n", i, i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(has_smell(&out, "Large Assertion Block"));
 }
 
@@ -501,7 +480,7 @@ fn overall_function_size_not_triggered_by_two_large_functions() {
         }
         code.push_str("    return None\n\n");
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(!has_smell(&out, "Overall Function Size"));
 }
 
@@ -515,7 +494,7 @@ fn overall_function_size_triggered_by_three_large_functions() {
         }
         code.push_str("    return None\n\n");
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(has_smell(&out, "Overall Function Size"));
 }
 
@@ -529,7 +508,7 @@ fn declarations_below_threshold_not_flagged() {
     for i in 0..10 {
         code.push_str(&format!("class T{}:\n    pass\n\n", i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(!has_smell(&out, "Declarations"));
 }
 
@@ -539,7 +518,7 @@ fn decorated_classes_counted_as_declarations() {
     for i in 0..25 {
         code.push_str(&format!("@deco\nclass T{}:\n    pass\n\n", i));
     }
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
 }
 
@@ -549,7 +528,7 @@ fn decorated_classes_counted_as_declarations() {
 
 #[test]
 fn small_string_not_flagged_as_embedded() {
-    let out = pulse_check("def f():\n    x = 'hello world'\n    return x\n");
+    let out = check("def f():\n    x = 'hello world'\n    return x\n");
     assert!(!has_smell(&out, "Large Embedded Block"));
 }
 
@@ -560,7 +539,7 @@ fn multiline_fstring_counted_as_embedded() {
         code.push_str(&format!("        line {} of template\n", i));
     }
     code.push_str("    \"\"\"\n    return x\n");
-    let out = pulse_check(&code);
+    let out = check(&code);
     assert!(has_smell(&out, "Large Embedded Block"));
 }
 
@@ -570,13 +549,13 @@ fn multiline_fstring_counted_as_embedded() {
 
 #[test]
 fn shallow_global_if_not_flagged_deep() {
-    let out = pulse_check("if True:\n    x = 1\n");
+    let out = check("if True:\n    x = 1\n");
     assert!(!has_smell(&out, "Deep Global Nesting"));
 }
 
 #[test]
 fn global_nesting_depth_3_flagged() {
-    let out = pulse_check("if a:\n    if b:\n        if c:\n            x = 1\n");
+    let out = check("if a:\n    if b:\n        if c:\n            x = 1\n");
     assert!(has_smell(&out, "Deep Global Nesting"));
 }
 
@@ -586,7 +565,7 @@ fn global_nesting_depth_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection_not_excess_args() {
-    let out = pulse_check(
+    let out = check(
         "class S:\n    def __init__(self, a, b, c, d, e, f):\n        pass\n",
     );
     assert!(has_smell(&out, "Constructor Over-Injection"));
@@ -598,7 +577,7 @@ fn constructor_reports_over_injection_not_excess_args() {
 
 #[test]
 fn regular_function_reports_excess_args_not_constructor() {
-    let out = pulse_check("def f(a, b, c, d, e, f, g):\n    pass\n");
+    let out = check("def f(a, b, c, d, e, f, g):\n    pass\n");
     assert!(has_smell(&out, "Excess Arguments"));
     assert!(!has_smell(&out, "Constructor Over-Injection"));
 }
@@ -609,7 +588,7 @@ fn regular_function_reports_excess_args_not_constructor() {
 
 #[test]
 fn function_can_have_multiple_smells() {
-    let out = pulse_check(r#"
+    let out = check(r#"
 def terrible(a, b, c, d, e, f, g, h):
     query = """
         SELECT *
@@ -653,7 +632,7 @@ def terrible(a, b, c, d, e, f, g, h):
 
 #[test]
 fn clean_django_view_not_flagged() {
-    let out = pulse_check(r#"
+    let out = check(r#"
 class ItemListView:
     def get_queryset(self):
         return self.model.objects.filter(active=True)
@@ -672,7 +651,7 @@ class ItemListView:
 
 #[test]
 fn pytest_fixture_parametrize_not_flagged() {
-    let out = pulse_check(r#"
+    let out = check(r#"
 import pytest
 
 @pytest.fixture

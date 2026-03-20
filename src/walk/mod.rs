@@ -75,6 +75,7 @@ pub struct FunctionMetrics {
     pub is_constructor: bool,
     pub max_embedded_block_loc: u32,
     pub structural_hash: u64,
+    pub skeleton_hash: u64,
     pub consecutive_asserts: u32,
     pub assert_hash: u64,
     pub primitive_type_count: u32,
@@ -117,6 +118,21 @@ pub fn find_child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 
 pub fn node_text(node: Node, source: &str) -> String {
     source[node.byte_range()].to_string()
+}
+
+pub fn compute_skeleton_hash(body: Node) -> u64 {
+    let mut kinds: Vec<&str> = Vec::new();
+    let mut cursor = body.walk();
+    for child in body.children(&mut cursor) {
+        kinds.push(child.kind());
+    }
+    kinds.sort();
+    kinds.dedup();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for kind in &kinds {
+        kind.hash(&mut hasher);
+    }
+    hasher.finish()
 }
 
 pub fn compute_structural_fingerprint(node: Node) -> u64 {

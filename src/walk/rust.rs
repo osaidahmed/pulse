@@ -1,7 +1,7 @@
 use tree_sitter::{Node, Tree};
 
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_structural_fingerprint,
+    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
     count_code_lines, count_consecutive_asserts, find_child_by_kind, measure_nesting_depth,
     node_text, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
@@ -112,6 +112,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     walk_body(body, source, 0, &mut s);
 
     let structural_hash = compute_structural_fingerprint(body);
+    let skeleton_hash = compute_skeleton_hash(body);
     let consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
     let assert_hash = compute_assert_fingerprint(body, "expression_statement");
 
@@ -128,6 +129,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash,
+        skeleton_hash,
         consecutive_asserts,
         assert_hash,
         primitive_type_count,

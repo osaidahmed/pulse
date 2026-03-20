@@ -8,7 +8,15 @@ use std::io::Read;
 use std::path::Path;
 use std::process;
 
+use smells::{Finding, Location};
+
+struct HookInput {
+    file_path: String,
+    edit_range: Option<(u32, u32)>,
+}
+
 enum Command {
+    Hook(HookInput),
     Check(String),
     Debug(String),
 }
@@ -17,11 +25,11 @@ fn parse_args() -> Command {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() > 1 && args[1] == "--hook" {
-        let path = match read_hook_file_path() {
-            Some(p) => p,
+        let hook = match parse_hook_input() {
+            Some(h) => h,
             None => process::exit(0),
         };
-        return Command::Check(path);
+        return Command::Hook(hook);
     }
 
     if args.len() > 2 && args[1] == "check" {
@@ -56,51 +64,107 @@ fn run_debug(file_path: &str) {
     }
 }
 
-fn main() {
-    let command = parse_args();
-
-    let file_path = match command {
-        Command::Debug(ref p) => {
-            run_debug(p);
-            process::exit(0);
-        }
-        Command::Check(ref p) => p,
-    };
-
+fn analyze_file(file_path: &str) -> Option<(Vec<Finding>, String)> {
     let path = Path::new(file_path);
     if !path.exists() {
-        process::exit(0);
+        return None;
     }
-
-    let lang = match parse::detect_language(path) {
-        Some(l) => l,
-        None => process::exit(0),
-    };
-
-    let source = match std::fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(_) => process::exit(0),
-    };
-
-    let functions = match parse::parse_and_walk(&source, lang) {
-        Some(f) => f,
-        None => process::exit(0),
-    };
-
+    let lang = parse::detect_language(path)?;
+    let source = std::fs::read_to_string(path).ok()?;
+    let metrics = parse::parse_and_walk(&source, lang)?;
     let thresholds = thresholds::Thresholds::default();
-    let findings = smells::detect(&functions, &source, &thresholds);
+    let findings = smells::detect(&metrics, &source, &thresholds);
+    let filename = path.file_name()?.to_string_lossy().into_owned();
+    Some((findings, filename))
+}
 
+fn run_check(file_path: &str) {
+    let (findings, filename) = match analyze_file(file_path) {
+        Some(r) => r,
+        None => process::exit(0),
+    };
     if findings.is_empty() {
         process::exit(0);
     }
-
-    let filename = path.file_name().unwrap_or_default().to_string_lossy();
     print!("{}", output::format(&findings, &filename));
 }
 
-fn read_hook_file_path() -> Option<String> {
+fn run_hook(hook: HookInput) {
+    let (all_findings, filename) = match analyze_file(&hook.file_path) {
+        Some(r) => r,
+        None => process::exit(0),
+    };
+    let findings = filter_by_edit_range(all_findings, hook.edit_range);
+    if findings.is_empty() {
+        process::exit(0);
+    }
+    print!("{}", output::format_compact(&findings, &filename));
+}
+
+fn main() {
+    match parse_args() {
+        Command::Debug(p) => {
+            run_debug(&p);
+        }
+        Command::Check(p) => {
+            run_check(&p);
+        }
+        Command::Hook(h) => {
+            run_hook(h);
+        }
+    }
+}
+
+fn parse_hook_input() -> Option<HookInput> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).ok()?;
     let v: serde_json::Value = serde_json::from_str(&input).ok()?;
-    v.get("tool_input")?.get("file_path")?.as_str().map(String::from)
+    let tool_input = v.get("tool_input")?;
+    let file_path = tool_input.get("file_path")?.as_str()?.to_string();
+
+    let edit_range = compute_edit_range(tool_input, &file_path);
+
+    Some(HookInput {
+        file_path,
+        edit_range,
+    })
+}
+
+fn compute_edit_range(
+    tool_input: &serde_json::Value,
+    file_path: &str,
+) -> Option<(u32, u32)> {
+    let new_string = tool_input.get("new_string")?.as_str()?;
+    let old_string = tool_input.get("old_string")?.as_str()?;
+
+    let source = std::fs::read_to_string(file_path).ok()?;
+    let start_byte = source.find(new_string).or_else(|| source.find(old_string))?;
+
+    let start_line = source[..start_byte].matches('\n').count() as u32 + 1;
+    let new_lines = new_string.matches('\n').count() as u32;
+    let end_line = start_line + new_lines;
+
+    Some((start_line, end_line))
+}
+
+pub fn filter_by_edit_range(
+    findings: Vec<Finding>,
+    range: Option<(u32, u32)>,
+) -> Vec<Finding> {
+    let (start, end) = match range {
+        Some(r) => r,
+        None => return findings,
+    };
+
+    findings
+        .into_iter()
+        .filter(|f| match &f.location {
+            Location::Function {
+                start_line,
+                end_line,
+                ..
+            } => *start_line <= end && *end_line >= start,
+            Location::Module => true,
+        })
+        .collect()
 }

@@ -330,3 +330,319 @@ fn hook_invalid_json_silent() {
         .expect("failed to run");
     assert!(out.stdout.is_empty());
 }
+
+// ===========================================================================
+// Large Method (loc >= threshold)
+// ===========================================================================
+
+#[test]
+fn large_method_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("large.ts");
+    let mut code = String::from("function buildReport(): void {\n");
+    for i in 0..55 {
+        code.push_str(&format!("    const x{} = {};\n", i, i));
+    }
+    code.push_str("}\n");
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
+        "should detect large method, got: {}",
+        stdout
+    );
+}
+
+// ===========================================================================
+// God Method (complex AND large)
+// ===========================================================================
+
+#[test]
+fn god_method_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("god.ts");
+    let mut code = String::from("function processDataPipeline(): void {\n");
+    for i in 0..10 {
+        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+    }
+    for i in 0..45 {
+        code.push_str(&format!("    const y{} = {};\n", i, i));
+    }
+    code.push_str("}\n");
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+}
+
+#[test]
+fn god_method_has_high_cc_and_loc() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("god2.ts");
+    let mut code = String::from("function processDataPipeline(): void {\n");
+    for i in 0..10 {
+        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+    }
+    for i in 0..45 {
+        code.push_str(&format!("    const y{} = {};\n", i, i));
+    }
+    code.push_str("}\n");
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["debug", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    let cc = function_metric(&stderr, "processDataPipeline", "cc").unwrap_or(0);
+    let loc = function_metric(&stderr, "processDataPipeline", "loc").unwrap_or(0);
+    assert!(cc >= 9, "god method cc >= 9, got: {}", cc);
+    assert!(loc >= 50, "god method loc >= 50, got: {}", loc);
+}
+
+#[test]
+fn god_method_not_reported_as_separate_complex_and_large() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("god3.ts");
+    let mut code = String::from("function processDataPipeline(): void {\n");
+    for i in 0..10 {
+        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+    }
+    for i in 0..45 {
+        code.push_str(&format!("    const y{} = {};\n", i, i));
+    }
+    code.push_str("}\n");
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(has_smell(&stdout, "God Method"));
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("processDataPipeline")).collect();
+    assert!(
+        !lines.iter().any(|l| l.contains("Complex Method")),
+        "should not separately report Complex Method for a God Method"
+    );
+    assert!(
+        !lines.iter().any(|l| l.contains("Large Method")),
+        "should not separately report Large Method for a God Method"
+    );
+}
+
+// ===========================================================================
+// Nested conditional chunks bump count
+// ===========================================================================
+
+#[test]
+fn nested_conditional_chunks_bump_count() {
+    let debug = run_debug(LANG, "bumpy_road.ts");
+    let bumps = function_metric(&debug, "validateAndProcess", "bumps").unwrap_or(0);
+    assert!(bumps >= 2, "should have >= 2 bumps, got: {}", bumps);
+}
+
+// ===========================================================================
+// Complex conditional
+// ===========================================================================
+
+#[test]
+fn complex_conditional_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("cc.ts");
+    std::fs::write(&path, concat!(
+        "function checkEligibility(age: number, score: number, status: string): boolean {\n",
+        "    if (age > 18 && score > 50 && status === 'active') {\n",
+        "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
+        "            return true;\n",
+        "        }\n",
+        "    }\n",
+        "    if (age > 65 || score < 10 || status === 'exempt') {\n",
+        "        return true;\n",
+        "    }\n",
+        "    return false;\n",
+        "}\n",
+        "function simpleCheck(x: number): boolean {\n",
+        "    return x > 0;\n",
+        "}\n",
+    )).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        has_smell(&stdout, "Complex Conditional") || has_smell(&stdout, "Complex Method"),
+        "got: {}",
+        stdout
+    );
+    assert!(has_function(&stdout, "checkEligibility"));
+}
+
+#[test]
+fn simple_check_not_flagged() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("cc2.ts");
+    std::fs::write(&path, concat!(
+        "function checkEligibility(age: number, score: number, status: string): boolean {\n",
+        "    if (age > 18 && score > 50 && status === 'active') {\n",
+        "        if (score > 80 || (age > 25 && status === 'premium')) {\n",
+        "            return true;\n",
+        "        }\n",
+        "    }\n",
+        "    if (age > 65 || score < 10 || status === 'exempt') {\n",
+        "        return true;\n",
+        "    }\n",
+        "    return false;\n",
+        "}\n",
+        "function simpleCheck(x: number): boolean {\n",
+        "    return x > 0;\n",
+        "}\n",
+    )).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(!has_function(&stdout, "simpleCheck"), "simpleCheck should not be flagged");
+}
+
+// ===========================================================================
+// Global conditionals
+// ===========================================================================
+
+#[test]
+fn global_conditionals_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("gc.ts");
+    std::fs::write(&path, concat!(
+        "const x = 1;\n",
+        "if (process.env.NODE_ENV === 'development') {\n",
+        "    console.log('dev mode');\n",
+        "}\n",
+        "if (process.env.DEBUG) {\n",
+        "    console.log('debug');\n",
+        "}\n",
+        "if (process.env.VERBOSE) {\n",
+        "    console.log('verbose');\n",
+        "}\n",
+    )).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(has_smell(&stdout, "Global Conditionals"), "got: {}", stdout);
+}
+
+// ===========================================================================
+// File too large / too many functions
+// ===========================================================================
+
+#[test]
+fn file_too_large_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("huge.ts");
+    let mut code = String::new();
+    for i in 0..25 {
+        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+    }
+    for i in 0..500 {
+        code.push_str(&format!("const VAR{} = {};\n", i, i));
+    }
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(has_smell(&stdout, "File Too Large"), "got: {}", stdout);
+}
+
+#[test]
+fn too_many_functions_detected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("huge2.ts");
+    let mut code = String::new();
+    for i in 0..25 {
+        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+    }
+    for i in 0..500 {
+        code.push_str(&format!("const VAR{} = {};\n", i, i));
+    }
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(has_smell(&stdout, "Too Many Functions"), "got: {}", stdout);
+}
+
+// ===========================================================================
+// Decorated / annotated function analyzed
+// ===========================================================================
+
+#[test]
+fn decorated_function_analyzed() {
+    let out = pulse_check_code(concat!(
+        "function decorator(target: any) { return target; }\n\n",
+        "function longDeco(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any): any {\n",
+        "    return a;\n",
+        "}\n",
+    ), "ts");
+    assert!(
+        has_smell(&out, "Excess Arguments") || has_function(&out, "longDeco"),
+        "function with 8 args should be flagged, got: {}",
+        out
+    );
+}
+
+// ===========================================================================
+// Performance on fixture
+// ===========================================================================
+
+#[test]
+fn analysis_completes_under_500ms() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("perf.ts");
+    let mut code = String::new();
+    for i in 0..25 {
+        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+    }
+    for i in 0..500 {
+        code.push_str(&format!("const VAR{} = {};\n", i, i));
+    }
+    std::fs::write(&path, &code).unwrap();
+    let start = std::time::Instant::now();
+    let _ = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let elapsed = start.elapsed();
+    assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
+}
+
+#[test]
+fn large_method_loc_at_least_50() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("large_loc.ts");
+    let mut code = String::from("function buildReport(): void {\n");
+    for i in 0..55 {
+        code.push_str(&format!("    const x{} = {};\n", i, i));
+    }
+    code.push_str("}\n");
+    std::fs::write(&path, &code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["debug", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run");
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
+    assert!(loc >= 50, "loc should be >= 50, got: {}", loc);
+}
