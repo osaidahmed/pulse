@@ -16,6 +16,27 @@ pub struct Thresholds {
     pub file_loc_alert: u32,
     pub file_function_count: u32,
     pub file_total_cc: u32,
+
+    // Duplication
+    pub duplication_min_loc: u32,
+    pub duplication_min_group: u32,
+
+    // Declarations
+    pub max_declarations: u32,
+
+    // Overall function size
+    pub large_fn_loc: u32,
+    pub large_fn_count: u32,
+
+    // Test-specific
+    pub consecutive_asserts_max: u32,
+
+    // Primitive obsession
+    pub primitive_ratio_threshold: f32,
+    pub primitive_min_typed_params: u32,
+
+    // LCOM4
+    pub lcom4_warning: u32,
 }
 
 impl Default for Thresholds {
@@ -35,6 +56,15 @@ impl Default for Thresholds {
             file_loc_alert: 700,
             file_function_count: 20,
             file_total_cc: 100,
+            duplication_min_loc: 6,
+            duplication_min_group: 2,
+            max_declarations: 20,
+            large_fn_loc: 40,
+            large_fn_count: 3,
+            consecutive_asserts_max: 10,
+            primitive_ratio_threshold: 0.7,
+            primitive_min_typed_params: 4,
+            lcom4_warning: 3,
         }
     }
 }

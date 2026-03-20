@@ -63,3 +63,25 @@ pub fn function_metric(debug_output: &str, func_name: &str, metric: &str) -> Opt
     }
     None
 }
+
+pub fn pulse_check_code(code: &str, ext: &str) -> String {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(format!("test.{}", ext));
+    std::fs::write(&path, code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run pulse");
+    String::from_utf8(out.stdout).unwrap()
+}
+
+pub fn pulse_debug_code(code: &str, ext: &str) -> String {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(format!("test.{}", ext));
+    std::fs::write(&path, code).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["debug", path.to_str().unwrap()])
+        .output()
+        .expect("failed to run pulse");
+    String::from_utf8(out.stderr).unwrap()
+}
