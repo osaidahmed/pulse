@@ -98,7 +98,7 @@ fn complexity_detail(
             } else {
                 "warning"
             };
-            format!("cc={}, cogc={} [{}]", f.cc, f.cognitive_complexity, sev)
+            format!("cc={}, cogc={} [{}] (cc threshold: {}, cogc threshold: {})", f.cc, f.cognitive_complexity, sev, t.cc_warning, t.cogc_warning)
         }
         (false, true) => {
             let sev = if f.cognitive_complexity > t.cogc_alert {
@@ -106,11 +106,11 @@ fn complexity_detail(
             } else {
                 "warning"
             };
-            format!("cogc={} [{}]", f.cognitive_complexity, sev)
+            format!("cogc={} [{}] (threshold: {})", f.cognitive_complexity, sev, t.cogc_warning)
         }
         _ => {
             let sev = if f.cc > t.cc_alert { "alert" } else { "warning" };
-            format!("cc={} [{}]", f.cc, sev)
+            format!("cc={} [{}] (threshold: {})", f.cc, sev, t.cc_warning)
         }
     }
 }
@@ -145,7 +145,7 @@ fn check_large_method(
     findings.push(Finding {
         smell: "Large Method",
         location: func_loc(f),
-        detail: format!("{} lines [{}]", f.loc, severity),
+        detail: format!("{} lines [{}] (threshold: {})", f.loc, severity, t.fn_loc_warning),
     });
 }
 
@@ -154,7 +154,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
         findings.push(Finding {
             smell: "Nested Conditional Chunks",
             location: func_loc(f),
-            detail: format!("{} nested conditional chunks", f.bump_count),
+            detail: format!("{} nested conditional chunks (threshold: {})", f.bump_count, t.bump_count),
         });
     }
 
@@ -162,7 +162,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
         findings.push(Finding {
             smell: "Deep Nested Complexity",
             location: func_loc(f),
-            detail: format!("depth={}", f.max_nesting),
+            detail: format!("depth={} (threshold: {})", f.max_nesting, t.nesting_depth),
         });
     }
 
@@ -170,7 +170,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
         findings.push(Finding {
             smell: "Complex Conditional",
             location: func_loc(f),
-            detail: format!("{} complex conditions", f.compound_condition_count),
+            detail: format!("{} complex conditions (threshold: {})", f.compound_condition_count, t.compound_conditions),
         });
     }
 }
@@ -192,7 +192,7 @@ fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Ve
     findings.push(Finding {
         smell,
         location: func_loc(f),
-        detail: format!("{} args", f.arg_count),
+        detail: format!("{} args (threshold: {})", f.arg_count, threshold),
     });
 }
 
@@ -201,7 +201,7 @@ fn detect_embedded_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Ve
         findings.push(Finding {
             smell: "Large Embedded Block",
             location: func_loc(f),
-            detail: format!("{} lines of embedded content", f.max_embedded_block_loc),
+            detail: format!("{} lines of embedded content (threshold: {})", f.max_embedded_block_loc, t.embedded_block_loc),
         });
     }
 }
@@ -247,7 +247,7 @@ fn detect_large_assertion_blocks(
         (f.consecutive_asserts > threshold).then_some(Finding {
             smell: "Large Assertion Block",
             location: func_loc(f),
-            detail: format!("{} consecutive assertions", f.consecutive_asserts),
+            detail: format!("{} consecutive assertions (threshold: {})", f.consecutive_asserts, threshold),
         })
     }));
 }

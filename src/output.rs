@@ -41,19 +41,19 @@ pub fn format_stop(regressions: &[(String, Vec<Finding>)]) -> String {
             format_stop_finding(&mut out, f, filename);
         }
     }
+    let _ = writeln!(out, "Fix all issues above before proceeding.");
     out
 }
 
 fn format_stop_finding(out: &mut String, f: &Finding, filename: &str) {
-    let (severity, label) = if is_actionable(f.smell) {
-        ("error", "regression")
+    let label = if is_actionable(f.smell) {
+        "regression"
     } else {
-        ("note", "threshold crossed")
+        "threshold crossed"
     };
     let _ = writeln!(
         out,
-        "{}[pulse]: {}: {} {} — {}. {}",
-        severity,
+        "error[pulse]: {}: {} {} — {}. {}",
         filename,
         f.smell.to_lowercase(),
         label,
@@ -73,11 +73,12 @@ fn is_actionable(smell: &str) -> bool {
 }
 
 pub fn format_compact(findings: &[Finding], filename: &str) -> String {
-    let lines: Vec<String> = findings
+    let mut out: String = findings
         .iter()
         .map(|f| format_compact_line(f, filename))
         .collect();
-    lines.join("")
+    let _ = writeln!(out, "Fix all issues above before proceeding.");
+    out
 }
 
 fn format_compact_line(f: &Finding, filename: &str) -> String {

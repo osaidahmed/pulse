@@ -23,15 +23,15 @@ fn detect_size_smells(
 ) {
     if m.total_loc > t.file_loc_warning {
         let sev = if m.total_loc > t.file_loc_alert { "alert" } else { "warning" };
-        emit_module("File Too Large", format!("{} LOC [{sev}]", m.total_loc), findings);
+        emit_module("File Too Large", format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.file_loc_warning), findings);
     }
     emit_module_if(m.total_functions > t.file_function_count,
-        "Too Many Functions", || format!("{} functions", m.total_functions), findings);
+        "Too Many Functions", || format!("{} functions (threshold: {})", m.total_functions, t.file_function_count), findings);
     emit_module_if(m.sum_cc > t.file_total_cc,
-        "Overall Code Complexity", || format!("total cc={}", m.sum_cc), findings);
+        "Overall Code Complexity", || format!("total cc={} (threshold: {})", m.sum_cc, t.file_total_cc), findings);
     check_god_class(m, t, has_god_method, findings);
     emit_module_if(m.declaration_count > t.max_declarations,
-        "Excessive Declarations", || format!("{} declarations in one file", m.declaration_count), findings);
+        "Excessive Declarations", || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.max_declarations), findings);
 }
 
 fn emit_module(smell: &'static str, detail: String, findings: &mut Vec<Finding>) {
@@ -223,7 +223,7 @@ pub fn detect_overall_function_size(
     findings.push(Finding {
         smell: "Overall Function Size",
         location: Location::Module,
-        detail: format!("{} large functions: {}", large_count, names.join(", ")),
+        detail: format!("{} large functions (>{} LOC, threshold: {}+ functions): {}", large_count, t.large_fn_loc, t.large_fn_count, names.join(", ")),
     });
 }
 
