@@ -1007,3 +1007,123 @@ fn lcom4_all_methods_share_field() {
     ));
     assert!(!has_smell(&out, "Low Cohesion"));
 }
+
+// ===========================================================================
+// Cognitive Complexity (CogC)
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    if x == 1 {}\n",
+        "    if x == 2 {}\n",
+        "    if x == 3 {}\n",
+        "    if x == 4 {}\n",
+        "    if x == 5 {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    if x > 0 {\n",
+        "        if x > 1 {\n",
+        "            if x > 2 {\n",
+        "                if x > 3 {}\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_else_if_no_nesting() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    if x == 1 {\n",
+        "    } else if x == 2 {\n",
+        "    } else if x == 3 {\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_else_increases_nesting() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    if x > 0 {\n",
+        "    } else {\n",
+        "        if x < -10 {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_match_counted() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    match x {\n",
+        "        1 => {},\n",
+        "        _ => {},\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_for_loop_nested() {
+    let out = debug(concat!(
+        "fn f(x: i32) {\n",
+        "    if x > 0 {\n",
+        "        for i in 0..10 {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_triggers_complex_method() {
+    let code = concat!(
+        "fn f(x: i32) {\n",
+        "    if x > 0 {\n",
+        "        if x > 1 {\n",
+        "            if x > 2 {\n",
+        "                if x > 3 {\n",
+        "                    if x > 4 {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    );
+    let out = check(code);
+    let d = debug(code);
+    let cogc = function_metric(&d, "f", "cogc").unwrap();
+    let cc = function_metric(&d, "f", "cc").unwrap();
+    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
+    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(has_smell(&out, "Complex Method"));
+}
+
+// ===========================================================================
+// Coverage: trait methods, edge cases
+// ===========================================================================
+
+#[test]
+fn trait_method_without_body_skipped() {
+    let out = debug("trait Foo {\n    fn bar(&self);\n}\nfn f() { if true {} }\n");
+    assert!(!out.contains("bar"), "trait method without body should be skipped: {}", out);
+    assert!(out.contains("f"));
+}

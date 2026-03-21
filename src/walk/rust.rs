@@ -132,6 +132,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        empty_catch_count: 0,
         field_accesses: Vec::new(),
         class_name: None,
     })

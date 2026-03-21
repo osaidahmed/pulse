@@ -34,6 +34,7 @@ pub fn detect((functions, module): &FileMetrics, _source: &str, t: &Thresholds) 
     detect_primitive_obsession(functions, t, &mut findings);
     detect_assertion_smells(functions, t, &mut findings);
     detect_lcom4(functions, t, &mut findings);
+    detect_empty_error_handlers(functions, &mut findings);
 
     findings
 }
@@ -637,4 +638,20 @@ fn count_connected_components(n: usize, connected: impl Fn(usize, usize) -> bool
     }
 
     components
+}
+
+fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
+    for f in functions {
+        if f.empty_catch_count > 0 {
+            findings.push(Finding {
+                smell: "Empty Error Handler",
+                location: func_loc(f),
+                detail: format!(
+                    "{} empty catch block{}",
+                    f.empty_catch_count,
+                    if f.empty_catch_count == 1 { "" } else { "s" }
+                ),
+            });
+        }
+    }
 }

@@ -1043,3 +1043,191 @@ fn primitive_obsession_complex_types_not_flagged() {
     let out = check("import java.util.List;\nclass T {\n    void f(List<Integer> a, String b, Object c, Object d) {}\n}\n");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
+
+// ===========================================================================
+// Cognitive Complexity (CogC)
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches() {
+    let out = debug(concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        if (x == 1) {}\n",
+        "        if (x == 2) {}\n",
+        "        if (x == 3) {}\n",
+        "        if (x == 4) {}\n",
+        "        if (x == 5) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs() {
+    let out = debug(concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        if (x > 0) {\n",
+        "            if (x > 1) {\n",
+        "                if (x > 2) {\n",
+        "                    if (x > 3) {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_else_if_no_nesting() {
+    let out = debug(concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        if (x == 1) {\n",
+        "        } else if (x == 2) {\n",
+        "        } else if (x == 3) {\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_else_increases_nesting() {
+    let out = debug(concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        if (x > 0) {\n",
+        "        } else {\n",
+        "            if (x < -10) {}\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_switch_counted() {
+    let out = debug(concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        switch (x) {\n",
+        "            case 1: break;\n",
+        "            default: break;\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_enhanced_for_nested() {
+    let out = debug(concat!(
+        "import java.util.List;\n",
+        "class Test {\n",
+        "    void f(boolean x, List<Integer> items) {\n",
+        "        if (x) {\n",
+        "            for (var item : items) {}\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_triggers_complex_method() {
+    let code = concat!(
+        "class Test {\n",
+        "    void f(int x) {\n",
+        "        if (x > 0) {\n",
+        "            if (x > 1) {\n",
+        "                if (x > 2) {\n",
+        "                    if (x > 3) {\n",
+        "                        if (x > 4) {}\n",
+        "                    }\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    );
+    let out = check(code);
+    let d = debug(code);
+    let cogc = function_metric(&d, "f", "cogc").unwrap();
+    let cc = function_metric(&d, "f", "cc").unwrap();
+    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
+    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(has_smell(&out, "Complex Method"));
+}
+
+// ===========================================================================
+// Empty Error Handler
+// ===========================================================================
+
+#[test]
+fn empty_catch_detected() {
+    let out = check("class Test {\n    void f() {\n        try { risky(); } catch (Exception e) {}\n    }\n}\n");
+    assert!(has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn non_empty_catch_not_detected() {
+    let out = check(concat!(
+        "class Test {\n",
+        "    void f() {\n",
+        "        try {\n",
+        "            risky();\n",
+        "        } catch (Exception e) {\n",
+        "            System.out.println(e);\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn multiple_empty_catches() {
+    let out = check(concat!(
+        "class Test {\n",
+        "    void f() {\n",
+        "        try { risky(); } catch (Exception e) {}\n",
+        "        try { risky(); } catch (Exception e) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Empty Error Handler"));
+    assert!(out.contains("2 empty catch blocks"));
+}
+
+#[test]
+fn no_try_catch_no_smell() {
+    let out = check("class Test {\n    void f() {\n        int x = 1;\n    }\n}\n");
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+// ===========================================================================
+// Coverage: interfaces, abstract methods
+// ===========================================================================
+
+#[test]
+fn java_interface_default_method() {
+    let code = "interface Foo {\n  default void bar() {\n    if (true) {}\n  }\n}\n";
+    let out = debug(code);
+    assert!(out.contains("bar"), "interface default method should be found: {}", out);
+}
+
+#[test]
+fn java_abstract_method_skipped() {
+    let code = "abstract class Foo {\n  abstract void bar();\n  void baz() { if (true) {} }\n}\n";
+    let out = debug(code);
+    assert!(out.contains("baz"), "concrete method should be found: {}", out);
+}

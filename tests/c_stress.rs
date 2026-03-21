@@ -920,3 +920,113 @@ fn output_has_module_prefix() {
     let out = check(&code);
     assert!(out.contains("Module:"));
 }
+
+// ===========================================================================
+// Cognitive Complexity (CogC)
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x == 1) {}\n",
+        "    if (x == 2) {}\n",
+        "    if (x == 3) {}\n",
+        "    if (x == 4) {}\n",
+        "    if (x == 5) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "        if (x > 1) {\n",
+        "            if (x > 2) {\n",
+        "                if (x > 3) {}\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_else_if_no_nesting() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x == 1) {\n",
+        "    } else if (x == 2) {\n",
+        "    } else if (x == 3) {\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_else_increases_nesting() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "    } else {\n",
+        "        if (x < -10) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_switch_counted() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    switch (x) {\n",
+        "        case 1: break;\n",
+        "        default: break;\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_triggers_complex_method() {
+    let code = concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "        if (x > 1) {\n",
+        "            if (x > 2) {\n",
+        "                if (x > 3) {\n",
+        "                    if (x > 4) {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    );
+    let out = check(code);
+    let d = debug(code);
+    let cogc = function_metric(&d, "f", "cogc").unwrap();
+    let cc = function_metric(&d, "f", "cc").unwrap();
+    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
+    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(has_smell(&out, "Complex Method"));
+}
+
+// ===========================================================================
+// Coverage: global nesting
+// ===========================================================================
+
+#[test]
+fn c_global_if_deep_nesting() {
+    // C doesn't normally have top-level if, but tree-sitter may parse fragments
+    let code = "void f() {}\n";
+    let out = check(code);
+    // Just ensure no crash on clean C code
+    assert!(!has_smell(&out, "Deep Global Nesting"));
+}

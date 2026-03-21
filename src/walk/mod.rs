@@ -1,5 +1,6 @@
 pub mod c;
 pub mod cpp;
+pub mod csharp;
 pub mod java;
 pub mod javascript;
 pub mod python;
@@ -16,6 +17,7 @@ pub struct WalkState {
     pub bump_count: u32,
     pub compound_condition_count: u32,
     pub max_embedded_block_loc: u32,
+    pub empty_catch_count: u32,
     pub saw_bump: bool,
 }
 
@@ -29,6 +31,7 @@ impl WalkState {
             bump_count: 0,
             compound_condition_count: 0,
             max_embedded_block_loc: 0,
+            empty_catch_count: 0,
             saw_bump: false,
         }
     }
@@ -85,6 +88,28 @@ impl WalkState {
 }
 use tree_sitter::Node;
 
+pub fn is_catch_body_empty(catch_node: Node, body_kind: &str, pass_kind: Option<&str>) -> bool {
+    let Some(body) = find_child_by_kind(catch_node, body_kind) else {
+        return true;
+    };
+    let mut cursor = body.walk();
+    let meaningful_children = body
+        .children(&mut cursor)
+        .filter(|c| {
+            let kind = c.kind();
+            kind != body_kind
+                && kind != "comment"
+                && kind != "line_comment"
+                && kind != "block_comment"
+                && kind != "{"
+                && kind != "}"
+                && kind != ":"
+                && (pass_kind != Some(kind))
+        })
+        .count();
+    meaningful_children == 0
+}
+
 #[derive(Debug)]
 pub struct FunctionMetrics {
     pub name: String,
@@ -105,6 +130,7 @@ pub struct FunctionMetrics {
     pub assert_hash: u64,
     pub primitive_type_count: u32,
     pub typed_param_count: u32,
+    pub empty_catch_count: u32,
     pub field_accesses: Vec<String>,
     pub class_name: Option<String>,
 }

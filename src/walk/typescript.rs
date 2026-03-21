@@ -3,8 +3,8 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, measure_nesting_depth, node_text, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState,
+    find_child_by_kind, is_catch_body_empty, measure_nesting_depth, node_text, FileMetrics,
+    FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -189,6 +189,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         class_name: None,
     })
@@ -230,6 +231,9 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
             "catch_clause" => {
                 s.cc += 1;
                 s.track_cogc_branch();
+                if is_catch_body_empty(child, "statement_block", None) {
+                    s.empty_catch_count += 1;
+                }
                 walk_children(child, source, depth, s);
             }
             "try_statement" => walk_children(child, source, depth, s),
@@ -258,6 +262,9 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
             "catch_clause" => {
                 s.cc += 1;
                 s.track_cogc_branch();
+                if is_catch_body_empty(child, "statement_block", None) {
+                    s.empty_catch_count += 1;
+                }
                 walk_block_children(child, source, depth, s);
             }
             _ => {}

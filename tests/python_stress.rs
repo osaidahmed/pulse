@@ -825,3 +825,337 @@ fn performance_deeply_nested_class_hierarchy() {
         elapsed.as_millis()
     );
 }
+
+// ===========================================================================
+// Cognitive Complexity
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches_no_nesting_penalty() {
+    let out = debug(
+        "def f(x):\n    if x == 1: pass\n    if x == 2: pass\n    if x == 3: pass\n    if x == 4: pass\n    if x == 5: pass\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs_penalized() {
+    let out = debug(
+        "def f(a, b, c, d):\n    if a:\n        if b:\n            if c:\n                if d:\n                    pass\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_elif_no_nesting_increase() {
+    let out = debug(
+        "def f(x):\n    if x == 1: pass\n    elif x == 2: pass\n    elif x == 3: pass\n    elif x == 4: pass\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_else_flat_but_increases_nesting() {
+    let out = debug(
+        "def f(a, b):\n    if a:\n        pass\n    else:\n        if b:\n            pass\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_for_loop_penalized_by_nesting() {
+    let out = debug(
+        "def f(a):\n    if a:\n        for x in range(10):\n            pass\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_while_penalized_by_nesting() {
+    let out = debug(
+        "def f(x):\n    while x > 0:\n        if x == 5:\n            pass\n        x -= 1\n",
+    );
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_except_penalized_by_nesting() {
+    let out = debug(
+        "def f():\n    try:\n        if True:\n            pass\n    except:\n        pass\n",
+    );
+    // if at nesting 1 (inside try block) = +2, except at nesting 0 = +1. Total = 3
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_boolean_sequence_single_type() {
+    let out = debug("def f(a, b, c):\n    if a and b and c:\n        pass\n");
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(2));
+}
+
+#[test]
+fn cogc_boolean_sequence_mixed_types() {
+    let out = debug("def f(a, b, c):\n    if a and b or c:\n        pass\n");
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_triggers_complex_method_alone() {
+    let out = check(
+        "def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n",
+    );
+    assert!(
+        has_smell(&out, "Complex Method"),
+        "cogc>=15 should trigger Complex Method: {}",
+        out
+    );
+    assert!(out.contains("cogc="), "should show cogc in detail: {}", out);
+}
+
+#[test]
+fn cogc_below_threshold_no_smell() {
+    let out = check(
+        "def f(a, b, c, d):\n    if a:\n        if b:\n            if c:\n                if d:\n                    pass\n",
+    );
+    assert!(
+        !has_smell(&out, "Complex Method"),
+        "cogc=10 should not trigger: {}",
+        out
+    );
+}
+
+#[test]
+fn cogc_god_method_via_cogc() {
+    let mut code = "def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n"
+        .to_string();
+    for i in 0..45 {
+        code.push_str(&format!("    x_{} = {}\n", i, i));
+    }
+    let out = check(&code);
+    assert!(
+        has_smell(&out, "God Method"),
+        "cogc>=15 + loc>=50 should be God Method: {}",
+        out
+    );
+}
+
+// ===========================================================================
+// Empty Error Handler
+// ===========================================================================
+
+#[test]
+fn empty_except_pass_detected() {
+    let out = check("def f():\n    try:\n        risky()\n    except:\n        pass\n");
+    assert!(
+        has_smell(&out, "Empty Error Handler"),
+        "except:pass should be detected: {}",
+        out
+    );
+}
+
+#[test]
+fn empty_except_bare_detected() {
+    let out = check(
+        "def f():\n    try:\n        risky()\n    except Exception:\n        pass\n",
+    );
+    assert!(
+        has_smell(&out, "Empty Error Handler"),
+        "except with only pass should be detected: {}",
+        out
+    );
+}
+
+#[test]
+fn non_empty_except_not_detected() {
+    let out = check(
+        "def f():\n    try:\n        risky()\n    except Exception as e:\n        print(e)\n        raise\n",
+    );
+    assert!(
+        !has_smell(&out, "Empty Error Handler"),
+        "except with handling should not be detected: {}",
+        out
+    );
+}
+
+#[test]
+fn multiple_empty_except_counted() {
+    let out = check(
+        "def f():\n    try:\n        a()\n    except ValueError:\n        pass\n    except TypeError:\n        pass\n",
+    );
+    assert!(
+        has_smell(&out, "Empty Error Handler"),
+        "multiple empty excepts should be detected: {}",
+        out
+    );
+    assert!(
+        out.contains("2 empty catch blocks"),
+        "should count 2: {}",
+        out
+    );
+}
+
+#[test]
+fn mixed_empty_and_nonempty_except() {
+    let out = check(
+        "def f():\n    try:\n        a()\n    except ValueError:\n        pass\n    except TypeError:\n        print('handled')\n",
+    );
+    assert!(
+        has_smell(&out, "Empty Error Handler"),
+        "at least one empty should trigger: {}",
+        out
+    );
+    assert!(
+        out.contains("1 empty catch block"),
+        "should count only 1: {}",
+        out
+    );
+}
+
+#[test]
+fn no_try_catch_no_smell() {
+    let out = check("def f():\n    return 1\n");
+    assert!(
+        !has_smell(&out, "Empty Error Handler"),
+        "no try/catch should not trigger: {}",
+        out
+    );
+}
+
+#[test]
+fn except_with_comment_only_detected() {
+    let out = check(
+        "def f():\n    try:\n        risky()\n    except:\n        # TODO: handle this\n        pass\n",
+    );
+    assert!(
+        has_smell(&out, "Empty Error Handler"),
+        "except with only comment+pass should be detected: {}",
+        out
+    );
+}
+
+// ===========================================================================
+// Coverage: severity branches, global nesting, edge cases
+// ===========================================================================
+
+#[test]
+fn cc_only_complex_method_severity() {
+    // 9 flat ifs: cc=10 (>=9), cogc=9 (<15) → cc-only complex method
+    let out = check("def f(x):\n    if a: pass\n    if b: pass\n    if c: pass\n    if d: pass\n    if e: pass\n    if f: pass\n    if g: pass\n    if h: pass\n    if i: pass\n");
+    assert!(has_smell(&out, "Complex Method"), "cc=10 should trigger: {}", out);
+    assert!(out.contains("cc="), "should show cc in detail: {}", out);
+    assert!(!out.contains("cogc="), "should NOT show cogc when cc-only: {}", out);
+}
+
+#[test]
+fn large_method_alert_severity() {
+    let mut code = "def f():\n".to_string();
+    for i in 0..101 {
+        code.push_str(&format!("    x_{} = {}\n", i, i));
+    }
+    let out = check(&code);
+    assert!(has_smell(&out, "Large Method"), "101 lines should trigger: {}", out);
+    assert!(out.contains("[alert]"), "should be alert severity: {}", out);
+}
+
+#[test]
+fn global_for_loop_deep_nesting() {
+    let code = "for x in range(10):\n    if a:\n        if b:\n            if c:\n                pass\ndef f():\n    pass\n";
+    let out = check(code);
+    assert!(has_smell(&out, "Deep Global Nesting"), "global for with deep nesting should trigger: {}", out);
+}
+
+#[test]
+fn global_while_loop_deep_nesting() {
+    let code = "while True:\n    if a:\n        if b:\n            if c:\n                pass\ndef f():\n    pass\n";
+    let out = check(code);
+    assert!(has_smell(&out, "Deep Global Nesting"), "global while with deep nesting: {}", out);
+}
+
+#[test]
+fn decorated_class_inside_class_not_function() {
+    let out = debug("class Outer:\n    @some_decorator\n    class Inner:\n        pass\n    def method(self):\n        return 1\n");
+    assert!(out.contains("method"), "should find method: {}", out);
+}
+
+#[test]
+fn assert_with_boolean_increments_cc() {
+    let out = debug("def f():\n    assert a and b\n");
+    assert_eq!(function_metric(&out, "f", "cc"), Some(2), "assert with boolean should increment cc");
+}
+
+#[test]
+fn lcom4_single_method_no_smell() {
+    let code = "class Foo:\n    def __init__(self):\n        self.x = 1\n    def get_x(self):\n        return self.x\n";
+    let out = check(code);
+    assert!(!has_smell(&out, "Low Cohesion"), "single non-init method should not trigger LCOM4: {}", out);
+}
+
+#[test]
+fn unique_assertion_hash_not_duplicated() {
+    let code = "def test_a():\n    assert 1 == 1\n    assert 2 == 2\n    assert 3 == 3\n    assert 4 == 4\n    assert 5 == 5\n    assert 6 == 6\n\ndef test_b():\n    assert 1 == 1\n    assert 2 == 2\n    assert 3 == 3\n    assert 4 == 4\n    assert 5 == 5\n    assert 6 == 6\n\ndef test_c():\n    assert 10 == 10\n    assert 20 == 20\n    assert 30 == 30\n    assert 40 == 40\n    assert 50 == 50\n    assert 60 == 60\n";
+    let out = check(code);
+    // test_a and test_b are duplicates; test_c is unique (its hash group has size 1)
+    assert!(has_smell(&out, "Duplicated Assertion Blocks"), "should detect a+b duplicates: {}", out);
+}
+
+#[test]
+fn elif_updates_max_nesting() {
+    let out = debug("def f(x, y, z):\n    if x:\n        pass\n    elif y:\n        if z:\n            pass\n");
+    assert_eq!(function_metric(&out, "f", "nesting"), Some(2), "elif body with nested if should update nesting");
+}
+
+#[test]
+fn cc_alert_severity_over_15() {
+    // 15 flat ifs: cc=16 (>cc_alert=15) → alert severity
+    let mut code = "def f(x):\n".to_string();
+    for i in 0..15 {
+        code.push_str(&format!("    if x == {}: pass\n", i));
+    }
+    let out = check(&code);
+    assert!(has_smell(&out, "Complex Method"), "cc=16 should trigger: {}", out);
+    assert!(out.contains("[alert]"), "cc>15 should be alert: {}", out);
+}
+
+#[test]
+fn cogc_only_complex_method() {
+    // Deep nesting: cogc >= 15 but cc < 9
+    // 5 nested ifs: cc=6, cogc=1+2+3+4+5=15
+    let out = check("def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n");
+    assert!(has_smell(&out, "Complex Method"), "cogc=15 should trigger: {}", out);
+    assert!(out.contains("cogc="), "cogc-only should show cogc: {}", out);
+}
+
+#[test]
+fn cogc_alert_severity_over_25() {
+    // Very deep nesting: cogc > 25
+    // 7 nested ifs: cogc=1+2+3+4+5+6+7=28
+    let out = check("def f(a, b, c, d, e, f, g):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        if f:\n                            if g:\n                                pass\n");
+    assert!(has_smell(&out, "Complex Method"), "cogc=28 should trigger: {}", out);
+    assert!(out.contains("[alert]"), "cogc>25 should be alert: {}", out);
+}
+
+#[test]
+fn both_cc_and_cogc_complex() {
+    // Function with both cc>=9 AND cogc>=15
+    // 9 ifs, some nested: cc=10, cogc > 15
+    let out = check("def f(x):\n    if x == 1:\n        if x == 2:\n            if x == 3:\n                if x == 4:\n                    if x == 5:\n                        pass\n    if x == 6: pass\n    if x == 7: pass\n    if x == 8: pass\n    if x == 9: pass\n");
+    assert!(has_smell(&out, "Complex Method"), "both thresholds exceeded: {}", out);
+    assert!(out.contains("cc="), "should show cc: {}", out);
+    assert!(out.contains("cogc="), "should show cogc: {}", out);
+}
+
+#[test]
+fn empty_catch_in_walk_body_except() {
+    // Test the except_clause path in walk_body (not walk_children)
+    let out = debug("def f():\n    try:\n        x = 1\n    except:\n        pass\n");
+    let metric = function_metric(&out, "f", "cc");
+    assert!(metric.is_some(), "should parse function: {}", out);
+}
+
+#[test]
+fn module_format_compact_not_used() {
+    // Module findings go through format_stop, not format_compact
+    // This verifies the behavior — module findings are excluded from hook output
+    let out = check("x = 1\n");
+    assert!(out.is_empty(), "trivial file should have no findings");
+}

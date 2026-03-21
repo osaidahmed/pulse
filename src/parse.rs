@@ -9,6 +9,7 @@ pub enum Language {
     C,
     Cpp,
     Java,
+    CSharp,
 }
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {
@@ -20,6 +21,7 @@ pub fn detect_language(path: &std::path::Path) -> Option<Language> {
         "c" | "h" => Some(Language::C),
         "cpp" | "cc" | "cxx" | "hpp" | "hxx" | "hh" => Some(Language::Cpp),
         "java" => Some(Language::Java),
+        "cs" => Some(Language::CSharp),
         _ => None,
     }
 }
@@ -33,6 +35,7 @@ pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
         Language::C => parse_c(source),
         Language::Cpp => parse_cpp(source),
         Language::Java => parse_java(source),
+        Language::CSharp => parse_csharp(source),
     }
 }
 
@@ -90,4 +93,12 @@ fn parse_java(source: &str) -> Option<FileMetrics> {
     parser.set_language(&language.into()).ok()?;
     let tree = parser.parse(source, None)?;
     Some(walk::java::walk(&tree, source))
+}
+
+fn parse_csharp(source: &str) -> Option<FileMetrics> {
+    let mut parser = tree_sitter::Parser::new();
+    let language = tree_sitter_c_sharp::LANGUAGE;
+    parser.set_language(&language.into()).ok()?;
+    let tree = parser.parse(source, None)?;
+    Some(walk::csharp::walk(&tree, source))
 }

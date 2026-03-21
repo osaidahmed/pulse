@@ -10,16 +10,15 @@ use super::{
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["this"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "bool",
-    "size_t", "ssize_t", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t",
-    "uint32_t", "uint64_t", "auto", "string",
+    "int", "long", "float", "double", "bool", "string", "char",
+    "byte", "sbyte", "short", "ushort", "uint", "ulong", "decimal",
+    "object", "void",
 ];
 const NESTING_BRANCH_KINDS: &[&str] = &[
     "if_statement",
     "for_statement",
-    "for_range_loop",
+    "foreach_statement",
     "while_statement",
-    "do_statement",
     "switch_statement",
 ];
 
@@ -54,53 +53,80 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "function_definition" => {
-                if let Some(metrics) = analyze_function(child, source) {
-                    functions.push(metrics);
-                }
-            }
-            "class_specifier" | "struct_specifier" => {
-                collect_class_methods(child, source, functions);
-            }
-            "namespace_definition" => {
+            "class_declaration" | "struct_declaration" | "interface_declaration"
+            | "record_declaration" => collect_class_methods(child, source, functions),
+            "namespace_declaration" => {
                 if let Some(body) = find_child_by_kind(child, "declaration_list") {
                     collect_functions(body, source, functions);
                 }
+            }
+            "method_declaration" | "local_function_statement" => {
+                if let Some(metrics) = analyze_method(child, source) {
+                    functions.push(metrics);
+                }
+            }
+            _ => collect_functions(child, source, functions),
+        }
+    }
+}
+
+fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    let class_name = find_child_by_kind(class_node, "identifier")
+        .map(|n| node_text(n, source).to_string())
+        .unwrap_or_default();
+
+    let Some(body) = find_child_by_kind(class_node, "declaration_list") else {
+        return;
+    };
+
+    let mut cursor = body.walk();
+    for child in body.children(&mut cursor) {
+        match child.kind() {
+            "method_declaration" => {
+                let Some(mut metrics) = analyze_method(child, source) else {
+                    continue;
+                };
+                let method_name = metrics.name.clone();
+                metrics.name = format!("{class_name}.{method_name}");
+                metrics.class_name = Some(class_name.clone());
+                collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+                functions.push(metrics);
+            }
+            "constructor_declaration" => {
+                let Some(mut metrics) = analyze_constructor(child, source) else {
+                    continue;
+                };
+                metrics.name = format!("{class_name}.{class_name}");
+                metrics.is_constructor = true;
+                metrics.class_name = Some(class_name.clone());
+                functions.push(metrics);
+            }
+            "class_declaration" | "struct_declaration" | "interface_declaration" => {
+                collect_class_methods(child, source, functions);
             }
             _ => {}
         }
     }
 }
 
-fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let class_name = find_child_by_kind(class_node, "type_identifier")
-        .or_else(|| find_child_by_kind(class_node, "name"))
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
-
-    let Some(body) = find_child_by_kind(class_node, "field_declaration_list") else {
-        return;
-    };
-
-    let mut cursor = body.walk();
-    for child in body.children(&mut cursor) {
-        if child.kind() != "function_definition" {
-            continue;
-        }
-        let Some(mut metrics) = analyze_function(child, source) else {
-            continue;
-        };
-        let method_name = metrics.name.clone();
-        metrics.name = format!("{class_name}::{method_name}");
-        metrics.class_name = Some(class_name.clone());
-        metrics.is_constructor = method_name == class_name;
-        collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
-        functions.push(metrics);
-    }
+fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
+    analyze_callable(node, source, "block", "<anonymous>")
 }
 
-fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
-    let name = extract_function_name(node, source);
+fn analyze_constructor(node: Node, source: &str) -> Option<FunctionMetrics> {
+    let mut m = analyze_callable(node, source, "constructor_body", "<constructor>")?;
+    m.is_constructor = true;
+    Some(m)
+}
+
+fn analyze_callable(
+    node: Node,
+    source: &str,
+    body_kind: &str,
+    fallback_name: &str,
+) -> Option<FunctionMetrics> {
+    let name = find_child_by_kind(node, "identifier")
+        .map_or_else(|| fallback_name.into(), |n| node_text(n, source).to_string());
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
@@ -108,7 +134,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
 
     let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
 
-    let body = find_child_by_kind(node, "compound_statement")?;
+    let body = find_child_by_kind(node, body_kind).or_else(|| find_child_by_kind(node, "block"))?;
+
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
@@ -142,32 +169,6 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     })
 }
 
-const NAME_KINDS: &[&str] = &[
-    "identifier",
-    "field_identifier",
-    "qualified_identifier",
-    "destructor_name",
-];
-
-fn extract_function_name(node: Node, source: &str) -> String {
-    let decl = find_child_by_kind(node, "function_declarator").or_else(|| {
-        find_child_by_kind(node, "pointer_declarator")
-            .and_then(|p| find_child_by_kind(p, "function_declarator"))
-    });
-    decl.and_then(|d| find_name_in(d, source))
-        .unwrap_or_else(|| "<anonymous>".into())
-}
-
-fn find_name_in(decl: Node, source: &str) -> Option<String> {
-    let mut cursor = decl.walk();
-    for child in decl.children(&mut cursor) {
-        if NAME_KINDS.contains(&child.kind()) {
-            return Some(node_text(child, source).to_string());
-        }
-    }
-    None
-}
-
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     s.reset_bump();
@@ -182,7 +183,7 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 check_condition_complexity(child, source, &mut s.compound_condition_count);
                 walk_children(child, source, depth + 1, s);
             }
-            "for_statement" | "for_range_loop" | "while_statement" | "do_statement" => {
+            "for_statement" | "foreach_statement" | "while_statement" | "do_statement" => {
                 s.track_loop(depth);
                 s.track_cogc_branch();
                 walk_children(child, source, depth + 1, s);
@@ -192,8 +193,11 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 s.track_cogc_branch();
                 walk_children(child, source, depth + 1, s);
             }
-            "case_statement" => {
-                if !node_text(child, source).trim_start().starts_with("default") {
+            "switch_section" => {
+                let label_text = find_child_by_kind(child, "switch_label")
+                    .map(|l| node_text(l, source))
+                    .unwrap_or_default();
+                if !label_text.contains("default") {
                     s.cc += 1;
                 }
                 walk_body(child, source, depth, s);
@@ -201,19 +205,20 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
             "catch_clause" => {
                 s.cc += 1;
                 s.track_cogc_branch();
-                if is_catch_body_empty(child, "compound_statement", None) {
+                if is_catch_body_empty(child, "block", None) {
                     s.empty_catch_count += 1;
                 }
                 walk_children(child, source, depth, s);
             }
-            "try_statement" => walk_children(child, source, depth, s),
+            "try_statement" => {
+                walk_children(child, source, depth, s);
+            }
             "conditional_expression" => {
                 s.cc += 1;
                 s.track_cogc_branch();
             }
-            "string_literal" | "raw_string_literal" | "concatenated_string" => {
-                s.track_embedded(child);
-            }
+            "string_literal" | "raw_string_literal" | "verbatim_string_literal"
+            | "interpolated_string_expression" => s.track_embedded(child),
             "lambda_expression" => {}
             _ => walk_body(child, source, depth, s),
         }
@@ -222,23 +227,41 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
+    let mut saw_else = false;
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "compound_statement" => {
+            "block" | "switch_body" => {
+                if saw_else {
+                    s.track_cogc_flat();
+                }
                 let saved = s.cogc_nesting;
                 s.cogc_nesting += 1;
                 walk_body(child, source, depth, s);
                 s.cogc_nesting = saved;
+                saw_else = false;
             }
-            "else_clause" => walk_else_clause(child, source, depth, s),
+            "else_clause" => {
+                saw_else = true;
+                walk_else_clause(child, source, depth, s);
+            }
+            "if_statement" => {
+                s.cc += 1;
+                s.track_cogc_branch();
+                count_boolean_operators(child, &mut s.cc);
+                count_cogc_boolean_sequences(child, &mut s.cogc);
+                check_condition_complexity(child, source, &mut s.compound_condition_count);
+                walk_children(child, source, depth, s);
+                saw_else = false;
+            }
             "catch_clause" => {
                 s.cc += 1;
                 s.track_cogc_branch();
-                if is_catch_body_empty(child, "compound_statement", None) {
+                if is_catch_body_empty(child, "block", None) {
                     s.empty_catch_count += 1;
                 }
                 walk_block_children(child, source, depth, s);
             }
+            "finally_clause" => walk_block_children(child, source, depth, s),
             _ => {}
         }
     }
@@ -248,7 +271,7 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "compound_statement" => {
+            "block" => {
                 s.track_cogc_flat();
                 let saved = s.cogc_nesting;
                 s.cogc_nesting += 1;
@@ -271,7 +294,7 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 fn walk_block_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "compound_statement" {
+        if child.kind() == "block" {
             walk_body(child, source, depth, s);
         }
     }
@@ -284,7 +307,7 @@ fn count_boolean_operators(node: Node, cc: &mut u32) {
             "&&" | "||" => {
                 *cc += 1;
             }
-            "compound_statement" | "function_definition" | "lambda_expression" => {}
+            "block" | "method_declaration" | "class_declaration" | "lambda_expression" => {}
             _ => count_boolean_operators(child, cc),
         }
     }
@@ -292,10 +315,10 @@ fn count_boolean_operators(node: Node, cc: &mut u32) {
 
 fn count_cogc_boolean_sequences(node: Node, cogc: &mut u32) {
     let mut last_op: Option<&str> = None;
-    collect_boolean_ops_cpp(node, cogc, &mut last_op);
+    collect_boolean_ops(node, cogc, &mut last_op);
 }
 
-fn collect_boolean_ops_cpp(node: Node, cogc: &mut u32, last_op: &mut Option<&str>) {
+fn collect_boolean_ops(node: Node, cogc: &mut u32, last_op: &mut Option<&str>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -306,15 +329,15 @@ fn collect_boolean_ops_cpp(node: Node, cogc: &mut u32, last_op: &mut Option<&str
                     *last_op = Some(op);
                 }
             }
-            "compound_statement" | "function_definition" | "lambda_expression" => {}
-            _ => collect_boolean_ops_cpp(child, cogc, last_op),
+            "block" | "method_declaration" | "class_declaration" | "lambda_expression" => {}
+            _ => collect_boolean_ops(child, cogc, last_op),
         }
     }
 }
 
 fn check_condition_complexity(node: Node, source: &str, compound_conditions: &mut u32) {
     let Some(cond) = find_child_by_kind(node, "parenthesized_expression")
-        .or_else(|| find_child_by_kind(node, "condition_clause"))
+        .or_else(|| find_child_by_kind(node, "condition"))
     else {
         return;
     };
@@ -325,57 +348,34 @@ fn check_condition_complexity(node: Node, source: &str, compound_conditions: &mu
     }
 }
 
-fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
-    let Some(declarator) = find_child_by_kind(func_node, "function_declarator").or_else(|| {
-        find_child_by_kind(func_node, "pointer_declarator")
-            .and_then(|p| find_child_by_kind(p, "function_declarator"))
-    }) else {
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
+    let Some(params) = find_child_by_kind(node, "parameter_list") else {
         return (0, 0, 0);
     };
-    let Some(params) = find_child_by_kind(declarator, "parameter_list") else {
-        return (0, 0, 0);
-    };
-    let (count, primitive_count, typed_count) = count_param_children(params, source);
-    if is_void_param_list(params, count, source) {
-        return (0, 0, 0);
-    }
-    (count, primitive_count, typed_count)
-}
-
-fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
     let mut count: u32 = 0;
     let mut primitive_count: u32 = 0;
     let mut typed_count: u32 = 0;
     let mut cursor = params.walk();
     for child in params.children(&mut cursor) {
-        match child.kind() {
-            "parameter_declaration" | "optional_parameter_declaration" => {
-                count += 1;
-                typed_count += 1;
-                if has_primitive_type(child, source) {
-                    primitive_count += 1;
-                }
-            }
-            "variadic_parameter_declaration" | "variadic_parameter" => count += 1,
-            _ => {}
+        if child.kind() != "parameter" {
+            continue;
+        }
+        count += 1;
+        typed_count += 1;
+        if has_primitive_type(child, source) {
+            primitive_count += 1;
         }
     }
     (count, primitive_count, typed_count)
-}
-
-fn is_void_param_list(params: Node, count: u32, source: &str) -> bool {
-    if count != 1 {
-        return false;
-    }
-    let text = node_text(params, source);
-    text.contains("void") && !text.contains("void *") && !text.contains("void*")
 }
 
 fn has_primitive_type(param: Node, source: &str) -> bool {
     let mut cursor = param.walk();
     for child in param.children(&mut cursor) {
         match child.kind() {
-            "primitive_type" | "sized_type_specifier" => return true,
+            "predefined_type" => {
+                return true;
+            }
             "type_identifier" => {
                 let name = &source[child.byte_range()];
                 return PRIMITIVE_TYPES.contains(&name);
@@ -389,21 +389,12 @@ fn has_primitive_type(param: Node, source: &str) -> bool {
 fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: &mut u32) {
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
-        match child.kind() {
-            "if_statement" => {
-                *conditional_count += 1;
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+        if child.kind() == "if_statement" {
+            *conditional_count += 1;
+            let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
+            if depth > *max_nesting {
+                *max_nesting = depth;
             }
-            "for_statement" | "for_range_loop" | "while_statement" | "do_statement" => {
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
-            }
-            _ => {}
         }
     }
 }
@@ -413,7 +404,8 @@ fn count_declarations(root: Node) -> u32 {
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
         match child.kind() {
-            "class_specifier" | "struct_specifier" | "enum_specifier" | "type_definition" => {
+            "class_declaration" | "struct_declaration" | "interface_declaration"
+            | "enum_declaration" | "record_declaration" => {
                 count += 1;
             }
             _ => {}

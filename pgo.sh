@@ -50,7 +50,7 @@ LLVM_PROFDATA=$(find "$(rustc --print sysroot)" -name "llvm-profdata" 2>/dev/nul
 
 # Step 5: Build optimized binary
 echo "[4/4] Building PGO-optimized binary..."
-RUSTFLAGS="-Cprofile-use=$PROFILE_FILE -Cllvm-args=-pgo-warn-missing-function" cargo build --release 2>&1 | tail -1
+CFLAGS="-flto=thin" RUSTFLAGS="-Cprofile-use=$PROFILE_FILE -Cllvm-args=-pgo-warn-missing-function" cargo build --release 2>&1 | tail -1
 
 # Report
 echo ""

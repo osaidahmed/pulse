@@ -998,3 +998,177 @@ fn cc_ternary_inline() {
     let out = debug("int f(int a) {\n    return a ? 1 : 0;\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
+
+// ===========================================================================
+// Cognitive Complexity (CogC)
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x == 1) {}\n",
+        "    if (x == 2) {}\n",
+        "    if (x == 3) {}\n",
+        "    if (x == 4) {}\n",
+        "    if (x == 5) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "        if (x > 1) {\n",
+        "            if (x > 2) {\n",
+        "                if (x > 3) {}\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_else_if_no_nesting() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x == 1) {\n",
+        "    } else if (x == 2) {\n",
+        "    } else if (x == 3) {\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_else_increases_nesting() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "    } else {\n",
+        "        if (x < -10) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_switch_counted() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    switch (x) {\n",
+        "        case 1: break;\n",
+        "        default: break;\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_catch_penalized() {
+    let out = debug(concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "        try {\n",
+        "        } catch (...) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    let cogc = function_metric(&out, "f", "cogc").unwrap();
+    assert!(cogc >= 3, "catch in nested context should be penalized, got: {}", cogc);
+}
+
+#[test]
+fn cogc_triggers_complex_method() {
+    let code = concat!(
+        "void f(int x) {\n",
+        "    if (x > 0) {\n",
+        "        if (x > 1) {\n",
+        "            if (x > 2) {\n",
+        "                if (x > 3) {\n",
+        "                    if (x > 4) {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    );
+    let out = check(code);
+    let d = debug(code);
+    let cogc = function_metric(&d, "f", "cogc").unwrap();
+    let cc = function_metric(&d, "f", "cc").unwrap();
+    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
+    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(has_smell(&out, "Complex Method"));
+}
+
+// ===========================================================================
+// Empty Error Handler
+// ===========================================================================
+
+#[test]
+fn empty_catch_detected() {
+    let out = check("void f() {\n    try { risky(); } catch (...) {}\n}\n");
+    assert!(has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn non_empty_catch_not_detected() {
+    let out = check(concat!(
+        "void f() {\n",
+        "    try {\n",
+        "        risky();\n",
+        "    } catch (...) {\n",
+        "        log(\"error\");\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn no_try_catch_no_smell() {
+    let out = check("void f() {\n    int x = 1;\n}\n");
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+// ===========================================================================
+// Coverage: namespaces, pure virtual, forward declarations
+// ===========================================================================
+
+#[test]
+fn cpp_namespace_functions_analyzed() {
+    let code = "namespace ns {\n  void f() {\n    if (true) {}\n  }\n}\n";
+    let out = debug(code);
+    assert!(out.contains("f"), "function in namespace should be found: {}", out);
+    assert_eq!(function_metric(&out, "f", "cc"), Some(2));
+}
+
+#[test]
+fn cpp_forward_declaration_no_crash() {
+    let code = "class Foo;\nvoid f() {}\n";
+    let out = debug(code);
+    assert!(out.contains("f"));
+}
+
+#[test]
+fn cpp_pure_virtual_method_skipped() {
+    let code = "class Base {\npublic:\n  virtual void f() = 0;\n};\nvoid g() {}\n";
+    let out = debug(code);
+    assert!(out.contains("g"), "concrete function should be found: {}", out);
+}
+
+#[test]
+fn cpp_pointer_return_function_params() {
+    let code = "int* f(int a, int b, int c, int d, int e, int g) { return 0; }\n";
+    let out = debug(code);
+    assert_eq!(function_metric(&out, "f", "args"), Some(6));
+}

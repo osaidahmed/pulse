@@ -1012,3 +1012,264 @@ fn nesting_try_catch_counts_depth() {
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(depth >= 2, "try+if+if should be >= 2, got: {}", depth);
 }
+
+// ===========================================================================
+// Cognitive Complexity (CogC) precision
+// ===========================================================================
+
+#[test]
+fn cogc_flat_branches() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (x === 1) {}\n",
+        "    if (x === 2) {}\n",
+        "    if (x === 3) {}\n",
+        "    if (x === 4) {}\n",
+        "    if (x === 5) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(5));
+}
+
+#[test]
+fn cogc_nested_ifs() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a) {\n",
+        "        if (b) {\n",
+        "            if (c) {\n",
+        "                if (d) {}\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(10));
+}
+
+#[test]
+fn cogc_else_if_no_nesting() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a) {}\n",
+        "    else if (b) {}\n",
+        "    else if (c) {}\n",
+        "    else if (d) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_else_increases_nesting() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a) {}\n",
+        "    else {\n",
+        "        if (b) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
+}
+
+#[test]
+fn cogc_for_loop_nested() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a) {\n",
+        "        for (let i = 0; i < 10; i++) {}\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_switch_counted() {
+    let out = debug(concat!(
+        "function f(x: number): void {\n",
+        "    switch (x) {\n",
+        "        case 1: break;\n",
+        "        case 2: break;\n",
+        "        case 3: break;\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_catch_penalized() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    try {\n",
+        "        if (x) {}\n",
+        "    } catch (e) {}\n",
+        "}\n",
+    ));
+    let cogc = function_metric(&out, "f", "cogc").unwrap();
+    assert!(cogc >= 3, "try/catch with nested if should have cogc >= 3, got: {}", cogc);
+}
+
+#[test]
+fn cogc_ternary_counted() {
+    let out = debug(concat!(
+        "function f(): number {\n",
+        "    return a ? 1 : 0;\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
+}
+
+#[test]
+fn cogc_boolean_single_sequence() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a && b && c) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(2));
+}
+
+#[test]
+fn cogc_boolean_mixed_sequence() {
+    let out = debug(concat!(
+        "function f(): void {\n",
+        "    if (a && b || c) {}\n",
+        "}\n",
+    ));
+    assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
+}
+
+#[test]
+fn cogc_triggers_complex_method() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    if (a) {\n",
+        "        if (b) {\n",
+        "            if (c) {\n",
+        "                if (d) {\n",
+        "                    if (e) {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Complex Method"), "high cogc should trigger Complex Method");
+    let dbg = debug(concat!(
+        "function f(): void {\n",
+        "    if (a) {\n",
+        "        if (b) {\n",
+        "            if (c) {\n",
+        "                if (d) {\n",
+        "                    if (e) {}\n",
+        "                }\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    let cogc = function_metric(&dbg, "f", "cogc").unwrap();
+    let cc = function_metric(&dbg, "f", "cc").unwrap();
+    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
+    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(out.contains("cogc="), "detail should contain cogc=");
+}
+
+#[test]
+fn cogc_below_threshold_no_smell() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    if (a) {\n",
+        "        if (b) {\n",
+        "            if (c) {\n",
+        "                if (d) {}\n",
+        "            }\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Complex Method"), "cogc=10 should not trigger Complex Method");
+}
+
+// ===========================================================================
+// Empty Error Handler
+// ===========================================================================
+
+#[test]
+fn empty_catch_detected() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    try { risky(); } catch (e) {}\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn non_empty_catch_not_detected() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    try { risky(); } catch (e) { console.log(e); }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn multiple_empty_catches() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    try { a(); } catch (e) {}\n",
+        "    try { b(); } catch (e) {}\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Empty Error Handler"));
+    assert!(out.contains("2 empty catch blocks"), "should report count=2, got: {}", out);
+}
+
+#[test]
+fn no_try_catch_no_smell() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    const x = 1;\n",
+        "    return;\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Empty Error Handler"));
+}
+
+#[test]
+fn catch_with_only_comment_detected() {
+    let out = check(concat!(
+        "function f(): void {\n",
+        "    try { risky(); } catch (e) { /* todo */ }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Empty Error Handler"));
+}
+
+// ===========================================================================
+// Coverage: global nesting, edge cases
+// ===========================================================================
+
+#[test]
+fn ts_global_for_deep_nesting() {
+    let code = "for (let i = 0; i < 10; i++) {\n  if (true) {\n    if (true) {\n      if (true) {\n      }\n    }\n  }\n}\nfunction f() {}\n";
+    let out = check(code);
+    assert!(has_smell(&out, "Deep Global Nesting"), "global for nesting: {}", out);
+}
+
+#[test]
+fn ts_untyped_params_counted() {
+    let out = debug("function f(a, b, c, d, e, f) {}\n");
+    assert_eq!(function_metric(&out, "f", "args"), Some(6));
+}
+
+#[test]
+fn ts_ambient_class_no_crash() {
+    let out = debug("declare class Foo {}\nfunction f() { return 1; }\n");
+    assert!(out.contains("f"));
+}
