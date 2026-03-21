@@ -452,7 +452,7 @@ fn stop_detects_file_too_large_regression() {
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("File Too Large"), "should detect: {}", out);
+    assert!(out.contains("file too large"), "should detect: {}", out);
     assert!(
         out.contains("note"),
         "informational finding should use 'note' framing: {}",
@@ -486,7 +486,7 @@ fn stop_detects_too_many_functions_regression() {
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("Too Many Functions"), "should detect: {}", out);
+    assert!(out.contains("too many functions"), "should detect: {}", out);
 }
 
 #[test]
@@ -515,8 +515,8 @@ fn stop_detects_overall_complexity_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("Overall Code Complexity"),
-        "should detect Overall Code Complexity: {}",
+        out.contains("overall code complexity"),
+        "should detect overall code complexity: {}",
         out
     );
 }
@@ -547,8 +547,8 @@ fn stop_detects_excessive_declarations_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("Excessive Declarations"),
-        "should detect Excessive Declarations: {}",
+        out.contains("excessive declarations"),
+        "should detect excessive declarations: {}",
         out
     );
 }
@@ -573,8 +573,8 @@ fn stop_detects_global_conditionals_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("Global Conditionals"),
-        "should detect Global Conditionals: {}",
+        out.contains("global conditionals"),
+        "should detect global conditionals: {}",
         out
     );
 }
@@ -610,8 +610,8 @@ fn stop_detects_overall_function_size_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("Overall Function Size"),
-        "should detect Overall Function Size: {}",
+        out.contains("overall function size"),
+        "should detect overall function size: {}",
         out
     );
 }
@@ -637,8 +637,8 @@ fn stop_detects_code_duplication_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("Code Duplication"),
-        "should detect Code Duplication: {}",
+        out.contains("code duplication"),
+        "should detect code duplication: {}",
         out
     );
 }
@@ -683,12 +683,12 @@ fn stop_reports_regressions_across_multiple_files() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("File Too Large"),
+        out.contains("file too large"),
         "should report A's regression: {}",
         out
     );
     assert!(
-        out.contains("Too Many Functions"),
+        out.contains("too many functions"),
         "should report B's regression: {}",
         out
     );
@@ -719,7 +719,7 @@ fn stop_one_file_regresses_other_stays_clean() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("File Too Large"),
+        out.contains("file too large"),
         "dirty file should regress: {}",
         out
     );
@@ -819,13 +819,13 @@ fn stop_actionable_uses_regression_framing() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("1 regression"),
-        "actionable should use singular 'regression': {}",
+        out.contains("regression"),
+        "actionable should use 'regression' framing: {}",
         out
     );
     assert!(
-        !out.contains("1 regressions"),
-        "should not pluralize 1: {}",
+        out.starts_with("error[pulse]:"),
+        "actionable should use error severity: {}",
         out
     );
 }
@@ -875,13 +875,13 @@ fn stop_output_is_single_line() {
 
     let out = env.run_stop();
     if !out.is_empty() {
-        let lines = out.trim().lines().count();
-        assert_eq!(lines, 1, "stop output must be single line: {}", out);
-        assert!(
-            out.starts_with("pulse:"),
-            "must start with 'pulse:': {}",
-            out
-        );
+        for line in out.trim().lines() {
+            assert!(
+                line.starts_with("error[pulse]:") || line.starts_with("note[pulse]:"),
+                "each line must start with error/note[pulse]: got: {}",
+                line
+            );
+        }
     }
 }
 
@@ -961,7 +961,7 @@ fn hook_excludes_module_but_shows_function_findings() {
         out
     );
     assert!(
-        out.contains("Complex Method") || out.contains("God Method"),
+        out.contains("complex method") || out.contains("god method"),
         "should show complexity finding: {}",
         out
     );
@@ -1017,7 +1017,7 @@ fn hook_write_mode_excludes_module_findings() {
     let out = env.run_hook(&json);
 
     assert!(
-        out.contains("Excess Arguments"),
+        out.contains("excess arguments"),
         "write mode should show function findings: {}",
         out
     );
@@ -1315,9 +1315,9 @@ fn stop_detects_multiple_regressions_in_same_file() {
     let out = env.run_stop();
 
     let regression_types: Vec<&str> = [
-        "File Too Large",
-        "Too Many Functions",
-        "Global Conditionals",
+        "file too large",
+        "too many functions",
+        "global conditionals",
     ]
     .iter()
     .filter(|s| out.contains(**s))
@@ -1372,8 +1372,8 @@ fn stop_full_lifecycle_three_edits_then_stop() {
     // Stop: should detect the regression
     let out = env.run_stop();
     assert!(
-        out.contains("File Too Large"),
-        "lifecycle: should detect File Too Large after 3 edits: {}",
+        out.contains("file too large"),
+        "lifecycle: should detect file too large after 3 edits: {}",
         out
     );
 

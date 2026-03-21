@@ -1,3 +1,7 @@
+mod analytics;
+mod baselines;
+mod hook;
+mod module_smells;
 mod output;
 mod parse;
 mod smells;
@@ -5,26 +9,27 @@ mod thresholds;
 mod walk;
 
 use std::collections::HashMap;
-use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 
 use smells::{Finding, Location};
 
-struct HookInput {
-    file_path: String,
-    edit_range: Option<(u32, u32)>,
-    old_string: Option<String>,
-    new_string: Option<String>,
-}
-
 enum Command {
-    Hook(HookInput),
+    Hook(hook::HookInput),
     Check(String),
+    CheckAll,
     Debug(String),
     Stop,
     Cleanup,
 }
+
+const SKIP_DIRS: &[&str] = &[
+    "node_modules",
+    "target",
+    "vendor",
+    "build",
+    "dist",
+];
 
 fn parse_args() -> Command {
     let args: Vec<String> = std::env::args().collect();
@@ -32,19 +37,32 @@ fn parse_args() -> Command {
 
     match cmd {
         "--hook" => {
-            let Some(hook) = parse_hook_input() else {
+            let Some(h) = hook::parse_hook_input() else {
                 process::exit(0);
             };
-            Command::Hook(hook)
+            Command::Hook(h)
         }
         "--stop" => Command::Stop,
         "--cleanup" => Command::Cleanup,
+        "check" if args.get(2).is_some_and(|a| a == "-a" || a == "--all") => Command::CheckAll,
         "check" if args.len() > 2 => Command::Check(args[2].clone()),
         "debug" if args.len() > 2 => Command::Debug(args[2].clone()),
+        "-a" | "--all" => Command::CheckAll,
         _ => {
-            eprintln!("usage: pulse --hook | --stop | --cleanup | check <file> | debug <file>");
+            eprintln!("usage: pulse --hook | --stop | --cleanup | check <file> | debug <file> | -a/--all");
             process::exit(1);
         }
+    }
+}
+
+fn main() {
+    match parse_args() {
+        Command::Debug(p) => run_debug(&p),
+        Command::Check(p) => run_check(&p),
+        Command::CheckAll => run_check_all(),
+        Command::Hook(h) => run_hook(h),
+        Command::Stop => run_stop(),
+        Command::Cleanup => run_cleanup(),
     }
 }
 
@@ -75,110 +93,10 @@ fn analyze_file(file_path: &str) -> Option<(Vec<Finding>, String)> {
     let lang = parse::detect_language(path)?;
     let source = std::fs::read_to_string(path).ok()?;
     let metrics = parse::parse_and_walk(&source, lang)?;
-    let thresholds = thresholds::Thresholds::default();
-    let findings = smells::detect(&metrics, &source, &thresholds);
+    let t = thresholds::Thresholds::default();
+    let findings = smells::detect(&metrics, &source, &t);
     let filename = path.file_name()?.to_string_lossy().into_owned();
     Some((findings, filename))
-}
-
-fn baseline_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
-        return PathBuf::from(dir);
-    }
-    PathBuf::from("/tmp/pulse-baselines")
-}
-
-fn baseline_path(file_path: &str) -> PathBuf {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    file_path.hash(&mut hasher);
-    baseline_dir().join(format!("{:016x}.json", hasher.finish()))
-}
-
-fn count_module_findings(findings: &[Finding]) -> HashMap<String, usize> {
-    let mut counts = HashMap::new();
-    for f in findings {
-        if matches!(f.location, Location::Module) {
-            *counts.entry(f.smell.to_string()).or_default() += 1;
-        }
-    }
-    counts
-}
-
-fn cache_baseline(hook: &HookInput) {
-    let bp = baseline_path(&hook.file_path);
-    if bp.exists() {
-        return;
-    }
-
-    let counts = compute_baseline_counts(hook);
-    write_baseline(&bp, &counts);
-    append_manifest(&hook.file_path);
-}
-
-fn compute_baseline_counts(hook: &HookInput) -> HashMap<String, usize> {
-    let source = match reconstruct_pre_edit(hook) {
-        Some(s) if !s.is_empty() => s,
-        _ => return HashMap::new(),
-    };
-    let Some(lang) = parse::detect_language(Path::new(&hook.file_path)) else {
-        return HashMap::new();
-    };
-    let Some(metrics) = parse::parse_and_walk(&source, lang) else {
-        return HashMap::new();
-    };
-    let thresholds = thresholds::Thresholds::default();
-    let findings = smells::detect(&metrics, &source, &thresholds);
-    count_module_findings(&findings)
-}
-
-fn reconstruct_pre_edit(hook: &HookInput) -> Option<String> {
-    if let (Some(old_str), Some(new_str)) = (&hook.old_string, &hook.new_string) {
-        let current = std::fs::read_to_string(&hook.file_path).ok()?;
-        return Some(current.replacen(new_str, old_str, 1));
-    }
-
-    let output = std::process::Command::new("git")
-        .args(["show", &format!("HEAD:{}", &hook.file_path)])
-        .output()
-        .ok()?;
-    if output.status.success() {
-        return Some(String::from_utf8_lossy(&output.stdout).into_owned());
-    }
-
-    None
-}
-
-fn write_baseline(path: &Path, counts: &HashMap<String, usize>) {
-    let dir = baseline_dir();
-    let _ = std::fs::create_dir_all(&dir);
-    let json = serde_json::to_string(counts).unwrap_or_default();
-    let _ = std::fs::write(path, json);
-}
-
-fn load_baseline(file_path: &str) -> HashMap<String, usize> {
-    let bp = baseline_path(file_path);
-    let Ok(json) = std::fs::read_to_string(&bp) else {
-        return HashMap::new();
-    };
-    serde_json::from_str(&json).unwrap_or_default()
-}
-
-fn append_manifest(file_path: &str) {
-    let manifest = baseline_dir().join("manifest.txt");
-    let existing = std::fs::read_to_string(&manifest).unwrap_or_default();
-    if existing.lines().any(|l| l == file_path) {
-        return;
-    }
-    let _ = std::fs::create_dir_all(baseline_dir());
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&manifest)
-    {
-        let _ = writeln!(f, "{file_path}");
-    }
 }
 
 fn run_check(file_path: &str) {
@@ -191,31 +109,60 @@ fn run_check(file_path: &str) {
     print!("{}", output::format(&findings, &filename));
 }
 
-fn run_hook(hook: HookInput) {
-    cache_baseline(&hook);
-    let Some((all_findings, filename)) = analyze_file(&hook.file_path) else {
+fn run_check_all() {
+    let mut total = 0;
+    for entry in walk_source_files(Path::new(".")) {
+        let path_str = entry.to_string_lossy();
+        if let Some((findings, filename)) = analyze_file(&path_str) {
+            if !findings.is_empty() {
+                total += findings.len();
+                print!("{}", output::format(&findings, &filename));
+            }
+        }
+    }
+    if total > 0 {
+        process::exit(1);
+    }
+}
+
+fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return files;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name.starts_with('.') || SKIP_DIRS.contains(&name) {
+                continue;
+            }
+            files.extend(walk_source_files(&path));
+        } else if parse::detect_language(&path).is_some() {
+            files.push(path);
+        }
+    }
+    files.sort();
+    files
+}
+
+fn run_hook(h: hook::HookInput) {
+    analytics::save_session_id(&h);
+    baselines::cache_baseline(&h);
+    let Some((all_findings, filename)) = analyze_file(&h.file_path) else {
         process::exit(0);
     };
-    let findings = filter_by_edit_range(all_findings, hook.edit_range);
+    let findings = hook::filter_by_edit_range(all_findings, h.edit_range);
     if findings.is_empty() {
         process::exit(0);
     }
+    analytics::log_findings(&h, &findings, &filename);
     print!("{}", output::format_compact(&findings, &filename));
-    process::exit(1);
-}
-
-fn main() {
-    match parse_args() {
-        Command::Debug(p) => run_debug(&p),
-        Command::Check(p) => run_check(&p),
-        Command::Hook(h) => run_hook(h),
-        Command::Stop => run_stop(),
-        Command::Cleanup => run_cleanup(),
-    }
 }
 
 fn run_stop() {
-    let Ok(manifest) = std::fs::read_to_string(baseline_dir().join("manifest.txt")) else {
+    let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt"))
+    else {
         return;
     };
 
@@ -230,18 +177,16 @@ fn run_stop() {
         print!("{}", output::format_stop(&all_regressions));
     }
 
-    let _ = std::fs::remove_dir_all(baseline_dir());
+    analytics::resolve(analyze_file);
+    let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }
 
 fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
-    let baseline = load_baseline(file_path);
+    let baseline = baselines::load_baseline(file_path);
     let (findings, filename) = analyze_file(file_path)?;
 
     let mut current_counts: HashMap<&str, usize> = HashMap::new();
-    for f in findings
-        .iter()
-        .filter(|f| matches!(f.location, Location::Module))
-    {
+    for f in findings.iter().filter(|f| matches!(f.location, Location::Module)) {
         *current_counts.entry(f.smell).or_default() += 1;
     }
 
@@ -262,68 +207,5 @@ fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
 }
 
 fn run_cleanup() {
-    let _ = std::fs::remove_dir_all(baseline_dir());
-}
-
-fn parse_hook_input() -> Option<HookInput> {
-    let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).ok()?;
-    let v: serde_json::Value = serde_json::from_str(&input).ok()?;
-    let tool_input = v.get("tool_input")?;
-    let file_path = tool_input.get("file_path")?.as_str()?.to_string();
-
-    let old_string = tool_input
-        .get("old_string")
-        .and_then(|v| v.as_str())
-        .map(std::string::ToString::to_string);
-    let new_string = tool_input
-        .get("new_string")
-        .and_then(|v| v.as_str())
-        .map(std::string::ToString::to_string);
-
-    let edit_range = compute_edit_range(tool_input, &file_path);
-
-    Some(HookInput {
-        file_path,
-        edit_range,
-        old_string,
-        new_string,
-    })
-}
-
-fn compute_edit_range(tool_input: &serde_json::Value, file_path: &str) -> Option<(u32, u32)> {
-    let new_string = tool_input.get("new_string")?.as_str()?;
-    let old_string = tool_input.get("old_string")?.as_str()?;
-
-    let source = std::fs::read_to_string(file_path).ok()?;
-    let start_byte = source
-        .find(new_string)
-        .or_else(|| source.find(old_string))?;
-
-    let start_line = source[..start_byte].matches('\n').count() as u32 + 1;
-    let new_lines = new_string.matches('\n').count() as u32;
-    let end_line = start_line + new_lines;
-
-    Some((start_line, end_line))
-}
-
-pub fn filter_by_edit_range(findings: Vec<Finding>, range: Option<(u32, u32)>) -> Vec<Finding> {
-    let Some((start, end)) = range else {
-        return findings
-            .into_iter()
-            .filter(|f| !matches!(f.location, Location::Module))
-            .collect();
-    };
-
-    findings
-        .into_iter()
-        .filter(|f| match &f.location {
-            Location::Function {
-                start_line,
-                end_line,
-                ..
-            } => *start_line <= end && *end_line >= start,
-            Location::Module => false,
-        })
-        .collect()
+    let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }

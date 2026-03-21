@@ -1,6 +1,7 @@
 use crate::walk::{self, FileMetrics};
 
 #[derive(Debug, Clone, Copy)]
+#[repr(usize)]
 pub enum Language {
     Python,
     TypeScript,
@@ -11,105 +12,78 @@ pub enum Language {
     Java,
     CSharp,
     Go,
+    Swift,
 }
 
+type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
+
+const EXTENSION_MAP: &[(&[&str], Language)] = &[
+    (&["py"], Language::Python),
+    (&["ts", "tsx"], Language::TypeScript),
+    (&["js", "jsx", "mjs", "cjs"], Language::JavaScript),
+    (&["rs"], Language::Rust),
+    (&["c", "h"], Language::C),
+    (&["cpp", "cc", "cxx", "hpp", "hxx", "hh"], Language::Cpp),
+    (&["java"], Language::Java),
+    (&["cs"], Language::CSharp),
+    (&["go"], Language::Go),
+    (&["swift"], Language::Swift),
+];
+
+fn ts_python() -> tree_sitter::Language { tree_sitter_python::LANGUAGE.into() }
+fn ts_typescript() -> tree_sitter::Language { tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into() }
+fn ts_javascript() -> tree_sitter::Language { tree_sitter_javascript::LANGUAGE.into() }
+fn ts_rust() -> tree_sitter::Language { tree_sitter_rust::LANGUAGE.into() }
+fn ts_c() -> tree_sitter::Language { tree_sitter_c::LANGUAGE.into() }
+fn ts_cpp() -> tree_sitter::Language { tree_sitter_cpp::LANGUAGE.into() }
+fn ts_java() -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
+fn ts_csharp() -> tree_sitter::Language { tree_sitter_c_sharp::LANGUAGE.into() }
+fn ts_go() -> tree_sitter::Language { tree_sitter_go::LANGUAGE.into() }
+fn ts_swift() -> tree_sitter::Language { tree_sitter_swift::LANGUAGE.into() }
+
+fn walk_ts(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
+    walk::typescript::walk(tree, source, true)
+}
+
+fn walk_js(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
+    walk::javascript::walk(tree, source)
+}
+
+type LangInit = fn() -> tree_sitter::Language;
+
+static DISPATCH: [(LangInit, WalkFn); 10] = [
+    (ts_python, walk::python::walk as WalkFn),
+    (ts_typescript, walk_ts as WalkFn),
+    (ts_javascript, walk_js as WalkFn),
+    (ts_rust, walk::rust::walk as WalkFn),
+    (ts_c, walk::c::walk as WalkFn),
+    (ts_cpp, walk::cpp::walk as WalkFn),
+    (ts_java, walk::java::walk as WalkFn),
+    (ts_csharp, walk::csharp::walk as WalkFn),
+    (ts_go, walk::go::walk as WalkFn),
+    (ts_swift, walk::swift::walk as WalkFn),
+];
+
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {
-    match path.extension()?.to_str()? {
-        "py" => Some(Language::Python),
-        "ts" | "tsx" => Some(Language::TypeScript),
-        "js" | "jsx" | "mjs" | "cjs" => Some(Language::JavaScript),
-        "rs" => Some(Language::Rust),
-        "c" | "h" => Some(Language::C),
-        "cpp" | "cc" | "cxx" | "hpp" | "hxx" | "hh" => Some(Language::Cpp),
-        "java" => Some(Language::Java),
-        "cs" => Some(Language::CSharp),
-        "go" => Some(Language::Go),
-        _ => None,
-    }
+    let ext = path.extension()?.to_str()?;
+    EXTENSION_MAP
+        .iter()
+        .find(|(exts, _)| exts.contains(&ext))
+        .map(|(_, lang)| *lang)
 }
 
 pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
-    match lang {
-        Language::Python => parse_python(source),
-        Language::TypeScript => parse_typescript(source),
-        Language::JavaScript => parse_javascript(source),
-        Language::Rust => parse_rust(source),
-        Language::C => parse_c(source),
-        Language::Cpp => parse_cpp(source),
-        Language::Java => parse_java(source),
-        Language::CSharp => parse_csharp(source),
-        Language::Go => parse_go(source),
-    }
+    let (ts_lang_fn, walk_fn) = DISPATCH[lang as usize];
+    parse_generic(source, ts_lang_fn(), walk_fn)
 }
 
-fn parse_python(source: &str) -> Option<FileMetrics> {
+fn parse_generic(
+    source: &str,
+    ts_lang: tree_sitter::Language,
+    walk_fn: WalkFn,
+) -> Option<FileMetrics> {
     let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_python::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
+    parser.set_language(&ts_lang).ok()?;
     let tree = parser.parse(source, None)?;
-    Some(walk::python::walk(&tree, source))
-}
-
-fn parse_typescript(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_typescript::LANGUAGE_TYPESCRIPT;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::typescript::walk(&tree, source, true))
-}
-
-fn parse_javascript(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_javascript::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::javascript::walk(&tree, source))
-}
-
-fn parse_rust(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_rust::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::rust::walk(&tree, source))
-}
-
-fn parse_c(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_c::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::c::walk(&tree, source))
-}
-
-fn parse_cpp(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_cpp::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::cpp::walk(&tree, source))
-}
-
-fn parse_java(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_java::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::java::walk(&tree, source))
-}
-
-fn parse_csharp(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_c_sharp::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::csharp::walk(&tree, source))
-}
-
-fn parse_go(source: &str) -> Option<FileMetrics> {
-    let mut parser = tree_sitter::Parser::new();
-    let language = tree_sitter_go::LANGUAGE;
-    parser.set_language(&language.into()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk::go::walk(&tree, source))
+    Some(walk_fn(&tree, source))
 }

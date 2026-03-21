@@ -148,7 +148,7 @@ fn missing_file_path_produces_no_output() {
 // ===========================================================================
 
 #[test]
-fn hook_output_is_compact_single_line() {
+fn hook_output_one_line_per_finding() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
@@ -158,16 +158,17 @@ fn hook_output_is_compact_single_line() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    let line_count = output.lines().count();
-    assert_eq!(
-        line_count, 1,
-        "hook output should be a single line, got {} lines: {}",
-        line_count, output
-    );
+    for line in output.lines() {
+        assert!(
+            line.starts_with("error[pulse]:"),
+            "each line should start with error[pulse]:, got: {}",
+            line
+        );
+    }
 }
 
 #[test]
-fn hook_output_starts_with_pulse() {
+fn hook_output_starts_with_error_pulse() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
@@ -178,8 +179,8 @@ fn hook_output_starts_with_pulse() {
     );
     let output = run_hook_with_json(&json);
     assert!(
-        output.starts_with("pulse:"),
-        "should start with pulse:, got: {}",
+        output.starts_with("error[pulse]:"),
+        "should start with error[pulse]:, got: {}",
         output
     );
 }

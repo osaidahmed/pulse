@@ -87,7 +87,7 @@ fn module_findings_excluded_from_hook_output() {
 // ===========================================================================
 
 #[test]
-fn hook_output_is_single_line() {
+fn hook_output_one_error_per_line() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(
         path.to_str().unwrap(),
@@ -97,16 +97,17 @@ fn hook_output_is_single_line() {
     if out.is_empty() {
         return;
     }
-    let lines = out.trim().lines().count();
-    assert_eq!(
-        lines, 1,
-        "hook output should be single line, got {} lines:\n{}",
-        lines, out
-    );
+    for line in out.trim().lines() {
+        assert!(
+            line.starts_with("error[pulse]:"),
+            "each finding should be error[pulse]: format, got: {}",
+            line
+        );
+    }
 }
 
 #[test]
-fn hook_output_contains_issue_count() {
+fn hook_output_contains_error_prefix() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(
         path.to_str().unwrap(),
@@ -117,8 +118,8 @@ fn hook_output_contains_issue_count() {
         return;
     }
     assert!(
-        out.contains("issue"),
-        "output should contain 'issue' count: {}",
+        out.contains("error[pulse]:"),
+        "output should contain error[pulse]: prefix: {}",
         out
     );
 }

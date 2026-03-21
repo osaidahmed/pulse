@@ -331,7 +331,7 @@ fn hook_smelly_file_produces_output() {
         !output.is_empty(),
         "hook on smelly file should produce output"
     );
-    assert!(has_smell(&output, "God Method"));
+    assert!(has_smell(&output, "god method"));
 }
 
 #[test]
