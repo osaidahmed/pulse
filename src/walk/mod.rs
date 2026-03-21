@@ -1,6 +1,7 @@
 pub mod c;
 pub mod cpp;
 pub mod csharp;
+pub mod go;
 pub mod java;
 pub mod javascript;
 pub mod python;
@@ -309,6 +310,13 @@ fn is_expression_leaf(kind: &str) -> bool {
 pub fn fingerprint_walk(node: Node, hasher: &mut impl Hasher) {
     let mut cursor = node.walk();
     fingerprint_cursor(&mut cursor, hasher);
+}
+
+pub fn track_global_nesting(child: Node, max_nesting: &mut u32, branch_kinds: &[&str]) {
+    let depth = measure_nesting_depth(child, 1, branch_kinds);
+    if depth > *max_nesting {
+        *max_nesting = depth;
+    }
 }
 
 pub fn count_consecutive_asserts(body: Node, assert_kind: &str) -> u32 {

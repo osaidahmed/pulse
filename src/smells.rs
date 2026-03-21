@@ -623,21 +623,25 @@ fn count_connected_components(n: usize, connected: impl Fn(usize, usize) -> bool
             continue;
         }
         components += 1;
-        let mut stack = vec![start];
-        while let Some(node) = stack.pop() {
-            if visited[node] {
-                continue;
-            }
-            visited[node] = true;
-            for (neighbor, visited_flag) in visited.iter().enumerate() {
-                if !visited_flag && connected(node, neighbor) {
-                    stack.push(neighbor);
-                }
-            }
-        }
+        visit_component(start, &mut visited, &connected);
     }
 
     components
+}
+
+fn visit_component(start: usize, visited: &mut [bool], connected: &impl Fn(usize, usize) -> bool) {
+    let mut stack = vec![start];
+    while let Some(node) = stack.pop() {
+        if visited[node] {
+            continue;
+        }
+        visited[node] = true;
+        for (i, v) in visited.iter().enumerate() {
+            if !v && connected(node, i) {
+                stack.push(i);
+            }
+        }
+    }
 }
 
 fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {

@@ -201,6 +201,7 @@ fn run_hook(hook: HookInput) {
         process::exit(0);
     }
     print!("{}", output::format_compact(&findings, &filename));
+    process::exit(1);
 }
 
 fn main() {
