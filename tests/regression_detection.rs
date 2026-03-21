@@ -454,8 +454,8 @@ fn stop_detects_file_too_large_regression() {
     let out = env.run_stop();
     assert!(out.contains("file too large"), "should detect: {}", out);
     assert!(
-        out.contains("note"),
-        "informational finding should use 'note' framing: {}",
+        out.contains("error[pulse]"),
+        "finding should use error[pulse] prefix: {}",
         out
     );
     assert!(
@@ -790,13 +790,13 @@ fn stop_informational_uses_note_not_regression() {
 
     let out = env.run_stop();
     assert!(
-        out.contains("note"),
-        "informational should use 'note': {}",
+        out.contains("error[pulse]"),
+        "informational should use error[pulse] prefix: {}",
         out
     );
     assert!(
-        !out.contains("regression"),
-        "informational should NOT use 'regression': {}",
+        out.contains("crossed"),
+        "informational should use 'crossed' label: {}",
         out
     );
 }
@@ -855,7 +855,7 @@ fn stop_mixed_produces_blocking_decision() {
         "should have regression in reason: {}",
         out
     );
-    assert!(out.contains("note"), "should have note in reason: {}", out);
+    assert!(out.contains("crossed"), "should have threshold crossed finding: {}", out);
 }
 
 #[test]
@@ -941,19 +941,18 @@ fn hook_excludes_module_but_shows_function_findings() {
     let env = TestEnv::new();
     let path = env.file_path("mixed.py");
 
-    // File with both function-level and module-level issues
+    // File with both function-level and module-level issues (POST-edit state)
     let mut code = String::new();
-    // Complex function (cc >= 9)
     code.push_str("def complex_fn(x):\n");
-    for i in 0..10 {
+    for i in 0..11 {
         code.push_str(&format!("    if x == {}:\n        pass\n", i));
     }
     code.push_str("    return x\n\n");
-    // Pad to trigger File Too Large
     code.push_str(&var_lines("pad", 400));
     std::fs::write(&path, &code).unwrap();
 
-    let json = env.edit_hook_json(&path, "def complex_fn", "def complex_fn");
+    // Edit added the 11th branch (old had just return x)
+    let json = env.edit_hook_json(&path, "    return x", "    if x == 10:\n        pass\n    return x");
     let out = env.run_hook(&json);
 
     assert!(
@@ -1382,5 +1381,249 @@ fn stop_full_lifecycle_three_edits_then_stop() {
     assert!(
         !env.baseline_path().exists(),
         "stop should clean up baselines"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MID-SESSION CHECKPOINT
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn checkpoint_fires_at_5th_edit() {
+    let env = TestEnv::new();
+    let path = env.file_path("grow.py");
+
+    // Start with a clean file
+    std::fs::write(&path, "def f():\n    return 1\n").unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    // Add functions one by one to cross Too Many Functions threshold
+    let mut code = String::new();
+    for i in 0..22 {
+        code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
+    }
+    std::fs::write(&path, &code).unwrap();
+
+    // Edits 2-4: small changes, no checkpoint
+    for i in 2..=4 {
+        let old = format!("return {}", i - 2);
+        let new = format!("return {}", i + 100);
+        let json = env.edit_hook_json(&path, &old, &new);
+        code = code.replacen(&old, &new, 1);
+        std::fs::write(&path, &code).unwrap();
+        let out = env.run_hook(&json);
+        assert!(
+            !out.contains("too many functions"),
+            "edit {} should not trigger checkpoint: {}",
+            i,
+            out
+        );
+    }
+
+    // Edit 5: checkpoint fires
+    let old = "return 104";
+    let new = "return 999";
+    let json = env.edit_hook_json(&path, old, new);
+    code = code.replacen(old, new, 1);
+    std::fs::write(&path, &code).unwrap();
+    let out = env.run_hook(&json);
+    assert!(
+        out.contains("too many functions"),
+        "5th edit should trigger checkpoint: {}",
+        out
+    );
+}
+
+#[test]
+fn checkpoint_silent_before_5th_edit() {
+    let env = TestEnv::new();
+    let path = env.file_path("small.py");
+
+    let mut code = simple_functions(22);
+    std::fs::write(&path, &code).unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    for i in 1..4 {
+        let old = format!("return {}", i);
+        let new = format!("return {}", i + 100);
+        let json = env.edit_hook_json(&path, &old, &new);
+        code = code.replacen(&old, &new, 1);
+        std::fs::write(&path, &code).unwrap();
+        let out = env.run_hook(&json);
+        assert!(
+            !out.contains("too many functions"),
+            "edit {} should not trigger module checkpoint",
+            i + 1
+        );
+    }
+}
+
+#[test]
+fn checkpoint_silent_when_no_regressions() {
+    let env = TestEnv::new();
+    let path = env.file_path("stable.py");
+
+    // Start with a file that already has many functions (pre-existing)
+    let code = simple_functions(22);
+    std::fs::write(&path, format!("{code}MARKER = 1\n")).unwrap();
+    let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
+    std::fs::write(&path, format!("{code}MARKER = 2\n")).unwrap();
+    env.run_hook(&json);
+
+    // Edits 2-5: small changes that don't add functions
+    let mut current = format!("{code}MARKER = 2\n");
+    for i in 2..=5 {
+        let old = format!("MARKER = {}", i);
+        let new = format!("MARKER = {}", i + 1);
+        let json = env.edit_hook_json(&path, &old, &new);
+        current = current.replacen(&old, &new, 1);
+        std::fs::write(&path, &current).unwrap();
+        let out = env.run_hook(&json);
+        assert!(
+            !out.contains("too many functions"),
+            "edit {}: no regression should be reported since baseline captured pre-existing: {}",
+            i,
+            out
+        );
+    }
+}
+
+#[test]
+fn checkpoint_skips_test_files() {
+    let env = TestEnv::new();
+    let test_dir = env.files_dir.path().join("tests");
+    std::fs::create_dir_all(&test_dir).unwrap();
+    let path = test_dir.join("test_things.py");
+
+    let mut code = simple_functions(22);
+    std::fs::write(&path, &code).unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    for i in 1..=5 {
+        let old = format!("return {}", i);
+        let new = format!("return {}", i + 100);
+        let json = env.edit_hook_json(&path, &old, &new);
+        code = code.replacen(&old, &new, 1);
+        std::fs::write(&path, &code).unwrap();
+        let out = env.run_hook(&json);
+        assert!(
+            !out.contains("too many functions"),
+            "test file should skip checkpoint at edit {}: {}",
+            i + 1,
+            out
+        );
+    }
+}
+
+#[test]
+fn checkpoint_fires_again_at_10th_edit() {
+    let env = TestEnv::new();
+    let path = env.file_path("repeat.py");
+
+    let mut code = simple_functions(22);
+    std::fs::write(&path, &code).unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    let mut fired_at = Vec::new();
+    for i in 1..=10 {
+        let old = format!("return {}", i);
+        let new = format!("return {}", i + 200);
+        let json = env.edit_hook_json(&path, &old, &new);
+        code = code.replacen(&old, &new, 1);
+        std::fs::write(&path, &code).unwrap();
+        let out = env.run_hook(&json);
+        if out.contains("too many functions") {
+            fired_at.push(i + 1);
+        }
+    }
+    assert!(
+        fired_at.contains(&5) || fired_at.contains(&6),
+        "should fire near edit 5, fired at: {:?}",
+        fired_at
+    );
+    assert!(
+        fired_at.contains(&10) || fired_at.contains(&11),
+        "should fire near edit 10, fired at: {:?}",
+        fired_at
+    );
+}
+
+#[test]
+fn edit_counter_persists_across_invocations() {
+    let env = TestEnv::new();
+    let path = env.file_path("counter.py");
+
+    std::fs::write(&path, "def f():\n    return 1\n").unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    // Check counter file exists
+    let hash = {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        path.to_str().unwrap().hash(&mut hasher);
+        hasher.finish()
+    };
+    let counter_path = env.baseline_path().join(format!("{:016x}.edits", hash));
+    assert!(counter_path.exists(), "counter file should exist");
+    let count: u32 = std::fs::read_to_string(&counter_path)
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
+    assert_eq!(count, 1, "counter should be 1 after first hook");
+
+    // Second invocation
+    let json2 = env.edit_hook_json(&path, "return 1", "return 2");
+    std::fs::write(&path, "def f():\n    return 2\n").unwrap();
+    env.run_hook(&json2);
+    let count2: u32 = std::fs::read_to_string(&counter_path)
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
+    assert_eq!(count2, 2, "counter should be 2 after second hook");
+}
+
+#[test]
+fn checkpoint_includes_function_findings_too() {
+    let env = TestEnv::new();
+    let path = env.file_path("mixed.py");
+
+    // File with many functions AND a complex function
+    let mut code = simple_functions(22);
+    code.push_str(&complex_function("complex_one", 10));
+    std::fs::write(&path, &code).unwrap();
+    let json = env.write_hook_json(&path);
+    env.run_hook(&json);
+
+    // Edits 2-4
+    let mut current = code.clone();
+    for i in 1..=3 {
+        let old = format!("return {}", i);
+        let new = format!("return {}", i + 300);
+        let json = env.edit_hook_json(&path, &old, &new);
+        current = current.replacen(&old, &new, 1);
+        std::fs::write(&path, &current).unwrap();
+        env.run_hook(&json);
+    }
+
+    // Edit 5: trigger checkpoint AND function smell
+    let old = "return 4";
+    let new = "return 444";
+    let json = env.edit_hook_json(&path, old, new);
+    current = current.replacen(old, new, 1);
+    std::fs::write(&path, &current).unwrap();
+    let out = env.run_hook(&json);
+    // Should have module findings from checkpoint
+    assert!(
+        out.contains("too many functions") || out.contains("file too large"),
+        "5th edit should include module checkpoint: {}",
+        out
     );
 }

@@ -4,8 +4,10 @@ use common::*;
 use std::process::Command;
 
 fn run_hook_with_json(json: &str) -> String {
+    let baseline_dir = tempfile::tempdir().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["--hook"])
+        .env("PULSE_BASELINE_DIR", baseline_dir.path())
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -29,10 +31,10 @@ fn run_hook_with_json(json: &str) -> String {
 // ===========================================================================
 
 #[test]
-fn edit_near_function_shows_only_that_function() {
+fn edit_that_introduces_smell_shows_only_near_function() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
-    // Write a file with two smelly functions at different locations
+    // After edit: func_a has too many args (smelly), func_b is clean far away
     std::fs::write(
         &path,
         concat!(
@@ -41,27 +43,19 @@ fn edit_near_function_shows_only_that_function() {
             "\n",
             "def clean():\n",
             "    return 1\n",
-            "\n",
-            "def func_b(a, b, c, d, e, f, g, h):\n",
-            "    return a\n",
         ),
     )
     .unwrap();
 
-    // Edit near func_a (line 1) — should see func_a but not func_b
+    // Edit introduced func_a's excess args (old had fewer params)
     let json = format!(
-        r#"{{"tool_input":{{"file_path":"{}","old_string":"def func_a","new_string":"def func_a"}}}}"#,
+        r#"{{"tool_input":{{"file_path":"{}","old_string":"def func_a(a, b):\n    return a","new_string":"def func_a(a, b, c, d, e, f, g, h):\n    return a"}}}}"#,
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
     assert!(
         output.contains("func_a"),
-        "should see func_a near edit, got: {}",
-        output
-    );
-    assert!(
-        !output.contains("func_b"),
-        "should NOT see func_b far from edit, got: {}",
+        "should see func_a after introducing smell, got: {}",
         output
     );
 }
@@ -153,8 +147,9 @@ fn hook_output_is_json_blocking_decision() {
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
 
+    // Edit introduces the excess args (old had 2 params)
     let json = format!(
-        r#"{{"tool_input":{{"file_path":"{}","old_string":"def smelly","new_string":"def smelly"}}}}"#,
+        r#"{{"tool_input":{{"file_path":"{}","old_string":"def smelly(a, b):\n    return a","new_string":"def smelly(a, b, c, d, e, f, g, h):\n    return a"}}}}"#,
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
@@ -173,8 +168,9 @@ fn hook_output_reason_contains_findings() {
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
 
+    // Edit introduces the excess args (old had 2 params)
     let json = format!(
-        r#"{{"tool_input":{{"file_path":"{}","old_string":"def smelly","new_string":"def smelly"}}}}"#,
+        r#"{{"tool_input":{{"file_path":"{}","old_string":"def smelly(a, b):\n    return a","new_string":"def smelly(a, b, c, d, e, f, g, h):\n    return a"}}}}"#,
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);

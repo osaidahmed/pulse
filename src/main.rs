@@ -19,9 +19,12 @@ enum Command {
     Check(String),
     CheckAll,
     Debug(String),
+    Budget(String),
     Stop,
     Cleanup,
 }
+
+const CHECKPOINT_INTERVAL: u32 = 5;
 
 const SKIP_DIRS: &[&str] = &[
     "node_modules",
@@ -34,25 +37,28 @@ const SKIP_DIRS: &[&str] = &[
 fn parse_args() -> Command {
     let args: Vec<String> = std::env::args().collect();
     let cmd = args.get(1).map_or("", std::string::String::as_str);
+    let second = args.get(2).map(String::as_str);
+
+    if matches!(cmd, "-a" | "--all") || (cmd == "check" && second.is_some_and(|a| a == "-a" || a == "--all")) {
+        return Command::CheckAll;
+    }
 
     match cmd {
-        "--hook" => {
-            let Some(h) = hook::parse_hook_input() else {
-                process::exit(0);
-            };
-            Command::Hook(h)
-        }
+        "--hook" => hook::parse_hook_input().map_or_else(|| process::exit(0), Command::Hook),
         "--stop" => Command::Stop,
         "--cleanup" => Command::Cleanup,
-        "check" if args.get(2).is_some_and(|a| a == "-a" || a == "--all") => Command::CheckAll,
-        "check" if args.len() > 2 => Command::Check(args[2].clone()),
-        "debug" if args.len() > 2 => Command::Debug(args[2].clone()),
-        "-a" | "--all" => Command::CheckAll,
+        "check" | "debug" | "budget" if second.is_some() => file_command(cmd, args[2].clone()),
         _ => {
-            eprintln!("usage: pulse --hook | --stop | --cleanup | check <file> | debug <file> | -a/--all");
+            eprintln!("usage: pulse --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all");
             process::exit(1);
         }
     }
+}
+
+fn file_command(cmd: &str, path: String) -> Command {
+    if cmd == "debug" { return Command::Debug(path); }
+    if cmd == "budget" { return Command::Budget(path); }
+    Command::Check(path)
 }
 
 fn main() {
@@ -60,6 +66,7 @@ fn main() {
         Command::Debug(p) => run_debug(&p),
         Command::Check(p) => run_check(&p),
         Command::CheckAll => run_check_all(),
+        Command::Budget(p) => run_budget(&p),
         Command::Hook(h) => run_hook(h),
         Command::Stop => run_stop(),
         Command::Cleanup => run_cleanup(),
@@ -109,6 +116,29 @@ fn run_check(file_path: &str) {
     print!("{}", output::format(&findings, &filename));
 }
 
+fn run_budget(file_path: &str) {
+    let path = Path::new(file_path);
+    let t = thresholds::Thresholds::default();
+
+    let Some((fns, module)) = parse::detect_language(path)
+        .and_then(|lang| std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang)))
+    else {
+        eprintln!("budget: {file_path} — unsupported or unreadable");
+        return;
+    };
+
+    let fn_count = fns.len() as u32;
+    let fn_room = t.file_function_count.saturating_sub(fn_count);
+    let loc_room = t.file_loc_warning.saturating_sub(module.total_loc);
+    let cc_room = t.file_total_cc.saturating_sub(module.sum_cc);
+
+    eprintln!("budget: {file_path}");
+    eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.file_function_count);
+    eprintln!("  LOC:       {}/{} (room: {loc_room})", module.total_loc, t.file_loc_warning);
+    eprintln!("  total cc:  {}/{} (room: {cc_room})", module.sum_cc, t.file_total_cc);
+    eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
+}
+
 fn run_check_all() {
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
@@ -147,7 +177,7 @@ fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn run_hook(h: hook::HookInput) {
-    if std::env::var("PULSE_DISABLE").is_ok() {
+    if std::env::var("PULSE_DISABLE").is_ok() || is_test_file(&h.file_path) {
         return;
     }
     analytics::save_session_id(&h);
@@ -155,7 +185,20 @@ fn run_hook(h: hook::HookInput) {
     let Some((all_findings, filename)) = analyze_file(&h.file_path) else {
         process::exit(0);
     };
-    let findings = hook::filter_by_edit_range(all_findings, h.edit_range);
+
+    let edit_count = baselines::increment_edit_count(&h.file_path);
+    let func_baseline = baselines::load_function_baseline(&h.file_path);
+    let mut findings: Vec<Finding> = hook::filter_by_edit_range(all_findings, h.edit_range)
+        .into_iter()
+        .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
+        .collect();
+
+    if edit_count.is_multiple_of(CHECKPOINT_INTERVAL) && !is_test_file(&h.file_path) {
+        if let Some((_, regressions)) = detect_regressions(&h.file_path) {
+            findings.extend(regressions);
+        }
+    }
+
     if findings.is_empty() {
         process::exit(0);
     }
@@ -168,6 +211,16 @@ fn run_hook(h: hook::HookInput) {
     println!("{decision}");
 }
 
+fn is_test_file(path: &str) -> bool {
+    // Match test implementation files, not fixture/sample data
+    let p = path.replace('\\', "/");
+    let in_test_dir = p.contains("/tests/") || p.contains("/test/") || p.contains("/__tests__/");
+    let is_test_named = p.contains("_test.") || p.contains(".test.") || p.contains("_spec.") || p.contains(".spec.");
+    // Exclude fixture directories — those are sample code, not test code
+    let is_fixture = p.contains("/fixtures/");
+    (in_test_dir && !is_fixture) || is_test_named
+}
+
 fn run_stop() {
     let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt"))
     else {
@@ -176,6 +229,7 @@ fn run_stop() {
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
+        if is_test_file(file_path) { continue; }
         if let Some((filename, regressions)) = detect_regressions(file_path) {
             all_regressions.push((filename, regressions));
         }

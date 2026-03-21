@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -19,8 +19,9 @@ pub fn cache_baseline(hook: &HookInput) {
         return;
     }
 
-    let counts = compute_baseline_counts(hook);
+    let (counts, func_findings) = compute_baseline(hook);
     write_baseline(&bp, &counts);
+    write_function_baseline(&hook.file_path, &func_findings);
     append_manifest(&hook.file_path);
 }
 
@@ -30,6 +31,21 @@ pub fn load_baseline(file_path: &str) -> HashMap<String, usize> {
         return HashMap::new();
     };
     serde_json::from_str(&json).unwrap_or_default()
+}
+
+pub fn load_function_baseline(file_path: &str) -> HashSet<String> {
+    std::fs::read_to_string(baseline_dir().join(format!("{:016x}.funcs", hash_path(file_path))))
+        .map(|content| content.lines().map(String::from).collect())
+        .unwrap_or_default()
+}
+
+pub fn is_preexisting_finding(f: &Finding, baseline: &HashSet<String>) -> bool {
+    match &f.location {
+        Location::Function { name, .. } => {
+            baseline.contains(&format!("{}:{}:{}", name, f.smell, f.detail))
+        }
+        Location::Module => false,
+    }
 }
 
 pub fn count_module_findings(findings: &[Finding]) -> HashMap<String, usize> {
@@ -58,34 +74,63 @@ pub fn append_manifest(file_path: &str) {
     }
 }
 
-fn baseline_path(file_path: &str) -> PathBuf {
+fn hash_path(file_path: &str) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     let mut hasher = DefaultHasher::new();
     file_path.hash(&mut hasher);
-    baseline_dir().join(format!("{:016x}.json", hasher.finish()))
+    hasher.finish()
 }
 
-fn compute_baseline_counts(hook: &HookInput) -> HashMap<String, usize> {
+fn baseline_path(file_path: &str) -> PathBuf {
+    baseline_dir().join(format!("{:016x}.json", hash_path(file_path)))
+}
+
+pub fn increment_edit_count(file_path: &str) -> u32 {
+    let path = baseline_dir().join(format!("{:016x}.edits", hash_path(file_path)));
+    let current: u32 = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0);
+    let next = current + 1;
+    let _ = std::fs::write(&path, next.to_string());
+    next
+}
+
+fn compute_baseline(hook: &HookInput) -> (HashMap<String, usize>, Vec<String>) {
     let source = match reconstruct_pre_edit(hook) {
         Some(s) if !s.is_empty() => s,
-        _ => return HashMap::new(),
+        _ => return (HashMap::new(), Vec::new()),
     };
     let Some(lang) = parse::detect_language(Path::new(&hook.file_path)) else {
-        return HashMap::new();
+        return (HashMap::new(), Vec::new());
     };
     let Some(metrics) = parse::parse_and_walk(&source, lang) else {
-        return HashMap::new();
+        return (HashMap::new(), Vec::new());
     };
     let t = thresholds::Thresholds::default();
     let findings = smells::detect(&metrics, &source, &t);
-    count_module_findings(&findings)
+    let module_counts = count_module_findings(&findings);
+    let func_keys: Vec<String> = findings
+        .iter()
+        .filter_map(|f| match &f.location {
+            Location::Function { name, .. } => Some(format!("{}:{}:{}", name, f.smell, f.detail)),
+            Location::Module => None,
+        })
+        .collect();
+    (module_counts, func_keys)
 }
 
 fn write_baseline(path: &Path, counts: &HashMap<String, usize>) {
     let _ = std::fs::create_dir_all(baseline_dir());
     let json = serde_json::to_string(counts).unwrap_or_default();
     let _ = std::fs::write(path, json);
+}
+
+fn write_function_baseline(file_path: &str, keys: &[String]) {
+    let path = baseline_dir().join(format!("{:016x}.funcs", hash_path(file_path)));
+    let _ = std::fs::create_dir_all(baseline_dir());
+    let _ = std::fs::write(path, keys.join("\n"));
 }
 
 fn reconstruct_pre_edit(hook: &HookInput) -> Option<String> {

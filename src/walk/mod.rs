@@ -6,10 +6,12 @@ pub mod go;
 pub mod java;
 pub mod javascript;
 pub mod python;
+pub mod ruby;
 pub mod rust;
 pub mod shared;
 pub mod swift;
 pub mod typescript;
+pub mod zig;
 
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
 pub use fingerprint::{
@@ -173,7 +175,7 @@ pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) ->
     for child in node.children(&mut cursor) {
         let child_depth = if branch_kinds.contains(&child.kind()) {
             measure_nesting_depth(child, current + 1, branch_kinds)
-        } else if child.kind() == "block" || child.kind() == "statement_block" {
+        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do") {
             measure_nesting_depth(child, current, branch_kinds)
         } else {
             current

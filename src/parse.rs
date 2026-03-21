@@ -13,6 +13,8 @@ pub enum Language {
     CSharp,
     Go,
     Swift,
+    Zig,
+    Ruby,
 }
 
 type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
@@ -28,6 +30,8 @@ const EXTENSION_MAP: &[(&[&str], Language)] = &[
     (&["cs"], Language::CSharp),
     (&["go"], Language::Go),
     (&["swift"], Language::Swift),
+    (&["zig"], Language::Zig),
+    (&["rb"], Language::Ruby),
 ];
 
 fn ts_python() -> tree_sitter::Language { tree_sitter_python::LANGUAGE.into() }
@@ -40,6 +44,8 @@ fn ts_java() -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
 fn ts_csharp() -> tree_sitter::Language { tree_sitter_c_sharp::LANGUAGE.into() }
 fn ts_go() -> tree_sitter::Language { tree_sitter_go::LANGUAGE.into() }
 fn ts_swift() -> tree_sitter::Language { tree_sitter_swift::LANGUAGE.into() }
+fn ts_zig() -> tree_sitter::Language { tree_sitter_zig::LANGUAGE.into() }
+fn ts_ruby() -> tree_sitter::Language { tree_sitter_ruby::LANGUAGE.into() }
 
 fn walk_ts(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
     walk::typescript::walk(tree, source, true)
@@ -51,7 +57,7 @@ fn walk_js(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 10] = [
+static DISPATCH: [(LangInit, WalkFn); 12] = [
     (ts_python, walk::python::walk as WalkFn),
     (ts_typescript, walk_ts as WalkFn),
     (ts_javascript, walk_js as WalkFn),
@@ -62,6 +68,8 @@ static DISPATCH: [(LangInit, WalkFn); 10] = [
     (ts_csharp, walk::csharp::walk as WalkFn),
     (ts_go, walk::go::walk as WalkFn),
     (ts_swift, walk::swift::walk as WalkFn),
+    (ts_zig, walk::zig::walk as WalkFn),
+    (ts_ruby, walk::ruby::walk as WalkFn),
 ];
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {
