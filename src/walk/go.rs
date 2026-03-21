@@ -331,26 +331,19 @@ fn count_parameters_from_node(func_node: Node, source: &str) -> (u32, u32, u32) 
 }
 
 fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
-    let mut count: u32 = 0;
-    let mut primitive_count: u32 = 0;
-    let mut typed_count: u32 = 0;
     let mut cursor = params.walk();
-    for child in params.children(&mut cursor) {
+    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| {
         let (n, is_prim) = match child.kind() {
             "parameter_declaration" => {
                 let names = count_param_names(child);
                 (if names == 0 { 1 } else { names }, has_primitive_type(child, source))
             }
             "variadic_parameter_declaration" => (1, has_primitive_type(child, source)),
-            _ => continue,
+            _ => return (cnt, prim, typed),
         };
-        count += n;
-        typed_count += n;
-        if is_prim {
-            primitive_count += n;
-        }
-    }
-    (count, primitive_count, typed_count)
+        let p = if is_prim { n } else { 0 };
+        (cnt + n, prim + p, typed + n)
+    })
 }
 
 fn count_param_names(param: Node) -> u32 {

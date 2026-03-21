@@ -335,30 +335,22 @@ fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
     let Some(params) = find_child_by_kind(func_node, "formal_parameters") else {
         return (0, 0, 0);
     };
-    let mut count: u32 = 0;
-    let mut primitive_count: u32 = 0;
-    let mut typed_count: u32 = 0;
     let mut cursor = params.walk();
-    for child in params.children(&mut cursor) {
-        match child.kind() {
-            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
-            | "assignment_pattern" => {
-                count += 1;
-            }
-            "required_parameter" | "optional_parameter" => {
-                count += 1;
-                let Some(type_ann) = find_child_by_kind(child, "type_annotation") else {
-                    continue;
-                };
-                typed_count += 1;
-                if is_primitive_type(type_ann, source) {
-                    primitive_count += 1;
+    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| match child.kind() {
+        "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
+        | "assignment_pattern" => (cnt + 1, prim, typed),
+        "required_parameter" | "optional_parameter" => {
+            let has_ann = find_child_by_kind(child, "type_annotation");
+            match has_ann {
+                Some(ann) => {
+                    let p = u32::from(is_primitive_type(ann, source));
+                    (cnt + 1, prim + p, typed + 1)
                 }
+                None => (cnt + 1, prim, typed),
             }
-            _ => {}
         }
-    }
-    (count, primitive_count, typed_count)
+        _ => (cnt, prim, typed),
+    })
 }
 
 fn count_parameters_untyped(func_node: Node) -> u32 {

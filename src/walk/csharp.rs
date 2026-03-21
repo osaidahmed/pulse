@@ -355,21 +355,14 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
     let Some(params) = find_child_by_kind(node, "parameter_list") else {
         return (0, 0, 0);
     };
-    let mut count: u32 = 0;
-    let mut primitive_count: u32 = 0;
-    let mut typed_count: u32 = 0;
     let mut cursor = params.walk();
-    for child in params.children(&mut cursor) {
-        if child.kind() != "parameter" {
-            continue;
-        }
-        count += 1;
-        typed_count += 1;
-        if has_primitive_type(child, source) {
-            primitive_count += 1;
-        }
-    }
-    (count, primitive_count, typed_count)
+    params
+        .children(&mut cursor)
+        .filter(|c| c.kind() == "parameter")
+        .fold((0, 0, 0), |(cnt, prim, typed), child| {
+            let p = u32::from(has_primitive_type(child, source));
+            (cnt + 1, prim + p, typed + 1)
+        })
 }
 
 fn has_primitive_type(param: Node, source: &str) -> bool {

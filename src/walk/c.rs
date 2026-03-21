@@ -228,24 +228,15 @@ fn count_parameters(declarator: Node, source: &str) -> (u32, u32, u32) {
 }
 
 fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
-    let mut count: u32 = 0;
-    let mut primitive_count: u32 = 0;
-    let mut typed_count: u32 = 0;
     let mut cursor = params.walk();
-    for child in params.children(&mut cursor) {
-        match child.kind() {
-            "parameter_declaration" => {
-                count += 1;
-                typed_count += 1;
-                if has_primitive_type(child, source) {
-                    primitive_count += 1;
-                }
-            }
-            "variadic_parameter" => count += 1,
-            _ => {}
+    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| match child.kind() {
+        "parameter_declaration" => {
+            let p = u32::from(has_primitive_type(child, source));
+            (cnt + 1, prim + p, typed + 1)
         }
-    }
-    (count, primitive_count, typed_count)
+        "variadic_parameter" => (cnt + 1, prim, typed),
+        _ => (cnt, prim, typed),
+    })
 }
 
 fn is_void_param_list(params: Node, count: u32, source: &str) -> bool {

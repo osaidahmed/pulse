@@ -161,17 +161,13 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
 }
 
 fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
-    let mut count: u32 = 0;
-    let mut primitive_count: u32 = 0;
-    let mut typed_count: u32 = 0;
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() != "parameter" { continue; }
-        count += 1;
-        let has_type = find_child_by_kind(child, "type_annotation").is_some()
-            || find_child_by_kind(child, "user_type").is_some();
-        if has_type {
-            typed_count += 1;
+    node.children(&mut cursor)
+        .filter(|c| c.kind() == "parameter")
+        .fold((0, 0, 0), |(cnt, prim, typed), child| {
+            let has_type = find_child_by_kind(child, "type_annotation").is_some()
+                || find_child_by_kind(child, "user_type").is_some();
+            if !has_type { return (cnt + 1, prim, typed); }
             let ut = find_child_by_kind(child, "user_type").or_else(|| {
                 find_child_by_kind(child, "type_annotation")
                     .and_then(|ta| find_child_by_kind(ta, "user_type"))
@@ -179,10 +175,8 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
             let is_prim = ut
                 .and_then(|u| find_child_by_kind(u, "type_identifier"))
                 .is_some_and(|ti| PRIMITIVE_TYPES.contains(&node_text(ti, source)));
-            if is_prim { primitive_count += 1; }
-        }
-    }
-    (count, primitive_count, typed_count)
+            (cnt + 1, prim + u32::from(is_prim), typed + 1)
+        })
 }
 
 // ─── Body walking ──────────────────────────────────────────────────────
