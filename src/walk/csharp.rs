@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, is_catch_body_empty, measure_nesting_depth, node_text, FileMetrics,
+    find_child_by_kind, is_catch_body_empty, node_text, track_global_nesting, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
 };
 
@@ -55,18 +55,24 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
         match child.kind() {
             "class_declaration" | "struct_declaration" | "interface_declaration"
             | "record_declaration" => collect_class_methods(child, source, functions),
-            "namespace_declaration" => {
-                if let Some(body) = find_child_by_kind(child, "declaration_list") {
-                    collect_functions(body, source, functions);
-                }
-            }
+            "namespace_declaration" => collect_namespace_functions(child, source, functions),
             "method_declaration" | "local_function_statement" => {
-                if let Some(metrics) = analyze_method(child, source) {
-                    functions.push(metrics);
-                }
+                try_add_method(child, source, functions);
             }
             _ => collect_functions(child, source, functions),
         }
+    }
+}
+
+fn collect_namespace_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    if let Some(body) = find_child_by_kind(node, "declaration_list") {
+        collect_functions(body, source, functions);
+    }
+}
+
+fn try_add_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    if let Some(metrics) = analyze_method(node, source) {
+        functions.push(metrics);
     }
 }
 
@@ -174,55 +180,85 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.reset_bump();
 
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "if_statement" => {
-                s.track_if(depth);
-                s.track_cogc_branch();
-                count_boolean_operators(child, &mut s.cc);
-                count_cogc_boolean_sequences(child, &mut s.cogc);
-                check_condition_complexity(child, source, &mut s.compound_condition_count);
-                walk_children(child, source, depth + 1, s);
-            }
-            "for_statement" | "foreach_statement" | "while_statement" | "do_statement" => {
-                s.track_loop(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "switch_statement" => {
-                s.track_nesting(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "switch_section" => {
-                let label_text = find_child_by_kind(child, "switch_label")
-                    .map(|l| node_text(l, source))
-                    .unwrap_or_default();
-                if !label_text.contains("default") {
-                    s.cc += 1;
-                }
-                walk_body(child, source, depth, s);
-            }
-            "catch_clause" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                if is_catch_body_empty(child, "block", None) {
-                    s.empty_catch_count += 1;
-                }
-                walk_children(child, source, depth, s);
-            }
-            "try_statement" => {
-                walk_children(child, source, depth, s);
-            }
-            "conditional_expression" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-            }
-            "string_literal" | "raw_string_literal" | "verbatim_string_literal"
-            | "interpolated_string_expression" => s.track_embedded(child),
-            "lambda_expression" => {}
-            _ => walk_body(child, source, depth, s),
-        }
+        walk_node(child, source, depth, s);
     }
+}
+
+fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    match child.kind() {
+        "if_statement" => handle_if(child, source, depth, s),
+        "for_statement" | "foreach_statement" | "while_statement" | "do_statement" => {
+            handle_loop(child, source, depth, s);
+        }
+        "switch_statement" | "switch_section" => handle_switch_or_section(child, source, depth, s),
+        "catch_clause" | "try_statement" => handle_exception(child, source, depth, s),
+        "conditional_expression" => handle_ternary(s),
+        "string_literal" | "raw_string_literal" | "verbatim_string_literal"
+        | "interpolated_string_expression" => s.track_embedded(child),
+        "lambda_expression" => {}
+        _ => walk_body(child, source, depth, s),
+    }
+}
+
+fn handle_switch_or_section(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if child.kind() == "switch_statement" {
+        handle_switch(child, source, depth, s);
+    } else {
+        handle_switch_section(child, source, depth, s);
+    }
+}
+
+fn handle_exception(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if child.kind() == "catch_clause" {
+        handle_catch(child, source, depth, s);
+    } else {
+        walk_children(child, source, depth, s);
+    }
+}
+
+fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_if(depth);
+    s.track_cogc_branch();
+    count_boolean_operators(child, &mut s.cc);
+    count_cogc_boolean_sequences(child, &mut s.cogc);
+    check_condition_complexity(child, source, &mut s.compound_condition_count);
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_loop(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_loop(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_switch_section(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let label_text = find_child_by_kind(child, "switch_label")
+        .map(|l| node_text(l, source))
+        .unwrap_or_default();
+    if !label_text.contains("default") {
+        s.cc += 1;
+    }
+    walk_body(child, source, depth, s);
+}
+
+fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    if is_catch_body_empty(child, "block", None) {
+        s.empty_catch_count += 1;
+    }
+    walk_children(child, source, depth, s);
+}
+
+fn handle_ternary(s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
 }
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -231,13 +267,7 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     for child in node.children(&mut cursor) {
         match child.kind() {
             "block" | "switch_body" => {
-                if saw_else {
-                    s.track_cogc_flat();
-                }
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_body(child, source, depth, s);
-                s.cogc_nesting = saved;
+                walk_nested_block(child, source, depth, saw_else, s);
                 saw_else = false;
             }
             "else_clause" => {
@@ -245,26 +275,42 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 walk_else_clause(child, source, depth, s);
             }
             "if_statement" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                count_boolean_operators(child, &mut s.cc);
-                count_cogc_boolean_sequences(child, &mut s.cogc);
-                check_condition_complexity(child, source, &mut s.compound_condition_count);
-                walk_children(child, source, depth, s);
+                handle_elif(child, source, depth, s);
                 saw_else = false;
             }
-            "catch_clause" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                if is_catch_body_empty(child, "block", None) {
-                    s.empty_catch_count += 1;
-                }
-                walk_block_children(child, source, depth, s);
-            }
+            "catch_clause" => handle_catch_in_children(child, source, depth, s),
             "finally_clause" => walk_block_children(child, source, depth, s),
             _ => {}
         }
     }
+}
+
+fn walk_nested_block(child: Node, source: &str, depth: u32, saw_else: bool, s: &mut WalkState) {
+    if saw_else {
+        s.track_cogc_flat();
+    }
+    let saved = s.cogc_nesting;
+    s.cogc_nesting += 1;
+    walk_body(child, source, depth, s);
+    s.cogc_nesting = saved;
+}
+
+fn handle_elif(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    count_boolean_operators(child, &mut s.cc);
+    count_cogc_boolean_sequences(child, &mut s.cogc);
+    check_condition_complexity(child, source, &mut s.compound_condition_count);
+    walk_children(child, source, depth, s);
+}
+
+fn handle_catch_in_children(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    if is_catch_body_empty(child, "block", None) {
+        s.empty_catch_count += 1;
+    }
+    walk_block_children(child, source, depth, s);
 }
 
 fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -391,10 +437,7 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
     for child in root.children(&mut cursor) {
         if child.kind() == "if_statement" {
             *conditional_count += 1;
-            let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-            if depth > *max_nesting {
-                *max_nesting = depth;
-            }
+            track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
         }
     }
 }

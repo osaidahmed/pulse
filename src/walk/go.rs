@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, measure_nesting_depth, node_text, FileMetrics, FunctionMetrics,
+    find_child_by_kind, node_text, track_global_nesting, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
 };
 
@@ -53,18 +53,22 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "function_declaration" => {
-                if let Some(metrics) = analyze_function(child, source) {
-                    functions.push(metrics);
-                }
-            }
-            "method_declaration" => {
-                if let Some(metrics) = analyze_method(child, source) {
-                    functions.push(metrics);
-                }
-            }
+            "function_declaration" => try_add_function(child, source, functions),
+            "method_declaration" => try_add_method(child, source, functions),
             _ => {}
         }
+    }
+}
+
+fn try_add_function(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    if let Some(metrics) = analyze_function(node, source) {
+        functions.push(metrics);
+    }
+}
+
+fn try_add_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    if let Some(metrics) = analyze_method(node, source) {
+        functions.push(metrics);
     }
 }
 
@@ -425,16 +429,10 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
         match child.kind() {
             "if_statement" => {
                 *conditional_count += 1;
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             "for_statement" => {
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             _ => {}
         }
@@ -445,20 +443,28 @@ fn count_declarations(root: Node) -> u32 {
     let mut count: u32 = 0;
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
-        if child.kind() != "type_declaration" {
-            continue;
-        }
-        let mut inner = child.walk();
-        for spec in child.children(&mut inner) {
-            if spec.kind() != "type_spec" {
-                continue;
-            }
-            if find_child_by_kind(spec, "struct_type").is_some()
-                || find_child_by_kind(spec, "interface_type").is_some()
-            {
-                count += 1;
-            }
+        if child.kind() == "type_declaration" {
+            count += count_type_specs(child);
         }
     }
     count
+}
+
+fn count_type_specs(type_decl: Node) -> u32 {
+    let mut count: u32 = 0;
+    let mut cursor = type_decl.walk();
+    for spec in type_decl.children(&mut cursor) {
+        if spec.kind() != "type_spec" {
+            continue;
+        }
+        if is_struct_or_interface(spec) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn is_struct_or_interface(spec: Node) -> bool {
+    find_child_by_kind(spec, "struct_type").is_some()
+        || find_child_by_kind(spec, "interface_type").is_some()
 }

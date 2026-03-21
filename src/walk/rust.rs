@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, measure_nesting_depth, node_text, FileMetrics, FunctionMetrics,
+    find_child_by_kind, node_text, track_global_nesting, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
 };
 
@@ -339,16 +339,10 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
         match child.kind() {
             "if_expression" => {
                 *conditional_count += 1;
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             "for_expression" | "while_expression" | "loop_expression" => {
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             _ => {}
         }

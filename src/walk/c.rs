@@ -2,8 +2,8 @@ use tree_sitter::{Node, Tree};
 
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, measure_nesting_depth,
-    node_text, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    count_code_lines, count_consecutive_asserts, find_child_by_kind, node_text,
+    track_global_nesting, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -113,41 +113,57 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.reset_bump();
 
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "if_statement" => {
-                s.track_if(depth);
-                s.track_cogc_branch();
-                count_boolean_operators(child, &mut s.cc);
-                count_cogc_boolean_sequences(child, &mut s.cogc);
-                check_condition_complexity(child, source, &mut s.compound_condition_count);
-                walk_children(child, source, depth + 1, s);
-            }
-            "for_statement" | "while_statement" | "do_statement" => {
-                s.track_loop(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "switch_statement" => {
-                s.track_nesting(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "case_statement" => {
-                let is_default = find_child_by_kind(child, "default").is_some()
-                    || node_text(child, source).trim_start().starts_with("default");
-                if !is_default {
-                    s.cc += 1;
-                }
-                walk_body(child, source, depth, s);
-            }
-            "conditional_expression" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-            }
-            "string_literal" | "concatenated_string" => s.track_embedded(child),
-            _ => walk_body(child, source, depth, s),
-        }
+        walk_node(child, source, depth, s);
     }
+}
+
+fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    match child.kind() {
+        "if_statement" => handle_if(child, source, depth, s),
+        "for_statement" | "while_statement" | "do_statement" => {
+            handle_loop(child, source, depth, s);
+        }
+        "switch_statement" => handle_switch(child, source, depth, s),
+        "case_statement" => handle_case(child, source, depth, s),
+        "conditional_expression" => handle_ternary(s),
+        "string_literal" | "concatenated_string" => s.track_embedded(child),
+        _ => walk_body(child, source, depth, s),
+    }
+}
+
+fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_if(depth);
+    s.track_cogc_branch();
+    count_boolean_operators(child, &mut s.cc);
+    count_cogc_boolean_sequences(child, &mut s.cogc);
+    check_condition_complexity(child, source, &mut s.compound_condition_count);
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_loop(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_loop(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_case(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let is_default = find_child_by_kind(child, "default").is_some()
+        || node_text(child, source).trim_start().starts_with("default");
+    if !is_default {
+        s.cc += 1;
+    }
+    walk_body(child, source, depth, s);
+}
+
+fn handle_ternary(s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
 }
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -298,16 +314,10 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
         match child.kind() {
             "if_statement" => {
                 *conditional_count += 1;
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             "for_statement" | "while_statement" | "do_statement" => {
-                let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-                if depth > *max_nesting {
-                    *max_nesting = depth;
-                }
+                track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
             }
             _ => {}
         }

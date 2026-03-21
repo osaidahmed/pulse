@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, is_catch_body_empty, measure_nesting_depth, node_text, FileMetrics,
+    find_child_by_kind, is_catch_body_empty, node_text, track_global_nesting, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
 };
 
@@ -165,54 +165,88 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.reset_bump();
 
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "if_statement" => {
-                s.track_if(depth);
-                s.track_cogc_branch();
-                count_boolean_operators(child, &mut s.cc);
-                count_cogc_boolean_sequences(child, &mut s.cogc);
-                check_condition_complexity(child, source, &mut s.compound_condition_count);
-                walk_children(child, source, depth + 1, s);
-            }
-            "for_statement" | "enhanced_for_statement" | "while_statement" | "do_statement" => {
-                s.track_loop(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "switch_expression" => {
-                s.track_nesting(depth);
-                s.track_cogc_branch();
-                walk_children(child, source, depth + 1, s);
-            }
-            "switch_block_statement_group" => {
-                let label_text = find_child_by_kind(child, "switch_label")
-                    .map(|l| node_text(l, source))
-                    .unwrap_or_default();
-                if !label_text.contains("default") {
-                    s.cc += 1;
-                }
-                walk_body(child, source, depth, s);
-            }
-            "catch_clause" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                if is_catch_body_empty(child, "block", None) {
-                    s.empty_catch_count += 1;
-                }
-                walk_children(child, source, depth, s);
-            }
-            "try_statement" | "try_with_resources_statement" => {
-                walk_children(child, source, depth, s);
-            }
-            "ternary_expression" | "conditional_expression" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-            }
-            "string_literal" | "text_block" => s.track_embedded(child),
-            "lambda_expression" => {}
-            _ => walk_body(child, source, depth, s),
-        }
+        walk_node(child, source, depth, s);
     }
+}
+
+fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    match child.kind() {
+        "if_statement" => handle_if(child, source, depth, s),
+        "for_statement" | "enhanced_for_statement" | "while_statement" | "do_statement" => {
+            handle_loop(child, source, depth, s);
+        }
+        "switch_expression" | "switch_block_statement_group" => {
+            handle_switch_or_case(child, source, depth, s);
+        }
+        "catch_clause" | "try_statement" | "try_with_resources_statement" => {
+            handle_exception(child, source, depth, s);
+        }
+        "ternary_expression" | "conditional_expression" => handle_ternary(s),
+        "string_literal" | "text_block" => s.track_embedded(child),
+        "lambda_expression" => {}
+        _ => walk_body(child, source, depth, s),
+    }
+}
+
+fn handle_switch_or_case(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if child.kind() == "switch_expression" {
+        handle_switch(child, source, depth, s);
+    } else {
+        handle_switch_case(child, source, depth, s);
+    }
+}
+
+fn handle_exception(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if child.kind() == "catch_clause" {
+        handle_catch(child, source, depth, s);
+    } else {
+        walk_children(child, source, depth, s);
+    }
+}
+
+fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_if(depth);
+    s.track_cogc_branch();
+    count_boolean_operators(child, &mut s.cc);
+    count_cogc_boolean_sequences(child, &mut s.cogc);
+    check_condition_complexity(child, source, &mut s.compound_condition_count);
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_loop(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_loop(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    walk_children(child, source, depth + 1, s);
+}
+
+fn handle_switch_case(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let label_text = find_child_by_kind(child, "switch_label")
+        .map(|l| node_text(l, source))
+        .unwrap_or_default();
+    if !label_text.contains("default") {
+        s.cc += 1;
+    }
+    walk_body(child, source, depth, s);
+}
+
+fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    if is_catch_body_empty(child, "block", None) {
+        s.empty_catch_count += 1;
+    }
+    walk_children(child, source, depth, s);
+}
+
+fn handle_ternary(s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
 }
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -221,39 +255,49 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     for child in node.children(&mut cursor) {
         match child.kind() {
             "block" | "switch_block" => {
-                if saw_else {
-                    s.track_cogc_flat();
-                }
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_body(child, source, depth, s);
-                s.cogc_nesting = saved;
+                walk_nested_block(child, source, depth, saw_else, s);
                 saw_else = false;
             }
             "else" => {
                 saw_else = true;
             }
             "if_statement" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                count_boolean_operators(child, &mut s.cc);
-                count_cogc_boolean_sequences(child, &mut s.cogc);
-                check_condition_complexity(child, source, &mut s.compound_condition_count);
-                walk_children(child, source, depth, s);
+                handle_elif(child, source, depth, s);
                 saw_else = false;
             }
-            "catch_clause" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                if is_catch_body_empty(child, "block", None) {
-                    s.empty_catch_count += 1;
-                }
-                walk_block_children(child, source, depth, s);
-            }
+            "catch_clause" => handle_catch_in_children(child, source, depth, s),
             "finally_clause" => walk_block_children(child, source, depth, s),
             _ => {}
         }
     }
+}
+
+fn walk_nested_block(child: Node, source: &str, depth: u32, saw_else: bool, s: &mut WalkState) {
+    if saw_else {
+        s.track_cogc_flat();
+    }
+    let saved = s.cogc_nesting;
+    s.cogc_nesting += 1;
+    walk_body(child, source, depth, s);
+    s.cogc_nesting = saved;
+}
+
+fn handle_elif(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    count_boolean_operators(child, &mut s.cc);
+    count_cogc_boolean_sequences(child, &mut s.cogc);
+    check_condition_complexity(child, source, &mut s.compound_condition_count);
+    walk_children(child, source, depth, s);
+}
+
+fn handle_catch_in_children(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    if is_catch_body_empty(child, "block", None) {
+        s.empty_catch_count += 1;
+    }
+    walk_block_children(child, source, depth, s);
 }
 
 fn walk_block_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -356,10 +400,7 @@ fn collect_global_metrics(root: Node, conditional_count: &mut u32, max_nesting: 
     for child in root.children(&mut cursor) {
         if child.kind() == "if_statement" {
             *conditional_count += 1;
-            let depth = measure_nesting_depth(child, 1, NESTING_BRANCH_KINDS);
-            if depth > *max_nesting {
-                *max_nesting = depth;
-            }
+            track_global_nesting(child, max_nesting, NESTING_BRANCH_KINDS);
         }
     }
 }
