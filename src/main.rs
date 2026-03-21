@@ -147,6 +147,9 @@ fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn run_hook(h: hook::HookInput) {
+    if std::env::var("PULSE_DISABLE").is_ok() {
+        return;
+    }
     analytics::save_session_id(&h);
     baselines::cache_baseline(&h);
     let Some((all_findings, filename)) = analyze_file(&h.file_path) else {
@@ -157,7 +160,12 @@ fn run_hook(h: hook::HookInput) {
         process::exit(0);
     }
     analytics::log_findings(&h, &findings, &filename);
-    print!("{}", output::format_compact(&findings, &filename));
+    let reason = output::format_compact(&findings, &filename);
+    let decision = serde_json::json!({
+        "decision": "block",
+        "reason": reason.trim()
+    });
+    println!("{decision}");
 }
 
 fn run_stop() {
@@ -174,7 +182,12 @@ fn run_stop() {
     }
 
     if !all_regressions.is_empty() {
-        print!("{}", output::format_stop(&all_regressions));
+        let reason = output::format_stop(&all_regressions);
+        let decision = serde_json::json!({
+            "decision": "block",
+            "reason": reason.trim()
+        });
+        println!("{decision}");
     }
 
     analytics::resolve(analyze_file);

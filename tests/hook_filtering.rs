@@ -148,7 +148,7 @@ fn missing_file_path_produces_no_output() {
 // ===========================================================================
 
 #[test]
-fn hook_output_one_line_per_finding() {
+fn hook_output_is_json_blocking_decision() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
@@ -158,17 +158,17 @@ fn hook_output_one_line_per_finding() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    for line in output.lines() {
-        assert!(
-            line.starts_with("error[pulse]:"),
-            "each line should start with error[pulse]:, got: {}",
-            line
-        );
-    }
+    let parsed: serde_json::Value = serde_json::from_str(output.trim())
+        .expect("hook output should be valid JSON");
+    assert_eq!(
+        parsed.get("decision").and_then(|v| v.as_str()),
+        Some("block"),
+        "should have decision: block"
+    );
 }
 
 #[test]
-fn hook_output_starts_with_error_pulse() {
+fn hook_output_reason_contains_findings() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.py");
     std::fs::write(&path, "def smelly(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
@@ -178,10 +178,12 @@ fn hook_output_starts_with_error_pulse() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
+    let parsed: serde_json::Value = serde_json::from_str(output.trim()).unwrap();
+    let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
     assert!(
-        output.starts_with("error[pulse]:"),
-        "should start with error[pulse]:, got: {}",
-        output
+        reason.contains("error[pulse]:"),
+        "reason should contain error[pulse]:, got: {}",
+        reason
     );
 }
 

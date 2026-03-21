@@ -823,15 +823,18 @@ fn stop_actionable_uses_regression_framing() {
         "actionable should use 'regression' framing: {}",
         out
     );
-    assert!(
-        out.starts_with("error[pulse]:"),
-        "actionable should use error severity: {}",
+    let parsed: serde_json::Value = serde_json::from_str(out.trim())
+        .unwrap_or_default();
+    assert_eq!(
+        parsed.get("decision").and_then(|v| v.as_str()),
+        Some("block"),
+        "actionable should produce blocking decision: {}",
         out
     );
 }
 
 #[test]
-fn stop_mixed_produces_both_lines() {
+fn stop_mixed_produces_blocking_decision() {
     let env = TestEnv::new();
     let path = env.file_path("mixed.py");
 
@@ -841,25 +844,22 @@ fn stop_mixed_produces_both_lines() {
     std::fs::write(&path, code.replace("MARKER = 1", "MARKER = 2")).unwrap();
     env.run_hook(&json);
 
-    // Add: lots of LOC (informational) + global conditional (actionable)
     let mut grown = std::fs::read_to_string(&path).unwrap();
     grown.push_str(&var_lines("v", 400));
     grown.push_str("if True:\n    pass\n");
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
-    let lines: Vec<&str> = out.trim().lines().collect();
-    assert_eq!(lines.len(), 2, "mixed output should have 2 lines: {}", out);
     assert!(
         out.contains("regression"),
-        "should have regression line: {}",
+        "should have regression in reason: {}",
         out
     );
-    assert!(out.contains("note"), "should have note line: {}", out);
+    assert!(out.contains("note"), "should have note in reason: {}", out);
 }
 
 #[test]
-fn stop_output_is_single_line() {
+fn stop_output_is_json_decision() {
     let env = TestEnv::new();
     let path = env.file_path("oneline.py");
 
@@ -875,13 +875,14 @@ fn stop_output_is_single_line() {
 
     let out = env.run_stop();
     if !out.is_empty() {
-        for line in out.trim().lines() {
-            assert!(
-                line.starts_with("error[pulse]:") || line.starts_with("note[pulse]:"),
-                "each line must start with error/note[pulse]: got: {}",
-                line
-            );
-        }
+        let parsed: serde_json::Value = serde_json::from_str(out.trim())
+            .expect("stop output should be valid JSON");
+        assert_eq!(
+            parsed.get("decision").and_then(|v| v.as_str()),
+            Some("block"),
+            "should be a blocking decision: {}",
+            out
+        );
     }
 }
 

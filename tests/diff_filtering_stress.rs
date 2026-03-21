@@ -87,7 +87,7 @@ fn module_findings_excluded_from_hook_output() {
 // ===========================================================================
 
 #[test]
-fn hook_output_one_error_per_line() {
+fn hook_output_is_json_block_decision() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(
         path.to_str().unwrap(),
@@ -97,13 +97,20 @@ fn hook_output_one_error_per_line() {
     if out.is_empty() {
         return;
     }
-    for line in out.trim().lines() {
-        assert!(
-            line.starts_with("error[pulse]:"),
-            "each finding should be error[pulse]: format, got: {}",
-            line
-        );
-    }
+    let parsed: serde_json::Value = serde_json::from_str(out.trim())
+        .expect("hook output should be valid JSON");
+    assert_eq!(
+        parsed.get("decision").and_then(|v| v.as_str()),
+        Some("block"),
+        "should have decision: block, got: {}",
+        out
+    );
+    let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
+    assert!(
+        reason.contains("error[pulse]:"),
+        "reason should contain error[pulse]:, got: {}",
+        reason
+    );
 }
 
 #[test]
