@@ -263,12 +263,32 @@ fn run_hook(h: hook::HookInput) {
         result.total_loc, t.file_loc_warning,
         result.sum_cc, t.file_total_cc,
     );
-    let reason = format!("{}\n{}", output::format_compact(&findings, &result.filename).trim(), budget);
+    let conflict = detect_constraint_conflict(&findings, result.fn_count, &t);
+    let reason = match conflict {
+        Some(note) => format!("{}\n{}\n{}", output::format_compact(&findings, &result.filename).trim(), note, budget),
+        None => format!("{}\n{}", output::format_compact(&findings, &result.filename).trim(), budget),
+    };
     let decision = serde_json::json!({
         "decision": "block",
         "reason": reason.trim()
     });
     println!("{decision}");
+}
+
+fn detect_constraint_conflict(
+    findings: &[Finding],
+    fn_count: u32,
+    t: &thresholds::Thresholds,
+) -> Option<&'static str> {
+    let fn_tight = fn_count + 2 >= t.file_function_count;
+    let has_cc_finding = findings.iter().any(|f| matches!(
+        f.smell,
+        smells::Smell::ComplexMethod | smells::Smell::GodMethod
+    ));
+    if fn_tight && has_cc_finding {
+        return Some("[conflict] fn count and per-function complexity are both constrained — merge only low-cc functions");
+    }
+    None
 }
 
 fn collect_module_findings(
