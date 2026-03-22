@@ -1,4 +1,5 @@
 pub mod c;
+pub mod cobol;
 pub mod counters;
 pub mod cpp;
 pub mod csharp;

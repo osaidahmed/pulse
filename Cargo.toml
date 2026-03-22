@@ -29,6 +29,7 @@ memchr = "2"
 tree-sitter-lua = "0.5.0"
 tree-sitter-r = "1.2.0"
 tree-sitter-php = "0.24.2"
+tree-sitter-cobol = { git = "https://github.com/osaidahmed/tree-sitter-cobol", rev = "99d6233" }
 
 [dev-dependencies]
 tempfile = "3"

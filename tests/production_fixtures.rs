@@ -270,3 +270,123 @@ fn lua_api_production_clean_helpers_not_flagged() {
     assert!(!has_function(&output, "searchUsers"));
     assert!(!has_function(&output, "deleteUser"));
 }
+
+// ===========================================================================
+// COBOL production_service.cob — comprehensive smell validation
+// ===========================================================================
+
+#[test]
+fn cobol_production_complex_method() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_smell(&output, "Complex Method"));
+    assert!(has_function(&output, "PROCESS-ORDER"));
+}
+
+#[test]
+fn cobol_production_complex_method_has_high_cc_and_loc() {
+    let debug = run_debug("cobol", "production_service.cob");
+    let cc = function_metric(&debug, "PROCESS-ORDER", "cc").unwrap_or(0);
+    let loc = function_metric(&debug, "PROCESS-ORDER", "loc").unwrap_or(0);
+    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(loc >= 40, "loc should be >= 40, got: {}", loc);
+}
+
+#[test]
+fn cobol_production_deep_nesting() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_smell(&output, "Deep Nested"));
+    assert!(has_function(&output, "PROCESS-ORDER"));
+}
+
+#[test]
+fn cobol_production_nested_chunks() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_smell(&output, "Nested Conditional Chunks"));
+}
+
+#[test]
+fn cobol_production_excessive_declarations() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_smell(&output, "Excessive Declarations"));
+}
+
+#[test]
+fn cobol_production_exact_duplication() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_function(&output, "FORMAT-USER-REPORT"));
+    assert!(has_function(&output, "FORMAT-ADMIN-REPORT"));
+}
+
+#[test]
+fn cobol_production_report_duplication() {
+    let output = run_check("cobol", "production_service.cob");
+    assert!(has_smell(&output, "Code Duplication"));
+}
+
+#[test]
+fn cobol_production_no_false_excess_args() {
+    // COBOL paragraphs have no parameters — Excess Arguments should never trigger
+    let output = run_check("cobol", "production_service.cob");
+    assert!(!has_smell(&output, "Excess Arguments"));
+}
+
+#[test]
+fn cobol_production_no_false_constructor_injection() {
+    // COBOL has no constructors
+    let output = run_check("cobol", "production_service.cob");
+    assert!(!has_smell(&output, "Constructor Over-Injection"));
+}
+
+#[test]
+fn cobol_production_clean_functions_not_flagged_individually() {
+    let output = run_check("cobol", "production_service.cob");
+    // GET-ORDER has no individual smell
+    let function_lines: Vec<&str> = output
+        .lines()
+        .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("GET-ORDER"))
+        .collect();
+    assert!(
+        function_lines.is_empty(),
+        "GET-ORDER should have no individual smells, got: {:?}",
+        function_lines
+    );
+}
+
+// ===========================================================================
+// COBOL production_api_service.cob — comprehensive smell validation
+// ===========================================================================
+
+#[test]
+fn cobol_api_production_code_duplication() {
+    let output = run_check("cobol", "production_api_service.cob");
+    assert!(has_smell(&output, "Code Duplication"));
+}
+
+#[test]
+fn cobol_api_production_log_duplication() {
+    let output = run_check("cobol", "production_api_service.cob");
+    assert!(has_function(&output, "LOG-ERROR"));
+    assert!(has_function(&output, "LOG-INFO"));
+}
+
+#[test]
+fn cobol_api_production_handler_duplication() {
+    let output = run_check("cobol", "production_api_service.cob");
+    assert!(has_function(&output, "HANDLE-POST"));
+    assert!(has_function(&output, "HANDLE-PUT"));
+}
+
+#[test]
+fn cobol_api_production_evaluate_metrics() {
+    let debug = run_debug("cobol", "production_api_service.cob");
+    let cc = function_metric(&debug, "HANDLE-REQUEST", "cc").unwrap_or(0);
+    assert!(cc >= 5, "HANDLE-REQUEST should have high cc from EVALUATE, got: {}", cc);
+    let arms = function_metric(&debug, "HANDLE-REQUEST", "str_match").unwrap_or(0);
+    assert!(arms >= 4, "HANDLE-REQUEST should have WHEN arms, got: {}", arms);
+}
+
+#[test]
+fn cobol_api_production_clean_helpers_not_flagged() {
+    let output = run_check("cobol", "production_api_service.cob");
+    assert!(!has_function(&output, "SEND-CONFIRM") || !output.contains("SEND-CONFIRM"));
+}

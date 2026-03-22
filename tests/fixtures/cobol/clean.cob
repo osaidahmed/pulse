@@ -1,0 +1,15 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CLEAN-PROG.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-NAME PIC X(30).
+       01 WS-COUNT PIC 9(3).
+       PROCEDURE DIVISION.
+       INIT-PARA.
+           MOVE "Hello" TO WS-NAME.
+           MOVE 0 TO WS-COUNT.
+       DISPLAY-PARA.
+           DISPLAY WS-NAME.
+           DISPLAY WS-COUNT.
+       FINISH-PARA.
+           STOP RUN.
