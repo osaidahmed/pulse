@@ -19,12 +19,13 @@ enum Command {
     Check(String),
     CheckAll,
     Debug(String),
-    Budget(String),
+    Budget(Option<String>),
     Stop,
     Cleanup,
 }
 
 const CHECKPOINT_INTERVAL: u32 = 5;
+const CHECKPOINT_INTERVAL_NEW: u32 = 2;
 
 const SKIP_DIRS: &[&str] = &[
     "node_modules",
@@ -39,8 +40,8 @@ fn parse_args() -> Command {
     let cmd = args.get(1).map_or("", std::string::String::as_str);
     let second = args.get(2).map(String::as_str);
 
-    if matches!(cmd, "-a" | "--all") || (cmd == "check" && second.is_some_and(|a| a == "-a" || a == "--all")) {
-        return Command::CheckAll;
+    if let Some(early) = parse_early_command(cmd, second) {
+        return early;
     }
 
     match cmd {
@@ -55,9 +56,19 @@ fn parse_args() -> Command {
     }
 }
 
+fn parse_early_command(cmd: &str, second: Option<&str>) -> Option<Command> {
+    if matches!(cmd, "-a" | "--all") || (cmd == "check" && second.is_some_and(|a| a == "-a" || a == "--all")) {
+        return Some(Command::CheckAll);
+    }
+    if cmd == "budget" && second.is_some_and(|a| a == "--new") {
+        return Some(Command::Budget(None));
+    }
+    None
+}
+
 fn file_command(cmd: &str, path: String) -> Command {
     if cmd == "debug" { return Command::Debug(path); }
-    if cmd == "budget" { return Command::Budget(path); }
+    if cmd == "budget" { return Command::Budget(Some(path)); }
     Command::Check(path)
 }
 
@@ -66,7 +77,7 @@ fn main() {
         Command::Debug(p) => run_debug(&p),
         Command::Check(p) => run_check(&p),
         Command::CheckAll => run_check_all(),
-        Command::Budget(p) => run_budget(&p),
+        Command::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         Command::Hook(h) => run_hook(h),
         Command::Stop => run_stop(),
         Command::Cleanup => run_cleanup(),
@@ -84,10 +95,11 @@ fn run_debug(file_path: &str) {
     );
     for f in &functions {
         eprintln!(
-            "  {} (L{}-{}): loc={} cc={} cogc={} nesting={} bumps={} args={} conditions={} embedded={} asserts={} primitives={}/{} fields={:?}",
+            "  {} (L{}-{}): loc={} cc={} cogc={} nesting={} bumps={} args={} conditions={} embedded={} asserts={} primitives={}/{} short_vars={} str_match={} fields={:?}",
             f.name, f.start_line, f.end_line, f.loc, f.cc, f.cognitive_complexity, f.max_nesting, f.bump_count,
             f.arg_count, f.compound_condition_count, f.max_embedded_block_loc,
-            f.consecutive_asserts, f.primitive_type_count, f.typed_param_count, f.field_accesses
+            f.consecutive_asserts, f.primitive_type_count, f.typed_param_count,
+            f.short_var_count, f.string_match_arms, f.field_accesses
         );
     }
 }
@@ -137,6 +149,15 @@ fn run_budget(file_path: &str) {
     eprintln!("  LOC:       {}/{} (room: {loc_room})", module.total_loc, t.file_loc_warning);
     eprintln!("  total cc:  {}/{} (room: {cc_room})", module.sum_cc, t.file_total_cc);
     eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
+}
+
+fn run_budget_new() {
+    let t = thresholds::Thresholds::default();
+    eprintln!("budget: new file thresholds");
+    eprintln!("  max functions: {}", t.file_function_count);
+    eprintln!("  max LOC:       {}", t.file_loc_warning);
+    eprintln!("  max total cc:  {}", t.file_total_cc);
+    eprintln!("  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
 }
 
 fn run_check_all() {
@@ -193,7 +214,8 @@ fn run_hook(h: hook::HookInput) {
         .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
         .collect();
 
-    if edit_count.is_multiple_of(CHECKPOINT_INTERVAL) && !is_test_file(&h.file_path) {
+    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
+    if edit_count.is_multiple_of(interval) && !is_test_file(&h.file_path) {
         if let Some((_, regressions)) = detect_regressions(&h.file_path) {
             findings.extend(regressions);
         }
@@ -229,7 +251,7 @@ fn run_stop() {
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
-        if is_test_file(file_path) { continue; }
+        if is_test_file(file_path) || baselines::is_fixture_file(file_path) { continue; }
         if let Some((filename, regressions)) = detect_regressions(file_path) {
             all_regressions.push((filename, regressions));
         }

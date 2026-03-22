@@ -1,5 +1,6 @@
 use tree_sitter::{Node, Tree};
 
+use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
@@ -52,6 +53,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         global_conditional_count,
         global_max_nesting,
         declaration_count,
+        struct_fields: Vec::new(),
     };
 
     (functions, module)
@@ -115,6 +117,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         class_name: None,
+        short_var_count: count_short_variables(body, source, &["declaration"]),
+        string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"]),
     })
 }
 

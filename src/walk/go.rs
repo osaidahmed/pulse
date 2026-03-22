@@ -8,6 +8,7 @@ use super::{
 };
 const COND_KINDS: &[&str] = &["binary_expression", "parenthesized_expression"];
 
+use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -55,6 +56,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         global_conditional_count,
         global_max_nesting,
         declaration_count,
+        struct_fields: Vec::new(),
     };
 
     (functions, module)
@@ -178,6 +180,8 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         empty_catch_count: 0,
         field_accesses: info.field_accesses,
         class_name: info.class_name,
+        short_var_count: count_short_variables(body, source, &["short_var_declaration", "var_declaration"]),
+        string_match_arms: count_string_match_arms(body, "expression_switch_statement", "expression_case", &["interpreted_string_literal", "raw_string_literal"]),
     })
 }
 

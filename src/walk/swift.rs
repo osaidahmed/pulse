@@ -1,5 +1,6 @@
 use tree_sitter::{Node, Tree};
 
+use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{
     self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig,
 };
@@ -48,6 +49,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let module = ModuleMetrics {
         total_loc, total_functions, sum_cc,
         global_conditional_count, global_max_nesting, declaration_count,
+        struct_fields: Vec::new(),
     };
 
     (functions, module)
@@ -157,6 +159,8 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
         primitive_type_count, typed_param_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(), class_name: None,
+        short_var_count: count_short_variables(body, source, &["property_declaration"]),
+        string_match_arms: count_string_match_arms(body, "switch_statement", "switch_entry", &["line_string_literal"]),
     })
 }
 

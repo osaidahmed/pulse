@@ -1405,24 +1405,8 @@ fn checkpoint_fires_at_5th_edit() {
     }
     std::fs::write(&path, &code).unwrap();
 
-    // Edits 2-4: small changes, no checkpoint
-    for i in 2..=4 {
-        let old = format!("return {}", i - 2);
-        let new = format!("return {}", i + 100);
-        let json = env.edit_hook_json(&path, &old, &new);
-        code = code.replacen(&old, &new, 1);
-        std::fs::write(&path, &code).unwrap();
-        let out = env.run_hook(&json);
-        assert!(
-            !out.contains("too many functions"),
-            "edit {} should not trigger checkpoint: {}",
-            i,
-            out
-        );
-    }
-
-    // Edit 5: checkpoint fires
-    let old = "return 104";
+    // Edit 2: checkpoint fires (new file interval = 2)
+    let old = "return 0";
     let new = "return 999";
     let json = env.edit_hook_json(&path, old, new);
     code = code.replacen(old, new, 1);
@@ -1430,34 +1414,41 @@ fn checkpoint_fires_at_5th_edit() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("too many functions"),
-        "5th edit should trigger checkpoint: {}",
+        "2nd edit on new file should trigger checkpoint: {}",
         out
     );
 }
 
 #[test]
-fn checkpoint_silent_before_5th_edit() {
+fn checkpoint_silent_between_intervals() {
     let env = TestEnv::new();
     let path = env.file_path("small.py");
 
     let mut code = simple_functions(22);
     std::fs::write(&path, &code).unwrap();
     let json = env.write_hook_json(&path);
-    env.run_hook(&json);
+    env.run_hook(&json); // edit 1
 
-    for i in 1..4 {
-        let old = format!("return {}", i);
-        let new = format!("return {}", i + 100);
-        let json = env.edit_hook_json(&path, &old, &new);
-        code = code.replacen(&old, &new, 1);
-        std::fs::write(&path, &code).unwrap();
-        let out = env.run_hook(&json);
-        assert!(
-            !out.contains("too many functions"),
-            "edit {} should not trigger module checkpoint",
-            i + 1
-        );
-    }
+    // Edit 2: fires checkpoint (new file interval=2), consume it
+    let old2 = "return 1";
+    let new2 = "return 101";
+    let json2 = env.edit_hook_json(&path, old2, new2);
+    code = code.replacen(old2, new2, 1);
+    std::fs::write(&path, &code).unwrap();
+    env.run_hook(&json2); // edit 2 — checkpoint fires
+
+    // Edit 3: between checkpoints, should be silent for module findings
+    let old3 = "return 2";
+    let new3 = "return 102";
+    let json3 = env.edit_hook_json(&path, old3, new3);
+    code = code.replacen(old3, new3, 1);
+    std::fs::write(&path, &code).unwrap();
+    let out = env.run_hook(&json3);
+    assert!(
+        !out.contains("too many functions"),
+        "edit 3 should not trigger module checkpoint: {}",
+        out
+    );
 }
 
 #[test]

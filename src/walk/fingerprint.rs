@@ -11,7 +11,8 @@ pub fn compute_skeleton_hash(body: Node) -> u64 {
         kinds.push(child.kind());
     }
     kinds.sort_unstable();
-    kinds.dedup();
+    // No dedup — multiset hash preserves kind COUNTS, not just vocabulary.
+    // Two functions must use each statement type the same number of times to match.
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     for kind in &kinds {
         kind.hash(&mut hasher);

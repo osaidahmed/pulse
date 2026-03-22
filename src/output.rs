@@ -58,7 +58,7 @@ fn format_stop_finding(out: &mut String, f: &Finding, filename: &str) {
         f.smell.to_lowercase(),
         label,
         f.detail,
-        action_for(f.smell)
+        action_for(f.smell, &f.detail)
     );
 }
 
@@ -82,7 +82,7 @@ pub fn format_compact(findings: &[Finding], filename: &str) -> String {
 }
 
 fn format_compact_line(f: &Finding, filename: &str) -> String {
-    let action = action_for(f.smell);
+    let action = action_for(f.smell, &f.detail);
     let smell = f.smell.to_lowercase();
     match &f.location {
         Location::Function {
@@ -126,9 +126,15 @@ const ACTIONS: &[(&str, &str)] = &[
     ("Duplicated Assertion Blocks", "extract common assertions into a helper"),
     ("Low Cohesion", "split class into smaller classes with focused responsibilities"),
     ("Overall Function Size", "break large functions into smaller units"),
+    ("Large Struct", "group related fields into smaller structs or use composition"),
+    ("Short Variable Names", "use descriptive names that convey purpose"),
+    ("Stringly-Typed Switch", "replace string matching with an enum for type safety"),
 ];
 
-fn action_for(smell: &str) -> &'static str {
+fn action_for(smell: &str, detail: &str) -> &'static str {
+    if smell == "Code Duplication" && detail.contains("similar structure") {
+        return "restructure to reduce structural similarity";
+    }
     ACTIONS
         .iter()
         .find(|(s, _)| *s == smell)

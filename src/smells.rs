@@ -57,6 +57,8 @@ fn detect_function_smells(
     detect_structural_smells(f, t, findings);
     detect_argument_smells(f, t, findings);
     detect_embedded_smells(f, t, findings);
+    detect_short_variable_names(f, t, findings);
+    detect_stringly_typed(f, t, findings);
 }
 
 fn detect_complexity_smells(
@@ -264,4 +266,26 @@ fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec
             ),
         }
     }));
+}
+
+fn detect_short_variable_names(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
+    let dominated = f.loc < t.short_var_min_fn_loc || f.short_var_count <= t.short_var_max_count;
+    if dominated { return; }
+    findings.push(Finding {
+        smell: "Short Variable Names",
+        location: func_loc(f),
+        detail: format!("{} single-char variables in {} LOC function (threshold: {})",
+            f.short_var_count, f.loc, t.short_var_max_count),
+    });
+}
+
+fn detect_stringly_typed(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
+    (f.string_match_arms > t.max_string_match_arms).then(|| {
+        findings.push(Finding {
+            smell: "Stringly-Typed Switch",
+            location: func_loc(f),
+            detail: format!("match/switch on string with {} arms (threshold: {})",
+                f.string_match_arms, t.max_string_match_arms),
+        });
+    });
 }

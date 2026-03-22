@@ -7,6 +7,7 @@ use super::{
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
 };
 
+use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, GlobalMetricsConfig};
 
 const COMMENT_PREFIXES: &[&str] = &["#"];
@@ -47,6 +48,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         global_conditional_count,
         global_max_nesting,
         declaration_count,
+        struct_fields: Vec::new(),
     };
 
     (functions, module)
@@ -153,6 +155,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         class_name: None,
+        short_var_count: count_short_variables(body, source, &["assignment", "augmented_assignment"]),
+        string_match_arms: count_string_match_arms(body, "match_statement", "case_clause", &["string"]),
     })
 }
 

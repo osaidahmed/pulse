@@ -1,5 +1,6 @@
 use tree_sitter::{Node, Tree};
 
+use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -44,7 +45,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
 
     let total_functions = functions.len() as u32;
     let sum_cc: u32 = functions.iter().map(|f| f.cc).sum();
-    let declaration_count = count_declarations(root);
+    let (declaration_count, struct_fields) = count_declarations_and_fields(root, source);
 
     let module = ModuleMetrics {
         total_loc,
@@ -53,6 +54,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         global_conditional_count,
         global_max_nesting,
         declaration_count,
+        struct_fields,
     };
 
     (functions, module)
@@ -145,6 +147,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         class_name: None,
+        short_var_count: count_short_variables(body, source, &["let_declaration"]),
+        string_match_arms: count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"]),
     })
 }
 
@@ -283,16 +287,25 @@ fn has_self_param(func_node: Node) -> bool {
     result
 }
 
-fn count_declarations(root: Node) -> u32 {
-    let mut count: u32 = 0;
+fn count_declarations_and_fields(root: Node, source: &str) -> (u32, Vec<(String, u32)>) {
+    let mut decl_count: u32 = 0;
+    let mut struct_fields = Vec::new();
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
         match child.kind() {
-            "struct_item" | "enum_item" | "trait_item" | "type_item" => {
-                count += 1;
+            "struct_item" => {
+                decl_count += 1;
+                let name = find_child_by_kind(child, "type_identifier")
+                    .map_or_else(|| "<anon>".into(), |n| node_text(n, source).to_string());
+                let fields = find_child_by_kind(child, "field_declaration_list").map_or(0, |fdl| {
+                    let mut c = fdl.walk();
+                    fdl.children(&mut c).filter(|n| n.kind() == "field_declaration").count() as u32
+                });
+                if fields > 0 { struct_fields.push((name, fields)); }
             }
+            "enum_item" | "trait_item" | "type_item" => { decl_count += 1; }
             _ => {}
         }
     }
-    count
+    (decl_count, struct_fields)
 }

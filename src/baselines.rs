@@ -13,12 +13,18 @@ pub fn baseline_dir() -> PathBuf {
     PathBuf::from("/tmp/pulse-baselines")
 }
 
-pub fn cache_baseline(hook: &HookInput) {
-    let bp = baseline_path(&hook.file_path);
-    if bp.exists() {
-        return;
-    }
+pub fn is_fixture_file(path: &str) -> bool {
+    path.replace('\\', "/").contains("/fixtures/")
+}
 
+pub fn cache_baseline(hook: &HookInput) {
+    let dominated = is_fixture_file(&hook.file_path) || baseline_path(&hook.file_path).exists();
+    if dominated { return; }
+    create_baseline_files(hook);
+}
+
+fn create_baseline_files(hook: &HookInput) {
+    let bp = baseline_path(&hook.file_path);
     let (counts, func_findings) = compute_baseline(hook);
     write_baseline(&bp, &counts);
     write_function_baseline(&hook.file_path, &func_findings);
@@ -59,19 +65,15 @@ pub fn count_module_findings(findings: &[Finding]) -> HashMap<String, usize> {
 }
 
 pub fn append_manifest(file_path: &str) {
-    let manifest = baseline_dir().join("manifest.txt");
-    let existing = std::fs::read_to_string(&manifest).unwrap_or_default();
-    if existing.lines().any(|l| l == file_path) {
-        return;
-    }
-    let _ = std::fs::create_dir_all(baseline_dir());
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&manifest)
-    {
-        let _ = writeln!(f, "{file_path}");
-    }
+    let dir = baseline_dir();
+    let manifest = dir.join("manifest.txt");
+    let already = std::fs::read_to_string(&manifest).unwrap_or_default();
+    already.lines().all(|l| l != file_path).then(|| {
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::OpenOptions::new()
+            .create(true).append(true).open(&manifest)
+            .map(|mut f| writeln!(f, "{file_path}"));
+    });
 }
 
 fn hash_path(file_path: &str) -> u64 {

@@ -1,15 +1,18 @@
 pub mod c;
+pub mod counters;
 pub mod cpp;
 pub mod csharp;
 pub mod fingerprint;
 pub mod go;
 pub mod java;
 pub mod javascript;
+pub mod objc;
 pub mod python;
 pub mod ruby;
 pub mod rust;
 pub mod shared;
 pub mod swift;
+pub mod tcl;
 pub mod typescript;
 pub mod zig;
 
@@ -115,6 +118,8 @@ pub struct FunctionMetrics {
     pub empty_catch_count: u32,
     pub field_accesses: Vec<String>,
     pub class_name: Option<String>,
+    pub short_var_count: u32,
+    pub string_match_arms: u32,
 }
 
 #[derive(Debug)]
@@ -125,6 +130,7 @@ pub struct ModuleMetrics {
     pub global_conditional_count: u32,
     pub global_max_nesting: u32,
     pub declaration_count: u32,
+    pub struct_fields: Vec<(String, u32)>,
 }
 
 pub type FileMetrics = (Vec<FunctionMetrics>, ModuleMetrics);
@@ -175,7 +181,7 @@ pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) ->
     for child in node.children(&mut cursor) {
         let child_depth = if branch_kinds.contains(&child.kind()) {
             measure_nesting_depth(child, current + 1, branch_kinds)
-        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do") {
+        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do" | "braced_word") {
             measure_nesting_depth(child, current, branch_kinds)
         } else {
             current

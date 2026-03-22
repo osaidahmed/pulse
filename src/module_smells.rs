@@ -13,6 +13,19 @@ pub fn detect_module_smells(
 ) {
     detect_size_smells(m, t, has_god_method, findings);
     detect_global_scope_smells(m, findings);
+    detect_large_structs(m, t, findings);
+}
+
+fn detect_large_structs(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
+    for (name, count) in &m.struct_fields {
+        if *count > t.max_struct_fields {
+            findings.push(Finding {
+                smell: "Large Struct",
+                location: Location::Module,
+                detail: format!("{name}: {count} fields (threshold: {})", t.max_struct_fields),
+            });
+        }
+    }
 }
 
 fn detect_size_smells(
@@ -119,13 +132,20 @@ fn detect_exact_clones(
 }
 
 fn detect_similar_clones(
-    eligible: &[usize],
+    _eligible: &[usize],
     functions: &[FunctionMetrics],
     t: &Thresholds,
     findings: &mut Vec<Finding>,
 ) {
+    // Skeleton matches use a higher LOC floor than exact matches
+    let skeleton_eligible: Vec<usize> = functions
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| f.loc >= t.skeleton_duplication_min_loc)
+        .map(|(i, _)| i)
+        .collect();
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
-    for &i in eligible {
+    for &i in &skeleton_eligible {
         groups.entry(functions[i].skeleton_hash).or_default().push(i);
     }
 

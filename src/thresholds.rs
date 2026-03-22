@@ -21,6 +21,7 @@ pub struct Thresholds {
 
     // Duplication
     pub duplication_min_loc: u32,
+    pub skeleton_duplication_min_loc: u32,
     pub duplication_min_group: u32,
 
     // Declarations
@@ -39,6 +40,16 @@ pub struct Thresholds {
 
     // LCOM4
     pub lcom4_warning: u32,
+
+    // Large struct
+    pub max_struct_fields: u32,
+
+    // Short variable names
+    pub short_var_min_fn_loc: u32,
+    pub short_var_max_count: u32,
+
+    // Stringly-typed switch
+    pub max_string_match_arms: u32,
 }
 
 impl Default for Thresholds {
@@ -61,6 +72,7 @@ impl Default for Thresholds {
             file_function_count: 20,
             file_total_cc: 100,
             duplication_min_loc: 6,
+            skeleton_duplication_min_loc: 20,
             duplication_min_group: 2,
             max_declarations: 20,
             large_fn_loc: 40,
@@ -69,6 +81,10 @@ impl Default for Thresholds {
             primitive_ratio_threshold: 0.7,
             primitive_min_typed_params: 4,
             lcom4_warning: 3,
+            max_struct_fields: 12,
+            short_var_min_fn_loc: 15,
+            short_var_max_count: 3,
+            max_string_match_arms: 5,
         }
     }
 }

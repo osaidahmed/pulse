@@ -1,0 +1,311 @@
+use tree_sitter::{Node, Tree};
+
+use super::counters::{count_short_variables, count_string_match_arms};
+use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
+use super::{
+    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
+    FunctionMetrics, ModuleMetrics, WalkState,
+};
+
+const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
+const SELF_NAMES: &[&str] = &["self"];
+const PRIMITIVE_TYPES: &[&str] = &[
+    "int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "bool",
+    "size_t", "ssize_t", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t",
+    "uint32_t", "uint64_t", "BOOL", "NSInteger", "NSUInteger", "CGFloat", "NSTimeInterval",
+];
+const NESTING_BRANCH_KINDS: &[&str] = &[
+    "if_statement",
+    "for_statement",
+    "while_statement",
+    "do_statement",
+    "switch_statement",
+];
+const BOOL_OPS: &[&str] = &["&&", "||"];
+const BOOL_STOPS: &[&str] = &["compound_statement", "function_definition", "method_definition"];
+const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
+    cond: &["if_statement"],
+    loops: &["for_statement", "while_statement", "do_statement"],
+    branches: NESTING_BRANCH_KINDS,
+    recurse: &[],
+};
+const COND_KINDS: &[&str] = &["parenthesized_expression"];
+
+pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
+    let root = tree.root_node();
+    let total_loc = count_code_lines(source, COMMENT_PREFIXES);
+    let mut functions = Vec::new();
+    let mut gcc: u32 = 0;
+    let mut gmn: u32 = 0;
+
+    collect_functions(root, source, &mut functions);
+    shared::collect_global_metrics(root, &mut gcc, &mut gmn, &GLOBAL_CFG);
+
+    let module = ModuleMetrics {
+        total_loc,
+        total_functions: functions.len() as u32,
+        sum_cc: functions.iter().map(|f| f.cc).sum(),
+        global_conditional_count: gcc,
+        global_max_nesting: gmn,
+        declaration_count: count_declarations(root),
+        struct_fields: Vec::new(),
+    };
+    (functions, module)
+}
+
+// ─── Function collection ────────────────────────────────────────────────
+
+fn collect_functions(node: Node, source: &str, out: &mut Vec<FunctionMetrics>) {
+    let mut cursor = node.walk();
+    node.children(&mut cursor).for_each(|child| {
+        if child.kind() == "class_implementation" {
+            collect_class_methods(child, source, out);
+        } else if child.kind() == "function_definition" {
+            out.extend(analyze_c_function(child, source));
+        }
+    });
+}
+
+fn collect_class_methods(class_node: Node, source: &str, out: &mut Vec<FunctionMetrics>) {
+    let class_name = find_child_by_kind(class_node, "identifier")
+        .map(|n| node_text(n, source).to_string())
+        .unwrap_or_default();
+
+    let mut cursor = class_node.walk();
+    for child in class_node.children(&mut cursor) {
+        if child.kind() != "implementation_definition" {
+            continue;
+        }
+        let Some(method) = find_child_by_kind(child, "method_definition") else {
+            continue;
+        };
+        let name = find_child_by_kind(method, "identifier")
+            .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
+        let params = count_method_parameters(method, source);
+        let Some(mut m) = build_metrics(method, source, name.clone(), params) else {
+            continue;
+        };
+        m.name = format!("{class_name}.{name}");
+        m.class_name = Some(class_name.clone());
+        m.is_constructor = name == "init" || name.starts_with("initW");
+        collect_field_accesses_for(method, source, SELF_NAMES, &mut m.field_accesses);
+        out.push(m);
+    }
+}
+
+fn analyze_c_function(node: Node, source: &str) -> Option<FunctionMetrics> {
+    let name = find_c_declarator(node)
+        .and_then(|d| find_child_by_kind(d, "identifier"))
+        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
+    build_metrics(node, source, name, count_c_parameters(node, source))
+}
+
+struct ParamCounts {
+    total: u32,
+    primitive: u32,
+    typed: u32,
+}
+
+fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Option<FunctionMetrics> {
+    let start_line = node.start_position().row as u32 + 1;
+    let end_line = node.end_position().row as u32 + 1;
+    let body = find_child_by_kind(node, "compound_statement")?;
+    let mut s = WalkState::new();
+    walk_body(body, source, 0, &mut s);
+
+    Some(FunctionMetrics {
+        name,
+        start_line,
+        end_line,
+        loc: end_line.saturating_sub(start_line) + 1,
+        cc: s.cc,
+        cognitive_complexity: s.cogc,
+        max_nesting: s.max_nesting,
+        bump_count: s.bump_count,
+        arg_count: p.total,
+        compound_condition_count: s.compound_condition_count,
+        is_constructor: false,
+        max_embedded_block_loc: s.max_embedded_block_loc,
+        structural_hash: compute_structural_fingerprint(body),
+        skeleton_hash: compute_skeleton_hash(body),
+        consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
+        assert_hash: compute_assert_fingerprint(body, "expression_statement"),
+        primitive_type_count: p.primitive,
+        typed_param_count: p.typed,
+        empty_catch_count: s.empty_catch_count,
+        field_accesses: Vec::new(),
+        class_name: None,
+        short_var_count: count_short_variables(body, source, &["declaration"]),
+        string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"]),
+    })
+}
+
+// ─── Parameter extraction ───────────────────────────────────────────────
+
+fn find_c_declarator(node: Node) -> Option<Node> {
+    find_child_by_kind(node, "function_declarator").or_else(|| {
+        find_child_by_kind(node, "pointer_declarator")
+            .and_then(|p| find_child_by_kind(p, "function_declarator"))
+    })
+}
+
+fn count_method_parameters(node: Node, source: &str) -> ParamCounts {
+    let mut cursor = node.walk();
+    let (total, primitive, typed) = node
+        .children(&mut cursor)
+        .filter(|c| c.kind() == "method_parameter")
+        .fold((0, 0, 0), |(cnt, prim, ty), child| {
+            let is_prim = find_child_by_kind(child, "method_type")
+                .is_some_and(|mt| is_primitive_type(mt, source));
+            (cnt + 1, prim + u32::from(is_prim), ty + 1)
+        });
+    ParamCounts { total, primitive, typed }
+}
+
+fn count_c_parameters(func_node: Node, source: &str) -> ParamCounts {
+    let Some(params) = find_c_declarator(func_node)
+        .and_then(|d| find_child_by_kind(d, "parameter_list"))
+    else {
+        return ParamCounts { total: 0, primitive: 0, typed: 0 };
+    };
+    let mut cursor = params.walk();
+    let (count, prim, typed) = params.children(&mut cursor).fold(
+        (0u32, 0u32, 0u32),
+        |(cnt, pr, ty), child| match child.kind() {
+            "parameter_declaration" => {
+                (cnt + 1, pr + u32::from(is_primitive_type(child, source)), ty + 1)
+            }
+            "variadic_parameter" => (cnt + 1, pr, ty),
+            _ => (cnt, pr, ty),
+        },
+    );
+    if count == 1 {
+        let text = node_text(params, source);
+        if text.contains("void") && !text.contains("void *") && !text.contains("void*") {
+            return ParamCounts { total: 0, primitive: 0, typed: 0 };
+        }
+    }
+    ParamCounts { total: count, primitive: prim, typed }
+}
+
+fn is_primitive_type(node: Node, source: &str) -> bool {
+    find_child_by_kind(node, "primitive_type").is_some()
+        || find_child_by_kind(node, "sized_type_specifier").is_some()
+        || find_child_by_kind(node, "type_identifier")
+            .is_some_and(|ti| PRIMITIVE_TYPES.contains(&node_text(ti, source)))
+        || find_child_by_kind(node, "typedefed_specifier")
+            .is_some_and(|ts| PRIMITIVE_TYPES.contains(&node_text(ts, source)))
+        || find_child_by_kind(node, "type_name")
+            .is_some_and(|tn| is_primitive_type(tn, source))
+}
+
+// ─── Body walking ───────────────────────────────────────────────────────
+
+fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let mut cursor = node.walk();
+    s.reset_bump();
+    for child in node.children(&mut cursor) {
+        dispatch(child, source, depth, s);
+    }
+}
+
+fn dispatch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if dispatch_control(child, source, depth, s) {
+        return;
+    }
+    match child.kind() {
+        "string_literal" | "concatenated_string" => {
+            track_embedded_block(&mut s.max_embedded_block_loc, child);
+        }
+        _ => walk_body(child, source, depth, s),
+    }
+}
+
+fn dispatch_control(node: Node, source: &str, depth: u32, s: &mut WalkState) -> bool {
+    let kind = node.kind();
+    match kind {
+        "if_statement" => handle_if(node, source, depth, s),
+        "for_statement" | "while_statement" | "do_statement" | "switch_statement" => {
+            if kind == "switch_statement" { s.track_nesting(depth); } else { s.track_loop(depth); }
+            s.track_cogc_branch();
+            descend(node, source, depth + 1, s);
+        }
+        "case_statement" => handle_case(node, source, depth, s),
+        "try_statement" => descend(node, source, depth, s),
+        "catch_clause" => handle_catch(node, source, depth, s),
+        "conditional_expression" => { s.cc += 1; s.track_cogc_branch(); }
+        _ => return false,
+    }
+    true
+}
+
+fn track_if_condition(node: Node, source: &str, s: &mut WalkState) {
+    count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
+    count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
+    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
+}
+
+fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_if(depth);
+    s.track_cogc_branch();
+    track_if_condition(node, source, s);
+    descend(node, source, depth + 1, s);
+}
+
+fn handle_case(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if !node_text(node, source).trim_start().starts_with("default") {
+        s.cc += 1;
+    }
+    walk_body(node, source, depth, s);
+}
+
+fn handle_catch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
+    if is_catch_body_empty(node, "compound_statement", None) {
+        s.empty_catch_count += 1;
+    }
+    descend(node, source, depth, s);
+}
+
+fn walk_compound(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let saved = s.cogc_nesting;
+    s.cogc_nesting += 1;
+    walk_body(node, source, depth, s);
+    s.cogc_nesting = saved;
+}
+
+fn descend(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        let kind = child.kind();
+        if kind == "compound_statement" {
+            walk_compound(child, source, depth, s);
+        } else if kind == "else_clause" {
+            descend_else(child, source, depth, s);
+        } else if kind == "catch_clause" {
+            handle_catch(child, source, depth, s);
+        }
+    }
+}
+
+fn descend_else(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if let Some(inner_if) = find_child_by_kind(node, "if_statement") {
+        s.cc += 1;
+        s.track_cogc_branch();
+        track_if_condition(inner_if, source, s);
+        descend(inner_if, source, depth, s);
+    } else if let Some(body) = find_child_by_kind(node, "compound_statement") {
+        s.track_cogc_flat();
+        walk_compound(body, source, depth, s);
+    }
+}
+
+fn count_declarations(root: Node) -> u32 {
+    let mut cursor = root.walk();
+    root.children(&mut cursor)
+        .filter(|c| matches!(c.kind(), "class_implementation" | "protocol_declaration"))
+        .count() as u32
+}
