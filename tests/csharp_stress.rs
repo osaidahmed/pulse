@@ -836,7 +836,7 @@ fn primitive_obsession_untyped_not_counted() {
 // ===========================================================================
 
 #[test]
-fn lcom4_connected_class_still_flagged() {
+fn lcom4_connected_class_not_flagged() {
     let out = check(concat!(
         "public class C {\n",
         "    private int data;\n",
@@ -845,7 +845,7 @@ fn lcom4_connected_class_still_flagged() {
         "    public void Clear() { this.data = 0; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "C# field access not yet tracked, so methods appear disconnected, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "all methods share this.data so class is cohesive, got: {}", out);
 }
 
 #[test]
@@ -1153,22 +1153,25 @@ fn lcom4_single_method_not_flagged() {
 }
 
 #[test]
-fn lcom4_two_groups_flagged_without_field_tracking() {
+fn lcom4_three_groups_flagged_with_field_tracking() {
     let out = check(concat!(
         "public class Split {\n",
         "    private int a;\n",
         "    private int b;\n",
+        "    private int c;\n",
         "    public int AWork() { return this.a; }\n",
         "    public int ARead() { return this.a + 1; }\n",
         "    public int BWork() { return this.b; }\n",
         "    public int BRead() { return this.b + 1; }\n",
+        "    public int CWork() { return this.c; }\n",
+        "    public int CRead() { return this.c + 1; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "C# field access not tracked, 4 methods appear as 4 groups, got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "3 disjoint field groups: a, b, c, got: {}", out);
 }
 
 #[test]
-fn lcom4_transitive_flagged_without_field_tracking() {
+fn lcom4_transitive_connected_not_flagged() {
     let out = check(concat!(
         "public class C {\n",
         "    private int a;\n",
@@ -1178,7 +1181,7 @@ fn lcom4_transitive_flagged_without_field_tracking() {
         "    public int M3() { return this.b; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "C# field access not tracked, methods appear disconnected, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b transitively, got: {}", out);
 }
 
 // ===========================================================================

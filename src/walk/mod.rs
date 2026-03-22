@@ -10,6 +10,7 @@ pub mod javascript;
 pub mod kotlin;
 pub mod lua;
 pub mod objc;
+pub mod php;
 pub mod python;
 pub mod r;
 pub mod ruby;

@@ -150,9 +150,10 @@ const FIELD_ACCESS_KINDS: &[&str] = &[
     "field_access",
     "navigation_expression",
     "dot_index_expression",
+    "member_access_expression",
 ];
-const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression"];
-const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier"];
+const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression", "variable_name"];
+const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier", "name"];
 
 pub fn collect_field_accesses_for(
     func_node: Node,
