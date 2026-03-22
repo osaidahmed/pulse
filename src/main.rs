@@ -1,5 +1,6 @@
 mod analytics;
 mod baselines;
+mod duplication;
 mod hook;
 mod module_smells;
 mod output;
@@ -209,17 +210,17 @@ fn run_hook(h: hook::HookInput) {
 
     let edit_count = baselines::increment_edit_count(&h.file_path);
     let func_baseline = baselines::load_function_baseline(&h.file_path);
-    let mut findings: Vec<Finding> = hook::filter_by_edit_range(all_findings, h.edit_range)
+
+    let (module_findings, func_findings): (Vec<_>, Vec<_>) = all_findings
+        .into_iter()
+        .partition(|f| matches!(f.location, Location::Module));
+
+    let mut findings: Vec<Finding> = hook::filter_by_edit_range(func_findings, h.edit_range)
         .into_iter()
         .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
         .collect();
 
-    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
-    if edit_count.is_multiple_of(interval) && !is_test_file(&h.file_path) {
-        if let Some((_, regressions)) = detect_regressions(&h.file_path) {
-            findings.extend(regressions);
-        }
-    }
+    collect_module_findings(&h.file_path, edit_count, module_findings, &mut findings);
 
     if findings.is_empty() {
         process::exit(0);
@@ -233,14 +234,32 @@ fn run_hook(h: hook::HookInput) {
     println!("{decision}");
 }
 
+fn collect_module_findings(
+    file_path: &str,
+    edit_count: u32,
+    module_findings: Vec<Finding>,
+    findings: &mut Vec<Finding>,
+) {
+    if edit_count == 1 {
+        let baseline = baselines::load_baseline(file_path);
+        findings.extend(module_findings.into_iter().filter(|f| {
+            baseline.get(f.smell).copied().unwrap_or(0) == 0
+        }));
+    }
+
+    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
+    if edit_count.is_multiple_of(interval) && !is_test_file(file_path) {
+        if let Some((_, regressions)) = detect_regressions(file_path) {
+            findings.extend(regressions);
+        }
+    }
+}
+
 fn is_test_file(path: &str) -> bool {
-    // Match test implementation files, not fixture/sample data
     let p = path.replace('\\', "/");
     let in_test_dir = p.contains("/tests/") || p.contains("/test/") || p.contains("/__tests__/");
     let is_test_named = p.contains("_test.") || p.contains(".test.") || p.contains("_spec.") || p.contains(".spec.");
-    // Exclude fixture directories — those are sample code, not test code
-    let is_fixture = p.contains("/fixtures/");
-    (in_test_dir && !is_fixture) || is_test_named
+    in_test_dir || is_test_named
 }
 
 fn run_stop() {

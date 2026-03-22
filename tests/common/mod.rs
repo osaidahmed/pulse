@@ -27,7 +27,17 @@ pub fn run_debug(lang: &str, fixture: &str) -> String {
 }
 
 pub fn run_hook(file_path: &str) -> String {
-    let json = format!(r#"{{"tool_input":{{"file_path":"{}"}}}}"#, file_path);
+    // Copy test/fixture files to a tempdir so the hook doesn't skip them
+    let (actual_path, _tmpdir) = if file_path.contains("/tests/") || file_path.contains("/test/") {
+        let dir = tempfile::tempdir().unwrap();
+        let name = std::path::Path::new(file_path).file_name().unwrap();
+        let dest = dir.path().join(name);
+        std::fs::copy(file_path, &dest).unwrap_or(0);
+        (dest.to_str().unwrap().to_string(), Some(dir))
+    } else {
+        (file_path.to_string(), None)
+    };
+    let json = format!(r#"{{"tool_input":{{"file_path":"{}"}}}}"#, actual_path);
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["--hook"])
         .stdin(std::process::Stdio::piped())
