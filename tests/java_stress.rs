@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "java")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "java")
-}
+lang_helpers!("java");
 
 // CC precision
 #[test]
@@ -450,11 +445,11 @@ fn duplication_mixed_test_and_prod_flagged() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::from("class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// padding {}\n", i));
     }
     let out = check(&code);
@@ -468,14 +463,14 @@ fn god_class_requires_god_method() {
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("class Monster {\n    void monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -510,7 +505,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn assertion_block_at_threshold() {
     let mut code = String::from("class T {\n    void testExact() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("        assert(x{} == {});\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -521,7 +516,7 @@ fn assertion_block_at_threshold() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("class T {\n    void testBig() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("        assertEquals(x{}, {});\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -536,9 +531,9 @@ fn assertion_block_above_threshold() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::from("class T {\n");
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("    void lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");
@@ -551,9 +546,9 @@ fn overall_function_size_below_threshold() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::from("class T {\n");
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("    void lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");
@@ -580,7 +575,7 @@ fn declarations_below_threshold() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -600,7 +595,7 @@ fn small_string_not_flagged() {
 #[test]
 fn multiline_string_flagged() {
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!(
             "            SELECT field_{} FROM table_{}\n",
             i, i
@@ -646,7 +641,7 @@ fn function_can_have_multiple_smells() {
         "class T {\n    void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n",
     );
     code.push_str("        String q = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!(
             "            SELECT field_{} FROM table_{}\n",
             i, i
@@ -989,11 +984,11 @@ fn duplication_two_is_minimum() {
 #[test]
 fn output_has_module_prefix() {
     let mut code = String::from("class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// line {}\n", i));
     }
     let out = check(&code);

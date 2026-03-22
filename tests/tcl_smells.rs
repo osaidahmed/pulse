@@ -128,7 +128,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.tcl");
     let mut code = String::from("proc process_data_pipeline {x} {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if {{$x > {}}} {{ return 1 }}\n", i));
     }
     for i in 0..fn_padding() {

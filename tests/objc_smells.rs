@@ -128,7 +128,7 @@ fn production_fixture_detects_complexity() {
 #[test]
 fn god_method_subsumes_complex_and_large() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
-    for i in 0..12 { code.push_str(&format!("    if (x > {}) {{}}\n", i)); }
+    for i in 0..cc_branches() { code.push_str(&format!("    if (x > {}) {{}}\n", i)); }
     for i in 0..fn_padding() { code.push_str(&format!("    NSLog(@\"{}\");\n", i)); }
     code.push_str("}\n@end\n");
     let out = pulse_check_code(&code, "m");

@@ -200,19 +200,19 @@ fn swift_clean_still_clean() {
 #[test]
 fn large_struct_threshold_in_output() {
     let out = run_check("rust", "production_api_service.rs");
-    assert!(out.contains("threshold: 12"), "Large Struct should show threshold, got: {}", out);
+    assert!(out.contains(&format!("threshold: {}", t().max_struct_fields)), "Large Struct should show threshold, got: {}", out);
 }
 
 #[test]
 fn short_vars_threshold_in_output() {
     let out = run_check("python", "production_api_service.py");
-    assert!(out.contains("threshold: 3"), "Short Variable Names should show threshold, got: {}", out);
+    assert!(out.contains(&format!("threshold: {}", t().short_var_max_count)), "Short Variable Names should show threshold, got: {}", out);
 }
 
 #[test]
 fn stringly_typed_threshold_in_output() {
     let out = run_check("rust", "production_api_service.rs");
-    assert!(out.contains("threshold: 5"), "Stringly-Typed should show threshold, got: {}", out);
+    assert!(out.contains(&format!("threshold: {}", t().max_string_match_arms)), "Stringly-Typed should show threshold, got: {}", out);
 }
 
 // ===========================================================================

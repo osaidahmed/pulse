@@ -1510,7 +1510,7 @@ fn module_overall_function_size() {
 
     // Function 2: uses match (40+ LOC)
     code.push_str("fn big1(x: i32) -> i32 {\n    match x {\n");
-    for i in 0..55 {
+    for i in 0..large_fn_lines() {
         code.push_str(&format!("        {i} => {{ return {i}; }}\n"));
     }
     code.push_str("        _ => 0,\n    }\n}\n");
@@ -1850,72 +1850,12 @@ void f() {
 
 #[test]
 fn java_interface_and_enum_declarations() {
-    let out = check(r#"
-public interface Processable {
-    void process();
-}
-public interface Configurable {
-    void configure();
-}
-public interface Validatable {
-    void validate();
-}
-public interface Loggable {
-    void log();
-}
-public interface Cacheable {
-    void cache();
-}
-public interface Serializable {
-    void serialize();
-}
-public interface Buildable {
-    void build();
-}
-public interface Runnable {
-    void run();
-}
-public interface Closeable {
-    void close();
-}
-public interface Flushable {
-    void flush();
-}
-public interface Appendable {
-    void append();
-}
-public interface Cloneable {
-    Object clone();
-}
-public interface Comparable {
-    int compareTo();
-}
-public interface Iterable {
-    Object iterator();
-}
-public interface AutoCloseable {
-    void close2();
-}
-public interface Readable {
-    int read();
-}
-public interface CharSequence {
-    char charAt();
-}
-public interface Number2 {
-    int intValue();
-}
-public interface Float2 {
-    float floatValue();
-}
-public interface Double2 {
-    double doubleValue();
-}
-public interface Byte2 {
-    byte byteValue();
-}
-"#, "java");
-    assert!(out.contains("Excessive Declarations"), "21 declarations: {}", out);
+    let mut code = String::new();
+    for i in 0..declarations_above() {
+        code.push_str(&format!("public interface I{i} {{ void m{i}(); }}\n"));
+    }
+    let out = check(&code, "java");
+    assert!(out.contains("Excessive Declarations"), "{} declarations: {}", declarations_above(), out);
 }
 
 // ===========================================================================

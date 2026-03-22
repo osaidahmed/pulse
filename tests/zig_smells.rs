@@ -160,7 +160,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.zig");
     let mut code = String::from("pub fn processDataPipeline(x: i32) i32 {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x > {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -181,7 +181,7 @@ fn god_method_not_reported_as_separate() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.zig");
     let mut code = String::from("pub fn processDataPipeline(x: i32) i32 {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x > {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -326,7 +326,7 @@ fn overall_function_size_at_threshold() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("pub fn lg{}() i32 {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("    return 0;\n}\n\n");
@@ -351,7 +351,7 @@ fn overall_function_size_below_threshold() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("pub fn lg{}() i32 {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("    return 0;\n}\n\n");

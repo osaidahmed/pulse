@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "py")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "py")
-}
+lang_helpers!("py");
 
 // ===========================================================================
 // CC counting precision
@@ -401,11 +396,11 @@ def process_data(data):
 fn god_class_requires_god_method() {
     // large file + many functions but NO god method -> no God Class
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..functions_above() {
         code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
     }
     // pad LOC
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
     let out = check(&code);
@@ -418,7 +413,7 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     let mut code = String::new();
     // Generate a god method (cc >= 9 AND loc >= 65)
     code.push_str("def monster():\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if x == {}:\n        pass\n", i));
     }
     for i in 0..fn_padding() {
@@ -426,11 +421,11 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     }
     code.push_str("    return None\n\n");
     // 20+ more functions
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
     }
     // pad LOC well above 500 threshold
-    for i in 0..550 {
+    for i in 0..file_padding() {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
     let out = check(&code);
@@ -463,18 +458,18 @@ def test_interleaved():
 #[test]
 fn assertion_block_exactly_at_threshold() {
     let mut code = "def test_exact():\n".to_string();
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("    assert x_{} == {}\n", i, i));
     }
     let out = check(&code);
-    // 10 consecutive, threshold is > 10 (so 11+ to trigger)
+    // at threshold, not flagged (threshold is > asserts_at)
     assert!(!has_smell(&out, "Large Assertion Block"));
 }
 
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = "def test_big():\n".to_string();
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("    assert x_{} == {}\n", i, i));
     }
     let out = check(&code);
@@ -489,9 +484,9 @@ fn assertion_block_above_threshold() {
 fn overall_function_size_not_triggered_by_two_large_functions() {
     // threshold is 3 large functions, having 2 should not trigger
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("def large_fn_{}():\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    x_{} = {}\n", j, j));
         }
         code.push_str("    return None\n\n");
@@ -503,9 +498,9 @@ fn overall_function_size_not_triggered_by_two_large_functions() {
 #[test]
 fn overall_function_size_triggered_by_three_large_functions() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("def large_fn_{}():\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    x_{} = {}\n", j, j));
         }
         code.push_str("    return None\n\n");
@@ -531,7 +526,7 @@ fn declarations_below_threshold_not_flagged() {
 #[test]
 fn decorated_classes_counted_as_declarations() {
     let mut code = "def deco(cls):\n    return cls\n\n".to_string();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("@deco\nclass T{}:\n    pass\n\n", i));
     }
     let out = check(&code);
@@ -551,7 +546,7 @@ fn small_string_not_flagged_as_embedded() {
 #[test]
 fn multiline_fstring_counted_as_embedded() {
     let mut code = "def f():\n    x = f\"\"\"\n".to_string();
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        line {} of template\n", i));
     }
     code.push_str("    \"\"\"\n    return x\n");

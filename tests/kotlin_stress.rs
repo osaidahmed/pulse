@@ -2,12 +2,7 @@ mod common;
 
 use common::*;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "kt")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "kt")
-}
+lang_helpers!("kt");
 
 // ── CC precision ──────────────────────────────────────────────────────
 
@@ -289,7 +284,7 @@ fn constructor_reports_injection_not_excess() {
 #[test]
 fn assertion_block_at_threshold() {
     let mut code = String::from("fun f() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("}\n");
@@ -300,7 +295,7 @@ fn assertion_block_at_threshold() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("fun f() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("}\n");
@@ -328,7 +323,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("fun f{i}(): Int {{\n"));
         for j in 0..45 {
             code.push_str(&format!("    val x{j} = {j}\n"));
@@ -342,7 +337,7 @@ fn overall_function_size_below_threshold() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("fun f{i}(): Int {{\n"));
         for j in 0..45 {
             code.push_str(&format!("    val x{j} = {j}\n"));
@@ -368,7 +363,7 @@ fn declarations_below_threshold() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class C{i}\n"));
     }
     let out = check(&code);
@@ -386,7 +381,7 @@ fn small_string_not_flagged() {
 #[test]
 fn multiline_string_flagged() {
     let mut code = String::from("class T {\n    fun f(): String {\n        return \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("            line {i}\n"));
     }
     code.push_str("        \"\"\"\n    }\n}\n");
@@ -432,7 +427,7 @@ fn nested_conditional_chunks_detected() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::from("class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    fun f{i}(): Int {{\n"));
         for j in 0..20 {
             code.push_str(&format!("        val x{j} = {j}\n"));
@@ -448,14 +443,14 @@ fn god_class_requires_god_method() {
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("class Big {\n");
     code.push_str("    fun god(x: Int): Int {\n");
-    for _ in 0..50 {
+    for _ in 0..cc_branches() {
         code.push_str("        if (x > 0) {}\n");
     }
-    for i in 0..50 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("        val v{i} = {i}\n"));
     }
     code.push_str("        return 0\n    }\n\n");
-    for i in 1..25 {
+    for i in 1..functions_above() {
         code.push_str(&format!("    fun f{i}(): Int {{\n"));
         for j in 0..20 {
             code.push_str(&format!("        val x{j} = {j}\n"));
@@ -476,7 +471,7 @@ fn shallow_global_not_flagged() {
 #[test]
 fn output_has_module_prefix() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fun f{i}(): Int {{ return {i} }}\n"));
     }
     let out = check(&code);
@@ -488,7 +483,7 @@ fn output_has_module_prefix() {
 #[test]
 fn multiple_smells_same_function() {
     let mut code = String::from("class T {\n    fun f(a: String, b: String, c: String, d: String, e: String, f: String): String {\n        val big = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("            line {i}\n"));
     }
     code.push_str("        \"\"\"\n");
@@ -502,7 +497,7 @@ fn multiple_smells_same_function() {
 #[test]
 fn function_can_have_excess_and_embedded() {
     let mut code = String::from("class T {\n    fun f(a: String, b: String, c: String, d: String, e: String, f: String): String {\n        val big = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("            line {i}\n"));
     }
     code.push_str("        \"\"\"\n        return a\n    }\n}\n");
@@ -516,7 +511,7 @@ fn function_can_have_excess_and_embedded() {
 #[test]
 fn output_starts_with_pulse() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fun f{i}(): Int {{ return {i} }}\n"));
     }
     let out = check(&code);

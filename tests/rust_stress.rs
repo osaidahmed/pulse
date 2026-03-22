@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "rs")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "rs")
-}
+lang_helpers!("rs");
 
 // ===========================================================================
 // CC counting precision
@@ -233,7 +228,7 @@ fn duplication_test_functions_suppressed() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("struct T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -247,7 +242,7 @@ fn declarations_above_threshold() {
 #[test]
 fn god_method_detected() {
     let mut code = String::from("fn monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if {} > 0 {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -265,9 +260,9 @@ fn god_method_detected() {
 #[test]
 fn overall_function_size_triggered() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("fn lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -310,7 +305,7 @@ fn regular_function_reports_excess_args() {
 #[test]
 fn embedded_block_detected() {
     let mut code = String::from("fn query() -> &'static str {\n    let q = r#\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
     }
     code.push_str("    \"#;\n    q\n}\n");
@@ -506,10 +501,10 @@ fn duplication_test_suppressed() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{}: i32 = {};\n", i, i));
     }
     let out = check(&code);
@@ -523,14 +518,14 @@ fn god_class_requires_god_method() {
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("fn monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if {} > 0 {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("    let y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -562,7 +557,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn assertion_block_at_threshold() {
     let mut code = String::from("fn test_exact() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("    assert_eq!(x{}, {});\n", i, i));
     }
     code.push_str("}\n");
@@ -573,7 +568,7 @@ fn assertion_block_at_threshold() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("fn test_big() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("    assert_eq!(x{}, {});\n", i, i));
     }
     code.push_str("}\n");
@@ -588,9 +583,9 @@ fn assertion_block_above_threshold() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("fn lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -626,7 +621,7 @@ fn small_string_not_flagged_as_embedded() {
 #[test]
 fn multiline_raw_string_flagged() {
     let mut code = String::from("fn f() -> &'static str {\n    let q = r#\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
     }
     code.push_str("    \"#;\n    q\n}\n");
@@ -654,7 +649,7 @@ fn function_can_have_multiple_smells() {
         "fn terrible(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32) {\n",
     );
     code.push_str("    let q = r#\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{}\n", i));
     }
     code.push_str("    \"#;\n");
@@ -847,7 +842,7 @@ fn duplication_mixed_test_and_prod_flagged() {
 #[test]
 fn decorated_structs_counted_as_declarations() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("#[derive(Debug)]\nstruct T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -960,9 +955,9 @@ fn regular_function_reports_excess_not_constructor() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("fn lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");

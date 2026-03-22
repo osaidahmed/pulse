@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "cpp")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "cpp")
-}
+lang_helpers!("cpp");
 
 // CC precision
 #[test]
@@ -183,7 +178,7 @@ fn duplication_detected() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("struct T{} {{}};\n", i));
     }
     let out = check(&code);
@@ -403,10 +398,10 @@ fn duplication_mixed_test_and_prod_flagged() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..functions_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("int VAR{} = {};\n", i, i));
     }
     let out = check(&code);
@@ -420,14 +415,14 @@ fn god_class_requires_god_method() {
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("void monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("    int y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -459,7 +454,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn assertion_block_at_threshold() {
     let mut code = String::from("void test_exact() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("    assert(x{} == {});\n", i, i));
     }
     code.push_str("}\n");
@@ -470,7 +465,7 @@ fn assertion_block_at_threshold() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("void test_big() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("    assert(x{} == {});\n", i, i));
     }
     code.push_str("}\n");
@@ -485,9 +480,9 @@ fn assertion_block_above_threshold() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("void lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    int x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -499,9 +494,9 @@ fn overall_function_size_below_threshold() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("void lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    int x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -537,7 +532,7 @@ fn small_string_not_flagged_as_embedded() {
 #[test]
 fn multiline_raw_string_flagged() {
     let mut code = String::from("const char* f() {\n    const char* q = R\"(\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{}\n", i));
     }
     code.push_str("    )\";\n    return q;\n}\n");
@@ -590,7 +585,7 @@ fn function_can_have_multiple_smells() {
     let mut code =
         String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
     code.push_str("    const char* q = R\"(\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{}\n", i));
     }
     code.push_str("    )\";\n");
@@ -962,7 +957,7 @@ fn issue_count_matches() {
 #[test]
 fn output_has_module_prefix() {
     let mut code = String::new();
-    for i in 0..50 {
+    for i in 0..functions_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
     let out = check(&code);

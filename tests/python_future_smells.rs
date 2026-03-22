@@ -204,7 +204,7 @@ fn excessive_declarations_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("many_types.py");
     let mut content = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         content.push_str(&format!("class Type{}:\n    pass\n\n", i));
     }
     std::fs::write(&path, content).unwrap();
@@ -231,7 +231,7 @@ fn overall_function_size_pattern_detected() {
     let mut content = String::new();
     for i in 0..5 {
         content.push_str(&format!("def func_{}():\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             content.push_str(&format!("    x_{} = {}\n", j, j));
         }
         content.push_str("    return None\n\n");

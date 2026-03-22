@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "tcl")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "tcl")
-}
+lang_helpers!("tcl");
 
 // ===========================================================================
 // CC counting (20)
@@ -436,7 +431,7 @@ fn loc_empty_lines_excluded_module() {
 #[test]
 fn embedded_large_quoted_string() {
     let mut code = String::from("proc f {} {\n    set tpl \"line 0\n");
-    for i in 1..18 {
+    for i in 1..embedded_lines_above() {
         code.push_str(&format!("line {}\n", i));
     }
     code.push_str("\"\n    return $tpl\n}\n");
@@ -504,7 +499,7 @@ fn test_function_duplication_suppressed() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("proc f {} {\n");
-    for _ in 0..12 {
+    for _ in 0..asserts_above() {
         code.push_str("    assert 1\n");
     }
     code.push_str("}\n");

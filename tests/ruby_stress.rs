@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "rb")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "rb")
-}
+lang_helpers!("rb");
 
 // ===========================================================================
 // CC counting (20)
@@ -427,7 +422,7 @@ fn loc_empty_lines_excluded_module() {
 #[test]
 fn embedded_large_heredoc() {
     let mut code = String::from("def f()\n  <<~HEREDOC\n");
-    for i in 0..18 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("    line {}\n", i));
     }
     code.push_str("  HEREDOC\nend\n");
@@ -493,7 +488,7 @@ fn test_function_duplication_suppressed() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("def f()\n");
-    for _ in 0..12 {
+    for _ in 0..asserts_above() {
         code.push_str("  assert(true)\n");
     }
     code.push_str("end\n");
@@ -789,7 +784,7 @@ fn each_with_block_loop() {
 #[test]
 fn heredoc_embedded_block() {
     let mut code = String::from("def f()\n  <<~HEREDOC\n");
-    for i in 0..18 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("    line {}\n", i));
     }
     code.push_str("  HEREDOC\nend\n");

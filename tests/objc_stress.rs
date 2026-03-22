@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "m")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "m")
-}
+lang_helpers!("m");
 
 // ===========================================================================
 // CC counting (16)
@@ -514,7 +509,7 @@ fn below_declaration_threshold_not_flagged() {
 #[test]
 fn god_method_triggered() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
     }
     for _ in 0..fn_padding() {
@@ -528,7 +523,7 @@ fn god_method_triggered() {
 #[test]
 fn god_method_subsumes() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
     }
     for _ in 0..fn_padding() {
@@ -548,7 +543,7 @@ fn god_method_subsumes() {
 #[test]
 fn god_class_via_many_methods() {
     let mut code = String::from("@implementation X\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("- (void)f{}:(int)x {{\n    if (x > 0) {{}}\n}}\n", i));
     }
     code.push_str("@end\n");

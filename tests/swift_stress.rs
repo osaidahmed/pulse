@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "swift")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "swift")
-}
+lang_helpers!("swift");
 
 // ===========================================================================
 // CC counting (16)
@@ -561,7 +556,7 @@ fn embedded_zero_when_no_strings() {
 #[test]
 fn embedded_large_triggers() {
     let mut code = String::from("func f() -> String {\n    let s = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("    line {}\n", i));
     }
     code.push_str("    \"\"\"\n    return s\n}\n");
@@ -648,7 +643,7 @@ fn assert_block_non_consecutive() {
 #[test]
 fn assert_block_threshold() {
     let mut code = String::from("func f() {\n");
-    for _ in 0..12 {
+    for _ in 0..asserts_above() {
         code.push_str("    assert(true)\n");
     }
     code.push_str("}\n");

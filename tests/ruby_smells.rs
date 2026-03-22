@@ -128,7 +128,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.rb");
     let mut code = String::from("def process_data_pipeline(x)\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("  return 1 if x > {}\n", i));
     }
     for i in 0..fn_padding() {

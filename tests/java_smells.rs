@@ -200,7 +200,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("God.java");
     let mut code = String::from("class God {\n    void processDataPipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -221,7 +221,7 @@ fn god_method_not_reported_as_separate() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("God2.java");
     let mut code = String::from("class God2 {\n    void processDataPipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -283,11 +283,11 @@ fn file_too_large_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("Huge.java");
     let mut code = String::from("class Huge {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// padding line {}\n", i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -343,11 +343,11 @@ fn output_has_module_prefix() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("Mod.java");
     let mut code = String::from("class Mod {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// padding {}\n", i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -413,7 +413,7 @@ fn analysis_completes_under_500ms() {
 fn embedded_block_detected() {
     // Use a text block (Java 15+) for embedded block detection
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!(
             "            SELECT field_{} FROM table_{}\n",
             i, i
@@ -571,7 +571,7 @@ fn declarations_above_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("Decl.java");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class T{} {{}}\n", i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -644,11 +644,11 @@ fn god_class_requires_god_method() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("GC.java");
     let mut code = String::from("class GC {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// padding {}\n", i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -669,14 +669,14 @@ fn god_class_triggers_with_god_method() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("GC2.java");
     let mut code = String::from("class GC2 {\n    void monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     // Pad with actual code lines (not just comments) to ensure file is large

@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "zig")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "zig")
-}
+lang_helpers!("zig");
 
 // ===========================================================================
 // CC counting (18)
@@ -402,7 +397,7 @@ fn loc_empty_lines_excluded_module() {
 #[test]
 fn embedded_large_multiline_string() {
     let mut code = String::from("fn f() []const u8 {\n    return\n");
-    for i in 0..18 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        \\\\line {}\n", i));
     }
     code.push_str("    ;\n}\n");
@@ -510,7 +505,7 @@ fn test_function_duplication_suppressed() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("const std = @import(\"std\");\nfn f() void {\n");
-    for _ in 0..12 {
+    for _ in 0..asserts_above() {
         code.push_str("    std.debug.assert(true);\n");
     }
     code.push_str("}\n");

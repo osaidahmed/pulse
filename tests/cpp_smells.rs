@@ -22,7 +22,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.cpp");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= t().cc_warning, "cc should be >= t().cc_warning, got: {}", cc);
 }
 
 #[test]
@@ -227,7 +227,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.cpp");
     let mut code = String::from("void process_data_pipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -248,7 +248,7 @@ fn god_method_not_reported_as_separate() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.cpp");
     let mut code = String::from("void process_data_pipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -318,10 +318,10 @@ fn file_too_large_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge.cpp");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("int VAR{} = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -338,10 +338,10 @@ fn too_many_functions_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge2.cpp");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("int VAR{} = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -396,7 +396,7 @@ fn output_has_module_prefix() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("mod_test.cpp");
     let mut code = String::new();
-    for i in 0..50 {
+    for i in 0..functions_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -481,7 +481,7 @@ fn analysis_completes_under_500ms() {
 #[test]
 fn embedded_block_detected() {
     let mut code = String::from("const char* query() {\n    const char* q = R\"(\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
     }
     code.push_str("    )\";\n    return q;\n}\n");
@@ -558,10 +558,10 @@ fn god_class_requires_god_method() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("gc.cpp");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("int VAR{} = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -582,14 +582,14 @@ fn god_class_triggers_with_god_method() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("gc2.cpp");
     let mut code = String::from("void monster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("    int y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("int fn{}() {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {

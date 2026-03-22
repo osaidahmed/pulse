@@ -39,7 +39,7 @@ fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.py");
     let cc = function_metric(&debug, "process_order", "cc");
     assert!(cc.is_some(), "should compute cc for process_order");
-    assert!(cc.unwrap() >= 9, "cc should be >= 9, got: {}", cc.unwrap());
+    assert!(cc.unwrap() >= t().cc_warning, "cc should be >= t().cc_warning, got: {}", cc.unwrap());
 }
 
 // ===========================================================================
@@ -89,7 +89,7 @@ fn god_method_has_high_cc_and_loc() {
     let debug = run_debug(LANG, "brain_method.py");
     let cc = function_metric(&debug, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "process_data_pipeline", "loc").unwrap_or(0);
-    assert!(cc >= 9, "god method cc should be >= 9, got: {}", cc);
+    assert!(cc >= t().cc_warning, "god method cc should be >= t().cc_warning, got: {}", cc);
     assert!(loc >= t().fn_loc_warning, "god method loc should be >= 50, got: {}", loc);
 }
 

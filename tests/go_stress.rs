@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "go")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "go")
-}
+lang_helpers!("go");
 
 // ===========================================================================
 // CC counting (16)
@@ -496,7 +491,7 @@ fn compound_condition_simple_not_detected() {
 #[test]
 fn embedded_large_raw_string() {
     let mut code = String::from("package main\n\nfunc f() string {\n\treturn `\n");
-    for i in 0..17 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("line {}\n", i));
     }
     code.push_str("`\n}\n");
@@ -653,7 +648,7 @@ fn test_function_duplication_suppressed() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("package main\n\nfunc testBig() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("\tassert(x{} == {})\n", i, i));
     }
     code.push_str("}\n");
@@ -666,7 +661,7 @@ fn assertion_block_above_threshold() {
 #[test]
 fn assertion_block_below_threshold() {
     let mut code = String::from("package main\n\nfunc testSmall() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("\tassert(x{} == {})\n", i, i));
     }
     code.push_str("}\n");

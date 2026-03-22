@@ -1,18 +1,13 @@
 mod common;
 
+use common::*;
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-use pulse::thresholds::Thresholds;
-
 fn pulse_bin() -> String {
     env!("CARGO_BIN_EXE_pulse").to_string()
-}
-
-fn file_loc_above() -> usize {
-    Thresholds::default().file_loc_warning as usize + 100
 }
 
 struct TestEnv {
@@ -194,7 +189,7 @@ fn baseline_captures_preexisting_module_findings() {
     let path = env.file_path("big.py");
 
     // 25 functions + 200 vars = well over 400 LOC, >20 functions
-    let code = format!("{}{}", simple_functions(25), var_lines("x", 200));
+    let code = format!("{}{}", simple_functions(25), var_lines("x", file_padding()));
     std::fs::write(&path, format!("{}MARKER = 1\n", code)).unwrap();
 
     let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
@@ -323,7 +318,7 @@ fn stop_silent_when_preexisting_file_too_large() {
     let env = TestEnv::new();
     let path = env.file_path("big.py");
 
-    let code = format!("{}MARKER = 1\n", var_lines("x", file_loc_above()));
+    let code = format!("{}MARKER = 1\n", var_lines("x", file_padding()));
     std::fs::write(&path, &code).unwrap();
 
     let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
@@ -360,7 +355,7 @@ fn stop_silent_when_file_shrinks_below_threshold() {
     let path = env.file_path("shrinking.py");
 
     // Start above 500 LOC
-    let code = format!("{}MARKER = 1\n", var_lines("x", file_loc_above()));
+    let code = format!("{}MARKER = 1\n", var_lines("x", file_padding()));
     std::fs::write(&path, &code).unwrap();
 
     let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
@@ -454,7 +449,7 @@ fn stop_detects_file_too_large_regression() {
 
     // Grow past 500 LOC
     let mut big = std::fs::read_to_string(&path).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
@@ -532,9 +527,10 @@ fn stop_detects_excessive_declarations_regression() {
     let env = TestEnv::new();
     let path = env.file_path("grow_decl.py");
 
-    // Python counts class_definition as declarations. Start with 15 (under 20)
+    // Python counts class_definition as declarations. Start below threshold
+    let below = t().max_declarations as usize / 2;
     let mut code = String::new();
-    for i in 0..15 {
+    for i in 0..below {
         code.push_str(&format!("class C_{}:\n    pass\n\n", i));
     }
     code.push_str("MARKER = 1\n");
@@ -544,9 +540,9 @@ fn stop_detects_excessive_declarations_regression() {
     std::fs::write(&path, code.replace("MARKER = 1", "MARKER = 2")).unwrap();
     env.run_hook(&json);
 
-    // Add class declarations past 20
+    // Add class declarations past threshold
     let mut grown = std::fs::read_to_string(&path).unwrap();
-    for i in 15..25 {
+    for i in below..declarations_above() {
         grown.push_str(&format!("class Added_{}:\n    pass\n\n", i));
     }
     std::fs::write(&path, &grown).unwrap();
@@ -594,7 +590,7 @@ fn stop_detects_overall_function_size_regression() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("def big_{}():\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    x_{} = {}\n", j, j));
         }
         code.push('\n');
@@ -609,7 +605,7 @@ fn stop_detects_overall_function_size_regression() {
     // Add a 3rd large function (crosses the threshold)
     let mut grown = std::fs::read_to_string(&path).unwrap();
     grown.push_str("def big_2():\n");
-    for j in 0..55 {
+    for j in 0..large_fn_lines() {
         grown.push_str(&format!("    y_{} = {}\n", j, j));
     }
     std::fs::write(&path, &grown).unwrap();
@@ -678,7 +674,7 @@ fn stop_reports_regressions_across_multiple_files() {
 
     // Grow A past LOC threshold, B past function count threshold
     let mut big_a = std::fs::read_to_string(&path_a).unwrap();
-    big_a.push_str(&var_lines("extra", file_loc_above()));
+    big_a.push_str(&var_lines("extra", file_padding()));
     std::fs::write(&path_a, &big_a).unwrap();
 
     let mut big_b = std::fs::read_to_string(&path_b).unwrap();
@@ -720,7 +716,7 @@ fn stop_one_file_regresses_other_stays_clean() {
 
     // Only grow the dirty file
     let mut big = std::fs::read_to_string(&path_dirty).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path_dirty, &big).unwrap();
 
     let out = env.run_stop();
@@ -791,7 +787,7 @@ fn stop_informational_uses_note_not_regression() {
     env.run_hook(&json);
 
     let mut big = std::fs::read_to_string(&path).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
@@ -851,7 +847,7 @@ fn stop_mixed_produces_blocking_decision() {
     env.run_hook(&json);
 
     let mut grown = std::fs::read_to_string(&path).unwrap();
-    grown.push_str(&var_lines("v", file_loc_above()));
+    grown.push_str(&var_lines("v", file_padding()));
     grown.push_str("if True:\n    pass\n");
     std::fs::write(&path, &grown).unwrap();
 
@@ -876,7 +872,7 @@ fn stop_output_is_json_decision() {
     env.run_hook(&json);
 
     let mut big = std::fs::read_to_string(&path).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
@@ -904,7 +900,7 @@ fn stop_output_contains_filename() {
     env.run_hook(&json);
 
     let mut big = std::fs::read_to_string(&path).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
@@ -927,7 +923,7 @@ fn stop_output_contains_detail() {
     env.run_hook(&json);
 
     let mut big = std::fs::read_to_string(&path).unwrap();
-    big.push_str(&var_lines("y", file_loc_above()));
+    big.push_str(&var_lines("y", file_padding()));
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
@@ -954,7 +950,7 @@ fn hook_excludes_module_but_shows_function_findings() {
         code.push_str(&format!("    if x == {}:\n        pass\n", i));
     }
     code.push_str("    return x\n\n");
-    code.push_str(&var_lines("pad", 600));
+    code.push_str(&var_lines("pad", file_padding()));
     std::fs::write(&path, &code).unwrap();
 
     // Edit added the 11th branch (old had just return x)
@@ -985,7 +981,7 @@ fn hook_edit_mode_excludes_module_findings() {
 
     let mut code = String::new();
     code.push_str(&simple_functions(25));
-    code.push_str(&var_lines("x", 200));
+    code.push_str(&var_lines("x", file_padding()));
     std::fs::write(&path, &code).unwrap();
 
     // Edit near a function
@@ -1016,7 +1012,7 @@ fn hook_write_mode_excludes_module_findings() {
             i
         ));
     }
-    code.push_str(&var_lines("x", 200));
+    code.push_str(&var_lines("x", file_padding()));
     std::fs::write(&path, &code).unwrap();
 
     let json = env.write_hook_json(&path);
@@ -1171,7 +1167,7 @@ fn baseline_works_for_typescript() {
             i, i
         ));
     }
-    code.push_str(&var_lines("const x", 200));
+    code.push_str(&var_lines("const x", file_padding()));
     code.push_str("const MARKER = 1;\n");
     std::fs::write(&path, &code).unwrap();
 
@@ -1200,7 +1196,7 @@ fn baseline_works_for_rust() {
     for i in 0..25 {
         code.push_str(&format!("fn fn_{}() -> i32 {{ {} }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("static X_{}: i32 = {};\n", i, i));
     }
     code.push_str("static MARKER: i32 = 1;\n");
@@ -1236,7 +1232,7 @@ fn baseline_works_for_java() {
             i, i
         ));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("    static int x_{} = {};\n", i, i));
     }
     code.push_str("    static int MARKER = 1;\n");
@@ -1270,7 +1266,7 @@ fn baseline_works_for_c() {
     for i in 0..25 {
         code.push_str(&format!("int fn_{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("int x_{} = {};\n", i, i));
     }
     code.push_str("int MARKER = 1;\n");
@@ -1366,12 +1362,12 @@ fn stop_full_lifecycle_three_edits_then_stop() {
 
     // Edit 3: add more code, pushing past threshold
     let current = std::fs::read_to_string(&path).unwrap();
-    let added = format!("{}{}", current, var_lines("y", file_loc_above()));
+    let added = format!("{}{}", current, var_lines("y", file_padding()));
     std::fs::write(&path, &added).unwrap();
     let json3 = env.edit_hook_json(
         &path,
         &format!("x_{} = {}", 99, 99),
-        &format!("x_{} = {}\n{}", 99, 99, var_lines("y", file_loc_above())),
+        &format!("x_{} = {}\n{}", 99, 99, var_lines("y", file_padding())),
     );
     env.run_hook(&json3);
 
@@ -1594,7 +1590,7 @@ fn checkpoint_includes_function_findings_too() {
 
     // File with many functions AND a complex function
     let mut code = simple_functions(22);
-    code.push_str(&complex_function("complex_one", 10));
+    code.push_str(&complex_function("complex_one", cc_branches()));
     std::fs::write(&path, &code).unwrap();
     let json = env.write_hook_json(&path);
     env.run_hook(&json);
@@ -1648,7 +1644,7 @@ fn first_write_blocks_on_too_many_functions() {
 fn first_write_blocks_on_file_too_large() {
     let env = TestEnv::new();
     let path = env.file_path("huge_new.py");
-    let code = format!("def f():\n    return 1\n\n{}", var_lines("x", file_loc_above()));
+    let code = format!("def f():\n    return 1\n\n{}", var_lines("x", file_padding()));
     std::fs::write(&path, &code).unwrap();
     let json = env.write_hook_json(&path);
     let out = env.run_hook(&json);
@@ -1664,7 +1660,7 @@ fn first_write_reports_multiple_module_findings() {
     let env = TestEnv::new();
     let path = env.file_path("multi_new.py");
     let mut code = simple_functions(25);
-    code.push_str(&var_lines("pad", 500));
+    code.push_str(&var_lines("pad", file_padding()));
     std::fs::write(&path, &code).unwrap();
     let json = env.write_hook_json(&path);
     let out = env.run_hook(&json);
@@ -1701,7 +1697,7 @@ fn non_checkpoint_edit_does_not_include_module_findings() {
 
     // First write: already exceeds thresholds (baseline captures violations)
     let mut code = simple_functions(25);
-    code.push_str(&var_lines("pad", 500));
+    code.push_str(&var_lines("pad", file_padding()));
     code.push_str("MARKER = 1\n");
     std::fs::write(&path, &code).unwrap();
     let json1 = env.write_hook_json(&path);
@@ -1738,7 +1734,7 @@ fn first_edit_of_existing_file_skips_preexisting_module_smells() {
 
     // Create file that already exceeds thresholds
     let mut code = simple_functions(25);
-    code.push_str(&var_lines("pad", 500));
+    code.push_str(&var_lines("pad", file_padding()));
     code.push_str("MARKER = 1\n");
     std::fs::write(&path, &code).unwrap();
 

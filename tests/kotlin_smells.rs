@@ -253,7 +253,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn output_has_module_prefix() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fun f{i}(): Int {{ return {i} }}\n"));
     }
     let output = pulse_check_code(&code, "kt");
@@ -291,7 +291,7 @@ fn analysis_completes_under_500ms() {
 #[test]
 fn embedded_block_detected() {
     let mut code = String::from("class T {\n    fun f(): String {\n        return \"\"\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("            line {i}\n"));
     }
     code.push_str("        \"\"\"\n    }\n}\n");
@@ -360,7 +360,7 @@ fn nested_conditional_chunks_detected() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class C{i}\n"));
     }
     let output = pulse_check_code(&code, "kt");
@@ -398,7 +398,7 @@ fn overall_function_size_at_threshold() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::from("class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    fun f{i}(): Int {{\n"));
         for j in 0..20 {
             code.push_str(&format!("        val x{j} = {j}\n"));
@@ -421,7 +421,7 @@ fn god_class_triggers_with_god_method() {
         code.push_str(&format!("        val v{i} = {i}\n"));
     }
     code.push_str("        return 0\n    }\n\n");
-    for i in 1..25 {
+    for i in 1..declarations_above() {
         code.push_str(&format!("    fun f{i}(): Int {{\n"));
         for j in 0..20 {
             code.push_str(&format!("        val x{j} = {j}\n"));

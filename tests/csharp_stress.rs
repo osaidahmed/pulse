@@ -2,12 +2,7 @@ mod common;
 
 use common::*;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "cs")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "cs")
-}
+lang_helpers!("cs");
 
 // ===========================================================================
 // CC counting
@@ -604,7 +599,7 @@ fn compound_condition_simple_not_detected() {
 #[test]
 fn embedded_large_string_detected() {
     let mut code = String::from("public class T {\n    static string f() {\n        string q = @\"");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("\nSELECT field_{} FROM table_{}", i, i));
     }
     code.push_str("\";\n        return q;\n    }\n}\n");
@@ -769,7 +764,7 @@ fn test_function_duplication_suppressed() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("public class T {\n    static void TestBig() {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{} == {});\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -780,7 +775,7 @@ fn assertion_block_above_threshold() {
 #[test]
 fn assertion_block_below_threshold_not_flagged() {
     let mut code = String::from("public class T {\n    static void TestSmall() {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{} == {});\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -1293,11 +1288,11 @@ fn duplication_mixed_test_and_prod_flagged() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::from("public class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// padding {}\n", i));
     }
     let out = check(&code);
@@ -1307,14 +1302,14 @@ fn god_class_requires_god_method() {
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("public class Monster {\n    static void DoMonster() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -1333,9 +1328,9 @@ fn god_class_triggers_with_god_method() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::from("public class T {\n");
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("    static void Lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");
@@ -1348,9 +1343,9 @@ fn overall_function_size_below_threshold() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::from("public class T {\n");
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("    static void Lg{}() {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");
@@ -1377,7 +1372,7 @@ fn declarations_below_threshold() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("public class T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -1614,11 +1609,11 @@ fn shallow_global_not_flagged() {
 #[test]
 fn output_has_module_prefix() {
     let mut code = String::from("public class Big {\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
     }
     code.push_str("}\n");
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("// line {}\n", i));
     }
     let out = check(&code);

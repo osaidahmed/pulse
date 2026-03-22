@@ -162,7 +162,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.go");
     let mut code = String::from("package main\n\nfunc ProcessDataPipeline(x int) int {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("\tif x > {} {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -183,7 +183,7 @@ fn god_method_not_reported_as_separate() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.go");
     let mut code = String::from("package main\n\nfunc ProcessDataPipeline(x int) int {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("\tif x > {} {{}}\n", i));
     }
     for i in 0..fn_padding() {

@@ -215,7 +215,7 @@ fn module_findings_excluded_from_hook_output() {
     for i in 0..25 {
         code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();

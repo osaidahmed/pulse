@@ -311,7 +311,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.js");
     let mut code = String::from("function processDataPipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -332,7 +332,7 @@ fn god_method_has_high_cc_and_loc() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.js");
     let mut code = String::from("function processDataPipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -356,7 +356,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god3.js");
     let mut code = String::from("function processDataPipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -476,10 +476,10 @@ fn file_too_large_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge.js");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("function fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{} = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -496,10 +496,10 @@ fn too_many_functions_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge2.js");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("function fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{} = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();

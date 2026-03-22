@@ -3,12 +3,7 @@ mod common;
 use common::*;
 use std::process::Command;
 
-fn check(code: &str) -> String {
-    pulse_check_code(code, "ts")
-}
-fn debug(code: &str) -> String {
-    pulse_debug_code(code, "ts")
-}
+lang_helpers!("ts");
 
 // ===========================================================================
 // CC counting precision
@@ -257,10 +252,10 @@ fn duplication_test_functions_suppressed() {
 #[test]
 fn god_class_requires_god_method() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{} = {};\n", i, i));
     }
     let out = check(&code);
@@ -270,14 +265,14 @@ fn god_class_requires_god_method() {
 #[test]
 fn god_method_triggers_god_class() {
     let mut code = String::from("function monster(): void {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -295,9 +290,9 @@ fn god_method_triggers_god_class() {
 #[test]
 fn overall_function_size_not_triggered_below_threshold() {
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("function lg{}(): void {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -309,9 +304,9 @@ fn overall_function_size_not_triggered_below_threshold() {
 #[test]
 fn overall_function_size_triggered_at_threshold() {
     let mut code = String::new();
-    for i in 0..3 {
+    for i in 0..t().large_fn_count as usize {
         code.push_str(&format!("function lg{}(): void {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -337,7 +332,7 @@ fn declarations_below_threshold() {
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -734,7 +729,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn assertion_block_above_threshold() {
     let mut code = String::from("function testBig(): void {\n");
-    for i in 0..15 {
+    for i in 0..asserts_above() {
         code.push_str(&format!("    expect(x{}).toBe({});\n", i, i));
     }
     code.push_str("}\n");
@@ -755,7 +750,7 @@ fn small_string_not_flagged_as_embedded() {
 #[test]
 fn multiline_template_flagged_as_embedded() {
     let mut code = String::from("function f(): string {\n    const x = `\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        line {} of template\n", i));
     }
     code.push_str("    `;\n    return x;\n}\n");
@@ -854,7 +849,7 @@ fn cc_switch_many_cases() {
 #[test]
 fn assertion_block_at_threshold_not_flagged() {
     let mut code = String::from("function testExact(): void {\n");
-    for i in 0..10 {
+    for i in 0..asserts_at() {
         code.push_str(&format!("    expect(x{}).toBe({});\n", i, i));
     }
     code.push_str("}\n");
@@ -869,7 +864,7 @@ fn assertion_block_at_threshold_not_flagged() {
 #[test]
 fn decorated_classes_counted_as_declarations() {
     let mut code = String::from("function deco(cls: any) { return cls; }\n\n");
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("class T{} {{}}\n", i));
     }
     let out = check(&code);
@@ -893,10 +888,10 @@ fn shallow_global_nesting_not_flagged() {
 #[test]
 fn god_class_not_triggered_without_god_method() {
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
-    for i in 0..200 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{} = {};\n", i, i));
     }
     let out = check(&code);
@@ -910,14 +905,14 @@ fn god_class_not_triggered_without_god_method() {
 #[test]
 fn god_class_triggers_when_large_with_god_method() {
     let mut code = String::from("function monster(): void {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
     for i in 0..fn_padding() {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
-    for i in 0..21 {
+    for i in 0..functions_above() {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
     for i in 0..file_padding() {
@@ -935,9 +930,9 @@ fn god_class_triggers_when_large_with_god_method() {
 #[test]
 fn overall_function_size_below_threshold_not_flagged() {
     let mut code = String::new();
-    for i in 0..2 {
+    for i in 0..(t().large_fn_count as usize - 1) {
         code.push_str(&format!("function lg{}(): void {{\n", i));
-        for j in 0..55 {
+        for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");

@@ -30,7 +30,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.rs");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= t().cc_warning, "cc should be >= t().cc_warning, got: {}", cc);
 }
 
 #[test]
@@ -237,7 +237,7 @@ fn god_method_has_high_cc_and_loc() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.rs");
     let mut code = String::from("fn process_data_pipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if {} > 0 {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -252,7 +252,7 @@ fn god_method_has_high_cc_and_loc() {
     let stderr = String::from_utf8(out.stderr).unwrap();
     let cc = function_metric(&stderr, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&stderr, "process_data_pipeline", "loc").unwrap_or(0);
-    assert!(cc >= 9, "cc >= 9, got: {}", cc);
+    assert!(cc >= t().cc_warning, "cc >= t().cc_warning, got: {}", cc);
     assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {}", loc);
 }
 
@@ -261,7 +261,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.rs");
     let mut code = String::from("fn process_data_pipeline() {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if {} > 0 {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -382,10 +382,10 @@ fn file_too_large_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge.rs");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{}: i32 = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -402,10 +402,10 @@ fn too_many_functions_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("huge2.rs");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
     }
-    for i in 0..500 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const VAR{}: i32 = {};\n", i, i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -477,7 +477,7 @@ fn output_has_module_prefix() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("mod_test.rs");
     let mut code = String::new();
-    for i in 0..25 {
+    for i in 0..declarations_above() {
         code.push_str(&format!("struct T{} {{}}\n", i));
     }
     std::fs::write(&path, &code).unwrap();
@@ -557,7 +557,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn embedded_block_detected() {
     let mut code = String::from("fn query() -> &'static str {\n    let q = r#\"\n");
-    for i in 0..20 {
+    for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
     }
     code.push_str("    \"#;\n    q\n}\n");
@@ -641,8 +641,8 @@ fn nested_conditional_chunks_bump_count() {
     // If bumps metric exists, verify it; cc should also be high enough
     let cc = function_metric(&out, "validate_and_process", "cc").unwrap_or(0);
     assert!(
-        bumps.unwrap_or(0) >= 2 || cc >= 9,
-        "should have >= 2 bumps or cc >= 9, got bumps: {:?}, cc: {}",
+        bumps.unwrap_or(0) >= 2 || cc >= t().cc_warning,
+        "should have >= 2 bumps or cc >= t().cc_warning, got bumps: {:?}, cc: {}",
         bumps,
         cc
     );

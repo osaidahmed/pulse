@@ -160,7 +160,7 @@ fn god_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god.swift");
     let mut code = String::from("func processDataPipeline(x: Int) -> Int {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if x > {} {{}}\n", i));
     }
     for i in 0..fn_padding() {
@@ -181,7 +181,7 @@ fn god_method_not_reported_as_separate() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("god2.swift");
     let mut code = String::from("func processDataPipeline(x: Int) -> Int {\n");
-    for i in 0..10 {
+    for i in 0..cc_branches() {
         code.push_str(&format!("    if x > {} {{}}\n", i));
     }
     for i in 0..fn_padding() {
