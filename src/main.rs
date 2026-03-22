@@ -121,7 +121,15 @@ fn run_debug(file_path: &str) {
     }
 }
 
-fn analyze_file(file_path: &str) -> Option<(Vec<Finding>, String)> {
+struct AnalysisResult {
+    findings: Vec<Finding>,
+    filename: String,
+    fn_count: u32,
+    total_loc: u32,
+    sum_cc: u32,
+}
+
+fn analyze_file(file_path: &str) -> Option<AnalysisResult> {
     let path = Path::new(file_path);
     if !path.exists() {
         return None;
@@ -132,17 +140,23 @@ fn analyze_file(file_path: &str) -> Option<(Vec<Finding>, String)> {
     let t = thresholds::Thresholds::default();
     let findings = smells::detect(&metrics, &source, &t);
     let filename = path.file_name()?.to_string_lossy().into_owned();
-    Some((findings, filename))
+    Some(AnalysisResult {
+        findings,
+        filename,
+        fn_count: metrics.functions.len() as u32,
+        total_loc: metrics.module.total_loc,
+        sum_cc: metrics.module.sum_cc,
+    })
 }
 
 fn run_check(file_path: &str) {
-    let Some((findings, filename)) = analyze_file(file_path) else {
+    let Some(result) = analyze_file(file_path) else {
         process::exit(0);
     };
-    if findings.is_empty() {
+    if result.findings.is_empty() {
         process::exit(0);
     }
-    print!("{}", output::format(&findings, &filename));
+    print!("{}", output::format(&result.findings, &result.filename));
 }
 
 fn run_budget(file_path: &str) {
@@ -181,10 +195,10 @@ fn run_check_all() {
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
-        if let Some((findings, filename)) = analyze_file(&path_str) {
-            if !findings.is_empty() {
-                total += findings.len();
-                print!("{}", output::format(&findings, &filename));
+        if let Some(result) = analyze_file(&path_str) {
+            if !result.findings.is_empty() {
+                total += result.findings.len();
+                print!("{}", output::format(&result.findings, &result.filename));
             }
         }
     }
@@ -220,14 +234,14 @@ fn run_hook(h: hook::HookInput) {
     }
     analytics::save_session_id(&h);
     baselines::cache_baseline(&h);
-    let Some((all_findings, filename)) = analyze_file(&h.file_path) else {
+    let Some(result) = analyze_file(&h.file_path) else {
         process::exit(0);
     };
 
     let edit_count = baselines::increment_edit_count(&h.file_path);
     let func_baseline = baselines::load_function_baseline(&h.file_path);
 
-    let (module_findings, func_findings): (Vec<_>, Vec<_>) = all_findings
+    let (module_findings, func_findings): (Vec<_>, Vec<_>) = result.findings
         .into_iter()
         .partition(|f| matches!(f.location, Location::Module));
 
@@ -241,8 +255,15 @@ fn run_hook(h: hook::HookInput) {
     if findings.is_empty() {
         process::exit(0);
     }
-    analytics::log_findings(&h, &findings, &filename);
-    let reason = output::format_compact(&findings, &filename);
+    analytics::log_findings(&h, &findings, &result.filename);
+    let t = thresholds::Thresholds::default();
+    let budget = format!(
+        "[budget] fn={}/{} loc={}/{} cc={}/{}",
+        result.fn_count, t.file_function_count,
+        result.total_loc, t.file_loc_warning,
+        result.sum_cc, t.file_total_cc,
+    );
+    let reason = format!("{}\n{}", output::format_compact(&findings, &result.filename).trim(), budget);
     let decision = serde_json::json!({
         "decision": "block",
         "reason": reason.trim()
@@ -301,20 +322,20 @@ fn run_stop() {
         println!("{decision}");
     }
 
-    analytics::resolve(analyze_file);
+    analytics::resolve(|p| analyze_file(p).map(|r| (r.findings, r.filename)));
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }
 
 fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
     let baseline = baselines::load_baseline(file_path);
-    let (findings, filename) = analyze_file(file_path)?;
+    let result = analyze_file(file_path)?;
 
     let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
-    for f in findings.iter().filter(|f| matches!(f.location, Location::Module)) {
+    for f in result.findings.iter().filter(|f| matches!(f.location, Location::Module)) {
         *current_counts.entry(f.smell).or_default() += 1;
     }
 
-    let regressions: Vec<Finding> = findings
+    let regressions: Vec<Finding> = result.findings
         .into_iter()
         .filter(|f| matches!(f.location, Location::Module))
         .filter(|f| {
@@ -327,7 +348,7 @@ fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
     if regressions.is_empty() {
         return None;
     }
-    Some((filename, regressions))
+    Some((result.filename, regressions))
 }
 
 fn run_cleanup() {
