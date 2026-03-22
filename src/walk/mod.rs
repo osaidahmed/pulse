@@ -1,6 +1,7 @@
 pub mod c;
 pub mod cobol;
 pub mod counters;
+pub mod d;
 pub mod cpp;
 pub mod csharp;
 pub mod fingerprint;
@@ -192,7 +193,7 @@ pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) ->
     for child in node.children(&mut cursor) {
         let child_depth = if branch_kinds.contains(&child.kind()) {
             measure_nesting_depth(child, current + 1, branch_kinds)
-        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do" | "braced_word" | "braced_expression") {
+        } else if matches!(child.kind(), "block" | "statement_block" | "block_statement" | "body_statement" | "then" | "do" | "braced_word" | "braced_expression") {
             measure_nesting_depth(child, current, branch_kinds)
         } else {
             current

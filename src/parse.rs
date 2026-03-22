@@ -23,6 +23,7 @@ pub enum Language {
     R,
     Php,
     Cobol,
+    D,
 }
 
 type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
@@ -48,6 +49,7 @@ const EXTENSION_MAP: &[(&[&str], Language)] = &[
     (&["r", "R"], Language::R),
     (&["php", "php5"], Language::Php),
     (&["cob", "cbl", "cobol"], Language::Cobol),
+    (&["d", "di"], Language::D),
 ];
 
 macro_rules! lang_init {
@@ -58,7 +60,7 @@ macro_rules! lang_init {
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 20] = [
+static DISPATCH: [(LangInit, WalkFn); 21] = [
     (lang_init!(tree_sitter_python::LANGUAGE), walk::python::walk as WalkFn),
     (lang_init!(tree_sitter_typescript::LANGUAGE_TYPESCRIPT), |t, s| walk::typescript::walk(t, s, true)),
     (lang_init!(tree_sitter_javascript::LANGUAGE), walk::javascript::walk as WalkFn),
@@ -79,6 +81,7 @@ static DISPATCH: [(LangInit, WalkFn); 20] = [
     (lang_init!(tree_sitter_r::LANGUAGE), walk::r::walk as WalkFn),
     (lang_init!(tree_sitter_php::LANGUAGE_PHP), walk::php::walk as WalkFn),
     (lang_init!(tree_sitter_cobol::LANGUAGE), walk::cobol::walk as WalkFn),
+    (lang_init!(tree_sitter_d::LANGUAGE), walk::d::walk as WalkFn),
 ];
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {

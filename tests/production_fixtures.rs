@@ -390,3 +390,69 @@ fn cobol_api_production_clean_helpers_not_flagged() {
     let output = run_check("cobol", "production_api_service.cob");
     assert!(!has_function(&output, "SEND-CONFIRM") || !output.contains("SEND-CONFIRM"));
 }
+
+// ===========================================================================
+// D production_service.d — comprehensive smell validation
+// ===========================================================================
+
+#[test]
+fn d_production_constructor_over_injection() {
+    let output = run_check("d", "production_service.d");
+    assert!(has_smell(&output, "Constructor Over-Injection"));
+    assert!(has_function(&output, "PaymentService.this"));
+}
+
+#[test]
+fn d_production_complex_method() {
+    let output = run_check("d", "production_service.d");
+    assert!(has_smell(&output, "Complex Method") || has_smell(&output, "God Method"));
+    assert!(has_function(&output, "processPayment"));
+}
+
+#[test]
+fn d_production_complex_method_has_high_cc() {
+    let debug = run_debug("d", "production_service.d");
+    let cc = function_metric(&debug, "PaymentService.processPayment", "cc").unwrap_or(0);
+    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+}
+
+#[test]
+fn d_production_exact_duplication() {
+    let output = run_check("d", "production_service.d");
+    assert!(has_smell(&output, "Code Duplication"));
+}
+
+#[test]
+fn d_production_low_cohesion() {
+    let output = run_check("d", "production_service.d");
+    assert!(has_smell(&output, "Low Cohesion"), "got: {}", output);
+}
+
+#[test]
+fn d_production_clean_functions_not_flagged() {
+    let output = run_check("d", "production_service.d");
+    assert!(!has_function(&output, "getConfig"), "simple getter should not be flagged");
+}
+
+// ===========================================================================
+// D production_api_service.d — API handler smell validation
+// ===========================================================================
+
+#[test]
+fn d_api_production_complex_handler() {
+    let output = run_check("d", "production_api_service.d");
+    assert!(has_smell(&output, "Complex Method") || has_smell(&output, "Excess Arguments"));
+}
+
+#[test]
+fn d_api_production_string_switch() {
+    let debug = run_debug("d", "production_api_service.d");
+    let arms = function_metric(&debug, "routeRequest", "str_match").unwrap_or(0);
+    assert!(arms >= 6, "routeRequest should have string switch arms, got: {}", arms);
+}
+
+#[test]
+fn d_api_production_clean_helper_not_flagged() {
+    let output = run_check("d", "production_api_service.d");
+    assert!(!has_function(&output, "formatResponse"), "simple helper should not be flagged");
+}
