@@ -266,7 +266,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large.js");
     let mut code = String::from("function buildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("    const x{} = {};\n", i, i));
     }
     code.push_str("}\n");
@@ -284,11 +284,11 @@ fn large_method_detected() {
 }
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large_loc.js");
     let mut code = String::from("function buildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("    const x{} = {};\n", i, i));
     }
     code.push_str("}\n");
@@ -299,7 +299,7 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc should be >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc should be >= 50, got: {}", loc);
 }
 
 // ===========================================================================
@@ -314,7 +314,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n");
@@ -335,7 +335,7 @@ fn god_method_has_high_cc_and_loc() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n");
@@ -348,7 +348,7 @@ fn god_method_has_high_cc_and_loc() {
     let cc = function_metric(&stderr, "processDataPipeline", "cc").unwrap_or(0);
     let loc = function_metric(&stderr, "processDataPipeline", "loc").unwrap_or(0);
     assert!(cc >= 9, "cc >= 9, got: {}", cc);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }
 
 #[test]
@@ -359,7 +359,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n");

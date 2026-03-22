@@ -416,12 +416,12 @@ fn god_class_requires_god_method() {
 fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     // God method + large file + many functions = God Class
     let mut code = String::new();
-    // Generate a god method (cc >= 9 AND loc >= 50)
+    // Generate a god method (cc >= 9 AND loc >= 65)
     code.push_str("def monster():\n");
     for i in 0..10 {
         code.push_str(&format!("    if x == {}:\n        pass\n", i));
     }
-    for i in 0..40 {
+    for i in 0..100 {
         code.push_str(&format!("    y_{} = {}\n", i, i));
     }
     code.push_str("    return None\n\n");
@@ -429,8 +429,8 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     for i in 0..21 {
         code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
     }
-    // pad LOC well above 400 threshold
-    for i in 0..350 {
+    // pad LOC well above 500 threshold
+    for i in 0..550 {
         code.push_str(&format!("VAR_{} = {}\n", i, i));
     }
     let out = check(&code);
@@ -491,7 +491,7 @@ fn overall_function_size_not_triggered_by_two_large_functions() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("def large_fn_{}():\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    x_{} = {}\n", j, j));
         }
         code.push_str("    return None\n\n");
@@ -505,7 +505,7 @@ fn overall_function_size_triggered_by_three_large_functions() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("def large_fn_{}():\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    x_{} = {}\n", j, j));
         }
         code.push_str("    return None\n\n");
@@ -928,7 +928,7 @@ fn cogc_below_threshold_no_smell() {
 fn cogc_god_method_via_cogc() {
     let mut code = "def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n"
         .to_string();
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    x_{} = {}\n", i, i));
     }
     let out = check(&code);
@@ -1105,15 +1105,15 @@ fn elif_updates_max_nesting() {
 }
 
 #[test]
-fn cc_alert_severity_over_15() {
-    // 15 flat ifs: cc=16 (>cc_alert=15) → alert severity
+fn cc_alert_severity_over_18() {
+    // 18 flat ifs: cc=19 (>cc_alert=18) → alert severity
     let mut code = "def f(x):\n".to_string();
-    for i in 0..15 {
+    for i in 0..18 {
         code.push_str(&format!("    if x == {}: pass\n", i));
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "cc=16 should trigger: {}", out);
-    assert!(out.contains("[alert]"), "cc>15 should be alert: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "cc=19 should trigger: {}", out);
+    assert!(out.contains("[alert]"), "cc>18 should be alert: {}", out);
 }
 
 #[test]

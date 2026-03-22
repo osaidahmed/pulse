@@ -13,7 +13,7 @@ fn clean_file_no_output() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.cs");
-    assert!(has_smell(&output, "God Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method") || has_smell(&output, "God Method"), "got: {}", output);
     assert!(has_function(&output, "ProcessOrder"));
 }
 
@@ -68,7 +68,7 @@ fn production_service_has_issues() {
     let output = run_check(LANG, "production_service.cs");
     assert!(!output.is_empty(), "production service should have issues");
     assert!(has_smell(&output, "Constructor Over-Injection"), "got: {}", output);
-    assert!(has_smell(&output, "God Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method") || has_smell(&output, "God Method"), "got: {}", output);
     assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
 }
 
@@ -242,7 +242,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -263,7 +263,7 @@ fn god_method_not_reported_as_separate() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -287,7 +287,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("Large.cs");
     let mut code = String::from("public class Large {\n    void BuildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("        int x{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -305,11 +305,11 @@ fn large_method_detected() {
 }
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("LargeLoc.cs");
     let mut code = String::from("public class LargeLoc {\n    void BuildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("        int x{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -320,7 +320,7 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "BuildReport", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }
 
 // ===========================================================================
@@ -463,14 +463,14 @@ fn god_class_triggers_with_god_method() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..40 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
     for i in 0..21 {
         code.push_str(&format!("    int Fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..350 {
+    for i in 0..600 {
         code.push_str(&format!("    static readonly int V{} = {};\n", i, i));
     }
     code.push_str("}\n");

@@ -1310,14 +1310,14 @@ fn god_class_triggers_with_god_method() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..40 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
     for i in 0..21 {
         code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..350 {
+    for i in 0..600 {
         code.push_str(&format!("    static readonly int V{} = {};\n", i, i));
     }
     code.push_str("}\n");
@@ -1335,7 +1335,7 @@ fn overall_function_size_below_threshold() {
     let mut code = String::from("public class T {\n");
     for i in 0..2 {
         code.push_str(&format!("    static void Lg{}() {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");
@@ -1350,7 +1350,7 @@ fn overall_function_size_at_threshold() {
     let mut code = String::from("public class T {\n");
     for i in 0..3 {
         code.push_str(&format!("    static void Lg{}() {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("        int x{} = {};\n", j, j));
         }
         code.push_str("    }\n");

@@ -1471,21 +1471,21 @@ fn dummy() {
 
 #[test]
 fn module_god_class_detected() {
-    // God Class: total_loc > 400, total_functions > 20, has god method (cc>=9 AND loc>=50)
+    // God Class: total_loc > 500, total_functions > 20, has god method (cc>=9 AND loc>=65)
     let mut code = String::from("struct S {}\nimpl S {\n");
-    // One god method: cc=15, loc=55+ (must be both complex AND large)
+    // One god method: cc=15, loc=70+ (must be both complex AND large)
     code.push_str("fn god(&self, x: i32) -> i32 {\n");
     for i in 0..14 {
         code.push_str(&format!("    if x > {i} {{ }}\n"));
     }
-    for j in 0..38 {
+    for j in 0..100 {
         code.push_str(&format!("    let _pad{j} = {j};\n"));
     }
     code.push_str("    x\n}\n");
     // 20 more methods to exceed function count threshold (>20)
     for i in 0..20 {
         code.push_str(&format!("fn m{i}(&self) {{\n"));
-        for j in 0..16 {
+        for j in 0..20 {
             code.push_str(&format!("    let _v{i}_{j} = {i} * {j};\n"));
         }
         code.push_str("}\n");
@@ -1510,7 +1510,7 @@ fn module_overall_function_size() {
 
     // Function 2: uses match (40+ LOC)
     code.push_str("fn big1(x: i32) -> i32 {\n    match x {\n");
-    for i in 0..40 {
+    for i in 0..55 {
         code.push_str(&format!("        {i} => {{ return {i}; }}\n"));
     }
     code.push_str("        _ => 0,\n    }\n}\n");

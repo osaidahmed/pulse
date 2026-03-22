@@ -131,7 +131,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("  return 1 if x > {}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("  y{} = {}\n", i, i));
     }
     code.push_str("  0\nend\n");
@@ -149,7 +149,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large.rb");
     let mut code = String::from("def build_report\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("  x{} = {}\n", i, i));
     }
     code.push_str("  0\nend\n");
@@ -518,11 +518,11 @@ fn primitive_obsession_not_triggered() {
 }
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large_loc.rb");
     let mut code = String::from("def build_report\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("  x{} = {}\n", i, i));
     }
     code.push_str("  0\nend\n");
@@ -533,5 +533,5 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }

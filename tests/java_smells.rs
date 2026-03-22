@@ -155,7 +155,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("Large.java");
     let mut code = String::from("class Large {\n    void buildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("        int x{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -173,11 +173,11 @@ fn large_method_detected() {
 }
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("LargeLoc.java");
     let mut code = String::from("class LargeLoc {\n    void buildReport() {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("        int x{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -188,7 +188,7 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }
 
 // ===========================================================================
@@ -203,7 +203,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -224,7 +224,7 @@ fn god_method_not_reported_as_separate() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n}\n");
@@ -672,7 +672,7 @@ fn god_class_triggers_with_god_method() {
     for i in 0..10 {
         code.push_str(&format!("        if ({} > 0) {{}}\n", i));
     }
-    for i in 0..40 {
+    for i in 0..100 {
         code.push_str(&format!("        int y{} = {};\n", i, i));
     }
     code.push_str("    }\n");
@@ -680,7 +680,7 @@ fn god_class_triggers_with_god_method() {
         code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
     }
     // Pad with actual code lines (not just comments) to ensure file is large
-    for i in 0..350 {
+    for i in 0..600 {
         code.push_str(&format!("    static final int V{} = {};\n", i, i));
     }
     code.push_str("}\n");

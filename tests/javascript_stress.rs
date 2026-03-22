@@ -236,7 +236,7 @@ fn overall_size_below_threshold() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("function lg{}() {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -250,7 +250,7 @@ fn overall_size_above_threshold() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("function lg{}() {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");
@@ -578,14 +578,14 @@ fn god_method_triggers_god_class() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..40 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
     for i in 0..21 {
         code.push_str(&format!("function fn{}() {{ return {}; }}\n", i, i));
     }
-    for i in 0..350 {
+    for i in 0..600 {
         code.push_str(&format!("const V{} = {};\n", i, i));
     }
     let out = check(&code);
@@ -806,7 +806,7 @@ fn overall_function_size_at_threshold() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("function lg{}() {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("}\n\n");

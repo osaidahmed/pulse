@@ -231,7 +231,7 @@ fn overall_function_size_pattern_detected() {
     let mut content = String::new();
     for i in 0..5 {
         content.push_str(&format!("def func_{}():\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             content.push_str(&format!("    x_{} = {}\n", j, j));
         }
         content.push_str("    return None\n\n");

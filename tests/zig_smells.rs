@@ -163,7 +163,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("    if (x > {}) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("    return 0;\n}\n");
@@ -184,7 +184,7 @@ fn god_method_not_reported_as_separate() {
     for i in 0..10 {
         code.push_str(&format!("    if (x > {}) {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("    return 0;\n}\n");
@@ -208,7 +208,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large.zig");
     let mut code = String::from("pub fn buildReport() i32 {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("    const x{} = {};\n", i, i));
     }
     code.push_str("    return 0;\n}\n");
@@ -326,7 +326,7 @@ fn overall_function_size_at_threshold() {
     let mut code = String::new();
     for i in 0..3 {
         code.push_str(&format!("pub fn lg{}() i32 {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("    return 0;\n}\n\n");
@@ -351,7 +351,7 @@ fn overall_function_size_below_threshold() {
     let mut code = String::new();
     for i in 0..2 {
         code.push_str(&format!("pub fn lg{}() i32 {{\n", i));
-        for j in 0..45 {
+        for j in 0..55 {
             code.push_str(&format!("    const x{} = {};\n", j, j));
         }
         code.push_str("    return 0;\n}\n\n");
@@ -521,11 +521,11 @@ fn constructor_over_injection_detected() {
 // ===========================================================================
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large_loc.zig");
     let mut code = String::from("pub fn buildReport() i32 {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("    const x{} = {};\n", i, i));
     }
     code.push_str("    return 0;\n}\n");
@@ -536,7 +536,7 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }
 
 // ===========================================================================

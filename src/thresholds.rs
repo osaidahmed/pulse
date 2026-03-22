@@ -56,10 +56,10 @@ impl Default for Thresholds {
     fn default() -> Self {
         Self {
             cc_warning: 9,
-            cc_alert: 15,
+            cc_alert: 18,
             cogc_warning: 15,
             cogc_alert: 25,
-            fn_loc_warning: 50,
+            fn_loc_warning: 65,
             fn_loc_alert: 100,
             nesting_depth: 4,
             bump_count: 2,
@@ -67,7 +67,7 @@ impl Default for Thresholds {
             constructor_arg_max: 5,
             compound_conditions: 2,
             embedded_block_loc: 15,
-            file_loc_warning: 400,
+            file_loc_warning: 500,
             file_loc_alert: 700,
             file_function_count: 20,
             file_total_cc: 100,

@@ -165,7 +165,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("\tif x > {} {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("\ty{} := {}\n", i, i));
     }
     code.push_str("\treturn 0\n}\n");
@@ -186,7 +186,7 @@ fn god_method_not_reported_as_separate() {
     for i in 0..10 {
         code.push_str(&format!("\tif x > {} {{}}\n", i));
     }
-    for i in 0..45 {
+    for i in 0..100 {
         code.push_str(&format!("\ty{} := {}\n", i, i));
     }
     code.push_str("\treturn 0\n}\n");
@@ -210,7 +210,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large.go");
     let mut code = String::from("package main\n\nfunc BuildReport() int {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("\tx{} := {}\n", i, i));
     }
     code.push_str("\treturn 0\n}\n");
@@ -531,11 +531,11 @@ fn simple_func_in_excess_args_not_flagged() {
 // ===========================================================================
 
 #[test]
-fn large_method_loc_at_least_50() {
+fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large_loc.go");
     let mut code = String::from("package main\n\nfunc BuildReport() int {\n");
-    for i in 0..55 {
+    for i in 0..100 {
         code.push_str(&format!("\tx{} := {}\n", i, i));
     }
     code.push_str("\treturn 0\n}\n");
@@ -546,7 +546,7 @@ fn large_method_loc_at_least_50() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "BuildReport", "loc").unwrap_or(0);
-    assert!(loc >= 50, "loc >= 50, got: {}", loc);
+    assert!(loc >= 65, "loc >= 65, got: {}", loc);
 }
 
 // ===========================================================================

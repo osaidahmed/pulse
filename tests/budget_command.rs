@@ -39,7 +39,7 @@ fn budget_shows_loc_and_room() {
     std::fs::write(&path, "def f():\n    return 1\n").unwrap();
     let out = run_budget(path.to_str().unwrap());
     assert!(out.contains("LOC:"), "should show LOC line, got: {}", out);
-    assert!(out.contains("/400"), "should show /400 threshold, got: {}", out);
+    assert!(out.contains("/500"), "should show /500 threshold, got: {}", out);
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn budget_shows_per_function_limits() {
     let out = run_budget(path.to_str().unwrap());
     assert!(out.contains("cc<9"), "should show cc limit, got: {}", out);
     assert!(out.contains("cogc<15"), "should show cogc limit, got: {}", out);
-    assert!(out.contains("loc<50"), "should show loc limit, got: {}", out);
+    assert!(out.contains("loc<65"), "should show loc limit, got: {}", out);
     assert!(out.contains("args≤5"), "should show args limit, got: {}", out);
 }
 
@@ -138,10 +138,10 @@ fn check_file_too_large_shows_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.py");
     let mut code = String::new();
-    for i in 0..420 { code.push_str(&format!("x_{i} = {i}\n")); }
+    for i in 0..520 { code.push_str(&format!("x_{i} = {i}\n")); }
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 400"), "file too large should show threshold, got: {}", out);
+    assert!(out.contains("threshold: 500"), "file too large should show threshold, got: {}", out);
 }
 
 #[test]
@@ -160,11 +160,11 @@ fn check_large_method_shows_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.py");
     let mut code = String::from("def big():\n");
-    for i in 0..55 { code.push_str(&format!("    x_{i} = {i}\n")); }
+    for i in 0..70 { code.push_str(&format!("    x_{i} = {i}\n")); }
     code.push_str("    return 0\n");
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 50"), "large method should show threshold, got: {}", out);
+    assert!(out.contains("threshold: 65"), "large method should show threshold, got: {}", out);
 }
 
 #[test]
