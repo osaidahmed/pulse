@@ -18,6 +18,7 @@ pub enum Language {
     ObjectiveC,
     Tcl,
     Kotlin,
+    Haskell,
 }
 
 type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
@@ -38,50 +39,34 @@ const EXTENSION_MAP: &[(&[&str], Language)] = &[
     (&["m"], Language::ObjectiveC),
     (&["tcl", "tk", "itcl"], Language::Tcl),
     (&["kt", "kts"], Language::Kotlin),
+    (&["hs", "lhs"], Language::Haskell),
 ];
 
-fn ts_python() -> tree_sitter::Language { tree_sitter_python::LANGUAGE.into() }
-fn ts_typescript() -> tree_sitter::Language { tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into() }
-fn ts_javascript() -> tree_sitter::Language { tree_sitter_javascript::LANGUAGE.into() }
-fn ts_rust() -> tree_sitter::Language { tree_sitter_rust::LANGUAGE.into() }
-fn ts_c() -> tree_sitter::Language { tree_sitter_c::LANGUAGE.into() }
-fn ts_cpp() -> tree_sitter::Language { tree_sitter_cpp::LANGUAGE.into() }
-fn ts_java() -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
-fn ts_csharp() -> tree_sitter::Language { tree_sitter_c_sharp::LANGUAGE.into() }
-fn ts_go() -> tree_sitter::Language { tree_sitter_go::LANGUAGE.into() }
-fn ts_swift() -> tree_sitter::Language { tree_sitter_swift::LANGUAGE.into() }
-fn ts_zig() -> tree_sitter::Language { tree_sitter_zig::LANGUAGE.into() }
-fn ts_ruby() -> tree_sitter::Language { tree_sitter_ruby::LANGUAGE.into() }
-fn ts_objc() -> tree_sitter::Language { tree_sitter_objc::LANGUAGE.into() }
-fn ts_tcl() -> tree_sitter::Language { tree_sitter_tcl::LANGUAGE.into() }
-fn ts_kotlin() -> tree_sitter::Language { tree_sitter_kotlin_ng::LANGUAGE.into() }
-
-fn walk_ts(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
-    walk::typescript::walk(tree, source, true)
-}
-
-fn walk_js(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
-    walk::javascript::walk(tree, source)
+macro_rules! lang_init {
+    ($crate_name:ident :: $constant:ident) => {
+        (|| -> tree_sitter::Language { $crate_name::$constant.into() }) as fn() -> tree_sitter::Language
+    };
 }
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 15] = [
-    (ts_python, walk::python::walk as WalkFn),
-    (ts_typescript, walk_ts as WalkFn),
-    (ts_javascript, walk_js as WalkFn),
-    (ts_rust, walk::rust::walk as WalkFn),
-    (ts_c, walk::c::walk as WalkFn),
-    (ts_cpp, walk::cpp::walk as WalkFn),
-    (ts_java, walk::java::walk as WalkFn),
-    (ts_csharp, walk::csharp::walk as WalkFn),
-    (ts_go, walk::go::walk as WalkFn),
-    (ts_swift, walk::swift::walk as WalkFn),
-    (ts_zig, walk::zig::walk as WalkFn),
-    (ts_ruby, walk::ruby::walk as WalkFn),
-    (ts_objc, walk::objc::walk as WalkFn),
-    (ts_tcl, walk::tcl::walk as WalkFn),
-    (ts_kotlin, walk::kotlin::walk as WalkFn),
+static DISPATCH: [(LangInit, WalkFn); 16] = [
+    (lang_init!(tree_sitter_python::LANGUAGE), walk::python::walk as WalkFn),
+    (lang_init!(tree_sitter_typescript::LANGUAGE_TYPESCRIPT), |t, s| walk::typescript::walk(t, s, true)),
+    (lang_init!(tree_sitter_javascript::LANGUAGE), walk::javascript::walk as WalkFn),
+    (lang_init!(tree_sitter_rust::LANGUAGE), walk::rust::walk as WalkFn),
+    (lang_init!(tree_sitter_c::LANGUAGE), walk::c::walk as WalkFn),
+    (lang_init!(tree_sitter_cpp::LANGUAGE), walk::cpp::walk as WalkFn),
+    (lang_init!(tree_sitter_java::LANGUAGE), walk::java::walk as WalkFn),
+    (lang_init!(tree_sitter_c_sharp::LANGUAGE), walk::csharp::walk as WalkFn),
+    (lang_init!(tree_sitter_go::LANGUAGE), walk::go::walk as WalkFn),
+    (lang_init!(tree_sitter_swift::LANGUAGE), walk::swift::walk as WalkFn),
+    (lang_init!(tree_sitter_zig::LANGUAGE), walk::zig::walk as WalkFn),
+    (lang_init!(tree_sitter_ruby::LANGUAGE), walk::ruby::walk as WalkFn),
+    (lang_init!(tree_sitter_objc::LANGUAGE), walk::objc::walk as WalkFn),
+    (lang_init!(tree_sitter_tcl::LANGUAGE), walk::tcl::walk as WalkFn),
+    (lang_init!(tree_sitter_kotlin_ng::LANGUAGE), walk::kotlin::walk as WalkFn),
+    (lang_init!(tree_sitter_haskell::LANGUAGE), walk::haskell::walk as WalkFn),
 ];
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {
@@ -94,16 +79,8 @@ pub fn detect_language(path: &std::path::Path) -> Option<Language> {
 
 pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
     let (ts_lang_fn, walk_fn) = DISPATCH[lang as usize];
-    parse_generic(source, ts_lang_fn(), walk_fn)
-}
-
-fn parse_generic(
-    source: &str,
-    ts_lang: tree_sitter::Language,
-    walk_fn: WalkFn,
-) -> Option<FileMetrics> {
     let mut parser = tree_sitter::Parser::new();
-    parser.set_language(&ts_lang).ok()?;
+    parser.set_language(&ts_lang_fn()).ok()?;
     let tree = parser.parse(source, None)?;
     Some(walk_fn(&tree, source))
 }
