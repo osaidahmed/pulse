@@ -38,7 +38,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         declaration_count: count_declarations(decls),
         struct_fields: Vec::new(),
     };
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 fn count_declarations(decls: Node) -> u32 {

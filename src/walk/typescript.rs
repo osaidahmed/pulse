@@ -69,7 +69,7 @@ pub fn walk(tree: &Tree, source: &str, has_types: bool) -> FileMetrics {
         struct_fields: Vec::new(),
     };
 
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 fn collect_functions(

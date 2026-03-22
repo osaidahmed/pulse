@@ -2,6 +2,7 @@ use std::io::Read;
 
 use crate::smells::{Finding, Location};
 
+#[derive(Debug)]
 pub struct HookInput {
     pub file_path: String,
     pub edit_range: Option<(u32, u32)>,

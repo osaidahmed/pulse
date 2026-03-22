@@ -51,7 +51,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         struct_fields: Vec::new(),
     };
 
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
@@ -316,6 +316,7 @@ fn track_python_operator(boolean_op: Node, cogc: &mut u32, last_op: &mut Option<
 
 fn find_operator_keyword(boolean_op: Node) -> Option<Node> {
     let mut cursor = boolean_op.walk();
+    // cursor must outlive the iterator — binding extends the borrow
     let result = boolean_op
         .children(&mut cursor)
         .find(|c| c.kind() == "and" || c.kind() == "or" || c.kind() == "not");
@@ -324,6 +325,7 @@ fn find_operator_keyword(boolean_op: Node) -> Option<Node> {
 
 fn has_boolean_child(node: Node) -> bool {
     let mut cursor = node.walk();
+    // cursor must outlive the iterator — binding extends the borrow
     let result = node
         .children(&mut cursor)
         .any(|c| c.kind() == "boolean_operator");

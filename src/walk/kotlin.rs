@@ -66,7 +66,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         },
         struct_fields: Vec::new(),
     };
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>) {

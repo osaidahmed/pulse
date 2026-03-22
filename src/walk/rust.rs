@@ -57,7 +57,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         struct_fields,
     };
 
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
@@ -197,6 +197,7 @@ fn walk_match_arms(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         }
         let is_wildcard = find_child_by_kind(arm, "match_pattern").is_some_and(|p| {
             let mut pc = p.walk();
+            // cursor must outlive the iterator — binding extends the borrow
             let result = p.children(&mut pc).any(|c| c.kind() == "_");
             result
         });
@@ -270,6 +271,7 @@ fn has_primitive_type(param_node: Node, source: &str) -> bool {
 
 fn find_type_leaf(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
+    // cursor must outlive the iterator — binding extends the borrow
     let result = node
         .children(&mut cursor)
         .find(|c| c.kind() == "type_identifier" || c.kind() == "primitive_type");
@@ -281,6 +283,7 @@ fn has_self_param(func_node: Node) -> bool {
         return false;
     };
     let mut cursor = params.walk();
+    // cursor must outlive the iterator — binding extends the borrow
     let result = params
         .children(&mut cursor)
         .any(|c| c.kind() == "self_parameter");

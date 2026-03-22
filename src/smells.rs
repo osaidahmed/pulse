@@ -77,14 +77,14 @@ impl fmt::Display for Smell {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Finding {
     pub smell: Smell,
     pub location: Location,
     pub detail: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Location {
     Function {
         name: String,
@@ -94,22 +94,22 @@ pub enum Location {
     Module,
 }
 
-pub fn detect((functions, module): &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Finding> {
+pub fn detect(metrics: &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Finding> {
     let mut findings = Vec::new();
     let mut has_god_method = false;
 
-    for f in functions {
+    for f in &metrics.functions {
         detect_function_smells(f, t, &mut findings, &mut has_god_method);
     }
 
-    module_smells::detect_module_smells(module, t, has_god_method, &mut findings);
-    duplication::detect_code_duplication(functions, t, &mut findings);
-    module_smells::detect_overall_function_size(functions, t, &mut findings);
-    detect_primitive_obsession(functions, t, &mut findings);
-    detect_batch_thresholds(functions, t, &mut findings);
-    module_smells::detect_duplicated_assertion_blocks(functions, &mut findings);
-    module_smells::detect_lcom4(functions, t, &mut findings);
-    detect_empty_error_handlers(functions, &mut findings);
+    module_smells::detect_module_smells(&metrics.module, t, has_god_method, &mut findings);
+    duplication::detect_code_duplication(&metrics.functions, t, &mut findings);
+    module_smells::detect_overall_function_size(&metrics.functions, t, &mut findings);
+    detect_primitive_obsession(&metrics.functions, t, &mut findings);
+    detect_batch_thresholds(&metrics.functions, t, &mut findings);
+    module_smells::detect_duplicated_assertion_blocks(&metrics.functions, &mut findings);
+    module_smells::detect_lcom4(&metrics.functions, t, &mut findings);
+    detect_empty_error_handlers(&metrics.functions, &mut findings);
 
     findings
 }

@@ -52,7 +52,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
         declaration_count: count_declarations(root),
         struct_fields: Vec::new(),
     };
-    (functions, module)
+    FileMetrics { functions, module }
 }
 
 // ─── Function collection ────────────────────────────────────────────────

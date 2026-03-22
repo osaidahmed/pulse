@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, PartialEq)]
 pub struct Thresholds {
     // Function-level
     pub cc_warning: u32,

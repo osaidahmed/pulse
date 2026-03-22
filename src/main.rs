@@ -105,12 +105,12 @@ fn run_debug(file_path: &str) {
     let path = Path::new(file_path);
     let lang = parse::detect_language(path).expect("unsupported language");
     let source = std::fs::read_to_string(path).expect("can't read file");
-    let (functions, module) = parse::parse_and_walk(&source, lang).expect("parse failed");
+    let metrics = parse::parse_and_walk(&source, lang).expect("parse failed");
     eprintln!(
         "Module: {} LOC, {} functions, sum_cc={} declarations={}",
-        module.total_loc, module.total_functions, module.sum_cc, module.declaration_count
+        metrics.module.total_loc, metrics.module.total_functions, metrics.module.sum_cc, metrics.module.declaration_count
     );
-    for f in &functions {
+    for f in &metrics.functions {
         eprintln!(
             "  {} (L{}-{}): loc={} cc={} cogc={} nesting={} bumps={} args={} conditions={} embedded={} asserts={} primitives={}/{} short_vars={} str_match={} fields={:?}",
             f.name, f.start_line, f.end_line, f.loc, f.cc, f.cognitive_complexity, f.max_nesting, f.bump_count,
@@ -149,22 +149,22 @@ fn run_budget(file_path: &str) {
     let path = Path::new(file_path);
     let t = thresholds::Thresholds::default();
 
-    let Some((fns, module)) = parse::detect_language(path)
+    let Some(metrics) = parse::detect_language(path)
         .and_then(|lang| std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang)))
     else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
 
-    let fn_count = fns.len() as u32;
+    let fn_count = metrics.functions.len() as u32;
     let fn_room = t.file_function_count.saturating_sub(fn_count);
-    let loc_room = t.file_loc_warning.saturating_sub(module.total_loc);
-    let cc_room = t.file_total_cc.saturating_sub(module.sum_cc);
+    let loc_room = t.file_loc_warning.saturating_sub(metrics.module.total_loc);
+    let cc_room = t.file_total_cc.saturating_sub(metrics.module.sum_cc);
 
     eprintln!("budget: {file_path}");
     eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.file_function_count);
-    eprintln!("  LOC:       {}/{} (room: {loc_room})", module.total_loc, t.file_loc_warning);
-    eprintln!("  total cc:  {}/{} (room: {cc_room})", module.sum_cc, t.file_total_cc);
+    eprintln!("  LOC:       {}/{} (room: {loc_room})", metrics.module.total_loc, t.file_loc_warning);
+    eprintln!("  total cc:  {}/{} (room: {cc_room})", metrics.module.sum_cc, t.file_total_cc);
     eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
 }
 

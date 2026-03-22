@@ -27,6 +27,7 @@ pub use shared::is_catch_body_empty;
 
 use tree_sitter::Node;
 
+#[derive(Debug)]
 pub struct WalkState {
     pub cc: u32,
     pub cogc: u32,
@@ -97,7 +98,7 @@ pub fn track_embedded_block(max: &mut u32, node: Node) {
     update_max(max, lines);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionMetrics {
     pub name: String,
     pub start_line: u32,
@@ -124,7 +125,7 @@ pub struct FunctionMetrics {
     pub string_match_arms: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleMetrics {
     pub total_loc: u32,
     pub total_functions: u32,
@@ -135,7 +136,10 @@ pub struct ModuleMetrics {
     pub struct_fields: Vec<(String, u32)>,
 }
 
-pub type FileMetrics = (Vec<FunctionMetrics>, ModuleMetrics);
+pub struct FileMetrics {
+    pub functions: Vec<FunctionMetrics>,
+    pub module: ModuleMetrics,
+}
 
 // ─── Shared utilities ──────────────────────────────────────────────────
 
@@ -164,6 +168,7 @@ fn trim_leading_whitespace(line: &[u8]) -> &[u8] {
 
 pub fn find_child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
+    // cursor must outlive the iterator — binding extends the borrow
     let result = node.children(&mut cursor).find(|c| c.kind() == kind);
     result
 }
