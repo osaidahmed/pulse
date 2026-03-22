@@ -8,8 +8,10 @@ pub mod haskell;
 pub mod java;
 pub mod javascript;
 pub mod kotlin;
+pub mod lua;
 pub mod objc;
 pub mod python;
+pub mod r;
 pub mod ruby;
 pub mod rust;
 pub mod shared;
@@ -188,7 +190,7 @@ pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) ->
     for child in node.children(&mut cursor) {
         let child_depth = if branch_kinds.contains(&child.kind()) {
             measure_nesting_depth(child, current + 1, branch_kinds)
-        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do" | "braced_word") {
+        } else if matches!(child.kind(), "block" | "statement_block" | "body_statement" | "then" | "do" | "braced_word" | "braced_expression") {
             measure_nesting_depth(child, current, branch_kinds)
         } else {
             current
