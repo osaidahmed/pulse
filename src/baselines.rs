@@ -13,6 +13,24 @@ pub fn baseline_dir() -> PathBuf {
     PathBuf::from("/tmp/pulse-baselines")
 }
 
+pub fn session_baseline_dir(session_id: &str) -> PathBuf {
+    if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
+        return PathBuf::from(dir);
+    }
+    let truncated = &session_id[..session_id.len().min(16)];
+    PathBuf::from(format!("/tmp/pulse-baselines-{truncated}"))
+}
+
+pub fn init_session_dir(session_id: Option<&str>) {
+    if std::env::var("PULSE_BASELINE_DIR").is_ok() {
+        return;
+    }
+    if let Some(sid) = session_id {
+        let dir = session_baseline_dir(sid);
+        std::env::set_var("PULSE_BASELINE_DIR", dir.as_os_str());
+    }
+}
+
 pub fn is_fixture_file(path: &str) -> bool {
     path.replace('\\', "/").contains("/fixtures/")
 }

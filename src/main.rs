@@ -73,15 +73,31 @@ fn file_command(cmd: &str, path: String) -> Command {
     Command::Check(path)
 }
 
+fn read_session_id_from_stdin() -> Option<String> {
+    let mut input = String::new();
+    std::io::Read::read_to_string(&mut std::io::stdin(), &mut input).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&input).ok()?;
+    v.get("session_id")?.as_str().map(String::from)
+}
+
 fn main() {
     match parse_args() {
         Command::Debug(p) => run_debug(&p),
         Command::Check(p) => run_check(&p),
         Command::CheckAll => run_check_all(),
         Command::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        Command::Hook(h) => run_hook(h),
-        Command::Stop => run_stop(),
-        Command::Cleanup => run_cleanup(),
+        Command::Hook(h) => {
+            baselines::init_session_dir(h.session_id.as_deref());
+            run_hook(h);
+        }
+        Command::Stop => {
+            baselines::init_session_dir(read_session_id_from_stdin().as_deref());
+            run_stop();
+        }
+        Command::Cleanup => {
+            baselines::init_session_dir(read_session_id_from_stdin().as_deref());
+            run_cleanup();
+        }
     }
 }
 
