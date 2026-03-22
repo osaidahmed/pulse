@@ -1,3 +1,4 @@
+use crate::duplication;
 use crate::module_smells;
 use crate::thresholds::Thresholds;
 use crate::walk::{FileMetrics, FunctionMetrics};
@@ -28,10 +29,10 @@ pub fn detect((functions, module): &FileMetrics, _source: &str, t: &Thresholds) 
     }
 
     module_smells::detect_module_smells(module, t, has_god_method, &mut findings);
-    module_smells::detect_code_duplication(functions, t, &mut findings);
+    duplication::detect_code_duplication(functions, t, &mut findings);
     module_smells::detect_overall_function_size(functions, t, &mut findings);
     detect_primitive_obsession(functions, t, &mut findings);
-    detect_large_assertion_blocks(functions, t, &mut findings);
+    detect_batch_thresholds(functions, t, &mut findings);
     module_smells::detect_duplicated_assertion_blocks(functions, &mut findings);
     module_smells::detect_lcom4(functions, t, &mut findings);
     detect_empty_error_handlers(functions, &mut findings);
@@ -58,7 +59,6 @@ fn detect_function_smells(
     detect_argument_smells(f, t, findings);
     detect_embedded_smells(f, t, findings);
     detect_short_variable_names(f, t, findings);
-    detect_stringly_typed(f, t, findings);
 }
 
 fn detect_complexity_smells(
@@ -239,19 +239,29 @@ fn has_high_primitive_ratio(f: &FunctionMetrics, t: &Thresholds) -> bool {
     ratio >= t.primitive_ratio_threshold
 }
 
-fn detect_large_assertion_blocks(
+fn detect_batch_thresholds(
     functions: &[FunctionMetrics],
     t: &Thresholds,
     findings: &mut Vec<Finding>,
 ) {
-    let threshold = t.consecutive_asserts_max;
-    findings.extend(functions.iter().filter_map(|f| {
-        (f.consecutive_asserts > threshold).then_some(Finding {
-            smell: "Large Assertion Block",
-            location: func_loc(f),
-            detail: format!("{} consecutive assertions (threshold: {})", f.consecutive_asserts, threshold),
-        })
-    }));
+    let assert_threshold = t.consecutive_asserts_max;
+    let string_threshold = t.max_string_match_arms;
+    for f in functions {
+        if f.consecutive_asserts > assert_threshold {
+            findings.push(Finding {
+                smell: "Large Assertion Block",
+                location: func_loc(f),
+                detail: format!("{} consecutive assertions (threshold: {assert_threshold})", f.consecutive_asserts),
+            });
+        }
+        if f.string_match_arms > string_threshold {
+            findings.push(Finding {
+                smell: "Stringly-Typed Switch",
+                location: func_loc(f),
+                detail: format!("match/switch on string with {} arms (threshold: {string_threshold})", f.string_match_arms),
+            });
+        }
+    }
 }
 
 fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
@@ -279,13 +289,3 @@ fn detect_short_variable_names(f: &FunctionMetrics, t: &Thresholds, findings: &m
     });
 }
 
-fn detect_stringly_typed(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    (f.string_match_arms > t.max_string_match_arms).then(|| {
-        findings.push(Finding {
-            smell: "Stringly-Typed Switch",
-            location: func_loc(f),
-            detail: format!("match/switch on string with {} arms (threshold: {})",
-                f.string_match_arms, t.max_string_match_arms),
-        });
-    });
-}
