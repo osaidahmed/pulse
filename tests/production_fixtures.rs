@@ -142,3 +142,131 @@ fn ts_production_clean_helpers_not_flagged() {
     assert!(!has_function(&output, "searchUsers"));
     assert!(!has_function(&output, "deleteUser"));
 }
+
+// ===========================================================================
+// Lua production_service.lua — comprehensive smell validation
+// ===========================================================================
+
+#[test]
+fn lua_production_constructor_over_injection() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Constructor Over-Injection"));
+    assert!(has_function(&output, "OrderService.new"));
+}
+
+#[test]
+fn lua_production_complex_method() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Complex Method"));
+    assert!(has_function(&output, "processOrder"));
+}
+
+#[test]
+fn lua_production_complex_method_has_high_cc_and_loc() {
+    let debug = run_debug("lua", "production_service.lua");
+    let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
+    let loc = function_metric(&debug, "processOrder", "loc").unwrap_or(0);
+    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(loc >= 40, "loc should be >= 40, got: {}", loc);
+}
+
+#[test]
+fn lua_production_deep_nesting() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Deep Nested"));
+    assert!(has_function(&output, "processOrder"));
+}
+
+#[test]
+fn lua_production_nested_chunks() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Nested Conditional Chunks"));
+}
+
+#[test]
+fn lua_production_excess_args() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Excess Arguments"));
+    assert!(has_function(&output, "processOrder"));
+}
+
+#[test]
+fn lua_production_exact_duplication() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_function(&output, "generateInvoice"));
+    assert!(has_function(&output, "generateReceipt"));
+}
+
+#[test]
+fn lua_production_report_duplication() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_function(&output, "formatUserReport"));
+    assert!(has_function(&output, "formatAdminReport"));
+}
+
+#[test]
+fn lua_production_low_cohesion() {
+    let output = run_check("lua", "production_service.lua");
+    assert!(has_smell(&output, "Low Cohesion"));
+    assert!(output.contains("OrderService"));
+}
+
+#[test]
+fn lua_production_clean_functions_not_flagged_individually() {
+    let output = run_check("lua", "production_service.lua");
+    let function_lines: Vec<&str> = output
+        .lines()
+        .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("getOrder"))
+        .collect();
+    assert!(
+        function_lines.is_empty(),
+        "getOrder should have no individual smells, got: {:?}",
+        function_lines
+    );
+}
+
+// ===========================================================================
+// Lua production_api_service.lua — comprehensive smell validation
+// ===========================================================================
+
+#[test]
+fn lua_api_production_constructor_over_injection() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(has_smell(&output, "Constructor Over-Injection"));
+    assert!(has_function(&output, "ApiService.new"));
+}
+
+#[test]
+fn lua_api_production_complex_method() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(has_smell(&output, "Complex Method"));
+    assert!(has_function(&output, "handleRequest"));
+}
+
+#[test]
+fn lua_api_production_excess_args() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(has_smell(&output, "Excess Arguments"));
+    assert!(has_function(&output, "handleRequest"));
+}
+
+#[test]
+fn lua_api_production_nested_chunks() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(has_smell(&output, "Nested Conditional Chunks"));
+}
+
+#[test]
+fn lua_api_production_deep_nesting() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(has_smell(&output, "Deep Nested"));
+    assert!(has_function(&output, "handleRequest"));
+}
+
+#[test]
+fn lua_api_production_clean_helpers_not_flagged() {
+    let output = run_check("lua", "production_api_service.lua");
+    assert!(!has_function(&output, "getUser"));
+    assert!(!has_function(&output, "searchUsers"));
+    assert!(!has_function(&output, "deleteUser"));
+}

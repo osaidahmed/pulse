@@ -149,6 +149,7 @@ const FIELD_ACCESS_KINDS: &[&str] = &[
     "field_expression",
     "field_access",
     "navigation_expression",
+    "dot_index_expression",
 ];
 const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression"];
 const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier"];
