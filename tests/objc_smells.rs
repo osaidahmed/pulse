@@ -126,6 +126,19 @@ fn production_fixture_detects_complexity() {
 }
 
 #[test]
+fn god_method_subsumes_complex_and_large() {
+    let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
+    for i in 0..12 { code.push_str(&format!("    if (x > {}) {{}}\n", i)); }
+    for i in 0..fn_padding() { code.push_str(&format!("    NSLog(@\"{}\");\n", i)); }
+    code.push_str("}\n@end\n");
+    let out = pulse_check_code(&code, "m");
+    assert!(has_smell(&out, "God Method"), "got: {}", out);
+    let god_lines: Vec<&str> = out.lines().filter(|l| l.contains("god")).collect();
+    assert!(!god_lines.iter().any(|l| l.contains("Complex Method")), "God Method should subsume: {:?}", god_lines);
+    assert!(!god_lines.iter().any(|l| l.contains("Large Method")), "God Method should subsume: {:?}", god_lines);
+}
+
+#[test]
 fn large_method_detected() {
     let mut lines = String::from("@implementation X\n- (void)big {\n");
     for i in 0..fn_padding() {

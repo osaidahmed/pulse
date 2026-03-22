@@ -59,6 +59,16 @@ fn large_method_detected() {
     );
 }
 
+#[test]
+fn large_method_loc_exceeds_threshold() {
+    let mut code = String::from("def build_report(data):\n");
+    for i in 0..fn_padding() { code.push_str(&format!("    x_{} = {}\n", i, i)); }
+    code.push_str("    return x_0\n");
+    let debug = pulse_debug_code(&code, "py");
+    let loc = function_metric(&debug, "build_report", "loc").unwrap_or(0);
+    assert!(loc >= t().fn_loc_warning, "loc should exceed threshold, got: {}", loc);
+}
+
 // ===========================================================================
 // God Method (complex AND large)
 // ===========================================================================
