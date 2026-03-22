@@ -421,7 +421,7 @@ fn god_method_triggers_god_class_when_file_is_large_with_many_functions() {
     for i in 0..10 {
         code.push_str(&format!("    if x == {}:\n        pass\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    y_{} = {}\n", i, i));
     }
     code.push_str("    return None\n\n");
@@ -928,7 +928,7 @@ fn cogc_below_threshold_no_smell() {
 fn cogc_god_method_via_cogc() {
     let mut code = "def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n"
         .to_string();
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    x_{} = {}\n", i, i));
     }
     let out = check(&code);

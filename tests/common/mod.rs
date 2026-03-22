@@ -1,6 +1,20 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+pub use pulse::thresholds::Thresholds;
+
+pub fn t() -> Thresholds {
+    Thresholds::default()
+}
+
+pub fn fn_padding() -> usize {
+    t().fn_loc_warning as usize + 20
+}
+
+pub fn file_padding() -> usize {
+    t().file_loc_warning as usize + 100
+}
+
 pub fn fixtures_dir(lang: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

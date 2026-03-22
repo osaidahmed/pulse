@@ -49,7 +49,7 @@ fn complex_method_cc_at_least_9() {
 #[test]
 fn large_method_detected() {
     let mut code = String::from("def build_report(data):\n");
-    for i in 0..100 { code.push_str(&format!("    x_{} = {}\n", i, i)); }
+    for i in 0..fn_padding() { code.push_str(&format!("    x_{} = {}\n", i, i)); }
     code.push_str("    return x_0\n");
     let out = pulse_check_code(&code, "py");
     assert!(
@@ -80,7 +80,7 @@ fn god_method_has_high_cc_and_loc() {
     let cc = function_metric(&debug, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "process_data_pipeline", "loc").unwrap_or(0);
     assert!(cc >= 9, "god method cc should be >= 9, got: {}", cc);
-    assert!(loc >= 65, "god method loc should be >= 50, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "god method loc should be >= 50, got: {}", loc);
 }
 
 #[test]
@@ -281,7 +281,7 @@ fn global_conditionals_detected() {
 #[test]
 fn file_too_large_detected() {
     let mut code = String::new();
-    for i in 0..600 { code.push_str(&format!("x_{} = {}\n", i, i)); }
+    for i in 0..file_padding() { code.push_str(&format!("x_{} = {}\n", i, i)); }
     let out = pulse_check_code(&code, "py");
     assert!(
         has_smell(&out, "File Too Large"),

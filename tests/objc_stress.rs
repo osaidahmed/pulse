@@ -517,7 +517,7 @@ fn god_method_triggered() {
     for i in 0..10 {
         code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
     }
-    for _ in 0..100 {
+    for _ in 0..fn_padding() {
         code.push_str("    NSLog(@\"padding\");\n");
     }
     code.push_str("}\n@end\n");
@@ -531,7 +531,7 @@ fn god_method_subsumes() {
     for i in 0..10 {
         code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
     }
-    for _ in 0..100 {
+    for _ in 0..fn_padding() {
         code.push_str("    NSLog(@\"padding\");\n");
     }
     code.push_str("}\n@end\n");

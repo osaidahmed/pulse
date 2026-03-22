@@ -163,7 +163,7 @@ fn god_method_detected() {
     for i in 0..10 {
         code.push_str(&format!("    if x > {} {{}}\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    let y{} = {}\n", i, i));
     }
     code.push_str("    return 0\n}\n");
@@ -184,7 +184,7 @@ fn god_method_not_reported_as_separate() {
     for i in 0..10 {
         code.push_str(&format!("    if x > {} {{}}\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    let y{} = {}\n", i, i));
     }
     code.push_str("    return 0\n}\n");
@@ -208,7 +208,7 @@ fn large_method_detected() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large.swift");
     let mut code = String::from("func buildReport() -> Int {\n");
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    let x{} = {}\n", i, i));
     }
     code.push_str("    return 0\n}\n");
@@ -591,7 +591,7 @@ fn large_method_loc_at_least_65() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("large_loc.swift");
     let mut code = String::from("func buildReport() -> Int {\n");
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    let x{} = {}\n", i, i));
     }
     code.push_str("    return 0\n}\n");
@@ -602,7 +602,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= 65, "loc >= 65, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {}", loc);
 }
 
 // ===========================================================================

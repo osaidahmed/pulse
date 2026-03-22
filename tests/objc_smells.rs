@@ -128,7 +128,7 @@ fn production_fixture_detects_complexity() {
 #[test]
 fn large_method_detected() {
     let mut lines = String::from("@implementation X\n- (void)big {\n");
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         lines.push_str(&format!("    NSLog(@\"{}\");\n", i));
     }
     lines.push_str("}\n@end\n");

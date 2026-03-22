@@ -39,7 +39,8 @@ fn budget_shows_loc_and_room() {
     std::fs::write(&path, "def f():\n    return 1\n").unwrap();
     let out = run_budget(path.to_str().unwrap());
     assert!(out.contains("LOC:"), "should show LOC line, got: {}", out);
-    assert!(out.contains("/500"), "should show /500 threshold, got: {}", out);
+    let expected = format!("/{}", pulse::thresholds::Thresholds::default().file_loc_warning);
+    assert!(out.contains(&expected), "should show file LOC threshold, got: {}", out);
 }
 
 #[test]
@@ -58,10 +59,11 @@ fn budget_shows_per_function_limits() {
     let path = dir.path().join("t.py");
     std::fs::write(&path, "def f():\n    return 1\n").unwrap();
     let out = run_budget(path.to_str().unwrap());
-    assert!(out.contains("cc<9"), "should show cc limit, got: {}", out);
-    assert!(out.contains("cogc<15"), "should show cogc limit, got: {}", out);
-    assert!(out.contains("loc<65"), "should show loc limit, got: {}", out);
-    assert!(out.contains("args≤5"), "should show args limit, got: {}", out);
+    let t = pulse::thresholds::Thresholds::default();
+    assert!(out.contains(&format!("cc<{}", t.cc_warning)), "should show cc limit, got: {}", out);
+    assert!(out.contains(&format!("cogc<{}", t.cogc_warning)), "should show cogc limit, got: {}", out);
+    assert!(out.contains(&format!("loc<{}", t.fn_loc_warning)), "should show loc limit, got: {}", out);
+    assert!(out.contains(&format!("args≤{}", t.arg_max)), "should show args limit, got: {}", out);
 }
 
 #[test]
@@ -100,7 +102,8 @@ fn check_excess_args_shows_threshold() {
     let path = dir.path().join("t.py");
     std::fs::write(&path, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 5"), "excess args should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", pulse::thresholds::Thresholds::default().arg_max);
+    assert!(out.contains(&expected), "excess args should show threshold, got: {}", out);
 }
 
 #[test]
@@ -112,7 +115,10 @@ fn check_complex_method_shows_threshold() {
     code.push_str("    return x\n");
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 9") || out.contains("cc threshold: 9"), "cc should show threshold, got: {}", out);
+    let t = pulse::thresholds::Thresholds::default();
+    let expected = format!("threshold: {}", t.cc_warning);
+    let expected_cc = format!("cc threshold: {}", t.cc_warning);
+    assert!(out.contains(&expected) || out.contains(&expected_cc), "cc should show threshold, got: {}", out);
 }
 
 #[test]
@@ -130,41 +136,48 @@ fn check_deep_nesting_shows_threshold() {
         "    return 0\n",
     )).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 4"), "nesting should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", pulse::thresholds::Thresholds::default().nesting_depth);
+    assert!(out.contains(&expected), "nesting should show threshold, got: {}", out);
 }
 
 #[test]
 fn check_file_too_large_shows_threshold() {
+    let t = pulse::thresholds::Thresholds::default();
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.py");
     let mut code = String::new();
-    for i in 0..520 { code.push_str(&format!("x_{i} = {i}\n")); }
+    for i in 0..(t.file_loc_warning as usize + 20) { code.push_str(&format!("x_{i} = {i}\n")); }
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 500"), "file too large should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", t.file_loc_warning);
+    assert!(out.contains(&expected), "file too large should show threshold, got: {}", out);
 }
 
 #[test]
 fn check_too_many_functions_shows_threshold() {
+    let t = pulse::thresholds::Thresholds::default();
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.py");
     let mut code = String::new();
-    for i in 0..25 { code.push_str(&format!("def fn_{i}():\n    return {i}\n\n")); }
+    for i in 0..(t.file_function_count as usize + 5) { code.push_str(&format!("def fn_{i}():\n    return {i}\n\n")); }
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 20"), "too many fns should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", t.file_function_count);
+    assert!(out.contains(&expected), "too many fns should show threshold, got: {}", out);
 }
 
 #[test]
 fn check_large_method_shows_threshold() {
+    let t = pulse::thresholds::Thresholds::default();
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.py");
     let mut code = String::from("def big():\n");
-    for i in 0..70 { code.push_str(&format!("    x_{i} = {i}\n")); }
+    for i in 0..(t.fn_loc_warning as usize + 10) { code.push_str(&format!("    x_{i} = {i}\n")); }
     code.push_str("    return 0\n");
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 65"), "large method should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", t.fn_loc_warning);
+    assert!(out.contains(&expected), "large method should show threshold, got: {}", out);
 }
 
 #[test]
@@ -176,5 +189,6 @@ fn check_embedded_block_shows_threshold() {
     code.push_str("    '''\n    return s\n");
     std::fs::write(&path, &code).unwrap();
     let out = run_check(path.to_str().unwrap());
-    assert!(out.contains("threshold: 15"), "embedded block should show threshold, got: {}", out);
+    let expected = format!("threshold: {}", pulse::thresholds::Thresholds::default().embedded_block_loc);
+    assert!(out.contains(&expected), "embedded block should show threshold, got: {}", out);
 }

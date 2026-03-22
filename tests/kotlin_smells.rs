@@ -148,7 +148,7 @@ fn function_below_cc_boundary_not_flagged() {
 #[test]
 fn large_method_detected() {
     let mut code = String::from("class T {\n    fun big(): Int {\n");
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("        val x{i} = {i}\n"));
     }
     code.push_str("        return 0\n    }\n}\n");
@@ -159,13 +159,13 @@ fn large_method_detected() {
 #[test]
 fn large_method_loc_at_least_65() {
     let mut code = String::from("class T {\n    fun big(): Int {\n");
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("        val x{i} = {i}\n"));
     }
     code.push_str("        return 0\n    }\n}\n");
     let debug = pulse_debug_code(&code, "kt");
     let loc = function_metric(&debug, "big", "loc").unwrap_or(0);
-    assert!(loc >= 65, "got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "got: {}", loc);
 }
 
 #[test]

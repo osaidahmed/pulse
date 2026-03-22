@@ -273,14 +273,14 @@ fn god_method_triggers_god_class() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
     for i in 0..21 {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
-    for i in 0..600 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const V{} = {};\n", i, i));
     }
     let out = check(&code);
@@ -913,14 +913,14 @@ fn god_class_triggers_when_large_with_god_method() {
     for i in 0..10 {
         code.push_str(&format!("    if (x === {}) {{}}\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    const y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
     for i in 0..21 {
         code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
     }
-    for i in 0..600 {
+    for i in 0..file_padding() {
         code.push_str(&format!("const V{} = {};\n", i, i));
     }
     let out = check(&code);

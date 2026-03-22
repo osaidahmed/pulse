@@ -4,6 +4,8 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
+use pulse::thresholds::Thresholds;
+
 fn run_pulse(args: &[&str], baseline: &Path, stdin: &str) -> String {
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(args)
@@ -250,7 +252,7 @@ fn stop_blocks_on_module_regression() {
     let e = Env::new("g.py", "def f():\n    return 1\nM = 1\n");
     e.edit("M = 1", "M = 2");
     let mut big = String::from("def f():\n    return 1\nM = 2\n");
-    for i in 0..520 { big.push_str(&format!("x_{i} = {i}\n")); }
+    for i in 0..(Thresholds::default().file_loc_warning as usize + 20) { big.push_str(&format!("x_{i} = {i}\n")); }
     std::fs::write(&e.path, &big).unwrap();
     let out = e.stop();
     assert!(out.contains("file too large"), "should report regression, got: {}", out);

@@ -321,7 +321,7 @@ fn god_class_triggers_with_god_method() {
     for i in 0..10 {
         code.push_str(&format!("    if ({} > 0) {{}}\n", i));
     }
-    for i in 0..100 {
+    for i in 0..fn_padding() {
         code.push_str(&format!("    int y{} = {};\n", i, i));
     }
     code.push_str("}\n\n");
