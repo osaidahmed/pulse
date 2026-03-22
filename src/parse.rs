@@ -17,6 +17,7 @@ pub enum Language {
     Ruby,
     ObjectiveC,
     Tcl,
+    Kotlin,
 }
 
 type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
@@ -36,6 +37,7 @@ const EXTENSION_MAP: &[(&[&str], Language)] = &[
     (&["rb"], Language::Ruby),
     (&["m"], Language::ObjectiveC),
     (&["tcl", "tk", "itcl"], Language::Tcl),
+    (&["kt", "kts"], Language::Kotlin),
 ];
 
 fn ts_python() -> tree_sitter::Language { tree_sitter_python::LANGUAGE.into() }
@@ -52,6 +54,7 @@ fn ts_zig() -> tree_sitter::Language { tree_sitter_zig::LANGUAGE.into() }
 fn ts_ruby() -> tree_sitter::Language { tree_sitter_ruby::LANGUAGE.into() }
 fn ts_objc() -> tree_sitter::Language { tree_sitter_objc::LANGUAGE.into() }
 fn ts_tcl() -> tree_sitter::Language { tree_sitter_tcl::LANGUAGE.into() }
+fn ts_kotlin() -> tree_sitter::Language { tree_sitter_kotlin_ng::LANGUAGE.into() }
 
 fn walk_ts(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
     walk::typescript::walk(tree, source, true)
@@ -63,7 +66,7 @@ fn walk_js(tree: &tree_sitter::Tree, source: &str) -> FileMetrics {
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 14] = [
+static DISPATCH: [(LangInit, WalkFn); 15] = [
     (ts_python, walk::python::walk as WalkFn),
     (ts_typescript, walk_ts as WalkFn),
     (ts_javascript, walk_js as WalkFn),
@@ -78,6 +81,7 @@ static DISPATCH: [(LangInit, WalkFn); 14] = [
     (ts_ruby, walk::ruby::walk as WalkFn),
     (ts_objc, walk::objc::walk as WalkFn),
     (ts_tcl, walk::tcl::walk as WalkFn),
+    (ts_kotlin, walk::kotlin::walk as WalkFn),
 ];
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {

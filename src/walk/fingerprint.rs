@@ -116,6 +116,7 @@ pub fn count_consecutive_asserts(body: Node, assert_kind: &str) -> u32 {
     let mut current: u32 = 0;
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
+        if !child.is_named() { continue; }
         if child.kind() == assert_kind {
             current += 1;
         } else {
@@ -132,6 +133,7 @@ pub fn compute_assert_fingerprint(body: Node, assert_kind: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
+        if !child.is_named() { continue; }
         if child.kind() == assert_kind {
             fingerprint_walk(child, &mut hasher);
         }
@@ -146,8 +148,9 @@ const FIELD_ACCESS_KINDS: &[&str] = &[
     "member_expression",
     "field_expression",
     "field_access",
+    "navigation_expression",
 ];
-const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self"];
+const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression"];
 const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier"];
 
 pub fn collect_field_accesses_for(

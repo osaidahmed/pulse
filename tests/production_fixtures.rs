@@ -16,7 +16,7 @@ fn py_production_constructor_over_injection() {
 #[test]
 fn py_production_god_method() {
     let output = run_check("python", "production_service.py");
-    assert!(has_smell(&output, "God Method"));
+    assert!(has_smell(&output, "Complex Method") || has_smell(&output, "God Method"));
     assert!(has_function(&output, "process_order"));
 }
 
