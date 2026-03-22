@@ -93,6 +93,56 @@ pub fn function_metric(debug_output: &str, func_name: &str, metric: &str) -> Opt
     None
 }
 
+// ── Threshold-derived generation helpers ──
+
+pub fn cc_branches() -> usize {
+    t().cc_warning as usize + 1
+}
+
+pub fn declarations_above() -> usize {
+    t().max_declarations as usize + 5
+}
+
+pub fn functions_above() -> usize {
+    t().file_function_count as usize + 1
+}
+
+pub fn struct_fields_at() -> usize {
+    t().max_struct_fields as usize
+}
+
+pub fn struct_fields_above() -> usize {
+    t().max_struct_fields as usize + 3
+}
+
+pub fn asserts_at() -> usize {
+    t().consecutive_asserts_max as usize
+}
+
+pub fn asserts_above() -> usize {
+    t().consecutive_asserts_max as usize + 5
+}
+
+pub fn large_fn_lines() -> usize {
+    t().large_fn_loc as usize + 15
+}
+
+pub fn embedded_lines_above() -> usize {
+    t().embedded_block_loc as usize + 5
+}
+
+pub fn args_above() -> usize {
+    t().arg_max as usize + 1
+}
+
+#[macro_export]
+macro_rules! lang_helpers {
+    ($ext:expr) => {
+        fn check(code: &str) -> String { pulse_check_code(code, $ext) }
+        fn debug(code: &str) -> String { pulse_debug_code(code, $ext) }
+    };
+}
+
 pub fn pulse_check_code(code: &str, ext: &str) -> String {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join(format!("test.{}", ext));
