@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::smells::{Finding, Location};
+use crate::smells::{Finding, Location, Smell};
 use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 
@@ -52,7 +52,7 @@ fn detect_similar_clones(
 
     let already_reported: std::collections::HashSet<usize> = findings
         .iter()
-        .filter(|f| f.smell == "Code Duplication")
+        .filter(|f| f.smell == Smell::CodeDuplication)
         .flat_map(|f| extract_line_numbers(&f.detail))
         .collect();
 
@@ -113,7 +113,7 @@ fn emit_duplication_findings(
             })
             .collect();
         findings.push(Finding {
-            smell: "Code Duplication",
+            smell: Smell::CodeDuplication,
             location: Location::Module,
             detail: format!("{} functions with {}: {}", members.len(), label, members.join(", ")),
         });

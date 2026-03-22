@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::smells::{Finding, Location};
+use crate::smells::{Finding, Location, Smell};
 
 pub fn format(findings: &[Finding], filename: &str) -> String {
     let mut out = String::new();
@@ -51,24 +51,25 @@ fn format_stop_finding(out: &mut String, f: &Finding, filename: &str) {
     } else {
         "threshold crossed"
     };
+    let smell_lower = f.smell.as_str().to_lowercase();
     let _ = writeln!(
         out,
         "error[pulse]: {}: {} {} — {}. {}",
         filename,
-        f.smell.to_lowercase(),
+        smell_lower,
         label,
         f.detail,
         action_for(f.smell, &f.detail)
     );
 }
 
-fn is_actionable(smell: &str) -> bool {
+fn is_actionable(smell: Smell) -> bool {
     matches!(
         smell,
-        "Code Duplication"
-            | "Global Conditionals"
-            | "Deep Global Nesting"
-            | "Duplicated Assertion Blocks"
+        Smell::CodeDuplication
+            | Smell::GlobalConditionals
+            | Smell::DeepGlobalNesting
+            | Smell::DuplicatedAssertionBlocks
     )
 }
 
@@ -83,60 +84,57 @@ pub fn format_compact(findings: &[Finding], filename: &str) -> String {
 
 fn format_compact_line(f: &Finding, filename: &str) -> String {
     let action = action_for(f.smell, &f.detail);
-    let smell = f.smell.to_lowercase();
+    let smell_lower = f.smell.as_str().to_lowercase();
     match &f.location {
         Location::Function {
             name, start_line, ..
         } => {
             format!(
                 "error[pulse]: {}:{}: {} in `{}` — {}. {}\n",
-                filename, start_line, smell, name, f.detail, action
+                filename, start_line, smell_lower, name, f.detail, action
             )
         }
         Location::Module => {
             format!(
                 "error[pulse]: {}: {} — {}. {}\n",
-                filename, smell, f.detail, action
+                filename, smell_lower, f.detail, action
             )
         }
     }
 }
 
-const ACTIONS: &[(&str, &str)] = &[
-    ("God Method", "extract smaller functions to reduce size and complexity"),
-    ("Complex Method", "reduce branching or extract helper functions"),
-    ("Large Method", "break into smaller functions"),
-    ("Nested Conditional Chunks", "extract nested blocks into named functions"),
-    ("Deep Nested Complexity", "flatten nesting with early returns or guard clauses"),
-    ("Complex Conditional", "extract condition into a named boolean or function"),
-    ("Excess Arguments", "group related parameters into a struct or config object"),
-    ("Constructor Over-Injection", "use a builder pattern or reduce dependencies"),
-    ("Large Embedded Block", "move embedded content to a separate file or constant"),
-    ("Primitive Obsession", "introduce domain types to replace primitive parameters"),
-    ("Large Assertion Block", "extract shared setup into a helper function"),
-    ("Empty Error Handler", "add error handling logic or propagate the error"),
-    ("File Too Large", "split into smaller, focused modules"),
-    ("Too Many Functions", "group related functions into separate modules"),
-    ("Overall Code Complexity", "simplify control flow across the module"),
-    ("God Class", "split into smaller, single-responsibility classes"),
-    ("Excessive Declarations", "reduce type declarations or split the module"),
-    ("Global Conditionals", "move conditional logic into functions"),
-    ("Deep Global Nesting", "flatten top-level nesting into function calls"),
-    ("Code Duplication", "extract shared logic into a reusable function"),
-    ("Duplicated Assertion Blocks", "extract common assertions into a helper"),
-    ("Low Cohesion", "split class into smaller classes with focused responsibilities"),
-    ("Overall Function Size", "break large functions into smaller units"),
-    ("Large Struct", "group related fields into smaller structs or use composition"),
-    ("Short Variable Names", "use descriptive names that convey purpose"),
-    ("Stringly-Typed Switch", "replace string matching with an enum for type safety"),
+const ACTIONS: &[&str] = &[
+    "extract smaller functions to reduce size and complexity",
+    "reduce branching or extract helper functions",
+    "break into smaller functions",
+    "extract nested blocks into named functions",
+    "flatten nesting with early returns or guard clauses",
+    "extract condition into a named boolean or function",
+    "group related parameters into a struct or config object",
+    "use a builder pattern or reduce dependencies",
+    "move embedded content to a separate file or constant",
+    "introduce domain types to replace primitive parameters",
+    "extract shared setup into a helper function",
+    "add error handling logic or propagate the error",
+    "split into smaller, focused modules",
+    "group related functions into separate modules",
+    "simplify control flow across the module",
+    "split into smaller, single-responsibility classes",
+    "reduce type declarations or split the module",
+    "move conditional logic into functions",
+    "flatten top-level nesting into function calls",
+    "extract shared logic into a reusable function",
+    "extract common assertions into a helper",
+    "split class into smaller classes with focused responsibilities",
+    "break large functions into smaller units",
+    "group related fields into smaller structs or use composition",
+    "use descriptive names that convey purpose",
+    "replace string matching with an enum for type safety",
 ];
 
-fn action_for(smell: &str, detail: &str) -> &'static str {
-    if smell == "Code Duplication" && detail.contains("similar structure") {
+fn action_for(smell: Smell, detail: &str) -> &'static str {
+    if smell == Smell::CodeDuplication && detail.contains("similar structure") {
         return "restructure to reduce structural similarity";
     }
-    ACTIONS
-        .iter()
-        .find(|(s, _)| *s == smell)
-        .map_or("address this finding", |(_, a)| a)
+    ACTIONS[smell as usize]
 }

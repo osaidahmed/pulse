@@ -1,11 +1,85 @@
+use std::fmt;
+
 use crate::duplication;
 use crate::module_smells;
 use crate::thresholds::Thresholds;
 use crate::walk::{FileMetrics, FunctionMetrics};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(usize)]
+pub enum Smell {
+    GodMethod,
+    ComplexMethod,
+    LargeMethod,
+    NestedConditionalChunks,
+    DeepNestedComplexity,
+    ComplexConditional,
+    ExcessArguments,
+    ConstructorOverInjection,
+    LargeEmbeddedBlock,
+    PrimitiveObsession,
+    LargeAssertionBlock,
+    EmptyErrorHandler,
+    FileTooLarge,
+    TooManyFunctions,
+    OverallCodeComplexity,
+    GodClass,
+    ExcessiveDeclarations,
+    GlobalConditionals,
+    DeepGlobalNesting,
+    CodeDuplication,
+    DuplicatedAssertionBlocks,
+    LowCohesion,
+    OverallFunctionSize,
+    LargeStruct,
+    ShortVariableNames,
+    StringlyTypedSwitch,
+}
+
+const SMELL_NAMES: &[&str] = &[
+    "God Method",
+    "Complex Method",
+    "Large Method",
+    "Nested Conditional Chunks",
+    "Deep Nested Complexity",
+    "Complex Conditional",
+    "Excess Arguments",
+    "Constructor Over-Injection",
+    "Large Embedded Block",
+    "Primitive Obsession",
+    "Large Assertion Block",
+    "Empty Error Handler",
+    "File Too Large",
+    "Too Many Functions",
+    "Overall Code Complexity",
+    "God Class",
+    "Excessive Declarations",
+    "Global Conditionals",
+    "Deep Global Nesting",
+    "Code Duplication",
+    "Duplicated Assertion Blocks",
+    "Low Cohesion",
+    "Overall Function Size",
+    "Large Struct",
+    "Short Variable Names",
+    "Stringly-Typed Switch",
+];
+
+impl Smell {
+    pub fn as_str(self) -> &'static str {
+        SMELL_NAMES[self as usize]
+    }
+}
+
+impl fmt::Display for Smell {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug)]
 pub struct Finding {
-    pub smell: &'static str,
+    pub smell: Smell,
     pub location: Location,
     pub detail: String,
 }
@@ -76,7 +150,7 @@ fn detect_complexity_smells(
         *has_god_method = true;
         let detail = complexity_detail(f, t, cc_complex, cogc_complex);
         findings.push(Finding {
-            smell: "God Method",
+            smell: Smell::GodMethod,
             location: func_loc(f),
             detail: format!("{}, {} lines (both thresholds exceeded)", detail, f.loc),
         });
@@ -128,7 +202,7 @@ fn check_complex_method(
         return;
     }
     findings.push(Finding {
-        smell: "Complex Method",
+        smell: Smell::ComplexMethod,
         location: func_loc(f),
         detail: complexity_detail(f, t, cc_complex, cogc_complex),
     });
@@ -145,7 +219,7 @@ fn check_large_method(
     }
     let severity = if f.loc > t.fn_loc_alert { "alert" } else { "warning" };
     findings.push(Finding {
-        smell: "Large Method",
+        smell: Smell::LargeMethod,
         location: func_loc(f),
         detail: format!("{} lines [{}] (threshold: {})", f.loc, severity, t.fn_loc_warning),
     });
@@ -154,7 +228,7 @@ fn check_large_method(
 fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     if f.bump_count >= t.bump_count {
         findings.push(Finding {
-            smell: "Nested Conditional Chunks",
+            smell: Smell::NestedConditionalChunks,
             location: func_loc(f),
             detail: format!("{} nested conditional chunks (threshold: {})", f.bump_count, t.bump_count),
         });
@@ -162,7 +236,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
 
     if f.max_nesting >= t.nesting_depth {
         findings.push(Finding {
-            smell: "Deep Nested Complexity",
+            smell: Smell::DeepNestedComplexity,
             location: func_loc(f),
             detail: format!("depth={} (threshold: {})", f.max_nesting, t.nesting_depth),
         });
@@ -170,7 +244,7 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
 
     if f.compound_condition_count > t.compound_conditions {
         findings.push(Finding {
-            smell: "Complex Conditional",
+            smell: Smell::ComplexConditional,
             location: func_loc(f),
             detail: format!("{} complex conditions (threshold: {})", f.compound_condition_count, t.compound_conditions),
         });
@@ -187,9 +261,9 @@ fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Ve
         return;
     }
     let smell = if f.is_constructor {
-        "Constructor Over-Injection"
+        Smell::ConstructorOverInjection
     } else {
-        "Excess Arguments"
+        Smell::ExcessArguments
     };
     findings.push(Finding {
         smell,
@@ -201,7 +275,7 @@ fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Ve
 fn detect_embedded_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     if f.max_embedded_block_loc > t.embedded_block_loc {
         findings.push(Finding {
-            smell: "Large Embedded Block",
+            smell: Smell::LargeEmbeddedBlock,
             location: func_loc(f),
             detail: format!("{} lines of embedded content (threshold: {})", f.max_embedded_block_loc, t.embedded_block_loc),
         });
@@ -219,7 +293,7 @@ fn detect_primitive_obsession(
         }
         let ratio = f.primitive_type_count as f32 / f.typed_param_count as f32;
         findings.push(Finding {
-            smell: "Primitive Obsession",
+            smell: Smell::PrimitiveObsession,
             location: func_loc(f),
             detail: format!(
                 "{}/{} typed params are primitives ({:.0}%)",
@@ -249,14 +323,14 @@ fn detect_batch_thresholds(
     for f in functions {
         if f.consecutive_asserts > assert_threshold {
             findings.push(Finding {
-                smell: "Large Assertion Block",
+                smell: Smell::LargeAssertionBlock,
                 location: func_loc(f),
                 detail: format!("{} consecutive assertions (threshold: {assert_threshold})", f.consecutive_asserts),
             });
         }
         if f.string_match_arms > string_threshold {
             findings.push(Finding {
-                smell: "Stringly-Typed Switch",
+                smell: Smell::StringlyTypedSwitch,
                 location: func_loc(f),
                 detail: format!("match/switch on string with {} arms (threshold: {string_threshold})", f.string_match_arms),
             });
@@ -267,7 +341,7 @@ fn detect_batch_thresholds(
 fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
     findings.extend(functions.iter().filter(|f| f.empty_catch_count > 0).map(|f| {
         Finding {
-            smell: "Empty Error Handler",
+            smell: Smell::EmptyErrorHandler,
             location: func_loc(f),
             detail: format!(
                 "{} empty catch block{}",
@@ -282,7 +356,7 @@ fn detect_short_variable_names(f: &FunctionMetrics, t: &Thresholds, findings: &m
     let dominated = f.loc < t.short_var_min_fn_loc || f.short_var_count <= t.short_var_max_count;
     if dominated { return; }
     findings.push(Finding {
-        smell: "Short Variable Names",
+        smell: Smell::ShortVariableNames,
         location: func_loc(f),
         detail: format!("{} single-char variables in {} LOC function (threshold: {})",
             f.short_var_count, f.loc, t.short_var_max_count),

@@ -259,7 +259,7 @@ fn collect_module_findings(
     if edit_count == 1 {
         let baseline = baselines::load_baseline(file_path);
         findings.extend(module_findings.into_iter().filter(|f| {
-            baseline.get(f.smell).copied().unwrap_or(0) == 0
+            baseline.get(f.smell.as_str()).copied().unwrap_or(0) == 0
         }));
     }
 
@@ -309,7 +309,7 @@ fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
     let baseline = baselines::load_baseline(file_path);
     let (findings, filename) = analyze_file(file_path)?;
 
-    let mut current_counts: HashMap<&str, usize> = HashMap::new();
+    let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
     for f in findings.iter().filter(|f| matches!(f.location, Location::Module)) {
         *current_counts.entry(f.smell).or_default() += 1;
     }
@@ -318,8 +318,8 @@ fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
         .into_iter()
         .filter(|f| matches!(f.location, Location::Module))
         .filter(|f| {
-            let baseline_count = baseline.get(f.smell).copied().unwrap_or(0);
-            let current_count = current_counts.get(f.smell).copied().unwrap_or(0);
+            let baseline_count = baseline.get(f.smell.as_str()).copied().unwrap_or(0);
+            let current_count = current_counts.get(&f.smell).copied().unwrap_or(0);
             current_count > baseline_count
         })
         .collect();

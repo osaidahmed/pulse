@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::duplication::is_test_function;
-use crate::smells::{Finding, Location};
+use crate::smells::{Finding, Location, Smell};
 use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 use crate::walk::ModuleMetrics;
@@ -20,7 +20,7 @@ pub fn detect_module_smells(
 fn detect_large_structs(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     findings.extend(m.struct_fields.iter().filter_map(|(name, count)| {
         (*count > t.max_struct_fields).then_some(Finding {
-            smell: "Large Struct",
+            smell: Smell::LargeStruct,
             location: Location::Module,
             detail: format!("{name}: {count} fields (threshold: {})", t.max_struct_fields),
         })
@@ -35,24 +35,24 @@ fn detect_size_smells(
 ) {
     if m.total_loc > t.file_loc_warning {
         let sev = if m.total_loc > t.file_loc_alert { "alert" } else { "warning" };
-        emit_module("File Too Large", format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.file_loc_warning), findings);
+        emit_module(Smell::FileTooLarge, format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.file_loc_warning), findings);
     }
     emit_module_if(m.total_functions > t.file_function_count,
-        "Too Many Functions", || format!("{} functions (threshold: {})", m.total_functions, t.file_function_count), findings);
+        Smell::TooManyFunctions, || format!("{} functions (threshold: {})", m.total_functions, t.file_function_count), findings);
     emit_module_if(m.sum_cc > t.file_total_cc,
-        "Overall Code Complexity", || format!("total cc={} (threshold: {})", m.sum_cc, t.file_total_cc), findings);
+        Smell::OverallCodeComplexity, || format!("total cc={} (threshold: {})", m.sum_cc, t.file_total_cc), findings);
     check_god_class(m, t, has_god_method, findings);
     emit_module_if(m.declaration_count > t.max_declarations,
-        "Excessive Declarations", || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.max_declarations), findings);
+        Smell::ExcessiveDeclarations, || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.max_declarations), findings);
 }
 
-fn emit_module(smell: &'static str, detail: String, findings: &mut Vec<Finding>) {
+fn emit_module(smell: Smell, detail: String, findings: &mut Vec<Finding>) {
     findings.push(Finding { smell, location: Location::Module, detail });
 }
 
 fn emit_module_if(
     condition: bool,
-    smell: &'static str,
+    smell: Smell,
     detail: impl FnOnce() -> String,
     findings: &mut Vec<Finding>,
 ) {
@@ -71,7 +71,7 @@ fn check_god_class(
         m.total_loc > t.file_loc_warning && m.total_functions > t.file_function_count && has_god_method;
     if is_god_class {
         findings.push(Finding {
-            smell: "God Class",
+            smell: Smell::GodClass,
             location: Location::Module,
             detail: format!(
                 "{} LOC, {} functions, contains god method(s)",
@@ -84,7 +84,7 @@ fn check_god_class(
 fn detect_global_scope_smells(m: &ModuleMetrics, findings: &mut Vec<Finding>) {
     if m.global_conditional_count > 0 {
         findings.push(Finding {
-            smell: "Global Conditionals",
+            smell: Smell::GlobalConditionals,
             location: Location::Module,
             detail: format!("{} conditionals at module scope", m.global_conditional_count),
         });
@@ -92,7 +92,7 @@ fn detect_global_scope_smells(m: &ModuleMetrics, findings: &mut Vec<Finding>) {
 
     if m.global_max_nesting >= 3 {
         findings.push(Finding {
-            smell: "Deep Global Nesting",
+            smell: Smell::DeepGlobalNesting,
             location: Location::Module,
             detail: format!("depth={} at module scope", m.global_max_nesting),
         });
@@ -116,7 +116,7 @@ pub fn detect_overall_function_size(
         .map(|f| format!("{} ({}L)", f.name, f.loc))
         .collect();
     findings.push(Finding {
-        smell: "Overall Function Size",
+        smell: Smell::OverallFunctionSize,
         location: Location::Module,
         detail: format!("{} large functions (>{} LOC, threshold: {}+ functions): {}", large_count, t.large_fn_loc, t.large_fn_count, names.join(", ")),
     });
@@ -129,7 +129,7 @@ pub fn detect_lcom4(functions: &[FunctionMetrics], t: &Thresholds, findings: &mu
         let components = compute_lcom4(methods);
         if components >= t.lcom4_warning {
             findings.push(Finding {
-                smell: "Low Cohesion",
+                smell: Smell::LowCohesion,
                 location: Location::Module,
                 detail: format!(
                     "{class_name}: LCOM4={components} ({components} disconnected method groups)"
@@ -224,7 +224,7 @@ pub fn detect_duplicated_assertion_blocks(
         }
         let names: Vec<String> = indices.iter().map(|&i| functions[i].name.clone()).collect();
         findings.push(Finding {
-            smell: "Duplicated Assertion Blocks",
+            smell: Smell::DuplicatedAssertionBlocks,
             location: Location::Module,
             detail: format!(
                 "{} test functions with identical assertion structure: {}",

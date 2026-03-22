@@ -49,7 +49,7 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str) {
             "ts": ts,
             "file": filename,
             "path": hook.file_path,
-            "smell": f.smell,
+            "smell": f.smell.as_str(),
             "fn": func_name,
             "line": start_line,
             "detail": f.detail,
@@ -135,7 +135,7 @@ fn write_outcome(
     let func = entry.get("fn").and_then(|v| v.as_str());
 
     let still_present = current_findings.iter().any(|cf| {
-        cf.smell == smell
+        cf.smell.as_str() == smell
             && match (&cf.location, func) {
                 (Location::Function { name, .. }, Some(fn_name)) => name == fn_name,
                 (Location::Module, None) => true,
