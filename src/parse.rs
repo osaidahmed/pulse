@@ -24,6 +24,20 @@ pub enum Language {
     Php,
     Cobol,
     D,
+    Groovy,
+}
+
+const CONFIG_KEYS: &[&str] = &[
+    "python", "typescript", "javascript", "rust", "c", "cpp",
+    "java", "csharp", "go", "swift", "zig", "ruby", "objc",
+    "tcl", "kotlin", "haskell", "lua", "r", "php", "cobol",
+    "d", "groovy",
+];
+
+impl Language {
+    pub fn to_config_key(self) -> &'static str {
+        CONFIG_KEYS[self as usize]
+    }
 }
 
 type WalkFn = fn(&tree_sitter::Tree, &str) -> FileMetrics;
@@ -50,6 +64,7 @@ const EXTENSION_MAP: &[(&[&str], Language)] = &[
     (&["php", "php5"], Language::Php),
     (&["cob", "cbl", "cobol"], Language::Cobol),
     (&["d", "di"], Language::D),
+    (&["groovy"], Language::Groovy),
 ];
 
 macro_rules! lang_init {
@@ -60,7 +75,7 @@ macro_rules! lang_init {
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 21] = [
+static DISPATCH: [(LangInit, WalkFn); 22] = [
     (lang_init!(tree_sitter_python::LANGUAGE), walk::python::walk as WalkFn),
     (lang_init!(tree_sitter_typescript::LANGUAGE_TYPESCRIPT), |t, s| walk::typescript::walk(t, s, true)),
     (lang_init!(tree_sitter_javascript::LANGUAGE), walk::javascript::walk as WalkFn),
@@ -82,6 +97,7 @@ static DISPATCH: [(LangInit, WalkFn); 21] = [
     (lang_init!(tree_sitter_php::LANGUAGE_PHP), walk::php::walk as WalkFn),
     (lang_init!(tree_sitter_cobol::LANGUAGE), walk::cobol::walk as WalkFn),
     (lang_init!(tree_sitter_d::LANGUAGE), walk::d::walk as WalkFn),
+    (lang_init!(tree_sitter_groovy::LANGUAGE), walk::groovy::walk as WalkFn),
 ];
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {

@@ -6,6 +6,7 @@ pub mod cpp;
 pub mod csharp;
 pub mod fingerprint;
 pub mod go;
+pub mod groovy;
 pub mod haskell;
 pub mod java;
 pub mod javascript;
