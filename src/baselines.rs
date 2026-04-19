@@ -2,9 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::config;
 use crate::hook::HookInput;
 use crate::smells::{Finding, Location};
-use crate::{parse, smells, thresholds};
+use crate::{parse, smells};
 
 pub fn baseline_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
@@ -35,15 +36,15 @@ pub fn is_fixture_file(path: &str) -> bool {
     path.replace('\\', "/").contains("/fixtures/")
 }
 
-pub fn cache_baseline(hook: &HookInput) {
+pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>) {
     let dominated = is_fixture_file(&hook.file_path) || baseline_path(&hook.file_path).exists();
     if dominated { return; }
-    create_baseline_files(hook);
+    create_baseline_files(hook, cfg);
 }
 
-fn create_baseline_files(hook: &HookInput) {
+fn create_baseline_files(hook: &HookInput, cfg: Option<&config::PulseConfig>) {
     let bp = baseline_path(&hook.file_path);
-    let (counts, func_findings) = compute_baseline(hook);
+    let (counts, func_findings) = compute_baseline(hook, cfg);
     write_baseline(&bp, &counts);
     write_function_baseline(&hook.file_path, &func_findings);
     append_manifest(&hook.file_path);
@@ -117,7 +118,7 @@ pub fn increment_edit_count(file_path: &str) -> u32 {
     next
 }
 
-fn compute_baseline(hook: &HookInput) -> (HashMap<String, usize>, Vec<String>) {
+fn compute_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>) -> (HashMap<String, usize>, Vec<String>) {
     let source = match reconstruct_pre_edit(hook) {
         Some(s) if !s.is_empty() => s,
         _ => return (HashMap::new(), Vec::new()),
@@ -128,8 +129,10 @@ fn compute_baseline(hook: &HookInput) -> (HashMap<String, usize>, Vec<String>) {
     let Some(metrics) = parse::parse_and_walk(&source, lang) else {
         return (HashMap::new(), Vec::new());
     };
-    let t = thresholds::Thresholds::default();
-    let findings = smells::detect(&metrics, &source, &t);
+    let t = config::resolve_thresholds(cfg, lang);
+    let disabled = config::resolve_disabled(cfg);
+    let mut findings = smells::detect(&metrics, &source, &t);
+    config::filter_disabled(&mut findings, &disabled);
     let module_counts = count_module_findings(&findings);
     let func_keys: Vec<String> = findings
         .iter()

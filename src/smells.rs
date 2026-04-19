@@ -65,10 +65,75 @@ const SMELL_NAMES: &[&str] = &[
     "Stringly-Typed Switch",
 ];
 
+const SMELL_SNAKE_NAMES: &[&str] = &[
+    "god_method",
+    "complex_method",
+    "large_method",
+    "nested_conditional_chunks",
+    "deep_nested_complexity",
+    "complex_conditional",
+    "excess_arguments",
+    "constructor_over_injection",
+    "large_embedded_block",
+    "primitive_obsession",
+    "large_assertion_block",
+    "empty_error_handler",
+    "file_too_large",
+    "too_many_functions",
+    "overall_code_complexity",
+    "god_class",
+    "excessive_declarations",
+    "global_conditionals",
+    "deep_global_nesting",
+    "code_duplication",
+    "duplicated_assertion_blocks",
+    "low_cohesion",
+    "overall_function_size",
+    "large_struct",
+    "short_variable_names",
+    "stringly_typed_switch",
+];
+
+const ALL_SMELLS: &[Smell] = &[
+    Smell::GodMethod,
+    Smell::ComplexMethod,
+    Smell::LargeMethod,
+    Smell::NestedConditionalChunks,
+    Smell::DeepNestedComplexity,
+    Smell::ComplexConditional,
+    Smell::ExcessArguments,
+    Smell::ConstructorOverInjection,
+    Smell::LargeEmbeddedBlock,
+    Smell::PrimitiveObsession,
+    Smell::LargeAssertionBlock,
+    Smell::EmptyErrorHandler,
+    Smell::FileTooLarge,
+    Smell::TooManyFunctions,
+    Smell::OverallCodeComplexity,
+    Smell::GodClass,
+    Smell::ExcessiveDeclarations,
+    Smell::GlobalConditionals,
+    Smell::DeepGlobalNesting,
+    Smell::CodeDuplication,
+    Smell::DuplicatedAssertionBlocks,
+    Smell::LowCohesion,
+    Smell::OverallFunctionSize,
+    Smell::LargeStruct,
+    Smell::ShortVariableNames,
+    Smell::StringlyTypedSwitch,
+];
+
 impl Smell {
     pub fn as_str(self) -> &'static str {
         SMELL_NAMES[self as usize]
     }
+}
+
+pub fn smell_from_snake_case(s: &str) -> Option<Smell> {
+    SMELL_SNAKE_NAMES
+        .iter()
+        .position(|&name| name == s)
+        .and_then(|i| ALL_SMELLS.get(i).copied())
 }
 
 impl fmt::Display for Smell {

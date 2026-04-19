@@ -1,5 +1,6 @@
 pub mod analytics;
 pub mod baselines;
+pub mod config;
 pub mod duplication;
 pub mod hook;
 pub mod module_smells;

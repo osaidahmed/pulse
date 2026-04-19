@@ -1,5 +1,6 @@
 mod analytics;
 mod baselines;
+mod config;
 mod duplication;
 mod hook;
 mod module_smells;
@@ -129,7 +130,7 @@ struct AnalysisResult {
     sum_cc: u32,
 }
 
-fn analyze_file(file_path: &str) -> Option<AnalysisResult> {
+fn analyze_file(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<AnalysisResult> {
     let path = Path::new(file_path);
     if !path.exists() {
         return None;
@@ -137,8 +138,10 @@ fn analyze_file(file_path: &str) -> Option<AnalysisResult> {
     let lang = parse::detect_language(path)?;
     let source = std::fs::read_to_string(path).ok()?;
     let metrics = parse::parse_and_walk(&source, lang)?;
-    let t = thresholds::Thresholds::default();
-    let findings = smells::detect(&metrics, &source, &t);
+    let t = config::resolve_thresholds(cfg, lang);
+    let disabled = config::resolve_disabled(cfg);
+    let mut findings = smells::detect(&metrics, &source, &t);
+    config::filter_disabled(&mut findings, &disabled);
     let filename = path.file_name()?.to_string_lossy().into_owned();
     Some(AnalysisResult {
         findings,
@@ -150,7 +153,8 @@ fn analyze_file(file_path: &str) -> Option<AnalysisResult> {
 }
 
 fn run_check(file_path: &str) {
-    let Some(result) = analyze_file(file_path) else {
+    let cfg = config::load_config(Path::new(file_path));
+    let Some(result) = analyze_file(file_path, cfg.as_ref()) else {
         process::exit(0);
     };
     if result.findings.is_empty() {
@@ -161,15 +165,19 @@ fn run_check(file_path: &str) {
 
 fn run_budget(file_path: &str) {
     let path = Path::new(file_path);
-    let t = thresholds::Thresholds::default();
+    let cfg = config::load_config(path);
 
-    let Some(metrics) = parse::detect_language(path)
-        .and_then(|lang| std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang)))
+    let Some(lang) = parse::detect_language(path) else {
+        eprintln!("budget: {file_path} — unsupported or unreadable");
+        return;
+    };
+    let Some(metrics) = std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang))
     else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
 
+    let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let fn_count = metrics.functions.len() as u32;
     let fn_room = t.file_function_count.saturating_sub(fn_count);
     let loc_room = t.file_loc_warning.saturating_sub(metrics.module.total_loc);
@@ -183,7 +191,8 @@ fn run_budget(file_path: &str) {
 }
 
 fn run_budget_new() {
-    let t = thresholds::Thresholds::default();
+    let cfg = config::load_config(Path::new("."));
+    let t = config::resolve_base_thresholds(cfg.as_ref());
     eprintln!("budget: new file thresholds");
     eprintln!("  max functions: {}", t.file_function_count);
     eprintln!("  max LOC:       {}", t.file_loc_warning);
@@ -192,10 +201,11 @@ fn run_budget_new() {
 }
 
 fn run_check_all() {
+    let cfg = config::load_config(Path::new("."));
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
-        if let Some(result) = analyze_file(&path_str) {
+        if let Some(result) = analyze_file(&path_str, cfg.as_ref()) {
             if !result.findings.is_empty() {
                 total += result.findings.len();
                 print!("{}", output::format(&result.findings, &result.filename));
@@ -232,9 +242,10 @@ fn run_hook(h: hook::HookInput) {
     if std::env::var("PULSE_DISABLE").is_ok() || is_test_file(&h.file_path) {
         return;
     }
+    let cfg = config::load_config(Path::new(&h.file_path));
     analytics::save_session_id(&h);
-    baselines::cache_baseline(&h);
-    let Some(result) = analyze_file(&h.file_path) else {
+    baselines::cache_baseline(&h, cfg.as_ref());
+    let Some(result) = analyze_file(&h.file_path, cfg.as_ref()) else {
         process::exit(0);
     };
 
@@ -250,13 +261,14 @@ fn run_hook(h: hook::HookInput) {
         .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
         .collect();
 
-    collect_module_findings(&h.file_path, edit_count, module_findings, &mut findings);
+    collect_module_findings(&h.file_path, edit_count, module_findings, &mut findings, cfg.as_ref());
 
     if findings.is_empty() {
         process::exit(0);
     }
     analytics::log_findings(&h, &findings, &result.filename);
-    let t = thresholds::Thresholds::default();
+    let lang = parse::detect_language(Path::new(&h.file_path)).unwrap_or(parse::Language::Python);
+    let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let budget = format!(
         "[budget] fn={}/{} loc={}/{} cc={}/{}",
         result.fn_count, t.file_function_count,
@@ -296,6 +308,7 @@ fn collect_module_findings(
     edit_count: u32,
     module_findings: Vec<Finding>,
     findings: &mut Vec<Finding>,
+    cfg: Option<&config::PulseConfig>,
 ) {
     if edit_count == 1 {
         let baseline = baselines::load_baseline(file_path);
@@ -306,7 +319,7 @@ fn collect_module_findings(
 
     let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
     if edit_count.is_multiple_of(interval) && !is_test_file(file_path) {
-        if let Some((_, regressions)) = detect_regressions(file_path) {
+        if let Some((_, regressions)) = detect_regressions(file_path, cfg) {
             findings.extend(regressions);
         }
     }
@@ -325,10 +338,11 @@ fn run_stop() {
         return;
     };
 
+    let cfg = config::load_config(Path::new("."));
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
         if is_test_file(file_path) || baselines::is_fixture_file(file_path) { continue; }
-        if let Some((filename, regressions)) = detect_regressions(file_path) {
+        if let Some((filename, regressions)) = detect_regressions(file_path, cfg.as_ref()) {
             all_regressions.push((filename, regressions));
         }
     }
@@ -342,13 +356,13 @@ fn run_stop() {
         println!("{decision}");
     }
 
-    analytics::resolve(|p| analyze_file(p).map(|r| (r.findings, r.filename)));
+    analytics::resolve(|p| analyze_file(p, cfg.as_ref()).map(|r| (r.findings, r.filename)));
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }
 
-fn detect_regressions(file_path: &str) -> Option<(String, Vec<Finding>)> {
+fn detect_regressions(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<(String, Vec<Finding>)> {
     let baseline = baselines::load_baseline(file_path);
-    let result = analyze_file(file_path)?;
+    let result = analyze_file(file_path, cfg)?;
 
     let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
     for f in result.findings.iter().filter(|f| matches!(f.location, Location::Module)) {
