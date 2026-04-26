@@ -6,6 +6,7 @@ mod hook;
 mod module_smells;
 mod output;
 mod parse;
+mod setup;
 mod smells;
 mod thresholds;
 mod walk;
@@ -42,6 +43,11 @@ fn parse_args() -> Command {
     let cmd = args.get(1).map_or("", std::string::String::as_str);
     let second = args.get(2).map(String::as_str);
 
+    if cmd == "setup" {
+        setup::run_setup();
+        process::exit(0);
+    }
+
     if let Some(early) = parse_early_command(cmd, second) {
         return early;
     }
@@ -52,7 +58,7 @@ fn parse_args() -> Command {
         "--cleanup" => Command::Cleanup,
         "check" | "debug" | "budget" if second.is_some() => file_command(cmd, args[2].clone()),
         _ => {
-            eprintln!("usage: pulse --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all");
+            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all");
             process::exit(1);
         }
     }
