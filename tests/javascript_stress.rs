@@ -183,6 +183,66 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    constructor() { this.state = 0; }\n",
+        "    process(e) { return this.validate(e) && this.dispatch(e); }\n",
+        "    validate(e) { return e.isValid(); }\n",
+        "    dispatch(e) { return this.send(e); }\n",
+        "    send(e) { return null; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    constructor() { this.x = 0; }\n",
+        "    a() { return this.x; }\n",
+        "    b() { this.x = 1; return this.c(); }\n",
+        "    c() { return 42; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService {\n",
+        "    constructor(db, cache, mailer, events, audit) {\n",
+        "        this.db = db; this.cache = cache; this.mailer = mailer;\n",
+        "        this.events = events; this.audit = audit;\n",
+        "    }\n",
+        "    getUser(uid) { return this.db.get(uid); }\n",
+        "    cacheUser(u) { this.cache.set(u.id, u); }\n",
+        "    sendWelcome(u) { this.mailer.send(u.email); }\n",
+        "    publish(e) { this.events.emit(e); }\n",
+        "    auditLog(msg) { this.audit.log(msg); }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service {\n",
+        "    constructor(db, cache, log) {\n",
+        "        this.db = db; this.cache = cache; this.log = log;\n",
+        "    }\n",
+        "    a() { return this.db.foo(); }\n",
+        "    b() { return this.cache.foo(); }\n",
+        "    c() { return this.log.foo(); }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Code duplication
 // ===========================================================================

@@ -231,6 +231,62 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    var state: Int = 0\n",
+        "    fun process(e: Int): Boolean = this.validate(e) && this.dispatch(e)\n",
+        "    fun validate(e: Int): Boolean = e > 0\n",
+        "    fun dispatch(e: Int): Boolean = this.send(e)\n",
+        "    fun send(e: Int): Boolean = true\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    var x: Int = 0\n",
+        "    fun a(): Int = this.x\n",
+        "    fun b(): Int { this.x = 1; return this.c() }\n",
+        "    fun c(): Int = 42\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService {\n",
+        "    var db: Int = 0; var cache: Int = 0; var mailer: Int = 0\n",
+        "    var events: Int = 0; var audit: Int = 0\n",
+        "    fun getUser(): Int = this.db\n",
+        "    fun cacheUser(): Int = this.cache\n",
+        "    fun sendWelcome(): Int = this.mailer\n",
+        "    fun publish(): Int = this.events\n",
+        "    fun auditLog(): Int = this.audit\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service {\n",
+        "    var db: Int = 0; var cache: Int = 0; var log: Int = 0\n",
+        "    fun a(): Int = this.db\n",
+        "    fun b(): Int = this.cache\n",
+        "    fun c(): Int = this.log\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ── Duplication ───────────────────────────────────────────────────────
 
 #[test]

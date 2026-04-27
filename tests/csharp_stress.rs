@@ -882,6 +882,62 @@ fn lcom4_constructor_ignored() {
     assert!(has_smell(&out, "Low Cohesion"), "constructor should not bridge groups, got: {}", out);
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "public class Coord {\n",
+        "    private int state;\n",
+        "    public bool Process(int e) { return this.Validate(e) && this.Dispatch(e); }\n",
+        "    public bool Validate(int e) { return e > 0; }\n",
+        "    public bool Dispatch(int e) { return this.Send(e); }\n",
+        "    public bool Send(int e) { return true; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "public class Mixed {\n",
+        "    private int x;\n",
+        "    public int A() { return this.x; }\n",
+        "    public int B() { this.x = 1; return this.C(); }\n",
+        "    public int C() { return 42; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "public class UserService {\n",
+        "    private object db; private object cache; private object mailer;\n",
+        "    private object events; private object audit;\n",
+        "    public object GetUser() { return this.db; }\n",
+        "    public object CacheUser() { return this.cache; }\n",
+        "    public object SendWelcome() { return this.mailer; }\n",
+        "    public object Publish() { return this.events; }\n",
+        "    public object AuditLog() { return this.audit; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "public class Service {\n",
+        "    private object db; private object cache; private object log;\n",
+        "    public object A() { return this.db; }\n",
+        "    public object B() { return this.cache; }\n",
+        "    public object C() { return this.log; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Method naming tests
 // ===========================================================================

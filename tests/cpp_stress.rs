@@ -164,6 +164,65 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    int state = 0;\n",
+        "public:\n",
+        "    bool process(int e) { return this->validate(e) && this->dispatch(e); }\n",
+        "    bool validate(int e) { return e > 0; }\n",
+        "    bool dispatch(int e) { return this->send(e); }\n",
+        "    bool send(int e) { return true; }\n",
+        "};\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    int x = 0;\n",
+        "public:\n",
+        "    int a() { return this->x; }\n",
+        "    int b() { this->x = 1; return this->c(); }\n",
+        "    int c() { return 42; }\n",
+        "};\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class Svc {\n",
+        "    int db = 0; int cache = 0; int mailer = 0; int events = 0; int audit = 0;\n",
+        "public:\n",
+        "    int getUser() { return this->db; }\n",
+        "    int cacheUser() { return this->cache; }\n",
+        "    int sendWelcome() { return this->mailer; }\n",
+        "    int publish() { return this->events; }\n",
+        "    int auditLog() { return this->audit; }\n",
+        "};\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Svc {\n",
+        "    int db = 0; int cache = 0; int log = 0;\n",
+        "public:\n",
+        "    int a() { return this->db; }\n",
+        "    int b() { return this->cache; }\n",
+        "    int c() { return this->log; }\n",
+        "};\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // Duplication
 #[test]
 fn duplication_detected() {

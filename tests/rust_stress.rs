@@ -185,6 +185,64 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "struct Coord { state: i32 }\n",
+        "impl Coord {\n",
+        "    fn process(&self, e: i32) -> bool { self.validate(e) && self.dispatch(e) }\n",
+        "    fn validate(&self, e: i32) -> bool { e > 0 }\n",
+        "    fn dispatch(&self, e: i32) -> bool { self.send(e) }\n",
+        "    fn send(&self, _e: i32) -> bool { true }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "struct Mixed { x: i32 }\n",
+        "impl Mixed {\n",
+        "    fn a(&self) -> i32 { self.x }\n",
+        "    fn b(&mut self) -> i32 { self.x = 1; self.c() }\n",
+        "    fn c(&self) -> i32 { 42 }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_struct_still_fires() {
+    let out = check(concat!(
+        "struct Svc { db: i32, cache: i32, mailer: i32, events: i32, audit: i32 }\n",
+        "impl Svc {\n",
+        "    fn get_user(&self) -> i32 { self.db }\n",
+        "    fn cache_user(&self) -> i32 { self.cache }\n",
+        "    fn send_welcome(&self) -> i32 { self.mailer }\n",
+        "    fn publish(&self) -> i32 { self.events }\n",
+        "    fn audit_log(&self) -> i32 { self.audit }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "struct Db; impl Db { fn foo(&self) -> i32 { 0 } }\n",
+        "struct Cache; impl Cache { fn foo(&self) -> i32 { 0 } }\n",
+        "struct Log; impl Log { fn foo(&self) -> i32 { 0 } }\n",
+        "struct Svc { db: Db, cache: Cache, log: Log }\n",
+        "impl Svc {\n",
+        "    fn a(&self) -> i32 { self.db.foo() }\n",
+        "    fn b(&self) -> i32 { self.cache.foo() }\n",
+        "    fn c(&self) -> i32 { self.log.foo() }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Code duplication
 // ===========================================================================

@@ -510,6 +510,53 @@ fn lcom4_single_method_no_smell() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "local Coord = {}\n",
+        "function Coord:process(e) return self:validate(e) and self:dispatch(e) end\n",
+        "function Coord:validate(e) return e > 0 end\n",
+        "function Coord:dispatch(e) return self:send(e) end\n",
+        "function Coord:send(e) return true end\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "local Mixed = {}\n",
+        "function Mixed:a() return self.x end\n",
+        "function Mixed:b() self.x = 1; return self:c() end\n",
+        "function Mixed:c() return 42 end\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "local Svc = {}\n",
+        "function Svc:getUser() return self.db end\n",
+        "function Svc:cacheUser() return self.cache end\n",
+        "function Svc:sendWelcome() return self.mailer end\n",
+        "function Svc:publish() return self.events end\n",
+        "function Svc:auditLog() return self.audit end\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "local Svc = {}\n",
+        "function Svc:a() return self.db end\n",
+        "function Svc:b() return self.cache end\n",
+        "function Svc:c() return self.log end\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Method naming (3)
 // ===========================================================================

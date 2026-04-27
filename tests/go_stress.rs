@@ -717,8 +717,6 @@ fn primitive_obsession_mixed_ratio_ok() {
 
 #[test]
 fn lcom4_connected_no_smell() {
-    // Go field access detection via selector_expression is not in FIELD_ACCESS_KINDS,
-    // so each method is its own group. With only 2 methods, compute_lcom4 returns 1.
     let out = check(concat!(
         "package main\n\n",
         "type Server struct {\n",
@@ -766,6 +764,63 @@ fn lcom4_single_method_no_smell() {
         "}\n",
     ));
     assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "package main\n\n",
+        "type Coord struct{ state int }\n",
+        "func (c *Coord) Process(e int) bool { return c.Validate(e) && c.Dispatch(e) }\n",
+        "func (c *Coord) Validate(e int) bool { return e > 0 }\n",
+        "func (c *Coord) Dispatch(e int) bool { return c.Send(e) }\n",
+        "func (c *Coord) Send(e int) bool { return true }\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "package main\n\n",
+        "type Mixed struct{ x int }\n",
+        "func (m *Mixed) A() int { return m.x }\n",
+        "func (m *Mixed) B() int { m.x = 1; return m.C() }\n",
+        "func (m *Mixed) C() int { return 42 }\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_struct_still_fires() {
+    let out = check(concat!(
+        "package main\n\n",
+        "type Svc struct{ db, cache, mailer, events, audit int }\n",
+        "func (s *Svc) GetUser() int { return s.db }\n",
+        "func (s *Svc) CacheUser() int { return s.cache }\n",
+        "func (s *Svc) SendWelcome() int { return s.mailer }\n",
+        "func (s *Svc) Publish() int { return s.events }\n",
+        "func (s *Svc) AuditLog() int { return s.audit }\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "package main\n\n",
+        "type Db struct{}\n",
+        "func (d Db) Foo() int { return 0 }\n",
+        "type Cache struct{}\n",
+        "func (c Cache) Foo() int { return 0 }\n",
+        "type Log struct{}\n",
+        "func (l Log) Foo() int { return 0 }\n",
+        "type Svc struct{ db Db; cache Cache; log Log }\n",
+        "func (s *Svc) A() int { return s.db.Foo() }\n",
+        "func (s *Svc) B() int { return s.cache.Foo() }\n",
+        "func (s *Svc) C() int { return s.log.Foo() }\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
 }
 
 // ===========================================================================

@@ -895,6 +895,61 @@ fn lcom4_transitive_connected_not_flagged() {
     assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b, got: {}", out);
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "  int state = 0\n",
+        "  boolean process(int e) { return this.validate(e) && this.dispatch(e) }\n",
+        "  boolean validate(int e) { return e > 0 }\n",
+        "  boolean dispatch(int e) { return this.send(e) }\n",
+        "  boolean send(int e) { return true }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "  int x = 0\n",
+        "  int a() { return this.x }\n",
+        "  int b() { this.x = 1; return this.c() }\n",
+        "  int c() { return 42 }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class Svc {\n",
+        "  Object db; Object cache; Object mailer; Object events; Object audit\n",
+        "  Object getUser() { return this.db }\n",
+        "  Object cacheUser() { return this.cache }\n",
+        "  Object sendWelcome() { return this.mailer }\n",
+        "  Object publish() { return this.events }\n",
+        "  Object auditLog() { return this.audit }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Svc {\n",
+        "  Object db; Object cache; Object log\n",
+        "  Object a() { return this.db }\n",
+        "  Object b() { return this.cache }\n",
+        "  Object c() { return this.log }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // God class
 // ===========================================================================

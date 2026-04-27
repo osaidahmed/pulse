@@ -163,8 +163,20 @@ fn compute_lcom4(methods: &[&FunctionMetrics]) -> u32 {
     let shared_field = |i: usize, j: usize| -> bool {
         non_init[i].field_accesses.iter().any(|f| non_init[j].field_accesses.contains(f))
     };
+    let unqualified: Vec<&str> = non_init.iter().map(|m| unqualified_name(&m.name)).collect();
+    let calls_method = |caller: usize, callee: usize| -> bool {
+        non_init[caller].field_accesses.iter().any(|f| f == unqualified[callee])
+    };
+    let connected = |i: usize, j: usize| -> bool {
+        i != j && (shared_field(i, j) || calls_method(i, j) || calls_method(j, i))
+    };
 
-    count_connected_components(n, shared_field)
+    count_connected_components(n, connected)
+}
+
+fn unqualified_name(name: &str) -> &str {
+    let after_dot = name.rsplit('.').next().unwrap_or(name);
+    after_dot.rsplit("::").next().unwrap_or(after_dot)
 }
 
 fn count_connected_components(n: usize, connected: impl Fn(usize, usize) -> bool) -> u32 {

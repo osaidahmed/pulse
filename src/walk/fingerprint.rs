@@ -151,6 +151,12 @@ const FIELD_ACCESS_KINDS: &[&str] = &[
     "navigation_expression",
     "dot_index_expression",
     "member_access_expression",
+    "method_invocation",
+    "invocation_expression",
+    "selector_expression",
+    "member_call_expression",
+    "method_index_expression",
+    "message_expression",
 ];
 const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression", "variable_name"];
 const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier", "name"];
@@ -179,11 +185,11 @@ fn try_extract_field(child: Node, source: &str, self_names: &[&str]) -> Option<S
     if !self_names.contains(&obj) {
         return None;
     }
-    let attr_name = children.last()?;
-    if !FIELD_NAME_KINDS.contains(&attr_name.kind()) {
-        return None;
-    }
-    Some(node_text(*attr_name, source).to_string())
+    children
+        .iter()
+        .rev()
+        .find(|n| FIELD_NAME_KINDS.contains(&n.kind()))
+        .map(|n| node_text(*n, source).to_string())
 }
 
 fn collect_field_accesses_recursive(

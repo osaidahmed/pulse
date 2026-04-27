@@ -167,6 +167,61 @@ fn lcom4_cohesive_not_flagged() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    private int state = 0;\n",
+        "    boolean process(int e) { return this.validate(e) && this.dispatch(e); }\n",
+        "    boolean validate(int e) { return e > 0; }\n",
+        "    boolean dispatch(int e) { return this.send(e); }\n",
+        "    boolean send(int e) { return true; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    private int x = 0;\n",
+        "    int a() { return this.x; }\n",
+        "    int b() { this.x = 1; return this.c(); }\n",
+        "    int c() { return 42; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService {\n",
+        "    private Object db, cache, mailer, events, audit;\n",
+        "    Object getUser() { return this.db; }\n",
+        "    Object cacheUser() { return this.cache; }\n",
+        "    Object sendWelcome() { return this.mailer; }\n",
+        "    Object publish() { return this.events; }\n",
+        "    Object auditLog() { return this.audit; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service {\n",
+        "    private Object db, cache, log;\n",
+        "    Object a() { return this.db; }\n",
+        "    Object b() { return this.cache; }\n",
+        "    Object c() { return this.log; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // Duplication
 #[test]
 fn duplication_detected() {

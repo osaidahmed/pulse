@@ -334,14 +334,30 @@ fn check_condition(node: Node, source: &str, count: &mut u32) {
 }
 
 fn collect_field_accesses(node: Node, source: &str, fields: &mut Vec<String>) {
-    let mut c = node.child(0);
-    while let Some(child) = c {
-        c = child.next_sibling();
-        if child.kind() == "instance_variable" {
-            if let Some(f) = node_text(child, source).strip_prefix('@') {
-                fields.push(f.to_string());
-            }
+    let mut stack = vec![node];
+    let mut cursor = node.walk();
+    while let Some(current) = stack.pop() {
+        for child in current.children(&mut cursor) {
+            push_ruby_self_ref(child, source, fields);
+            stack.push(child);
         }
-        collect_field_accesses(child, source, fields);
+    }
+}
+
+fn push_ruby_self_ref(node: Node, source: &str, fields: &mut Vec<String>) {
+    let kind = node.kind();
+    if kind == "instance_variable" {
+        if let Some(f) = node_text(node, source).strip_prefix('@') {
+            fields.push(f.to_string());
+        }
+        return;
+    }
+    if kind != "call" {
+        return;
+    }
+    let Some(receiver) = node.child_by_field_name("receiver") else { return; };
+    if receiver.kind() != "self" { return; }
+    if let Some(method) = node.child_by_field_name("method") {
+        fields.push(node_text(method, source).to_string());
     }
 }

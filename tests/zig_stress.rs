@@ -646,6 +646,61 @@ fn lcom4_single_method_no_smell() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "const Coord = struct {\n",
+        "    state: i32 = 0,\n",
+        "    pub fn process(self: *Coord, e: i32) bool { return self.validate(e) and self.dispatch(e); }\n",
+        "    pub fn validate(self: *Coord, e: i32) bool { _ = self; return e > 0; }\n",
+        "    pub fn dispatch(self: *Coord, e: i32) bool { return self.send(e); }\n",
+        "    pub fn send(self: *Coord, e: i32) bool { _ = self; _ = e; return true; }\n",
+        "};\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "const Mixed = struct {\n",
+        "    x: i32 = 0,\n",
+        "    pub fn a(self: *Mixed) i32 { return self.x; }\n",
+        "    pub fn b(self: *Mixed) i32 { self.x = 1; return self.c(); }\n",
+        "    pub fn c(self: *Mixed) i32 { _ = self; return 42; }\n",
+        "};\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_struct_still_fires() {
+    let out = check(concat!(
+        "const Svc = struct {\n",
+        "    db: i32 = 0, cache: i32 = 0, mailer: i32 = 0, events: i32 = 0, audit: i32 = 0,\n",
+        "    pub fn getUser(self: *Svc) i32 { return self.db; }\n",
+        "    pub fn cacheUser(self: *Svc) i32 { return self.cache; }\n",
+        "    pub fn sendWelcome(self: *Svc) i32 { return self.mailer; }\n",
+        "    pub fn publish(self: *Svc) i32 { return self.events; }\n",
+        "    pub fn auditLog(self: *Svc) i32 { return self.audit; }\n",
+        "};\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "const Svc = struct {\n",
+        "    db: i32 = 0, cache: i32 = 0, log: i32 = 0,\n",
+        "    pub fn a(self: *Svc) i32 { return self.db; }\n",
+        "    pub fn b(self: *Svc) i32 { return self.cache; }\n",
+        "    pub fn c(self: *Svc) i32 { return self.log; }\n",
+        "};\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Method naming (3)
 // ===========================================================================

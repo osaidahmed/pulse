@@ -469,6 +469,61 @@ fn lcom4_single_method_no_smell() {
     assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "<?php\nclass Coord {\n",
+        "    private $state = 0;\n",
+        "    public function process($e) { return $this->validate($e) && $this->dispatch($e); }\n",
+        "    public function validate($e) { return $e > 0; }\n",
+        "    public function dispatch($e) { return $this->send($e); }\n",
+        "    public function send($e) { return true; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "<?php\nclass Mixed {\n",
+        "    private $x = 0;\n",
+        "    public function a() { return $this->x; }\n",
+        "    public function b() { $this->x = 1; return $this->c(); }\n",
+        "    public function c() { return 42; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "<?php\nclass UserService {\n",
+        "    private $db; private $cache; private $mailer; private $events; private $audit;\n",
+        "    public function getUser() { return $this->db; }\n",
+        "    public function cacheUser() { return $this->cache; }\n",
+        "    public function sendWelcome() { return $this->mailer; }\n",
+        "    public function publish() { return $this->events; }\n",
+        "    public function auditLog() { return $this->audit; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "<?php\nclass Service {\n",
+        "    private $db; private $cache; private $log;\n",
+        "    public function a() { return $this->db; }\n",
+        "    public function b() { return $this->cache; }\n",
+        "    public function c() { return $this->log; }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Method naming
 // ===========================================================================

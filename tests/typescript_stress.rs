@@ -223,6 +223,61 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    state = 0;\n",
+        "    process(e: any) { return this.validate(e) && this.dispatch(e); }\n",
+        "    validate(e: any) { return e.isValid(); }\n",
+        "    dispatch(e: any) { return this.send(e); }\n",
+        "    send(e: any) { return null; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    x = 0;\n",
+        "    a() { return this.x; }\n",
+        "    b() { this.x = 1; return this.c(); }\n",
+        "    c() { return 42; }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService {\n",
+        "    constructor(private db: any, private cache: any, private mailer: any, private events: any, private audit: any) {}\n",
+        "    getUser(uid: string) { return this.db.get(uid); }\n",
+        "    cacheUser(u: any) { this.cache.set(u.id, u); }\n",
+        "    sendWelcome(u: any) { this.mailer.send(u.email); }\n",
+        "    publish(e: any) { this.events.emit(e); }\n",
+        "    auditLog(msg: string) { this.audit.log(msg); }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service {\n",
+        "    constructor(private db: any, private cache: any, private log: any) {}\n",
+        "    a() { return this.db.foo(); }\n",
+        "    b() { return this.cache.foo(); }\n",
+        "    c() { return this.log.foo(); }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Code duplication edge cases
 // ===========================================================================

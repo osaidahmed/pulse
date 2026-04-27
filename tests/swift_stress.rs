@@ -891,6 +891,62 @@ fn low_cohesion_many_disconnected_methods() {
     assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord {\n",
+        "    var state: Int = 0\n",
+        "    func process(_ e: Int) -> Bool { return self.validate(e) && self.dispatch(e) }\n",
+        "    func validate(_ e: Int) -> Bool { return e > 0 }\n",
+        "    func dispatch(_ e: Int) -> Bool { return self.send(e) }\n",
+        "    func send(_ e: Int) -> Bool { return true }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed {\n",
+        "    var x: Int = 0\n",
+        "    func a() -> Int { return self.x }\n",
+        "    func b() -> Int { self.x = 1; return self.c() }\n",
+        "    func c() -> Int { return 42 }\n",
+        "}\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService {\n",
+        "    var db: Int = 0\n    var cache: Int = 0\n    var mailer: Int = 0\n",
+        "    var events: Int = 0\n    var audit: Int = 0\n",
+        "    func getUser() -> Int { return self.db }\n",
+        "    func cacheUser() -> Int { return self.cache }\n",
+        "    func sendWelcome() -> Int { return self.mailer }\n",
+        "    func publish() -> Int { return self.events }\n",
+        "    func auditLog() -> Int { return self.audit }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service {\n",
+        "    var db: Int = 0\n    var cache: Int = 0\n    var log: Int = 0\n",
+        "    func a() -> Int { return self.db }\n",
+        "    func b() -> Int { return self.cache }\n",
+        "    func c() -> Int { return self.log }\n",
+        "}\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Module metrics (4)
 // ===========================================================================

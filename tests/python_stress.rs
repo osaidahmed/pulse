@@ -278,6 +278,148 @@ fn lcom4_transitive_connection() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord:\n",
+        "    def __init__(self):\n",
+        "        self.state = 0\n",
+        "    def process(self, e):\n",
+        "        return self._validate(e) and self._dispatch(e)\n",
+        "    def _validate(self, e):\n",
+        "        return e.is_valid()\n",
+        "    def _dispatch(self, e):\n",
+        "        return self._send(e)\n",
+        "    def _send(self, e):\n",
+        "        pass\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed:\n",
+        "    def __init__(self):\n",
+        "        self.x = 0\n",
+        "    def a(self):\n",
+        "        return self.x\n",
+        "    def b(self):\n",
+        "        self.x = 1\n",
+        "        return self.c()\n",
+        "    def c(self):\n",
+        "        return 42\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_self_call_does_not_falsely_silence_god_class() {
+    let out = check(concat!(
+        "class GodWithRecursion:\n",
+        "    def __init__(self):\n",
+        "        self.y = 0\n",
+        "        self.z = 0\n",
+        "        self.w = 0\n",
+        "    def a(self, n):\n",
+        "        return self.a(n - 1) if n > 0 else 0\n",
+        "    def b(self):\n",
+        "        return self.y\n",
+        "    def c(self):\n",
+        "        return self.z\n",
+        "    def d(self):\n",
+        "        return self.w\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Service:\n",
+        "    def __init__(self, db, cache, log):\n",
+        "        self.db = db\n",
+        "        self.cache = cache\n",
+        "        self.log = log\n",
+        "    def a(self):\n",
+        "        return self.db.foo()\n",
+        "    def b(self):\n",
+        "        return self.cache.foo()\n",
+        "    def c(self):\n",
+        "        return self.log.foo()\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class UserService:\n",
+        "    def __init__(self, db, cache, mailer, events, audit):\n",
+        "        self.db = db\n",
+        "        self.cache = cache\n",
+        "        self.mailer = mailer\n",
+        "        self.events = events\n",
+        "        self.audit = audit\n",
+        "    def get_user(self, uid):\n",
+        "        return self.db.get(uid)\n",
+        "    def cache_user(self, u):\n",
+        "        self.cache.set(u.id, u)\n",
+        "    def send_welcome(self, u):\n",
+        "        self.mailer.send(u.email)\n",
+        "    def publish(self, e):\n",
+        "        self.events.emit(e)\n",
+        "    def audit_log(self, msg):\n",
+        "        self.audit.log(msg)\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_call_to_free_function_does_not_connect() {
+    let out = check(concat!(
+        "def helper(x):\n",
+        "    return x\n",
+        "class Iso:\n",
+        "    def __init__(self):\n",
+        "        self.x = 0\n",
+        "        self.y = 0\n",
+        "        self.z = 0\n",
+        "    def a(self):\n",
+        "        return helper(self.x)\n",
+        "    def b(self):\n",
+        "        return helper(self.y)\n",
+        "    def c(self):\n",
+        "        return helper(self.z)\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_same_method_name_in_different_classes() {
+    let out = check(concat!(
+        "class Alpha:\n",
+        "    def __init__(self):\n",
+        "        self.x = 0\n",
+        "    def caller(self):\n",
+        "        return self.process()\n",
+        "    def process(self):\n",
+        "        return self.x\n",
+        "    def helper(self):\n",
+        "        return 1\n",
+        "class Beta:\n",
+        "    def __init__(self):\n",
+        "        self.y = 0\n",
+        "    def caller(self):\n",
+        "        return self.process()\n",
+        "    def process(self):\n",
+        "        return self.y\n",
+        "    def other(self):\n",
+        "        return 2\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Code duplication edge cases
 // ===========================================================================

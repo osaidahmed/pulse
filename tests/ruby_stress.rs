@@ -608,6 +608,57 @@ fn lcom4_single_method_no_smell() {
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
+#[test]
+fn lcom4_methods_connected_by_call() {
+    let out = check(concat!(
+        "class Coord\n",
+        "  def process(e)\n    self.validate(e) && self.dispatch(e)\n  end\n",
+        "  def validate(e)\n    e.positive?\n  end\n",
+        "  def dispatch(e)\n    self.send_event(e)\n  end\n",
+        "  def send_event(e)\n    true\n  end\n",
+        "end\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_mixed_field_and_call_connection() {
+    let out = check(concat!(
+        "class Mixed\n",
+        "  def a\n    @x\n  end\n",
+        "  def b\n    @x = 1; self.c\n  end\n",
+        "  def c\n    42\n  end\n",
+        "end\n",
+    ));
+    assert!(!has_smell(&out, "Low Cohesion"));
+}
+
+#[test]
+fn lcom4_god_class_still_fires() {
+    let out = check(concat!(
+        "class Svc\n",
+        "  def get_user\n    @db\n  end\n",
+        "  def cache_user\n    @cache\n  end\n",
+        "  def send_welcome\n    @mailer\n  end\n",
+        "  def publish\n    @events\n  end\n",
+        "  def audit_log\n    @audit\n  end\n",
+        "end\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+}
+
+#[test]
+fn lcom4_dependency_method_calls_dont_falsely_connect() {
+    let out = check(concat!(
+        "class Svc\n",
+        "  def a\n    @db\n  end\n",
+        "  def b\n    @cache\n  end\n",
+        "  def c\n    @log\n  end\n",
+        "end\n",
+    ));
+    assert!(has_smell(&out, "Low Cohesion"));
+}
+
 // ===========================================================================
 // Method naming (3)
 // ===========================================================================
