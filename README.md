@@ -47,6 +47,8 @@ Other limits: nesting depth 4, args 5, compound conditions 2, functions per file
 
 Drop a `.pulse.toml` in your project root. All fields are optional, defaults apply when absent.
 
+Full syntax: [docs/configuration.md](docs/configuration.md)
+
 ```toml
 [thresholds]
 arg_max = 8
