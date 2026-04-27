@@ -1223,9 +1223,9 @@ fn baseline_works_for_rust() {
 #[test]
 fn baseline_works_for_java() {
     let env = TestEnv::new();
-    let path = env.file_path("Test.java");
+    let path = env.file_path("BigClass.java");
 
-    let mut code = "public class Test {\n".to_string();
+    let mut code = "public class BigClass {\n".to_string();
     for i in 0..25 {
         code.push_str(&format!(
             "    public static int fn_{}() {{ return {}; }}\n",

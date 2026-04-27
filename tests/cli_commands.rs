@@ -117,6 +117,69 @@ fn check_all_clean_dir_exit_0() {
     assert!(output.status.success(), "clean dir should exit 0");
 }
 
+#[test]
+fn check_all_skips_test_files_by_default() {
+    let dir = tempfile::tempdir().unwrap();
+    let tests_dir = dir.path().join("tests");
+    std::fs::create_dir(&tests_dir).unwrap();
+    let smelly = "def f(a, b, c, d, e, f, g, h):\n    return a\n";
+    std::fs::write(tests_dir.join("test_thing.py"), smelly).unwrap();
+    std::fs::write(dir.path().join("test_top.py"), smelly).unwrap();
+    std::fs::write(dir.path().join("foo_test.go"), "package x\nfunc F(a, b, c, d, e, f, g, h int) int { return a }\n").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", "-a"])
+        .current_dir(dir.path())
+        .output()
+        .expect("failed");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.is_empty(), "test files should be skipped, got: {}", stdout);
+    assert!(output.status.success(), "no findings → exit 0");
+}
+
+#[test]
+fn check_all_includes_tests_with_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let tests_dir = dir.path().join("tests");
+    std::fs::create_dir(&tests_dir).unwrap();
+    std::fs::write(tests_dir.join("test_thing.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", "-a", "--include-tests"])
+        .current_dir(dir.path())
+        .output()
+        .expect("failed");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Excess Arguments"), "test should be analyzed with --include-tests, got: {}", stdout);
+}
+
+#[test]
+fn check_all_skips_test_files_does_not_skip_lookalikes() {
+    let dir = tempfile::tempdir().unwrap();
+    let smelly = "def f(a, b, c, d, e, f, g, h):\n    return a\n";
+    // production files with test-like substrings — must still be analyzed
+    std::fs::write(dir.path().join("attestation.py"), smelly).unwrap();
+    std::fs::write(dir.path().join("contestant.py"), smelly).unwrap();
+    std::fs::write(dir.path().join("manifest.py"), smelly).unwrap();
+    std::fs::write(dir.path().join("latest.py"), smelly).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", "-a"])
+        .current_dir(dir.path())
+        .output()
+        .expect("failed");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    for name in &["attestation.py", "contestant.py", "manifest.py", "latest.py"] {
+        assert!(stdout.contains(name), "production file {} should be analyzed, got: {}", name, stdout);
+    }
+}
+
+#[test]
+fn check_explicit_test_file_still_analyzes() {
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("test_foo.py");
+    std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
+    assert!(stdout.contains("Excess Arguments"), "explicit check on test file should analyze, got: {}", stdout);
+}
+
 // ===========================================================================
 // Usage / invalid args
 // ===========================================================================

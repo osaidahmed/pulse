@@ -8,6 +8,7 @@ mod output;
 mod parse;
 mod setup;
 mod smells;
+mod test_detection;
 mod thresholds;
 mod walk;
 
@@ -20,7 +21,7 @@ use smells::{Finding, Location};
 enum Command {
     Hook(hook::HookInput),
     Check(String),
-    CheckAll,
+    CheckAll { include_tests: bool },
     Debug(String),
     Budget(Option<String>),
     Stop,
@@ -58,7 +59,7 @@ fn parse_args() -> Command {
         "--cleanup" => Command::Cleanup,
         "check" | "debug" | "budget" if second.is_some() => file_command(cmd, args[2].clone()),
         _ => {
-            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all");
+            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests]");
             process::exit(1);
         }
     }
@@ -66,7 +67,8 @@ fn parse_args() -> Command {
 
 fn parse_early_command(cmd: &str, second: Option<&str>) -> Option<Command> {
     if matches!(cmd, "-a" | "--all") || (cmd == "check" && second.is_some_and(|a| a == "-a" || a == "--all")) {
-        return Some(Command::CheckAll);
+        let include_tests = std::env::args().any(|a| a == "--include-tests" || a == "-t");
+        return Some(Command::CheckAll { include_tests });
     }
     if cmd == "budget" && second.is_some_and(|a| a == "--new") {
         return Some(Command::Budget(None));
@@ -91,7 +93,7 @@ fn main() {
     match parse_args() {
         Command::Debug(p) => run_debug(&p),
         Command::Check(p) => run_check(&p),
-        Command::CheckAll => run_check_all(),
+        Command::CheckAll { include_tests } => run_check_all(include_tests),
         Command::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         Command::Hook(h) => {
             baselines::init_session_dir(h.session_id.as_deref());
@@ -206,11 +208,14 @@ fn run_budget_new() {
     eprintln!("  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
 }
 
-fn run_check_all() {
+fn run_check_all(include_tests: bool) {
     let cfg = config::load_config(Path::new("."));
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
+        if !include_tests && test_detection::is_test_file(&path_str) {
+            continue;
+        }
         if let Some(result) = analyze_file(&path_str, cfg.as_ref()) {
             if !result.findings.is_empty() {
                 total += result.findings.len();
@@ -245,7 +250,7 @@ fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn run_hook(h: hook::HookInput) {
-    if std::env::var("PULSE_DISABLE").is_ok() || is_test_file(&h.file_path) {
+    if std::env::var("PULSE_DISABLE").is_ok() || test_detection::is_test_file(&h.file_path) {
         return;
     }
     let cfg = config::load_config(Path::new(&h.file_path));
@@ -324,18 +329,11 @@ fn collect_module_findings(
     }
 
     let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
-    if edit_count.is_multiple_of(interval) && !is_test_file(file_path) {
+    if edit_count.is_multiple_of(interval) && !test_detection::is_test_file(file_path) {
         if let Some((_, regressions)) = detect_regressions(file_path, cfg) {
             findings.extend(regressions);
         }
     }
-}
-
-fn is_test_file(path: &str) -> bool {
-    let p = path.replace('\\', "/");
-    let in_test_dir = p.contains("/tests/") || p.contains("/test/") || p.contains("/__tests__/");
-    let is_test_named = p.contains("_test.") || p.contains(".test.") || p.contains("_spec.") || p.contains(".spec.");
-    in_test_dir || is_test_named
 }
 
 fn run_stop() {
@@ -347,7 +345,7 @@ fn run_stop() {
     let cfg = config::load_config(Path::new("."));
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
-        if is_test_file(file_path) || baselines::is_fixture_file(file_path) { continue; }
+        if test_detection::is_test_file(file_path) || baselines::is_fixture_file(file_path) { continue; }
         if let Some((filename, regressions)) = detect_regressions(file_path, cfg.as_ref()) {
             all_regressions.push((filename, regressions));
         }

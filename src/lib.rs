@@ -7,5 +7,6 @@ pub mod module_smells;
 pub mod output;
 pub mod parse;
 pub mod smells;
+pub mod test_detection;
 pub mod thresholds;
 pub mod walk;
