@@ -44,6 +44,11 @@ fn parse_args() -> Command {
     let cmd = args.get(1).map_or("", std::string::String::as_str);
     let second = args.get(2).map(String::as_str);
 
+    if matches!(cmd, "--version" | "-V") {
+        println!("pulse {}", env!("CARGO_PKG_VERSION"));
+        process::exit(0);
+    }
+
     if cmd == "setup" {
         setup::run_setup();
         process::exit(0);
@@ -59,7 +64,7 @@ fn parse_args() -> Command {
         "--cleanup" => Command::Cleanup,
         "check" | "debug" | "budget" if second.is_some() => file_command(cmd, args[2].clone()),
         _ => {
-            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests]");
+            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | --version");
             process::exit(1);
         }
     }

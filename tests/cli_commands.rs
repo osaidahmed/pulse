@@ -335,3 +335,15 @@ fn threshold_values_shown_in_excess_args() {
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
     assert!(stdout.contains(&format!("threshold: {}", t().arg_max)), "excess args should show threshold, got: {stdout}");
 }
+
+#[test]
+fn version_flag_prints_version() {
+    let expected = format!("pulse {}", env!("CARGO_PKG_VERSION"));
+    let (stdout_long, _, code_long) = pulse(&["--version"]);
+    assert_eq!(code_long, 0, "--version should exit 0");
+    assert_eq!(stdout_long.trim(), expected);
+
+    let (stdout_short, _, code_short) = pulse(&["-V"]);
+    assert_eq!(code_short, 0, "-V should exit 0");
+    assert_eq!(stdout_short.trim(), expected);
+}
