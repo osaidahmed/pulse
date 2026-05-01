@@ -63,6 +63,8 @@ Python, TypeScript, JavaScript, Rust, C, C++, Java, C#, Go, Swift, Zig, Ruby, Ob
 
 Other limits: nesting depth 4, args 5, compound conditions 2, functions per file 20, total cc per file 100, struct fields 12, string match arms 5.
 
+Full thresholds and justifications: [docs/whitepaper.pdf](docs/whitepaper.pdf).
+
 ## Configuration
 
 Drop a `.pulse.toml` in your project root. All fields are optional, defaults apply when absent.
