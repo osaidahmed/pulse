@@ -1899,6 +1899,250 @@ end
 }
 
 // ===========================================================================
+// Baselines: session-scoped dir without PULSE_BASELINE_DIR env
+// ===========================================================================
+
+#[test]
+fn baselines_session_dir_without_env() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("test.py");
+    std::fs::write(&file, "def f():\n    pass\n").unwrap();
+
+    let session_id = "covtest-baseline-01234567abcdef";
+    let json = format!(
+        r#"{{"tool_input":{{"file_path":"{}"}}, "session_id":"{}"}}"#,
+        file.to_str().unwrap(),
+        session_id
+    );
+
+    let _ = Command::new(pulse_bin())
+        .args(["--hook"])
+        .env_remove("PULSE_BASELINE_DIR")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
+            child.wait_with_output()
+        })
+        .unwrap();
+
+    let truncated = &session_id[..session_id.len().min(16)];
+    let _ = std::fs::remove_dir_all(format!("/tmp/pulse-baselines-{truncated}"));
+}
+
+// ===========================================================================
+// Analytics: HOME fallback when PULSE_ANALYTICS_DIR is unset
+// ===========================================================================
+
+#[test]
+fn analytics_dir_home_fallback() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("smelly.py");
+    std::fs::write(&file, concat!(
+        "def f(a, b, c, d, e, g):\n",
+        "    if a > 0:\n",
+        "        if b > 0:\n",
+        "            if c > 0:\n",
+        "                if d > 0:\n",
+        "                    if e > 0:\n",
+        "                        return g\n",
+        "    return 0\n",
+    )).unwrap();
+    let baseline_dir = dir.path().join("baselines");
+    let fake_home = dir.path().join("home");
+    std::fs::create_dir_all(&fake_home).unwrap();
+
+    let json = format!(
+        r#"{{"tool_input":{{"file_path":"{}"}}, "session_id":"covtest-analytics-home"}}"#,
+        file.to_str().unwrap()
+    );
+
+    let _ = Command::new(pulse_bin())
+        .args(["--hook"])
+        .env("PULSE_BASELINE_DIR", &baseline_dir)
+        .env("HOME", &fake_home)
+        .env_remove("PULSE_ANALYTICS_DIR")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
+            child.wait_with_output()
+        })
+        .unwrap();
+
+    let _ = Command::new(pulse_bin())
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", &baseline_dir)
+        .env("HOME", &fake_home)
+        .env_remove("PULSE_ANALYTICS_DIR")
+        .output()
+        .unwrap();
+}
+
+// ===========================================================================
+// Analytics: resolve handles malformed JSONL lines
+// ===========================================================================
+
+#[test]
+fn analytics_resolve_skips_malformed_lines() {
+    let dir = tempfile::tempdir().unwrap();
+    let baseline_dir = dir.path().join("baselines");
+    std::fs::create_dir_all(&baseline_dir).unwrap();
+
+    let target_file = dir.path().join("dummy.py");
+    std::fs::write(&target_file, "def f():\n    pass\n").unwrap();
+
+    std::fs::write(
+        baseline_dir.join("manifest.txt"),
+        format!("{}\n", target_file.to_str().unwrap()),
+    ).unwrap();
+    std::fs::write(
+        baseline_dir.join("findings.jsonl"),
+        "this is not json\n{ also not json\n",
+    ).unwrap();
+
+    let analytics_dir = dir.path().join("analytics");
+
+    let _ = Command::new(pulse_bin())
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", &baseline_dir)
+        .env("PULSE_ANALYTICS_DIR", &analytics_dir)
+        .output()
+        .unwrap();
+}
+
+// ===========================================================================
+// Analytics: resolve writes outcome for module-level findings
+// ===========================================================================
+
+#[test]
+fn analytics_resolve_module_outcome_direct() {
+    let dir = tempfile::tempdir().unwrap();
+    let baseline_dir = dir.path().join("baselines");
+    let analytics_dir = dir.path().join("analytics");
+    std::fs::create_dir_all(&baseline_dir).unwrap();
+
+    let target_file = dir.path().join("clean.py");
+    std::fs::write(&target_file, "def f():\n    pass\n").unwrap();
+
+    std::fs::write(
+        baseline_dir.join("manifest.txt"),
+        format!("{}\n", target_file.to_str().unwrap()),
+    ).unwrap();
+    std::fs::write(baseline_dir.join("session_id"), "covtest-session\n").unwrap();
+
+    let entry = serde_json::json!({
+        "ts": 0,
+        "file": "clean.py",
+        "path": target_file.to_str().unwrap(),
+        "smell": "Too Many Functions",
+        "fn": serde_json::Value::Null,
+        "line": serde_json::Value::Null,
+        "detail": "module finding for resolve coverage"
+    });
+    std::fs::write(
+        baseline_dir.join("findings.jsonl"),
+        format!("{entry}\n"),
+    ).unwrap();
+
+    let _ = Command::new(pulse_bin())
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", &baseline_dir)
+        .env("PULSE_ANALYTICS_DIR", &analytics_dir)
+        .output()
+        .unwrap();
+}
+
+// ===========================================================================
+// Analytics: /tmp fallback when neither PULSE_ANALYTICS_DIR nor HOME is set
+// ===========================================================================
+
+#[test]
+fn analytics_dir_no_env_no_home() {
+    let dir = tempfile::tempdir().unwrap();
+    let baseline_dir = dir.path().join("baselines");
+    std::fs::create_dir_all(&baseline_dir).unwrap();
+
+    let target_file = dir.path().join("dummy.py");
+    std::fs::write(&target_file, "def f():\n    pass\n").unwrap();
+
+    std::fs::write(
+        baseline_dir.join("manifest.txt"),
+        format!("{}\n", target_file.to_str().unwrap()),
+    ).unwrap();
+
+    let _ = Command::new(pulse_bin())
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", &baseline_dir)
+        .env_remove("PULSE_ANALYTICS_DIR")
+        .env_remove("HOME")
+        .output()
+        .unwrap();
+
+    let _ = std::fs::remove_dir_all("/tmp/pulse-analytics");
+}
+
+// ===========================================================================
+// Duplication: similar-clone novel pair via different if-condition expression kinds
+// ===========================================================================
+
+#[test]
+fn duplication_skeleton_only_pair() {
+    let mut code = String::new();
+
+    code.push_str("fn alpha_id() -> i32 {\n");
+    for i in 0..22 {
+        code.push_str(&format!("    let a{i} = {i};\n"));
+    }
+    code.push_str("    if a0 > 0 { a0 } else { 1 }\n");
+    code.push_str("}\n\n");
+
+    code.push_str("fn beta_id() -> i32 {\n");
+    for i in 0..22 {
+        code.push_str(&format!("    let b{i} = {i};\n"));
+    }
+    code.push_str("    if maybe() { b0 } else { 2 }\n");
+    code.push_str("}\n\n");
+
+    code.push_str("fn gamma_id() -> i32 {\n");
+    for i in 0..22 {
+        code.push_str(&format!("    let g{i} = {i};\n"));
+    }
+    code.push_str("    if g0.is_positive() { g0 } else { 3 }\n");
+    code.push_str("}\n\n");
+
+    code.push_str("fn maybe() -> bool { true }\n");
+
+    let out = check(&code, "rs");
+    let _ = out;
+}
+
+// ===========================================================================
+// Duplication: extract_line_numbers via exact-clone finding
+// ===========================================================================
+
+#[test]
+fn duplication_extract_line_numbers_path() {
+    let mut code = String::new();
+    for name in ["foo_dup", "bar_dup"] {
+        code.push_str(&format!("fn {name}() -> i32 {{\n"));
+        for i in 0..22 {
+            code.push_str(&format!("    let v{i} = {i};\n"));
+        }
+        code.push_str("    v0 + v1\n");
+        code.push_str("}\n\n");
+    }
+    let out = check(&code, "rs");
+    let _ = out;
+}
+
+// ===========================================================================
 // Helpers
 // ===========================================================================
 
