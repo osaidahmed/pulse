@@ -24,6 +24,8 @@
   #text(size: 10pt)[University of Waterloo]
   #v(4pt)
   #text(size: 10pt, fill: gray)[April 2026]
+  #v(4pt)
+  #text(size: 9pt, fill: gray)[doi:10.5281/zenodo.19945787]
 ]
 
 #v(14pt)
