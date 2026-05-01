@@ -2,6 +2,8 @@
 
 A code smell detector that runs as a Claude Code hook. It analyzes every file edit in real time using tree-sitter, flags structural problems, and blocks the agent until they're fixed.
 
+It also runs standalone: `pulse check <file>` for a file or `pulse check -a` across a project. See [docs/whitepaper.pdf](docs/whitepaper.pdf) for the design and reasoning.
+
 ## Install
 
 ```sh
