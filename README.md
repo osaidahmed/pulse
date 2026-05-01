@@ -28,6 +28,10 @@ Building from source:
 cargo install --path .
 ```
 
+## Platforms
+
+Tested on macOS and Linux. Windows is unverified.
+
 ## How it works
 
 Three hooks fire at different points:
@@ -92,6 +96,7 @@ pulse debug <file>       raw metrics dump
 pulse --hook             PostToolUse hook (reads JSON stdin)
 pulse --stop             stop hook (regression detection)
 pulse --cleanup          clear baselines
+pulse --version, -V      print version
 ```
 
 ## License
