@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Clippy pre-commit hook. Runs `cargo clippy` and blocks the commit if
+# any warnings or errors are reported.
+#
+# Install:
+#   ln -s ../../scripts/pre-commit .git/hooks/pre-commit
+#
+# Bypass for a single commit:
+#   git commit --no-verify ...
+
+set -uo pipefail
+
+if ! git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.rs$|^Cargo\.(toml|lock)$'; then
+  exit 0
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "pre-commit: cargo not found on PATH; skipping clippy" >&2
+  exit 0
+fi
+
+exec cargo clippy --quiet -- -D warnings
