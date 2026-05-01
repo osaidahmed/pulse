@@ -20,17 +20,20 @@
   #text(size: 14pt)[Real-Time Structural Feedback for AI Code Generation]
   #v(12pt)
   #text(size: 11pt)[Omar Saidahmed]
+  #v(2pt)
+  #text(size: 10pt)[University of Waterloo]
   #v(4pt)
   #text(size: 10pt, fill: gray)[April 2026]
 ]
 
-#v(20pt)
+#v(14pt)
 
-#align(center)[
-  #image("pulse-example.png", width: 100%)
-]
+#figure(
+  image("pulse-example.png", width: 100%),
+  caption: [Pulse running as a PostToolUse hook, blocking an edit until findings are resolved.],
+)
 
-#v(16pt)
+#v(12pt)
 
 #block(width: 100%, inset: 12pt, stroke: 0.5pt + gray, radius: 4pt)[
   #text(weight: "bold")[Abstract.]
