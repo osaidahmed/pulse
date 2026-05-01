@@ -2,7 +2,7 @@
 
 A code smell detector that runs as a Claude Code hook. It analyzes every file edit in real time using tree-sitter, flags structural problems, and blocks the agent until they're fixed.
 
-It also runs standalone: `pulse check <file>` for a file or `pulse check -a` across a project. See [docs/whitepaper.pdf](docs/whitepaper.pdf) for the design and reasoning.
+It also runs standalone: `pulse check <file>` for a file or `pulse check -a` across a project. See [docs/technical-paper.pdf](docs/technical-paper.pdf) for the design and reasoning.
 
 ## Install
 
@@ -65,7 +65,7 @@ Python, TypeScript, JavaScript, Rust, C, C++, Java, C#, Go, Swift, Zig, Ruby, Ob
 
 Other limits: nesting depth 4, args 5, compound conditions 2, functions per file 20, total cc per file 100, struct fields 12, string match arms 5.
 
-Full thresholds and justifications: [docs/whitepaper.pdf](docs/whitepaper.pdf).
+Full thresholds and justifications: [docs/technical-paper.pdf](docs/technical-paper.pdf).
 
 ## Configuration
 
