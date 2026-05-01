@@ -112,6 +112,11 @@ fn main() {
 
 fn run_debug(file_path: &str) {
     let path = Path::new(file_path);
+    let cfg = config::load_config(path);
+    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
+        eprintln!("debug: {file_path} — ignored by .pulse.toml");
+        return;
+    }
     let lang = parse::detect_language(path).expect("unsupported language");
     let source = std::fs::read_to_string(path).expect("can't read file");
     let metrics = parse::parse_and_walk(&source, lang).expect("parse failed");
@@ -141,6 +146,9 @@ struct AnalysisResult {
 fn analyze_file(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<AnalysisResult> {
     let path = Path::new(file_path);
     if !path.exists() {
+        return None;
+    }
+    if cfg.is_some_and(|c| config::is_ignored_for_file(c, path)) {
         return None;
     }
     let lang = parse::detect_language(path)?;
@@ -174,6 +182,11 @@ fn run_check(file_path: &str) {
 fn run_budget(file_path: &str) {
     let path = Path::new(file_path);
     let cfg = config::load_config(path);
+
+    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
+        eprintln!("budget: {file_path} — ignored by .pulse.toml");
+        return;
+    }
 
     let Some(lang) = parse::detect_language(path) else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
@@ -209,11 +222,13 @@ fn run_budget_new() {
 }
 
 fn run_check_all(include_tests: bool) {
-    let cfg = config::load_config(Path::new("."));
+    let (cfg, root) = config::load_config_with_root(Path::new("."))
+        .map_or((None, None), |(c, r)| (Some(c), Some(r)));
+    let matcher = cfg.as_ref().map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
-        if !include_tests && test_detection::is_test_file(&path_str) {
+        if should_skip_walk_entry(&entry, &path_str, include_tests, matcher.as_ref(), root.as_deref()) {
             continue;
         }
         if let Some(result) = analyze_file(&path_str, cfg.as_ref()) {
@@ -226,6 +241,19 @@ fn run_check_all(include_tests: bool) {
     if total > 0 {
         process::exit(1);
     }
+}
+
+fn should_skip_walk_entry(
+    entry: &Path,
+    path_str: &str,
+    include_tests: bool,
+    matcher: Option<&config::IgnoreMatcher>,
+    root: Option<&Path>,
+) -> bool {
+    if !include_tests && test_detection::is_test_file(path_str) {
+        return true;
+    }
+    matcher.zip(root).is_some_and(|(m, r)| m.matches_file(r, entry))
 }
 
 fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
@@ -254,6 +282,9 @@ fn run_hook(h: hook::HookInput) {
         return;
     }
     let cfg = config::load_config(Path::new(&h.file_path));
+    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, Path::new(&h.file_path))) {
+        return;
+    }
     analytics::save_session_id(&h);
     baselines::cache_baseline(&h, cfg.as_ref());
     let Some(result) = analyze_file(&h.file_path, cfg.as_ref()) else {

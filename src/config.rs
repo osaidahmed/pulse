@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use serde::Deserialize;
 
 use crate::parse::Language;
@@ -16,6 +17,8 @@ pub struct PulseConfig {
     pub thresholds: ConfigThresholds,
     #[serde(default)]
     pub disable: DisableConfig,
+    #[serde(default)]
+    pub ignore: IgnoreConfig,
     #[serde(default)]
     pub languages: std::collections::HashMap<String, ConfigThresholds>,
 }
@@ -78,6 +81,54 @@ pub struct DisableConfig {
     pub smells: Vec<String>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct IgnoreConfig {
+    #[serde(default)]
+    pub paths: Vec<String>,
+}
+
+pub struct IgnoreMatcher {
+    set: GlobSet,
+}
+
+impl IgnoreMatcher {
+    pub fn from_patterns(patterns: &[String]) -> Self {
+        let mut builder = GlobSetBuilder::new();
+        for raw in patterns {
+            for variant in expand_pattern(raw) {
+                if let Ok(glob) = GlobBuilder::new(&variant).literal_separator(true).build() {
+                    builder.add(glob);
+                }
+            }
+        }
+        let set = builder.build().unwrap_or_else(|_| GlobSet::empty());
+        Self { set }
+    }
+
+    pub fn matches_file(&self, config_root: &Path, file_path: &Path) -> bool {
+        if self.set.is_empty() {
+            return false;
+        }
+        relative_path(config_root, file_path).is_some_and(|rel| self.set.is_match(&rel))
+    }
+}
+
+fn expand_pattern(raw: &str) -> Vec<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Vec::new();
+    }
+    let stripped = trimmed.trim_end_matches('/');
+    if stripped.is_empty() {
+        return Vec::new();
+    }
+    let mut out = vec![stripped.to_string()];
+    if !stripped.ends_with("/**") && !stripped.ends_with("**") {
+        out.push(format!("{stripped}/**"));
+    }
+    out
+}
+
 pub fn find_config(start: &Path) -> Option<PathBuf> {
     let mut dir = if start.is_file() {
         start.parent()?
@@ -97,6 +148,31 @@ pub fn load_config(start: &Path) -> Option<PulseConfig> {
     let path = find_config(start)?;
     let content = std::fs::read_to_string(path).ok()?;
     toml::from_str(&content).ok()
+}
+
+pub fn load_config_with_root(start: &Path) -> Option<(PulseConfig, PathBuf)> {
+    let path = find_config(start)?;
+    let content = std::fs::read_to_string(&path).ok()?;
+    let cfg: PulseConfig = toml::from_str(&content).ok()?;
+    let root = path.parent()?.to_path_buf();
+    Some((cfg, root))
+}
+
+pub fn is_ignored_for_file(cfg: &PulseConfig, file_path: &Path) -> bool {
+    if cfg.ignore.paths.is_empty() {
+        return false;
+    }
+    let Some(root) = find_config(file_path).and_then(|p| p.parent().map(Path::to_path_buf))
+    else {
+        return false;
+    };
+    IgnoreMatcher::from_patterns(&cfg.ignore.paths).matches_file(&root, file_path)
+}
+
+fn relative_path(root: &Path, file: &Path) -> Option<PathBuf> {
+    let canon_root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let canon_file = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
+    canon_file.strip_prefix(&canon_root).ok().map(Path::to_path_buf)
 }
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {

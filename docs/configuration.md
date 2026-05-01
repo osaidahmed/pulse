@@ -29,7 +29,35 @@ arg_max = 7
 
 [disable]
 # disables selected smells everywhere
+
+[ignore]
+# skips matching paths entirely
 ```
+
+## Ignore Paths
+
+```toml
+[ignore]
+paths = [
+  "vendor/**",
+  "third_party/**",
+  "**/generated/**",
+  "legacy_module",
+  "*.gen.py",
+]
+```
+
+Patterns are matched against each file's path **relative to the directory containing `.pulse.toml`**. Globbing follows standard syntax:
+
+- `*` — match a single path segment (no `/`)
+- `**` — match any number of segments, including zero
+- `?` — match a single character
+- `[abc]` — match any character in the set
+- `{a,b}` — match either alternative
+
+A bare folder name like `legacy_module` is treated as both `legacy_module` and `legacy_module/**` so the whole folder is skipped. Trailing `/` is also accepted (e.g. `legacy_module/`).
+
+When a file matches, pulse produces no findings, caches no baselines, logs no analytics, and budget/debug commands report it as `ignored by .pulse.toml`.
 
 ## Language Keys
 
