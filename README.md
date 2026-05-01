@@ -4,13 +4,29 @@ A code smell detector that runs as a Claude Code hook. It analyzes every file ed
 
 ## Install
 
+```sh
+brew install osaidahmed/pulse/pulse
 ```
-cargo build --release
-cp target/release/pulse ~/.local/bin/
+
+Or with the shell installer:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/osaidahmed/pulse/releases/latest/download/pulse-installer.sh | sh
+```
+
+Then run:
+
+```sh
 pulse setup
 ```
 
-`pulse setup` adds three hooks to `~/.claude/settings.json` and writes instructions to `~/.claude/CLAUDE.md`. After that, Pulse runs automatically in every Claude Code session.
+This adds the hooks to `~/.claude/settings.json` and writes instructions to `~/.claude/CLAUDE.md`. Pulse runs automatically in every Claude Code session after that.
+
+Building from source:
+
+```sh
+cargo install --path .
+```
 
 ## How it works
 
