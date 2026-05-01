@@ -1,5 +1,7 @@
 # Pulse
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19945787.svg)](https://doi.org/10.5281/zenodo.19945787)
+
 A code smell detector that runs as a Claude Code hook. It analyzes every file edit in real time using tree-sitter, flags structural problems, and blocks the agent until they're fixed.
 
 It also runs standalone: `pulse check <file>` for a file or `pulse check -a` across a project. See [docs/technical-paper.pdf](docs/technical-paper.pdf) for the design and reasoning.
