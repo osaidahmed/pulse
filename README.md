@@ -105,6 +105,22 @@ pulse --cleanup          clear baselines
 pulse --version, -V      print version
 ```
 
+## Citation
+
+If you reference Pulse in research, please cite the technical paper:
+
+```bibtex
+@misc{saidahmed2026pulse,
+  author    = {Saidahmed, Omar},
+  title     = {Pulse: Real-Time Structural Feedback for AI Code Generation},
+  year      = {2026},
+  month     = {May},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.19945787},
+  url       = {https://doi.org/10.5281/zenodo.19945787}
+}
+```
+
 ## License
 
 Apache 2.0

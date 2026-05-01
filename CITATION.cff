@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use Pulse in research, please cite the technical paper."
+type: software
+title: Pulse
+abstract: "A code smell detector that runs as a Claude Code hook for real-time structural feedback on AI-generated code."
+authors:
+  - family-names: Saidahmed
+    given-names: Omar
+    affiliation: University of Waterloo
+version: 0.1.0
+date-released: 2026-05-01
+license: Apache-2.0
+repository-code: "https://github.com/osaidahmed/pulse"
+url: "https://github.com/osaidahmed/pulse"
+doi: 10.5281/zenodo.19945787
+keywords:
+  - code analysis
+  - static analysis
+  - code smells
+  - code health
+  - AI agents
+  - Claude Code
+  - tree-sitter
+preferred-citation:
+  type: article
+  title: "Pulse: Real-Time Structural Feedback for AI Code Generation"
+  authors:
+    - family-names: Saidahmed
+      given-names: Omar
+      affiliation: University of Waterloo
+  year: 2026
+  month: 5
+  publisher:
+    name: Zenodo
+  doi: 10.5281/zenodo.19945787
+  url: "https://doi.org/10.5281/zenodo.19945787"
