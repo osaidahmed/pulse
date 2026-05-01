@@ -24,22 +24,26 @@
   #text(size: 10pt)[University of Waterloo]
   #v(4pt)
   #text(size: 10pt, fill: gray)[April 2026]
-  #v(4pt)
-  #text(size: 9pt, fill: gray)[doi:10.5281/zenodo.19945787]
 ]
 
 #v(14pt)
 
 #figure(
-  image("pulse-example.png", width: 100%),
+  image("pulse-example.png", width: 80%),
   caption: [Pulse running as a PostToolUse hook, blocking an edit until findings are resolved.],
 )
 
 #v(12pt)
 
-#block(width: 100%, inset: 12pt, stroke: 0.5pt + gray, radius: 4pt)[
+#block(width: 100%, inset: 12pt, stroke: 0.5pt + gray, radius: 4pt, breakable: false)[
   #text(weight: "bold")[Abstract.]
   Pulse is a code smell detector that runs as a post-edit hook for AI coding agents. After every file modification, it checks the changed file for 26 structural code smells and blocks the agent from continuing until the findings are resolved. Recent research shows that AI-assisted development leads to persistent increases in code complexity (+41%) and static analysis warnings (+30%), with the accumulated technical debt cancelling out initial velocity gains within two months. Pulse intervenes at the point of introduction, the individual edit, rather than after the damage compounds. This paper describes the problem, why existing tools fail to address it for agents, the architecture and threshold methodology behind Pulse, and what remains unknown.
+
+  #v(6pt)
+
+  #align(center)[
+    #text(size: 9pt, fill: gray)[doi:10.5281/zenodo.19945787]
+  ]
 ]
 
 #pagebreak()
