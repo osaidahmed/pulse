@@ -55,8 +55,7 @@ fn edit_that_introduces_smell_shows_only_near_function() {
     let output = run_hook_with_json(&json);
     assert!(
         output.contains("func_a"),
-        "should see func_a after introducing smell, got: {}",
-        output
+        "should see func_a after introducing smell, got: {output}"
     );
 }
 
@@ -86,8 +85,7 @@ fn edit_far_from_functions_shows_nothing() {
     let output = run_hook_with_json(&json);
     assert!(
         output.is_empty(),
-        "edit at line 1 should not show function at line 6, got: {}",
-        output
+        "edit at line 1 should not show function at line 6, got: {output}"
     );
 }
 
@@ -115,13 +113,11 @@ fn write_mode_shows_all_findings() {
     let output = run_hook_with_json(&json);
     assert!(
         output.contains("func_a"),
-        "Write mode should show all: {}",
-        output
+        "Write mode should show all: {output}"
     );
     assert!(
         output.contains("func_b"),
-        "Write mode should show all: {}",
-        output
+        "Write mode should show all: {output}"
     );
 }
 
@@ -178,8 +174,7 @@ fn hook_output_reason_contains_findings() {
     let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
     assert!(
         reason.contains("error[pulse]:"),
-        "reason should contain error[pulse]:, got: {}",
-        reason
+        "reason should contain error[pulse]:, got: {reason}"
     );
 }
 
@@ -197,8 +192,7 @@ fn check_mode_still_uses_verbose_format() {
     // Check mode should use multi-line format with indented findings
     assert!(
         stdout.contains("\n  "),
-        "check mode should have indented findings: {}",
-        stdout
+        "check mode should have indented findings: {stdout}"
     );
 }
 
@@ -213,10 +207,10 @@ fn module_findings_excluded_from_hook_output() {
     // Generate a file that's too large (> 400 LOC) with too many functions
     let mut code = "import os\n\n".to_string();
     for i in 0..25 {
-        code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
+        code.push_str(&format!("def fn_{i}():\n    return {i}\n\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("VAR_{} = {}\n", i, i));
+        code.push_str(&format!("VAR_{i} = {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
 
@@ -228,13 +222,11 @@ fn module_findings_excluded_from_hook_output() {
     let output = run_hook_with_json(&json);
     assert!(
         !output.contains("File Too Large"),
-        "Module findings should not appear in hook output: {}",
-        output
+        "Module findings should not appear in hook output: {output}"
     );
     assert!(
         !output.contains("Too Many Functions"),
-        "Module findings should not appear in hook output: {}",
-        output
+        "Module findings should not appear in hook output: {output}"
     );
 }
 
@@ -255,8 +247,7 @@ fn hook_on_clean_file_still_silent() {
     let output = run_hook_with_json(&json);
     assert!(
         output.is_empty(),
-        "clean file should be silent, got: {}",
-        output
+        "clean file should be silent, got: {output}"
     );
 }
 

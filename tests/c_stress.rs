@@ -72,7 +72,7 @@ fn cc_nested_if_in_for() {
 fn cc_chained_boolean() {
     let out = debug("void f(int a, int b, int c, int d) {\n    if (a && b && c && d) {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // Nesting precision
@@ -156,9 +156,9 @@ fn multiple_smells_same_function() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("int func{}(int data) {{\n", i));
+        code.push_str(&format!("int func{i}(int data) {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("    int f{} = data + {};\n", j, j));
+            code.push_str(&format!("    int f{j} = data + {j};\n"));
         }
         code.push_str("    return data;\n}\n\n");
     }
@@ -183,7 +183,7 @@ fn cc_counts_not_operator() {
     let out = debug("void f(int a) {\n    if (!a) {}\n}\n");
     // In C, ! may or may not increment cc depending on parser; at minimum base(1) + if(1) = 2
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {cc}");
 }
 
 // ===========================================================================
@@ -218,7 +218,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base >= 9, got: {cc}");
 }
 
 // ===========================================================================
@@ -229,7 +229,7 @@ fn cc_switch_many_cases() {
 fn nesting_for_if_for_depth() {
     let out = debug("void f(void) {\n    if (x) {\n        for (int i = 0; i < n; i++) {\n            if (z) {\n                for (int j = 0; j < m; j++) {}\n            }\n        }\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 4, "got: {}", depth);
+    assert!(depth >= 4, "got: {depth}");
 }
 
 // ===========================================================================
@@ -269,7 +269,7 @@ fn duplication_test_suppressed() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("struct T{} {{ int x; }};\n", i));
+        code.push_str(&format!("struct T{i} {{ int x; }};\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "Declarations"));
@@ -283,7 +283,7 @@ fn declarations_below_threshold() {
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("struct T{} {{ int x; }};\n", i));
+        code.push_str(&format!("struct T{i} {{ int x; }};\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -297,10 +297,10 @@ fn declarations_above_threshold() {
 fn god_class_requires_god_method() {
     let mut code = String::new();
     for i in 0..functions_above() {
-        code.push_str(&format!("int fn{}(void) {{ return {}; }}\n", i, i));
+        code.push_str(&format!("int fn{i}(void) {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("int VAR{} = {};\n", i, i));
+        code.push_str(&format!("int VAR{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
@@ -314,17 +314,17 @@ fn god_class_requires_god_method() {
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("void monster(void) {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("    if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    int y{} = {};\n", i, i));
+        code.push_str(&format!("    int y{i} = {i};\n"));
     }
     code.push_str("}\n\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("int fn{}(void) {{ return {}; }}\n", i, i));
+        code.push_str(&format!("int fn{i}(void) {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("int V{} = {};\n", i, i));
+        code.push_str(&format!("int V{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "God Method"));
@@ -339,9 +339,9 @@ fn god_class_triggers_with_god_method() {
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("void lg{}(void) {{\n", i));
+        code.push_str(&format!("void lg{i}(void) {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    int x{} = {};\n", j, j));
+            code.push_str(&format!("    int x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -357,9 +357,9 @@ fn overall_function_size_below_threshold() {
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("void lg{}(void) {{\n", i));
+        code.push_str(&format!("void lg{i}(void) {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    int x{} = {};\n", j, j));
+            code.push_str(&format!("    int x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -375,7 +375,7 @@ fn overall_function_size_at_threshold() {
 fn multiline_string_flagged() {
     let mut code = String::from("const char* f(void) {\n    const char* q = \"\\\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        SELECT field_{} \\\n", i));
+        code.push_str(&format!("        SELECT field_{i} \\\n"));
     }
     code.push_str("    \";\n    return q;\n}\n");
     let out = check(&code);
@@ -514,8 +514,7 @@ fn clean_c_module_not_flagged() {
     ));
     assert!(
         out.is_empty(),
-        "clean C code should not be flagged, got: {}",
-        out
+        "clean C code should not be flagged, got: {out}"
     );
 }
 
@@ -540,7 +539,7 @@ fn duplication_mixed_test_and_prod_flagged() {
 fn cc_chained_boolean_4way() {
     let out = debug("void f(int a, int b, int c, int d) {\n    if (a && b && c && d) {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 5, "base+if+3 ands >= 5, got: {}", cc);
+    assert!(cc >= 5, "base+if+3 ands >= 5, got: {cc}");
 }
 
 // ===========================================================================
@@ -563,8 +562,7 @@ fn nesting_do_while_counts_depth() {
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(
         depth >= 1,
-        "do-while should contribute nesting, got: {}",
-        depth
+        "do-while should contribute nesting, got: {depth}"
     );
 }
 
@@ -586,7 +584,7 @@ fn args_struct_params() {
 fn assertion_block_below_threshold_not_flagged() {
     let mut code = String::from("void test_few(void) {\n");
     for i in 0..5 {
-        code.push_str(&format!("    assert(x{} == {});\n", i, i));
+        code.push_str(&format!("    assert(x{i} == {i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -601,7 +599,7 @@ fn assertion_block_below_threshold_not_flagged() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("void test_many(void) {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    assert(x{} == {});\n", i, i));
+        code.push_str(&format!("    assert(x{i} == {i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -701,8 +699,7 @@ fn nested_conditional_chunks_detected() {
     ));
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -810,7 +807,7 @@ fn attributed_function_analyzed() {
     let out = check(
         "__attribute__((noinline))\nvoid f(int a, int b, int c, int d, int e, int f, int g) {}\n",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================
@@ -852,7 +849,7 @@ fn cc_else_if_chain() {
 fn nesting_switch_counts_depth() {
     let out = debug("void f(int x) {\n    switch (x) {\n        case 1:\n            if (x > 0) {}\n            break;\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "switch+if should be >= 2, got: {}", depth);
+    assert!(depth >= 2, "switch+if should be >= 2, got: {depth}");
 }
 
 // ===========================================================================
@@ -873,7 +870,7 @@ fn cc_or_operator() {
 fn assertion_block_at_threshold_exact() {
     let mut code = String::from("void test_exact(void) {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("    assert(x{} == {});\n", i, i));
+        code.push_str(&format!("    assert(x{i} == {i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -899,7 +896,7 @@ fn issue_count_matches() {
     let out = check("void f(int a, int b, int c, int d, int e, int f, int g) {}\n");
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -910,7 +907,7 @@ fn issue_count_matches() {
 fn output_has_module_prefix() {
     let mut code = String::new();
     for i in 0..functions_above() {
-        code.push_str(&format!("int fn{}(void) {{ return {}; }}\n", i, i));
+        code.push_str(&format!("int fn{i}(void) {{ return {i}; }}\n"));
     }
     let out = check(&code);
     assert!(out.contains("Module:"));
@@ -1008,8 +1005,8 @@ fn cogc_triggers_complex_method() {
     let d = debug(code);
     let cogc = function_metric(&d, "f", "cogc").unwrap();
     let cc = function_metric(&d, "f", "cc").unwrap();
-    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
-    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(cogc >= 15, "cogc should be >= 15, got: {cogc}");
+    assert!(cc < 9, "cc should be < 9, got: {cc}");
     assert!(has_smell(&out, "Complex Method"));
 }
 

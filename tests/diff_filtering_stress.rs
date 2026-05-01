@@ -84,7 +84,7 @@ fn edit_that_worsens_function_reports_it() {
         "    return x",
         "    if x > 7:\n        pass\n    return x",
     );
-    assert!(has_function(&out, "process"), "worsening should report it, got: {}", out);
+    assert!(has_function(&out, "process"), "worsening should report it, got: {out}");
 }
 
 #[test]
@@ -94,8 +94,7 @@ fn edit_outside_smelly_function_skips_it() {
     // Line 3 is far from process_order (L58-111)
     assert!(
         !has_function(&out, "process_order"),
-        "editing imports should not report process_order, got: {}",
-        out
+        "editing imports should not report process_order, got: {out}"
     );
 }
 
@@ -106,13 +105,11 @@ fn module_findings_excluded_from_hook_output() {
     // Module-level findings should NOT appear in hook output (handled by Stop hook)
     assert!(
         !has_smell(&out, "Low Cohesion"),
-        "module findings should not appear in hook output, got: {}",
-        out
+        "module findings should not appear in hook output, got: {out}"
     );
     assert!(
         !has_smell(&out, "Code Duplication"),
-        "module findings should not appear in hook output, got: {}",
-        out
+        "module findings should not appear in hook output, got: {out}"
     );
 }
 
@@ -136,14 +133,12 @@ fn hook_output_is_json_block_decision() {
     assert_eq!(
         parsed.get("decision").and_then(|v| v.as_str()),
         Some("block"),
-        "should have decision: block, got: {}",
-        out
+        "should have decision: block, got: {out}"
     );
     let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
     assert!(
         reason.contains("error[pulse]:"),
-        "reason should contain error[pulse]:, got: {}",
-        reason
+        "reason should contain error[pulse]:, got: {reason}"
     );
 }
 
@@ -160,8 +155,7 @@ fn hook_output_contains_error_prefix() {
     }
     assert!(
         out.contains("error[pulse]:"),
-        "output should contain error[pulse]: prefix: {}",
-        out
+        "output should contain error[pulse]: prefix: {out}"
     );
 }
 
@@ -171,8 +165,7 @@ fn check_mode_still_multiline() {
     let lines = out.trim().lines().count();
     assert!(
         lines > 3,
-        "check mode should be multi-line verbose, got {} lines",
-        lines
+        "check mode should be multi-line verbose, got {lines} lines"
     );
 }
 
@@ -187,7 +180,7 @@ fn edit_spanning_multiple_functions() {
     let path = dir.path().join("multi.py");
     std::fs::write(&path, content).unwrap();
     let out = hook_write_mode(path.to_str().unwrap());
-    assert!(has_function(&out, "smelly_a"), "write mode should see smelly_a: {}", out);
+    assert!(has_function(&out, "smelly_a"), "write mode should see smelly_a: {out}");
 }
 
 #[test]
@@ -227,6 +220,6 @@ fn write_mode_reports_all() {
     )
     .unwrap();
     let out = hook_write_mode(path.to_str().unwrap());
-    assert!(has_function(&out, " a ") || has_function(&out, "`a`"), "Write mode should show a: {}", out);
-    assert!(has_function(&out, " b ") || has_function(&out, "`b`"), "Write mode should show b: {}", out);
+    assert!(has_function(&out, " a ") || has_function(&out, "`a`"), "Write mode should show a: {out}");
+    assert!(has_function(&out, " b ") || has_function(&out, "`b`"), "Write mode should show b: {out}");
 }

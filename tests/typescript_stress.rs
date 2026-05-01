@@ -73,7 +73,7 @@ fn cc_counts_ternary() {
 fn cc_counts_chained_boolean() {
     let out = debug("function f(): void {\n    if (a && b && c && d) {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "chained boolean should increase cc, got: {}", cc);
+    assert!(cc >= 4, "chained boolean should increase cc, got: {cc}");
 }
 
 #[test]
@@ -234,7 +234,7 @@ fn lcom4_methods_connected_by_call() {
         "    send(e: any) { return null; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -262,7 +262,7 @@ fn lcom4_god_class_still_fires() {
         "    auditLog(msg: string) { this.audit.log(msg); }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -308,10 +308,10 @@ fn duplication_test_functions_suppressed() {
 fn god_class_requires_god_method() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const VAR{} = {};\n", i, i));
+        code.push_str(&format!("const VAR{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
@@ -321,17 +321,17 @@ fn god_class_requires_god_method() {
 fn god_method_triggers_god_class() {
     let mut code = String::from("function monster(): void {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+        code.push_str(&format!("    if (x === {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const y{} = {};\n", i, i));
+        code.push_str(&format!("    const y{i} = {i};\n"));
     }
     code.push_str("}\n\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const V{} = {};\n", i, i));
+        code.push_str(&format!("const V{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "God Method"));
@@ -346,9 +346,9 @@ fn god_method_triggers_god_class() {
 fn overall_function_size_not_triggered_below_threshold() {
     let mut code = String::new();
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("function lg{}(): void {{\n", i));
+        code.push_str(&format!("function lg{i}(): void {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    const x{} = {};\n", j, j));
+            code.push_str(&format!("    const x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -360,9 +360,9 @@ fn overall_function_size_not_triggered_below_threshold() {
 fn overall_function_size_triggered_at_threshold() {
     let mut code = String::new();
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("function lg{}(): void {{\n", i));
+        code.push_str(&format!("function lg{i}(): void {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    const x{} = {};\n", j, j));
+            code.push_str(&format!("    const x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -378,7 +378,7 @@ fn overall_function_size_triggered_at_threshold() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "Declarations"));
@@ -388,7 +388,7 @@ fn declarations_below_threshold() {
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -526,11 +526,10 @@ fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
         code.push_str(&format!(
-            "function func{}(data: any): any {{\n    const r: any = {{}};\n",
-            i
+            "function func{i}(data: any): any {{\n    const r: any = {{}};\n"
         ));
         for j in 0..18 {
-            code.push_str(&format!("    r.f{} = data.f{};\n", j, j));
+            code.push_str(&format!("    r.f{j} = data.f{j};\n"));
         }
         code.push_str("    return r;\n}\n\n");
     }
@@ -551,11 +550,10 @@ fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
         code.push_str(&format!(
-            "class Service{} {{\n    private data{}: any[] = [];\n",
-            i, i
+            "class Service{i} {{\n    private data{i}: any[] = [];\n"
         ));
         for j in 0..5 {
-            code.push_str(&format!("    method{}() {{ return this.data{}; }}\n", j, i));
+            code.push_str(&format!("    method{j}() {{ return this.data{i}; }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -579,7 +577,7 @@ fn performance_class_hierarchy() {
 fn cc_counts_not_operator() {
     let out = debug("function f(): void {\n    if (!a) {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {cc}");
 }
 
 // ===========================================================================
@@ -592,8 +590,7 @@ fn nesting_depth_with_try_catch() {
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(
         depth >= 1,
-        "try-catch should add nesting depth, got: {}",
-        depth
+        "try-catch should add nesting depth, got: {depth}"
     );
 }
 
@@ -785,7 +782,7 @@ fn assertion_block_interrupted_resets() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("function testBig(): void {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    expect(x{}).toBe({});\n", i, i));
+        code.push_str(&format!("    expect(x{i}).toBe({i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -806,7 +803,7 @@ fn small_string_not_flagged_as_embedded() {
 fn multiline_template_flagged_as_embedded() {
     let mut code = String::from("function f(): string {\n    const x = `\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        line {} of template\n", i));
+        code.push_str(&format!("        line {i} of template\n"));
     }
     code.push_str("    `;\n    return x;\n}\n");
     let out = check(&code);
@@ -831,8 +828,7 @@ fn clean_react_component_not_flagged() {
     ));
     assert!(
         out.is_empty(),
-        "clean React component should not be flagged, got: {}",
-        out
+        "clean React component should not be flagged, got: {out}"
     );
 }
 
@@ -894,7 +890,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base should give cc >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base should give cc >= 9, got: {cc}");
 }
 
 // ===========================================================================
@@ -905,7 +901,7 @@ fn cc_switch_many_cases() {
 fn assertion_block_at_threshold_not_flagged() {
     let mut code = String::from("function testExact(): void {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("    expect(x{}).toBe({});\n", i, i));
+        code.push_str(&format!("    expect(x{i}).toBe({i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -920,7 +916,7 @@ fn assertion_block_at_threshold_not_flagged() {
 fn decorated_classes_counted_as_declarations() {
     let mut code = String::from("function deco(cls: any) { return cls; }\n\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -944,10 +940,10 @@ fn shallow_global_nesting_not_flagged() {
 fn god_class_not_triggered_without_god_method() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const VAR{} = {};\n", i, i));
+        code.push_str(&format!("const VAR{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
@@ -961,17 +957,17 @@ fn god_class_not_triggered_without_god_method() {
 fn god_class_triggers_when_large_with_god_method() {
     let mut code = String::from("function monster(): void {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+        code.push_str(&format!("    if (x === {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const y{} = {};\n", i, i));
+        code.push_str(&format!("    const y{i} = {i};\n"));
     }
     code.push_str("}\n\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const V{} = {};\n", i, i));
+        code.push_str(&format!("const V{i} = {i};\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "God Method"));
@@ -986,9 +982,9 @@ fn god_class_triggers_when_large_with_god_method() {
 fn overall_function_size_below_threshold_not_flagged() {
     let mut code = String::new();
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("function lg{}(): void {{\n", i));
+        code.push_str(&format!("function lg{i}(): void {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    const x{} = {};\n", j, j));
+            code.push_str(&format!("    const x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -1060,7 +1056,7 @@ fn function_with_excess_embedded_and_deep_nesting() {
 fn nesting_try_catch_counts_depth() {
     let out = debug("function f(): void {\n    try {\n        if (x) {\n            if (y) {}\n        }\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "try+if+if should be >= 2, got: {}", depth);
+    assert!(depth >= 2, "try+if+if should be >= 2, got: {depth}");
 }
 
 // ===========================================================================
@@ -1159,7 +1155,7 @@ fn cogc_catch_penalized() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "try/catch with nested if should have cogc >= 3, got: {}", cogc);
+    assert!(cogc >= 3, "try/catch with nested if should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
@@ -1223,8 +1219,8 @@ fn cogc_triggers_complex_method() {
     ));
     let cogc = function_metric(&dbg, "f", "cogc").unwrap();
     let cc = function_metric(&dbg, "f", "cc").unwrap();
-    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
-    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(cogc >= 15, "cogc should be >= 15, got: {cogc}");
+    assert!(cc < 9, "cc should be < 9, got: {cc}");
     assert!(out.contains("cogc="), "detail should contain cogc=");
 }
 
@@ -1277,7 +1273,7 @@ fn multiple_empty_catches() {
         "}\n",
     ));
     assert!(has_smell(&out, "Empty Error Handler"));
-    assert!(out.contains("2 empty catch blocks"), "should report count=2, got: {}", out);
+    assert!(out.contains("2 empty catch blocks"), "should report count=2, got: {out}");
 }
 
 #[test]
@@ -1309,7 +1305,7 @@ fn catch_with_only_comment_detected() {
 fn ts_global_for_deep_nesting() {
     let code = "for (let i = 0; i < 10; i++) {\n  if (true) {\n    if (true) {\n      if (true) {\n      }\n    }\n  }\n}\nfunction f() {}\n";
     let out = check(code);
-    assert!(has_smell(&out, "Deep Global Nesting"), "global for nesting: {}", out);
+    assert!(has_smell(&out, "Deep Global Nesting"), "global for nesting: {out}");
 }
 
 #[test]
@@ -1321,5 +1317,5 @@ fn ts_untyped_params_counted() {
 #[test]
 fn ts_ambient_class_no_crash() {
     let out = debug("declare class Foo {}\nfunction f() { return 1; }\n");
-    assert!(out.contains("f"));
+    assert!(out.contains('f'));
 }

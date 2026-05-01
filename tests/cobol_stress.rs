@@ -7,8 +7,7 @@ lang_helpers!("cob");
 
 fn cobol_prog(procedure_body: &str) -> String {
     format!(
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-A PIC 9.\n       01 WS-B PIC 9.\n       01 WS-C PIC 9.\n       01 WS-D PIC 9.\n       01 WS-I PIC 9(3).\n       01 WS-X PIC X(10).\n       PROCEDURE DIVISION.\n       TEST-PARA.\n{}",
-        procedure_body
+        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-A PIC 9.\n       01 WS-B PIC 9.\n       01 WS-C PIC 9.\n       01 WS-D PIC 9.\n       01 WS-I PIC 9(3).\n       01 WS-X PIC X(10).\n       PROCEDURE DIVISION.\n       TEST-PARA.\n{procedure_body}"
     )
 }
 
@@ -28,7 +27,7 @@ fn cc_counts_else_if() {
         "           IF WS-A > 0\n               DISPLAY \"y\"\n           ELSE\n               IF WS-B > 0\n                   DISPLAY \"z\"\n               END-IF\n           END-IF.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
@@ -37,7 +36,7 @@ fn cc_counts_evaluate_when() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 4, "EVALUATE+2WHEN, got: {}", cc);
+    assert!(cc >= 4, "EVALUATE+2WHEN, got: {cc}");
 }
 
 #[test]
@@ -46,7 +45,7 @@ fn cc_counts_evaluate_multiple_when() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n               WHEN \"B\"\n                   DISPLAY \"B\"\n               WHEN \"C\"\n                   DISPLAY \"C\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "EVALUATE+3WHEN, got: {}", cc);
+    assert!(cc >= 5, "EVALUATE+3WHEN, got: {cc}");
 }
 
 #[test]
@@ -61,14 +60,14 @@ fn cc_counts_perform_varying() {
         "           PERFORM VARYING WS-I FROM 1 BY 1\n               UNTIL WS-I > 5\n               DISPLAY WS-I\n           END-PERFORM.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_perform_times() {
     let out = debug(&cobol_prog("           PERFORM 5 TIMES\n               DISPLAY \"x\"\n           END-PERFORM.\n"));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
@@ -87,14 +86,14 @@ fn cc_counts_or() {
 fn cc_chained_boolean() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0 OR WS-C > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean_4way() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0 AND WS-C > 0 AND WS-D > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "got: {}", cc);
+    assert!(cc >= 5, "got: {cc}");
 }
 
 #[test]
@@ -129,7 +128,7 @@ fn cc_combined_perform_and_if() {
         "           PERFORM UNTIL WS-I > 5\n               IF WS-A > 0\n                   DISPLAY \"y\"\n               END-IF\n           END-PERFORM.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
@@ -138,7 +137,7 @@ fn cc_evaluate_with_nested_if() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   IF WS-A > 0\n                       DISPLAY \"y\"\n                   END-IF\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "EVALUATE+2WHEN+IF, got: {}", cc);
+    assert!(cc >= 5, "EVALUATE+2WHEN+IF, got: {cc}");
 }
 
 #[test]
@@ -148,7 +147,7 @@ fn cc_when_other_no_cc() {
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
     // EVALUATE(+1) + WHEN(+1) = 3 total; WHEN OTHER adds 0
-    assert_eq!(cc, 3, "WHEN OTHER should not add cc, got: {}", cc);
+    assert_eq!(cc, 3, "WHEN OTHER should not add cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -159,7 +158,7 @@ fn cc_when_other_no_cc() {
 fn cogc_flat_branches() {
     let out = debug(&cobol_prog("           IF WS-A > 0\n               DISPLAY \"a\"\n           END-IF.\n           IF WS-B > 0\n               DISPLAY \"b\"\n           END-IF.\n"));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 2, "two flat IFs = cogc 2, got: {}", cogc);
+    assert_eq!(cogc, 2, "two flat IFs = cogc 2, got: {cogc}");
 }
 
 #[test]
@@ -168,7 +167,7 @@ fn cogc_nested_ifs() {
         "           IF WS-A > 0\n               IF WS-B > 0\n                   DISPLAY \"y\"\n               END-IF\n           END-IF.\n"
     ));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "nested IF adds nesting penalty, got: {}", cogc);
+    assert!(cogc >= 3, "nested IF adds nesting penalty, got: {cogc}");
 }
 
 #[test]
@@ -179,14 +178,14 @@ fn cogc_else_if_no_extra_nesting() {
         "           IF WS-A > 0\n               DISPLAY \"a\"\n           ELSE\n               IF WS-B > 0\n                   DISPLAY \"b\"\n               END-IF\n           END-IF.\n"
     ));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
 fn cogc_else_flat() {
     let out = debug(&cobol_prog("           IF WS-A > 0\n               DISPLAY \"y\"\n           ELSE\n               DISPLAY \"n\"\n           END-IF.\n"));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "ELSE adds flat +1, got: {}", cogc);
+    assert!(cogc >= 2, "ELSE adds flat +1, got: {cogc}");
 }
 
 #[test]
@@ -195,21 +194,21 @@ fn cogc_perform_loop_nested() {
         "           PERFORM UNTIL WS-I > 5\n               IF WS-A > 0\n                   DISPLAY \"y\"\n               END-IF\n           END-PERFORM.\n"
     ));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "loop + nested IF, got: {}", cogc);
+    assert!(cogc >= 3, "loop + nested IF, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "AND adds cogc, got: {}", cogc);
+    assert!(cogc >= 2, "AND adds cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0 OR WS-C > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "AND+OR each add cogc, got: {}", cogc);
+    assert!(cogc >= 3, "AND+OR each add cogc, got: {cogc}");
 }
 
 #[test]
@@ -218,13 +217,13 @@ fn cogc_triggers_complex_method() {
         "           IF WS-A > 0\n               IF WS-B > 0\n                   IF WS-C > 0\n                       IF WS-D > 0\n                           DISPLAY \"deep\"\n                       END-IF\n                   END-IF\n               END-IF\n           END-IF.\n           IF WS-A > 0\n               IF WS-B > 0\n                   IF WS-C > 0\n                       DISPLAY \"deep2\"\n                   END-IF\n               END-IF\n           END-IF.\n"
     );
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method") || has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method") || has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 #[test]
 fn cogc_below_threshold_no_smell() {
     let out = check(&cobol_prog("           IF WS-A > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
-    assert!(!has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(!has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -233,7 +232,7 @@ fn cogc_evaluate_nested() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   IF WS-A > 0\n                       DISPLAY \"y\"\n                   END-IF\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cogc = function_metric(&out, "TEST-PARA", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "evaluate + nested if, got: {}", cogc);
+    assert!(cogc >= 3, "evaluate + nested if, got: {cogc}");
 }
 
 // ===========================================================================
@@ -284,7 +283,7 @@ fn nesting_evaluate_depth() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   IF WS-A > 0\n                       DISPLAY \"y\"\n                   END-IF\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let nesting = function_metric(&out, "TEST-PARA", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "EVALUATE+IF=2, got: {}", nesting);
+    assert!(nesting >= 2, "EVALUATE+IF=2, got: {nesting}");
 }
 
 // ===========================================================================
@@ -297,7 +296,7 @@ fn bumpy_road_two_bumps() {
         "           IF WS-A > 0\n               IF WS-B > 0\n                   IF WS-C > 0\n                       DISPLAY \"deep1\"\n                   END-IF\n               END-IF\n           END-IF.\n           DISPLAY \"gap\".\n           IF WS-D > 0\n               IF WS-A > 0\n                   IF WS-B > 0\n                       DISPLAY \"deep2\"\n                   END-IF\n               END-IF\n           END-IF.\n"
     ));
     let bumps = function_metric(&out, "TEST-PARA", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -333,14 +332,14 @@ fn args_excess_not_triggered() {
 fn loc_single_paragraph() {
     let out = debug(&cobol_prog("           DISPLAY \"hi\".\n"));
     let loc = function_metric(&out, "TEST-PARA", "loc").unwrap_or(0);
-    assert!(loc >= 1, "got: {}", loc);
+    assert!(loc >= 1, "got: {loc}");
 }
 
 #[test]
 fn loc_multiline() {
     let out = debug(&cobol_prog("           DISPLAY \"a\".\n           DISPLAY \"b\".\n           DISPLAY \"c\".\n           DISPLAY \"d\".\n           DISPLAY \"e\".\n"));
     let loc = function_metric(&out, "TEST-PARA", "loc").unwrap_or(0);
-    assert!(loc >= 5, "got: {}", loc);
+    assert!(loc >= 5, "got: {loc}");
 }
 
 #[test]
@@ -355,7 +354,7 @@ fn loc_comments_excluded_module() {
         "           DISPLAY \"hi\".\n",
     );
     let out = debug(code);
-    assert!(out.contains("LOC, 1 functions"), "module loc should exclude comments: {}", out);
+    assert!(out.contains("LOC, 1 functions"), "module loc should exclude comments: {out}");
 }
 
 #[test]
@@ -370,7 +369,7 @@ fn loc_empty_lines_excluded_module() {
         "\n\n",
     );
     let out = debug(code);
-    assert!(out.contains("LOC, 1 functions"), "got: {}", out);
+    assert!(out.contains("LOC, 1 functions"), "got: {out}");
 }
 
 // ===========================================================================
@@ -382,8 +381,7 @@ fn embedded_large_string() {
     let out = run_check("cobol", "embedded_block.cob");
     assert!(
         has_smell(&out, "Large Embedded Block") || out.is_empty(),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -400,7 +398,7 @@ fn embedded_small_string_not_flagged() {
 #[test]
 fn exact_duplication_detected() {
     let out = run_check("cobol", "code_duplication.cob");
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -421,7 +419,7 @@ fn exact_duplication_below_min_loc() {
 #[test]
 fn fuzzy_duplication_detected() {
     let out = run_check("cobol", "production_service.cob");
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -451,8 +449,7 @@ fn test_paragraph_duplication_suppressed() {
     assert!(
         !has_smell(&out, "Duplicated Assertion") && !has_smell(&out, "Code Duplication")
             || has_smell(&out, "Code Duplication"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -476,7 +473,7 @@ fn assert_count_always_zero() {
 #[test]
 fn assert_hash_always_zero() {
     let out = debug(&cobol_prog("           DISPLAY \"hi\".\n"));
-    assert!(out.contains("asserts=0"), "got: {}", out);
+    assert!(out.contains("asserts=0"), "got: {out}");
 }
 
 // ===========================================================================
@@ -487,14 +484,14 @@ fn assert_hash_always_zero() {
 fn compound_condition_detected() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0 AND WS-C > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let conds = function_metric(&out, "TEST-PARA", "conditions").unwrap_or(0);
-    assert!(conds >= 1, "got: {}", conds);
+    assert!(conds >= 1, "got: {conds}");
 }
 
 #[test]
 fn compound_condition_simple_not_detected() {
     let out = debug(&cobol_prog("           IF WS-A > 0 AND WS-B > 0\n               DISPLAY \"y\"\n           END-IF.\n"));
     let conds = function_metric(&out, "TEST-PARA", "conditions").unwrap_or(0);
-    assert_eq!(conds, 0, "single AND is not compound, got: {}", conds);
+    assert_eq!(conds, 0, "single AND is not compound, got: {conds}");
 }
 
 // ===========================================================================
@@ -510,7 +507,7 @@ fn primitive_obsession_not_triggered() {
 #[test]
 fn typed_param_count_always_zero() {
     let out = debug(&cobol_prog("           DISPLAY \"hi\".\n"));
-    assert!(out.contains("primitives=0/0"), "got: {}", out);
+    assert!(out.contains("primitives=0/0"), "got: {out}");
 }
 
 // ===========================================================================
@@ -543,7 +540,7 @@ fn lcom4_disconnected_sections() {
 #[test]
 fn paragraph_name_extracted() {
     let out = debug(&cobol_prog("           DISPLAY \"hi\".\n"));
-    assert!(out.contains("TEST-PARA"), "got: {}", out);
+    assert!(out.contains("TEST-PARA"), "got: {out}");
 }
 
 #[test]
@@ -557,7 +554,7 @@ fn section_name_as_class() {
         "           DISPLAY \"hi\".\n",
     );
     let out = debug(code);
-    assert!(out.contains("MY-PARA"), "got: {}", out);
+    assert!(out.contains("MY-PARA"), "got: {out}");
 }
 
 #[test]
@@ -581,7 +578,7 @@ fn multiple_paragraphs_independent_metrics() {
     let out = debug(code);
     let cc1 = function_metric(&out, "COMPLEX-ONE", "cc").unwrap_or(0);
     let cc2 = function_metric(&out, "SIMPLE-TWO", "cc").unwrap_or(0);
-    assert!(cc1 > cc2, "cc1={} should be > cc2={}", cc1, cc2);
+    assert!(cc1 > cc2, "cc1={cc1} should be > cc2={cc2}");
 }
 
 // ===========================================================================
@@ -594,7 +591,7 @@ fn evaluate_when_cc() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 3, "EVALUATE+WHEN, got: {}", cc);
+    assert!(cc >= 3, "EVALUATE+WHEN, got: {cc}");
 }
 
 #[test]
@@ -608,7 +605,7 @@ fn evaluate_when_other_no_cc() {
     ));
     let cc1 = function_metric(&out1, "TEST-PARA", "cc").unwrap_or(0);
     let cc2 = function_metric(&out2, "TEST-PARA", "cc").unwrap_or(0);
-    assert_eq!(cc1, cc2, "WHEN OTHER should not change cc: {} vs {}", cc1, cc2);
+    assert_eq!(cc1, cc2, "WHEN OTHER should not change cc: {cc1} vs {cc2}");
 }
 
 #[test]
@@ -623,14 +620,14 @@ fn perform_varying_cc() {
         "           PERFORM VARYING WS-I FROM 1 BY 1\n               UNTIL WS-I > 5\n               DISPLAY WS-I\n           END-PERFORM.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
 fn perform_times_cc() {
     let out = debug(&cobol_prog("           PERFORM 3 TIMES\n               DISPLAY \"x\"\n           END-PERFORM.\n"));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
@@ -667,8 +664,8 @@ fn paragraph_ends_at_next_header() {
     let out = debug(code);
     let cc1 = function_metric(&out, "P-ONE", "cc").unwrap_or(0);
     let cc2 = function_metric(&out, "P-TWO", "cc").unwrap_or(0);
-    assert_eq!(cc1, 2, "P-ONE has IF, got cc={}", cc1);
-    assert_eq!(cc2, 1, "P-TWO is simple, got cc={}", cc2);
+    assert_eq!(cc1, 2, "P-ONE has IF, got cc={cc1}");
+    assert_eq!(cc2, 1, "P-TWO is simple, got cc={cc2}");
 }
 
 #[test]
@@ -685,7 +682,7 @@ fn section_groups_paragraphs() {
         "           DISPLAY \"B\".\n",
     );
     let out = debug(code);
-    assert!(out.contains("P-A") && out.contains("P-B"), "got: {}", out);
+    assert!(out.contains("P-A") && out.contains("P-B"), "got: {out}");
 }
 
 #[test]
@@ -699,7 +696,7 @@ fn free_format_comments_handled() {
         "           DISPLAY \"hi\".\n",
     );
     let out = check(code);
-    assert!(out.is_empty(), "comments should not cause issues: {}", out);
+    assert!(out.is_empty(), "comments should not cause issues: {out}");
 }
 
 #[test]
@@ -713,7 +710,7 @@ fn fixed_format_comments_handled() {
         "           DISPLAY \"hi\".\n",
     );
     let out = check(code);
-    assert!(out.is_empty() || !has_smell(&out, "Complex"), "got: {}", out);
+    assert!(out.is_empty() || !has_smell(&out, "Complex"), "got: {out}");
 }
 
 #[test]
@@ -731,7 +728,7 @@ fn data_division_declarations_counted() {
         "           DISPLAY \"hi\".\n",
     );
     let out = debug(code);
-    assert!(out.contains("declarations=3"), "got: {}", out);
+    assert!(out.contains("declarations=3"), "got: {out}");
 }
 
 #[test]
@@ -740,7 +737,7 @@ fn nested_if_in_perform_loop() {
         "           PERFORM UNTIL WS-I > 5\n               IF WS-A > 0\n                   IF WS-B > 0\n                       DISPLAY \"deep\"\n                   END-IF\n               END-IF\n           END-PERFORM.\n"
     ));
     let nesting = function_metric(&out, "TEST-PARA", "nesting").unwrap_or(0);
-    assert!(nesting >= 3, "loop+if+if=3, got: {}", nesting);
+    assert!(nesting >= 3, "loop+if+if=3, got: {nesting}");
 }
 
 #[test]
@@ -749,7 +746,7 @@ fn evaluate_in_if() {
         "           IF WS-A > 0\n               EVALUATE WS-X\n                   WHEN \"A\"\n                       DISPLAY \"A\"\n                   WHEN \"B\"\n                       DISPLAY \"B\"\n               END-EVALUATE\n           END-IF.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "IF+EVALUATE+2WHEN, got: {}", cc);
+    assert!(cc >= 5, "IF+EVALUATE+2WHEN, got: {cc}");
 }
 
 #[test]
@@ -773,7 +770,7 @@ fn nested_evaluate_in_evaluate() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   EVALUATE WS-A\n                       WHEN 1\n                           DISPLAY \"1\"\n                       WHEN 2\n                           DISPLAY \"2\"\n                   END-EVALUATE\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 7, "outer(1+2WHEN)+inner(1+2WHEN), got: {}", cc);
+    assert!(cc >= 7, "outer(1+2WHEN)+inner(1+2WHEN), got: {cc}");
 }
 
 // ===========================================================================
@@ -788,9 +785,9 @@ fn performance_1000_loc() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
     );
     for i in 0..20 {
-        code.push_str(&format!("       PARA-{}.\n", i));
+        code.push_str(&format!("       PARA-{i}.\n"));
         for j in 0..50 {
-            code.push_str(&format!("           DISPLAY \"line {} {}\".\n", i, j));
+            code.push_str(&format!("           DISPLAY \"line {i} {j}\".\n"));
         }
     }
     std::fs::write(&path, &code).unwrap();
@@ -811,11 +808,11 @@ fn performance_module_hierarchy() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
     );
     for i in 0..5 {
-        code.push_str(&format!("       SEC-{} SECTION.\n", i));
+        code.push_str(&format!("       SEC-{i} SECTION.\n"));
         for j in 0..3 {
-            code.push_str(&format!("       PARA-{}-{}.\n", i, j));
+            code.push_str(&format!("       PARA-{i}-{j}.\n"));
             for k in 0..10 {
-                code.push_str(&format!("           DISPLAY \"line {} {} {}\".\n", i, j, k));
+                code.push_str(&format!("           DISPLAY \"line {i} {j} {k}\".\n"));
             }
         }
     }
@@ -836,7 +833,7 @@ fn performance_module_hierarchy() {
 #[test]
 fn clean_cobol_not_flagged() {
     let out = run_check("cobol", "clean.cob");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
@@ -862,7 +859,7 @@ fn empty_paragraph_body() {
         "           DISPLAY \"hi\".\n",
     );
     let out = debug(code);
-    assert!(out.contains("NEXT-P"), "got: {}", out);
+    assert!(out.contains("NEXT-P"), "got: {out}");
 }
 
 #[test]

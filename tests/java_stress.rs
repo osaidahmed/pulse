@@ -75,7 +75,7 @@ fn cc_counts_ternary() {
 fn cc_chained_boolean() {
     let out = debug("class T {\n    void f(boolean a, boolean b, boolean c, boolean d) {\n        if (a && b && c && d) {}\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn lcom4_three_groups_flagged() {
         "    int getZ() { return this.z; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn lcom4_methods_connected_by_call() {
         "    boolean send(int e) { return true; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -206,7 +206,7 @@ fn lcom4_god_class_still_fires() {
         "    Object auditLog() { return this.audit; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -291,9 +291,9 @@ fn multiple_smells_same_function() {
 fn performance_1000_loc() {
     let mut code = String::from("class Big {\n");
     for i in 0..50 {
-        code.push_str(&format!("    int func{}(int data) {{\n", i));
+        code.push_str(&format!("    int func{i}(int data) {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("        int f{} = data + {};\n", j, j));
+            code.push_str(&format!("        int f{j} = data + {j};\n"));
         }
         code.push_str("        return data;\n    }\n\n");
     }
@@ -318,7 +318,7 @@ fn performance_1000_loc() {
 fn cc_counts_not_operator() {
     let out = debug("class T {\n    void f(boolean a) {\n        if (!a) {}\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {cc}");
 }
 
 // ===========================================================================
@@ -345,7 +345,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base >= 9, got: {cc}");
 }
 
 // ===========================================================================
@@ -356,7 +356,7 @@ fn cc_switch_many_cases() {
 fn cc_multiple_catch() {
     let out = debug("class T {\n    void f() {\n        try {} catch (RuntimeException e) {} catch (Exception e) {} catch (Throwable e) {}\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "base + 3 catch = 4, got: {}", cc);
+    assert!(cc >= 4, "base + 3 catch = 4, got: {cc}");
 }
 
 // ===========================================================================
@@ -369,8 +369,7 @@ fn nesting_try_catch_counts_depth() {
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(
         depth >= 1,
-        "try-catch should contribute nesting, got: {}",
-        depth
+        "try-catch should contribute nesting, got: {depth}"
     );
 }
 
@@ -501,11 +500,11 @@ fn duplication_mixed_test_and_prod_flagged() {
 fn god_class_requires_god_method() {
     let mut code = String::from("class Big {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding {}\n", i));
+        code.push_str(&format!("// padding {i}\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
@@ -519,17 +518,17 @@ fn god_class_requires_god_method() {
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("class Monster {\n    void monster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("        if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("        if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int y{} = {};\n", i, i));
+        code.push_str(&format!("        int y{i} = {i};\n"));
     }
     code.push_str("    }\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("    static final int V{} = {};\n", i, i));
+        code.push_str(&format!("    static final int V{i} = {i};\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -561,7 +560,7 @@ fn assertion_block_interrupted_resets() {
 fn assertion_block_at_threshold() {
     let mut code = String::from("class T {\n    void testExact() {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("        assert(x{} == {});\n", i, i));
+        code.push_str(&format!("        assert(x{i} == {i});\n"));
     }
     code.push_str("    }\n}\n");
     let out = check(&code);
@@ -572,7 +571,7 @@ fn assertion_block_at_threshold() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("class T {\n    void testBig() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("        assertEquals(x{}, {});\n", i, i));
+        code.push_str(&format!("        assertEquals(x{i}, {i});\n"));
     }
     code.push_str("    }\n}\n");
     let out = check(&code);
@@ -587,9 +586,9 @@ fn assertion_block_above_threshold() {
 fn overall_function_size_below_threshold() {
     let mut code = String::from("class T {\n");
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("    void lg{}() {{\n", i));
+        code.push_str(&format!("    void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
@@ -602,9 +601,9 @@ fn overall_function_size_below_threshold() {
 fn overall_function_size_at_threshold() {
     let mut code = String::from("class T {\n");
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("    void lg{}() {{\n", i));
+        code.push_str(&format!("    void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
@@ -621,7 +620,7 @@ fn overall_function_size_at_threshold() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "Declarations"));
@@ -631,7 +630,7 @@ fn declarations_below_threshold() {
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -652,8 +651,7 @@ fn multiline_string_flagged() {
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
     for i in 0..embedded_lines_above() {
         code.push_str(&format!(
-            "            SELECT field_{} FROM table_{}\n",
-            i, i
+            "            SELECT field_{i} FROM table_{i}\n"
         ));
     }
     code.push_str("            \"\"\";\n        return q;\n    }\n}\n");
@@ -698,8 +696,7 @@ fn function_can_have_multiple_smells() {
     code.push_str("        String q = \"\"\"\n");
     for i in 0..embedded_lines_above() {
         code.push_str(&format!(
-            "            SELECT field_{} FROM table_{}\n",
-            i, i
+            "            SELECT field_{i} FROM table_{i}\n"
         ));
     }
     code.push_str("            \"\"\";\n");
@@ -803,8 +800,7 @@ fn clean_java_module_not_flagged() {
     ));
     assert!(
         out.is_empty(),
-        "clean Java code should not be flagged, got: {}",
-        out
+        "clean Java code should not be flagged, got: {out}"
     );
 }
 
@@ -836,9 +832,9 @@ fn empty_file() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class S{} {{\n    private int d{};\n", i, i));
+        code.push_str(&format!("class S{i} {{\n    private int d{i};\n"));
         for j in 0..5 {
-            code.push_str(&format!("    int m{}() {{ return this.d{}; }}\n", j, i));
+            code.push_str(&format!("    int m{j}() {{ return this.d{i}; }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -891,8 +887,7 @@ fn nested_conditional_chunks_detected() {
     ));
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -914,7 +909,7 @@ fn cc_else_if_chain() {
 fn nesting_deep_for_if_for() {
     let out = debug("class T {\n    void f() {\n        if (true) {\n            for (int i = 0; i < 1; i++) {\n                if (true) {\n                    for (int j = 0; j < 1; j++) {}\n                }\n            }\n        }\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 4, "got: {}", depth);
+    assert!(depth >= 4, "got: {depth}");
 }
 
 // ===========================================================================
@@ -1040,11 +1035,11 @@ fn duplication_two_is_minimum() {
 fn output_has_module_prefix() {
     let mut code = String::from("class Big {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// line {}\n", i));
+        code.push_str(&format!("// line {i}\n"));
     }
     let out = check(&code);
     assert!(out.contains("Module:"));
@@ -1060,7 +1055,7 @@ fn issue_count_matches() {
         check("class T {\n    void f(int a, int b, int c, int d, int e, int f, int g) {}\n}\n");
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -1081,7 +1076,7 @@ fn cc_do_while() {
 fn nesting_switch_counts_depth() {
     let out = debug("class T {\n    void f(int x) {\n        switch (x) {\n            case 1:\n                if (x > 0) {}\n                break;\n        }\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "switch+if >= 2, got: {}", depth);
+    assert!(depth >= 2, "switch+if >= 2, got: {depth}");
 }
 
 // ===========================================================================
@@ -1213,8 +1208,8 @@ fn cogc_triggers_complex_method() {
     let d = debug(code);
     let cogc = function_metric(&d, "f", "cogc").unwrap();
     let cc = function_metric(&d, "f", "cc").unwrap();
-    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
-    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(cogc >= 15, "cogc should be >= 15, got: {cogc}");
+    assert!(cc < 9, "cc should be < 9, got: {cc}");
     assert!(has_smell(&out, "Complex Method"));
 }
 
@@ -1272,12 +1267,12 @@ fn no_try_catch_no_smell() {
 fn java_interface_default_method() {
     let code = "interface Foo {\n  default void bar() {\n    if (true) {}\n  }\n}\n";
     let out = debug(code);
-    assert!(out.contains("bar"), "interface default method should be found: {}", out);
+    assert!(out.contains("bar"), "interface default method should be found: {out}");
 }
 
 #[test]
 fn java_abstract_method_skipped() {
     let code = "abstract class Foo {\n  abstract void bar();\n  void baz() { if (true) {} }\n}\n";
     let out = debug(code);
-    assert!(out.contains("baz"), "concrete method should be found: {}", out);
+    assert!(out.contains("baz"), "concrete method should be found: {out}");
 }

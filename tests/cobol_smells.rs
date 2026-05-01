@@ -12,7 +12,7 @@ const LANG: &str = "cobol";
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "complex_methods.cob");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
@@ -26,7 +26,7 @@ fn output_has_function_line_numbers() {
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "production_service.cob");
-    assert!(output.contains("Module:"), "got: {}", output);
+    assert!(output.contains("Module:"), "got: {output}");
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "complex_methods.cob");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -44,7 +44,7 @@ fn issue_count_matches_findings() {
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.cob");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn simple_paragraph_not_flagged() {
         ),
         "cob",
     );
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -100,13 +100,12 @@ fn function_at_cc_boundary_flagged() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-A PIC 9.\n       01 WS-B PIC 9.\n       01 WS-C PIC 9.\n       01 WS-D PIC 9.\n       01 WS-E PIC 9.\n       01 WS-F PIC 9.\n       01 WS-G PIC 9.\n       01 WS-H PIC 9.\n       PROCEDURE DIVISION.\n       COMPLEX-PARA.\n"
     );
     for v in &["WS-A", "WS-B", "WS-C", "WS-D", "WS-E", "WS-F", "WS-G", "WS-H"] {
-        code.push_str(&format!("           IF {} > 0\n               DISPLAY \"{}\"\n           END-IF.\n", v, v));
+        code.push_str(&format!("           IF {v} > 0\n               DISPLAY \"{v}\"\n           END-IF.\n"));
     }
     let out = pulse_check_code(&code, "cob");
     assert!(
         has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {}",
-        out
+        "cc=9 should trigger, got: {out}"
     );
 }
 
@@ -116,7 +115,7 @@ fn function_below_cc_boundary_not_flagged() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-A PIC 9.\n       01 WS-B PIC 9.\n       01 WS-C PIC 9.\n       01 WS-D PIC 9.\n       01 WS-E PIC 9.\n       01 WS-F PIC 9.\n       01 WS-G PIC 9.\n       PROCEDURE DIVISION.\n       COMPLEX-PARA.\n"
     );
     for v in &["WS-A", "WS-B", "WS-C", "WS-D", "WS-E", "WS-F", "WS-G"] {
-        code.push_str(&format!("           IF {} > 0\n               DISPLAY \"{}\"\n           END-IF.\n", v, v));
+        code.push_str(&format!("           IF {v} > 0\n               DISPLAY \"{v}\"\n           END-IF.\n"));
     }
     let out = pulse_check_code(&code, "cob");
     assert!(!has_smell(&out, "Complex Method"));
@@ -142,7 +141,7 @@ fn boolean_operators_increment_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "CHECK-VALS", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -152,7 +151,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.cob");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "PROCESS-ORDER"));
 }
 
@@ -160,7 +159,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_methods.cob");
     let cc = function_metric(&debug, "PROCESS-ORDER", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -171,10 +170,10 @@ fn god_method_detected() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-X PIC 9.\n       PROCEDURE DIVISION.\n       BIG-PARA.\n"
     );
     for i in 0..cc_branches() {
-        code.push_str(&format!("           IF WS-X > {}\n               DISPLAY \"{}\"\n           END-IF.\n", i, i));
+        code.push_str(&format!("           IF WS-X > {i}\n               DISPLAY \"{i}\"\n           END-IF.\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("           DISPLAY \"line {}\".\n", i));
+        code.push_str(&format!("           DISPLAY \"line {i}\".\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -182,7 +181,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -193,10 +192,10 @@ fn god_method_not_reported_as_separate() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-X PIC 9.\n       PROCEDURE DIVISION.\n       BIG-PARA.\n"
     );
     for i in 0..cc_branches() {
-        code.push_str(&format!("           IF WS-X > {}\n               DISPLAY \"{}\"\n           END-IF.\n", i, i));
+        code.push_str(&format!("           IF WS-X > {i}\n               DISPLAY \"{i}\"\n           END-IF.\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("           DISPLAY \"line {}\".\n", i));
+        code.push_str(&format!("           DISPLAY \"line {i}\".\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -225,7 +224,7 @@ fn large_method_detected() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-X PIC 9.\n       PROCEDURE DIVISION.\n       BIG-REPORT.\n"
     );
     for i in 0..fn_padding() {
-        code.push_str(&format!("           DISPLAY \"line {}\".\n", i));
+        code.push_str(&format!("           DISPLAY \"line {i}\".\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -235,8 +234,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -248,7 +246,7 @@ fn large_method_loc_at_least_65() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       01 WS-X PIC 9.\n       PROCEDURE DIVISION.\n       BIG-REPORT.\n"
     );
     for i in 0..fn_padding() {
-        code.push_str(&format!("           DISPLAY \"line {}\".\n", i));
+        code.push_str(&format!("           DISPLAY \"line {i}\".\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -257,7 +255,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "BIG-REPORT", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
 }
 
 // ===========================================================================
@@ -267,7 +265,7 @@ fn large_method_loc_at_least_65() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.cob");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
     assert!(has_function(&output, "DEEPLY-NESTED"));
 }
 
@@ -275,7 +273,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "deep_nesting.cob");
     let depth = function_metric(&debug, "DEEPLY-NESTED", "nesting").unwrap_or(0);
-    assert!(depth > 4, "got: {}", depth);
+    assert!(depth > 4, "got: {depth}");
 }
 
 #[test]
@@ -313,7 +311,7 @@ fn constructor_over_injection_not_triggered() {
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.cob");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
@@ -321,8 +319,7 @@ fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.cob");
     assert!(
         has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -331,8 +328,7 @@ fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.cob");
     assert!(
         has_smell(&output, "Low Cohesion") || !output.is_empty() || output.is_empty(),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -350,9 +346,9 @@ fn overall_function_size_at_threshold() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
     );
     for i in 0..3 {
-        code.push_str(&format!("       LG{}.\n", i));
+        code.push_str(&format!("       LG{i}.\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("           DISPLAY \"line {} {}\".\n", i, j));
+            code.push_str(&format!("           DISPLAY \"line {i} {j}\".\n"));
         }
     }
     std::fs::write(&path, &code).unwrap();
@@ -363,8 +359,7 @@ fn overall_function_size_at_threshold() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Overall Function Size"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -376,9 +371,9 @@ fn overall_function_size_below_threshold() {
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
     );
     for i in 0..2 {
-        code.push_str(&format!("       LG{}.\n", i));
+        code.push_str(&format!("       LG{i}.\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("           DISPLAY \"line {} {}\".\n", i, j));
+            code.push_str(&format!("           DISPLAY \"line {i} {j}\".\n"));
         }
     }
     std::fs::write(&path, &code).unwrap();
@@ -437,8 +432,7 @@ fn complex_conditional_detected() {
     );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -491,7 +485,7 @@ fn code_duplication_inline() {
         ),
         "cob",
     );
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -530,8 +524,7 @@ fn nested_conditional_chunks_detected() {
     );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -562,7 +555,7 @@ fn evaluate_when_increments_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "CHECK-IT", "cc").unwrap_or(0);
-    assert!(cc >= 4, "EVALUATE+2WHEN=cc>=4, got: {}", cc);
+    assert!(cc >= 4, "EVALUATE+2WHEN=cc>=4, got: {cc}");
 }
 
 #[test]
@@ -583,7 +576,7 @@ fn perform_until_increments_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "LOOP-IT", "cc").unwrap_or(0);
-    assert!(cc >= 2, "PERFORM UNTIL should add cc, got: {}", cc);
+    assert!(cc >= 2, "PERFORM UNTIL should add cc, got: {cc}");
 }
 
 #[test]
@@ -605,7 +598,7 @@ fn perform_varying_increments_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "LOOP-IT", "cc").unwrap_or(0);
-    assert!(cc >= 2, "PERFORM VARYING should add cc, got: {}", cc);
+    assert!(cc >= 2, "PERFORM VARYING should add cc, got: {cc}");
 }
 
 #[test]
@@ -623,7 +616,7 @@ fn perform_call_does_not_increment_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "MAIN-PARA", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "PERFORM <para> is a call, not a loop, got cc={}", cc);
+    assert_eq!(cc, 1, "PERFORM <para> is a call, not a loop, got cc={cc}");
 }
 
 #[test]
@@ -640,8 +633,8 @@ fn paragraph_boundary_detection() {
         ),
         "cob",
     );
-    assert!(debug.contains("PARA-A"), "should find PARA-A: {}", debug);
-    assert!(debug.contains("PARA-B"), "should find PARA-B: {}", debug);
+    assert!(debug.contains("PARA-A"), "should find PARA-A: {debug}");
+    assert!(debug.contains("PARA-B"), "should find PARA-B: {debug}");
 }
 
 #[test]
@@ -657,7 +650,7 @@ fn section_name_tracked() {
         ),
         "cob",
     );
-    assert!(debug.contains("MY-PARA"), "should find MY-PARA: {}", debug);
+    assert!(debug.contains("MY-PARA"), "should find MY-PARA: {debug}");
 }
 
 #[test]
@@ -673,7 +666,7 @@ fn free_format_comments_excluded() {
         ),
         "cob",
     );
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -707,7 +700,7 @@ fn hook_nonexistent_file_silent() {
 #[test]
 fn global_conditionals_parsed() {
     let output = run_check(LANG, "global_conditionals.cob");
-    assert!(has_smell(&output, "Global Conditional"), "got: {}", output);
+    assert!(has_smell(&output, "Global Conditional"), "got: {output}");
 }
 
 // ===========================================================================

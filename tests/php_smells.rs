@@ -12,7 +12,7 @@ const LANG: &str = "php";
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "complex_methods.php");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
@@ -24,7 +24,7 @@ fn output_has_function_line_numbers() {
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "production_service.php");
-    assert!(output.contains("Module:"), "got: {}", output);
+    assert!(output.contains("Module:"), "got: {output}");
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "complex_methods.php");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -42,7 +42,7 @@ fn issue_count_matches_findings() {
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.php");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn comments_only_file() {
 #[test]
 fn simple_function_no_smell() {
     let out = pulse_check_code("<?php\nfunction f(): int { return 1; }\n", "php");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -81,7 +81,7 @@ fn function_at_cc_boundary_flagged() {
     }
     code.push_str("  return 0;\n}\n");
     let out = pulse_check_code(&code, "php");
-    assert!(has_smell(&out, "Complex Method"), "cc at threshold should trigger, got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "cc at threshold should trigger, got: {out}");
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn boolean_operators_increment_cc() {
         "php",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -112,7 +112,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.php");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "process_order"));
 }
 
@@ -120,7 +120,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_methods.php");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -161,7 +161,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {}", stdout
+        "got: {stdout}"
     );
 }
 
@@ -191,7 +191,7 @@ fn large_method_loc_at_least_threshold() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.php");
-    assert!(has_smell(&output, "Deep Nested Complexity"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested Complexity"), "got: {output}");
     assert!(has_function(&output, "deeply_nested"));
 }
 
@@ -205,7 +205,7 @@ fn deep_nesting_depth_at_least_4() {
 #[test]
 fn moderate_nesting_not_flagged() {
     let out = pulse_check_code("<?php\nfunction f(int $x): int {\n  if ($x > 0) {\n    if ($x > 1) { return $x; }\n  }\n  return 0;\n}\n", "php");
-    assert!(!has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(!has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 // ===========================================================================
@@ -215,19 +215,19 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.php");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
 }
 
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.php");
-    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {}", output);
+    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {output}");
 }
 
 #[test]
 fn few_args_not_flagged() {
     let out = pulse_check_code("<?php\nfunction f(int $a, int $b): int { return $a + $b; }\n", "php");
-    assert!(!has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(!has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================
@@ -237,43 +237,43 @@ fn few_args_not_flagged() {
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.php");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.php");
-    assert!(has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.php");
-    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {}", output);
+    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {output}");
 }
 
 #[test]
 fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.php");
-    assert!(has_smell(&output, "Low Cohesion"), "got: {}", output);
+    assert!(has_smell(&output, "Low Cohesion"), "got: {output}");
 }
 
 #[test]
 fn primitive_obsession_detected() {
     let output = run_check(LANG, "primitive_obsession.php");
-    assert!(has_smell(&output, "Primitive Obsession"), "got: {}", output);
+    assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 
 #[test]
 fn stringly_typed_match_detected() {
     let output = run_check(LANG, "match_expression.php");
-    assert!(has_smell(&output, "Stringly-Typed Switch"), "got: {}", output);
+    assert!(has_smell(&output, "Stringly-Typed Switch"), "got: {output}");
 }
 
 #[test]
 fn large_assertion_block_detected() {
     let output = run_check(LANG, "test_smells.php");
-    assert!(has_smell(&output, "Large Assertion Block"), "got: {}", output);
+    assert!(has_smell(&output, "Large Assertion Block"), "got: {output}");
 }
 
 // ===========================================================================
@@ -298,7 +298,7 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 #[test]
@@ -349,14 +349,14 @@ fn complex_conditional_detected() {
     ), "php");
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
 #[test]
 fn global_conditionals_detected() {
     let output = run_check(LANG, "global_conditionals.php");
-    assert!(has_smell(&output, "Global Conditionals"), "got: {}", output);
+    assert!(has_smell(&output, "Global Conditionals"), "got: {output}");
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn code_duplication_inline() {
         "  $r = $r * 2;\n  return $r;\n",
         "}\n",
     ), "php");
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -406,7 +406,7 @@ fn nested_conditional_chunks_inline() {
     ), "php");
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
@@ -503,13 +503,13 @@ fn ternary_cc() {
 #[test]
 fn construct_is_constructor() {
     let out = pulse_debug_code("<?php\nclass Foo {\n  public function __construct(int $x) { $this->x = $x; }\n}\n", "php");
-    assert!(out.contains("Foo.__construct"), "got: {}", out);
+    assert!(out.contains("Foo.__construct"), "got: {out}");
 }
 
 #[test]
 fn field_access_tracked() {
     let out = pulse_debug_code("<?php\nclass C {\n  public function getX(): int { return $this->x; }\n}\n", "php");
-    assert!(out.contains("fields=[\"x\"]"), "got: {}", out);
+    assert!(out.contains("fields=[\"x\"]"), "got: {out}");
 }
 
 #[test]
@@ -517,7 +517,7 @@ fn heredoc_embedded_block() {
     let lines: Vec<String> = (0..20).map(|i| format!("    line {i}")).collect();
     let code = format!("<?php\nfunction f(): string {{\n  return <<<EOT\n{}\n  EOT;\n}}\n", lines.join("\n"));
     let out = pulse_check_code(&code, "php");
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -547,13 +547,13 @@ fn anonymous_function_scope_boundary() {
 #[test]
 fn namespace_functions_detected() {
     let out = pulse_debug_code("<?php\nnamespace App\\Service;\nfunction helper(): int { return 1; }\n", "php");
-    assert!(out.contains("helper"), "got: {}", out);
+    assert!(out.contains("helper"), "got: {out}");
 }
 
 #[test]
 fn empty_catch_detected() {
     let out = pulse_check_code("<?php\nfunction f(): void { try { throw new Exception(); } catch (Exception $e) {} }\n", "php");
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 // ===========================================================================

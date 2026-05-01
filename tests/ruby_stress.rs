@@ -64,7 +64,7 @@ fn cc_counts_case_when() {
 fn cc_counts_rescue() {
     let out = debug("def f(x)\n  begin\n    Integer(x)\n  rescue\n    -1\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "rescue should add CC, got: {}", cc);
+    assert!(cc >= 2, "rescue should add CC, got: {cc}");
 }
 
 #[test]
@@ -77,35 +77,35 @@ fn cc_counts_ternary() {
 fn cc_counts_and_keyword() {
     let out = debug("def f(a, b)\n  if a and b\n    true\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_or_keyword() {
     let out = debug("def f(a, b)\n  if a or b\n    true\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_ampersand_ampersand() {
     let out = debug("def f(a, b)\n  if a && b\n    true\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_pipe_pipe() {
     let out = debug("def f(a, b)\n  if a || b\n    true\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean() {
     let out = debug("def f(a, b, c)\n  if a && b || c\n    true\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -204,7 +204,7 @@ fn cogc_else_increases_nesting() {
         "end\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "else should contribute to nesting, got: {}", cogc);
+    assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
@@ -223,21 +223,21 @@ fn cogc_case_counted() {
 fn cogc_loop_nested() {
     let out = debug("def f(items)\n  items.each do |i|\n    if i > 0\n    end\n  end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "each+if should contribute cogc, got: {}", cogc);
+    assert!(cogc >= 1, "each+if should contribute cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("def f(a, b)\n  if a && b\n    true\n  end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("def f(a, b, c)\n  if a && b || c\n    true\n  end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -248,7 +248,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("  0\nend\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -302,7 +302,7 @@ fn nesting_deep_if_chain() {
 fn nesting_loop_with_if() {
     let out = debug("def f(items)\n  items.each do |i|\n    if i > 0\n    end\n  end\nend\n");
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 1, "got: {}", nesting);
+    assert!(nesting >= 1, "got: {nesting}");
 }
 
 #[test]
@@ -317,7 +317,7 @@ fn nesting_case_depth() {
         "end\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 // ===========================================================================
@@ -334,7 +334,7 @@ fn bumpy_road_two_bumps() {
         "end\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -372,7 +372,7 @@ fn args_five_at_threshold() {
 #[test]
 fn args_six_over_threshold() {
     let out = check("def f(a, b, c, d, e, g)\n  a + b + c + d + e + g\nend\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -423,11 +423,11 @@ fn loc_empty_lines_excluded_module() {
 fn embedded_large_heredoc() {
     let mut code = String::from("def f()\n  <<~HEREDOC\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("    line {}\n", i));
+        code.push_str(&format!("    line {i}\n"));
     }
     code.push_str("  HEREDOC\nend\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -446,7 +446,7 @@ fn exact_duplication_detected() {
         "def alpha(x)\n  r = x\n  r = r * 2\n  r = r + 1\n  r = r - 3\n  r\nend\n",
         "def beta(x)\n  r = x\n  r = r * 2\n  r = r + 1\n  r = r - 3\n  r\nend\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -469,7 +469,7 @@ fn fuzzy_duplication_detected() {
         "    if val > 100\n      count += 2\n    else\n      count += 1\n    end\n",
         "  end\n  count\nend\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -478,7 +478,7 @@ fn test_function_duplication_suppressed() {
         "def test_alpha\n  r = 0\n  r += 1\n  r += 2\n  r += 3\n  r += 4\n  r += 5\nend\n",
         "def test_beta\n  r = 0\n  r += 1\n  r += 2\n  r += 3\n  r += 4\n  r += 5\nend\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {out}");
 }
 
 // ===========================================================================
@@ -493,7 +493,7 @@ fn assertion_block_above_threshold() {
     }
     code.push_str("end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -539,7 +539,7 @@ fn compound_condition_detected() {
         "  end\n",
         "end\n",
     ));
-    assert!(has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 #[test]
@@ -561,7 +561,7 @@ fn primitive_obsession_never_triggers() {
 #[test]
 fn no_typed_params() {
     let out = debug("def f(a, b, c, d)\n  a\nend\n");
-    assert!(out.contains("primitives=0/0"), "got: {}", out);
+    assert!(out.contains("primitives=0/0"), "got: {out}");
 }
 
 #[test]
@@ -599,7 +599,7 @@ fn lcom4_disconnected() {
         "  def set_d(v)\n    @d = v\n  end\n",
         "end\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -618,7 +618,7 @@ fn lcom4_methods_connected_by_call() {
         "  def send_event(e)\n    true\n  end\n",
         "end\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -644,7 +644,7 @@ fn lcom4_god_class_still_fires() {
         "  def audit_log\n    @audit\n  end\n",
         "end\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -666,14 +666,14 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 #[test]
 fn function_has_no_prefix() {
     let out = debug("def standalone\nend\n");
-    assert!(out.contains("standalone"), "got: {}", out);
+    assert!(out.contains("standalone"), "got: {out}");
     assert!(!out.contains(".standalone"));
 }
 
 #[test]
 fn method_has_class_prefix() {
     let out = debug("class Svc\n  def handle\n  end\nend\n");
-    assert!(out.contains("Svc.handle"), "got: {}", out);
+    assert!(out.contains("Svc.handle"), "got: {out}");
 }
 
 #[test]
@@ -685,7 +685,7 @@ fn initialize_is_constructor() {
         "  end\n",
         "end\n",
     ));
-    assert!(out.contains("Svc.initialize"), "got: {}", out);
+    assert!(out.contains("Svc.initialize"), "got: {out}");
 }
 
 // ===========================================================================
@@ -723,7 +723,7 @@ fn case_when_each_increments_cc() {
 fn rescue_cc() {
     let out = debug("def f(x)\n  begin\n    Integer(x)\n  rescue\n    -1\n  end\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "rescue should add CC, got: {}", cc);
+    assert!(cc >= 2, "rescue should add CC, got: {cc}");
 }
 
 #[test]
@@ -742,7 +742,7 @@ fn begin_rescue_ensure() {
         "end\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "two rescues should add CC, got: {}", cc);
+    assert!(cc >= 3, "two rescues should add CC, got: {cc}");
 }
 
 #[test]
@@ -755,7 +755,7 @@ fn empty_rescue_detected() {
         "  end\n",
         "end\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -782,14 +782,14 @@ fn do_block_complexity_counts() {
         "end\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "block if should contribute to CC, got: {}", cc);
+    assert!(cc >= 2, "block if should contribute to CC, got: {cc}");
 }
 
 #[test]
 fn curly_block_complexity_counts() {
     let out = debug("def f(items)\n  items.select { |i| i > 0 ? i : nil }\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "curly block ternary should contribute, got: {}", cc);
+    assert!(cc >= 2, "curly block ternary should contribute, got: {cc}");
 }
 
 #[test]
@@ -801,7 +801,7 @@ fn module_methods_analyzed() {
         "  end\n",
         "end\n",
     ));
-    assert!(out.contains("Helper.compute"), "got: {}", out);
+    assert!(out.contains("Helper.compute"), "got: {out}");
 }
 
 #[test]
@@ -812,7 +812,7 @@ fn instance_variable_field_access() {
         "  def get_cache\n    @cache\n  end\n",
         "end\n",
     ));
-    assert!(out.contains("fields=[\"db\"]") || out.contains("fields=[\"cache\"]"), "got: {}", out);
+    assert!(out.contains("fields=[\"db\"]") || out.contains("fields=[\"cache\"]"), "got: {out}");
 }
 
 #[test]
@@ -829,18 +829,18 @@ fn each_with_block_loop() {
         "end\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 #[test]
 fn heredoc_embedded_block() {
     let mut code = String::from("def f()\n  <<~HEREDOC\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("    line {}\n", i));
+        code.push_str(&format!("    line {i}\n"));
     }
     code.push_str("  HEREDOC\nend\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 // ===========================================================================
@@ -853,9 +853,9 @@ fn performance_1000_loc() {
     let path = dir.path().join("perf.rb");
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("def func{}(x)\n", i));
+        code.push_str(&format!("def func{i}(x)\n"));
         for j in 0..18 {
-            code.push_str(&format!("  v{} = {}\n", j, j));
+            code.push_str(&format!("  v{j} = {j}\n"));
         }
         code.push_str("  x\nend\n\n");
     }
@@ -874,9 +874,9 @@ fn performance_class_hierarchy() {
     let path = dir.path().join("classes.rb");
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class S{}\n", i));
+        code.push_str(&format!("class S{i}\n"));
         for j in 0..5 {
-            code.push_str(&format!("  def m{}()\n    @x{} + {}\n  end\n", j, i, j));
+            code.push_str(&format!("  def m{j}()\n    @x{i} + {j}\n  end\n"));
         }
         code.push_str("end\n\n");
     }
@@ -901,7 +901,7 @@ fn clean_module_not_flagged() {
         "end\n",
         "def helper(x)\n  x + 1\nend\n",
     ));
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]

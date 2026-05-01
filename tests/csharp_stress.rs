@@ -68,7 +68,7 @@ fn cc_counts_and() {
         "public class T { static void f(bool a, bool b) { if (a && b) {} } }",
     );
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn cc_counts_or() {
         "public class T { static void f(bool a, bool b) { if (a || b) {} } }",
     );
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn cogc_else_increases_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "else should contribute to nesting, got: {}", cogc);
+    assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
@@ -188,7 +188,7 @@ fn cogc_triggers_complex_method() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
     let dbg = debug(concat!(
         "public class T {\n",
         "    static void f(int a) {\n",
@@ -206,8 +206,8 @@ fn cogc_triggers_complex_method() {
     ));
     let cogc = function_metric(&dbg, "f", "cogc").unwrap();
     let cc = function_metric(&dbg, "f", "cc").unwrap();
-    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
-    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(cogc >= 15, "cogc should be >= 15, got: {cogc}");
+    assert!(cc < 9, "cc should be < 9, got: {cc}");
 }
 
 // ===========================================================================
@@ -251,8 +251,7 @@ fn constructor_detected() {
     ));
     assert!(
         has_smell(&out, "Constructor Over-Injection"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -265,8 +264,7 @@ fn class_method_naming() {
     ));
     assert!(
         out.contains("MyClass.DoWork"),
-        "expected ClassName.MethodName format, got: {}",
-        out
+        "expected ClassName.MethodName format, got: {out}"
     );
 }
 
@@ -281,8 +279,7 @@ fn namespace_methods_found() {
     ));
     assert!(
         out.contains("Service.Handle"),
-        "method inside namespace should be found, got: {}",
-        out
+        "method inside namespace should be found, got: {out}"
     );
 }
 
@@ -297,8 +294,7 @@ fn empty_catch_detected() {
     ));
     assert!(
         has_smell(&out, "Empty Error Handler"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -313,8 +309,7 @@ fn non_empty_catch_not_detected() {
     ));
     assert!(
         !has_smell(&out, "Empty Error Handler"),
-        "non-empty catch should not be flagged, got: {}",
-        out
+        "non-empty catch should not be flagged, got: {out}"
     );
 }
 
@@ -329,8 +324,7 @@ fn struct_methods_found() {
     ));
     assert!(
         out.contains("Point.Sum"),
-        "struct methods should be found, got: {}",
-        out
+        "struct methods should be found, got: {out}"
     );
 }
 
@@ -362,7 +356,7 @@ fn cc_multiple_catch() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "base + 3 catch = 4, got: {}", cc);
+    assert!(cc >= 4, "base + 3 catch = 4, got: {cc}");
 }
 
 #[test]
@@ -375,7 +369,7 @@ fn cc_chained_boolean() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "if + && + || = 4, got: {}", cc);
+    assert!(cc >= 4, "if + && + || = 4, got: {cc}");
 }
 
 #[test]
@@ -388,7 +382,7 @@ fn cc_chained_boolean_4way() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 5, "if + 3 bool ops = 5, got: {}", cc);
+    assert!(cc >= 5, "if + 3 bool ops = 5, got: {cc}");
 }
 
 #[test]
@@ -403,7 +397,7 @@ fn cc_ternary_nested() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "two ternaries = 3, got: {}", cc);
+    assert!(cc >= 3, "two ternaries = 3, got: {cc}");
 }
 
 #[test]
@@ -420,7 +414,7 @@ fn cc_switch_default_not_counted() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert_eq!(cc, 4, "base + 2 cases + default section, got: {}", cc);
+    assert_eq!(cc, 4, "base + 2 cases + default section, got: {cc}");
 }
 
 // ===========================================================================
@@ -504,7 +498,7 @@ fn nesting_try_catch_counts_depth() {
         "}\n",
     ));
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 1, "try-catch should contribute nesting, got: {}", depth);
+    assert!(depth >= 1, "try-catch should contribute nesting, got: {depth}");
 }
 
 // ===========================================================================
@@ -526,13 +520,13 @@ fn args_one() {
 #[test]
 fn args_five_at_threshold() {
     let out = check("public class T { static void f(int a, int b, int c, int d, int e) {} }");
-    assert!(!has_smell(&out, "Excess Arguments"), "5 args should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Excess Arguments"), "5 args should not fire, got: {out}");
 }
 
 #[test]
 fn args_six_over_threshold() {
     let out = check("public class T { static void f(int a, int b, int c, int d, int e, int g) {} }");
-    assert!(has_smell(&out, "Excess Arguments"), "6 args should fire, got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "6 args should fire, got: {out}");
 }
 
 #[test]
@@ -542,7 +536,7 @@ fn args_constructor_separate_threshold() {
         "    public T(object a, object b, object c, object d, object e) {}\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Constructor Over-Injection"), "5 ctor args should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Constructor Over-Injection"), "5 ctor args should not fire, got: {out}");
 }
 
 #[test]
@@ -552,7 +546,7 @@ fn args_constructor_over_threshold() {
         "    public T(object a, object b, object c, object d, object e, object f) {}\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Constructor Over-Injection"), "6 ctor args should fire, got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "6 ctor args should fire, got: {out}");
 }
 
 // ===========================================================================
@@ -561,7 +555,7 @@ fn args_constructor_over_threshold() {
 
 #[test]
 fn compound_condition_detected() {
-    let out = check(concat!(
+    let _out = check(concat!(
         "public class T {\n",
         "    static void f(bool a, bool b, bool c, bool d) {\n",
         "        if (a && b || c && d) {}\n",
@@ -576,7 +570,7 @@ fn compound_condition_detected() {
         "}\n",
     ));
     let cc = function_metric(&dbg, "f", "cc").unwrap();
-    assert!(cc >= 5, "if + 3 bool ops should give cc >= 5, got: {}", cc);
+    assert!(cc >= 5, "if + 3 bool ops should give cc >= 5, got: {cc}");
 }
 
 #[test]
@@ -589,7 +583,7 @@ fn compound_condition_simple_not_detected() {
         "}\n",
     ));
     let conditions = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert_eq!(conditions, 0, "a && b should not be compound, got: {}", conditions);
+    assert_eq!(conditions, 0, "a && b should not be compound, got: {conditions}");
 }
 
 // ===========================================================================
@@ -600,11 +594,11 @@ fn compound_condition_simple_not_detected() {
 fn embedded_large_string_detected() {
     let mut code = String::from("public class T {\n    static string f() {\n        string q = @\"");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("\nSELECT field_{} FROM table_{}", i, i));
+        code.push_str(&format!("\nSELECT field_{i} FROM table_{i}"));
     }
     code.push_str("\";\n        return q;\n    }\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "16+ line string should fire, got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "16+ line string should fire, got: {out}");
 }
 
 #[test]
@@ -616,7 +610,7 @@ fn embedded_small_string_not_flagged() {
         "    }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Large Embedded Block"), "short string should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Large Embedded Block"), "short string should not fire, got: {out}");
 }
 
 // ===========================================================================
@@ -643,7 +637,7 @@ fn bumpy_road_two_bumps() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "two nested chunks should give bumps >= 2, got: {}", bumps);
+    assert!(bumps >= 2, "two nested chunks should give bumps >= 2, got: {bumps}");
 }
 
 #[test]
@@ -658,7 +652,7 @@ fn bumpy_road_single_bump_not_flagged() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps <= 1, "single bump should be <= 1, got: {}", bumps);
+    assert!(bumps <= 1, "single bump should be <= 1, got: {bumps}");
 }
 
 // ===========================================================================
@@ -687,7 +681,7 @@ fn exact_duplication_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -706,7 +700,7 @@ fn exact_duplication_below_min_loc_not_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "5-line methods should not trigger, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "5-line methods should not trigger, got: {out}");
 }
 
 #[test]
@@ -731,7 +725,7 @@ fn fuzzy_duplication_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "similar methods should trigger fuzzy, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "similar methods should trigger fuzzy, got: {out}");
 }
 
 #[test]
@@ -754,7 +748,7 @@ fn test_function_duplication_suppressed() {
         "    }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "test_ prefixed should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test_ prefixed should be suppressed, got: {out}");
 }
 
 // ===========================================================================
@@ -765,22 +759,22 @@ fn test_function_duplication_suppressed() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("public class T {\n    static void TestBig() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{} == {});\n", i, i));
+        code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{i} == {i});\n"));
     }
     code.push_str("    }\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "11+ asserts should fire, got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "11+ asserts should fire, got: {out}");
 }
 
 #[test]
 fn assertion_block_below_threshold_not_flagged() {
     let mut code = String::from("public class T {\n    static void TestSmall() {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{} == {});\n", i, i));
+        code.push_str(&format!("        System.Diagnostics.Debug.Assert(x{i} == {i});\n"));
     }
     code.push_str("    }\n}\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "10 asserts should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "10 asserts should not fire, got: {out}");
 }
 
 #[test]
@@ -796,7 +790,7 @@ fn assertion_block_interrupted_resets() {
         "    }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Large Assertion Block"), "interrupted asserts should reset, got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "interrupted asserts should reset, got: {out}");
 }
 
 // ===========================================================================
@@ -806,13 +800,13 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn primitive_obsession_all_primitives() {
     let out = check("public class T { static void f(int a, string b, bool c, double d) {} }");
-    assert!(has_smell(&out, "Primitive Obsession"), "all primitives with 4+ params should fire, got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "all primitives with 4+ params should fire, got: {out}");
 }
 
 #[test]
 fn primitive_obsession_below_min_typed() {
     let out = check("public class T { static void f(int a, int b, int c) {} }");
-    assert!(!has_smell(&out, "Primitive Obsession"), "3 params below min_typed=4, got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "3 params below min_typed=4, got: {out}");
 }
 
 #[test]
@@ -822,13 +816,13 @@ fn primitive_obsession_mixed_ratio_ok() {
         "    static void f(int a, int b, MyObj c, OtherObj d, ThirdObj e, FourthObj f) {}\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Primitive Obsession"), "2/6 = 0.33 ratio should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "2/6 = 0.33 ratio should not fire, got: {out}");
 }
 
 #[test]
 fn primitive_obsession_untyped_not_counted() {
     let out = check("public class T { static void f(MyObj a, OtherObj b, ThirdObj c, FourthObj d) {} }");
-    assert!(!has_smell(&out, "Primitive Obsession"), "no primitives should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "no primitives should not fire, got: {out}");
 }
 
 // ===========================================================================
@@ -845,7 +839,7 @@ fn lcom4_connected_class_not_flagged() {
         "    public void Clear() { this.data = 0; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "all methods share this.data so class is cohesive, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "all methods share this.data so class is cohesive, got: {out}");
 }
 
 #[test]
@@ -863,7 +857,7 @@ fn lcom4_disconnected_class() {
         "    public int GetZ() { return this.z; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "6 disconnected groups should fire, got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "6 disconnected groups should fire, got: {out}");
 }
 
 #[test]
@@ -879,7 +873,7 @@ fn lcom4_constructor_ignored() {
         "    public int UseC() { return this.c; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "constructor should not bridge groups, got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "constructor should not bridge groups, got: {out}");
 }
 
 #[test]
@@ -893,7 +887,7 @@ fn lcom4_methods_connected_by_call() {
         "    public bool Send(int e) { return true; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -922,7 +916,7 @@ fn lcom4_god_class_still_fires() {
         "    public object AuditLog() { return this.audit; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -951,8 +945,7 @@ fn class_method_has_class_prefix() {
     ));
     assert!(
         out.contains("Calculator.Add"),
-        "method should be Calculator.Add, got: {}",
-        out
+        "method should be Calculator.Add, got: {out}"
     );
 }
 
@@ -965,8 +958,7 @@ fn interface_method_has_prefix() {
     ));
     assert!(
         out.contains("IService.Process"),
-        "method should be IService.Process, got: {}",
-        out
+        "method should be IService.Process, got: {out}"
     );
 }
 
@@ -982,13 +974,11 @@ fn nested_class_methods() {
     ));
     assert!(
         out.contains("Inner.Work"),
-        "nested class method should be Inner.Work, got: {}",
-        out
+        "nested class method should be Inner.Work, got: {out}"
     );
     assert!(
         out.contains("Outer.OuterWork"),
-        "outer method should be Outer.OuterWork, got: {}",
-        out
+        "outer method should be Outer.OuterWork, got: {out}"
     );
 }
 
@@ -1000,9 +990,9 @@ fn nested_class_methods() {
 fn performance_1000_loc() {
     let mut code = String::from("public class Big {\n");
     for i in 0..50 {
-        code.push_str(&format!("    static int Func{}(int data) {{\n", i));
+        code.push_str(&format!("    static int Func{i}(int data) {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("        int f{} = data + {};\n", j, j));
+            code.push_str(&format!("        int f{j} = data + {j};\n"));
         }
         code.push_str("        return data;\n    }\n\n");
     }
@@ -1038,15 +1028,14 @@ fn global_conditional_not_detected_in_top_level() {
     ));
     assert!(
         !has_smell(&out, "Global Conditionals") && !has_smell(&out, "Deep Global Nesting"),
-        "top-level statements in C# are wrapped in global_statement nodes, got: {}",
-        out
+        "top-level statements in C# are wrapped in global_statement nodes, got: {out}"
     );
 }
 
 #[test]
 fn shallow_global_if_not_flagged() {
     let out = check("if (true) { int x = 1; }\n");
-    assert!(!has_smell(&out, "Deep Global Nesting"), "shallow global if should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Deep Global Nesting"), "shallow global if should not fire, got: {out}");
 }
 
 // ===========================================================================
@@ -1099,7 +1088,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base >= 9, got: {cc}");
 }
 
 #[test]
@@ -1112,7 +1101,7 @@ fn cc_counts_not_operator() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "if(!a) should have cc >= 2, got: {cc}");
 }
 
 // ===========================================================================
@@ -1139,7 +1128,7 @@ fn nesting_switch_counts_depth() {
         "}\n",
     ));
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "switch+if >= 2, got: {}", depth);
+    assert!(depth >= 2, "switch+if >= 2, got: {depth}");
 }
 
 #[test]
@@ -1158,7 +1147,7 @@ fn nesting_deep_for_if_for() {
         "}\n",
     ));
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 4, "got: {}", depth);
+    assert!(depth >= 4, "got: {depth}");
 }
 
 // ===========================================================================
@@ -1184,13 +1173,13 @@ fn args_positional() {
 #[test]
 fn primitive_obsession_recognizes_float_decimal() {
     let out = check("public class T { static void f(long a, float b, double c, int d) {} }");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_complex_types_not_flagged() {
     let out = check("public class T { static void f(MyList a, string b, MyObj c, OtherObj d) {} }");
-    assert!(!has_smell(&out, "Primitive Obsession"), "mostly non-primitive should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "mostly non-primitive should not fire, got: {out}");
 }
 
 // ===========================================================================
@@ -1205,7 +1194,7 @@ fn lcom4_single_method_not_flagged() {
         "    public int Get() { return this.x; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "single method should not fire, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "single method should not fire, got: {out}");
 }
 
 #[test]
@@ -1223,7 +1212,7 @@ fn lcom4_three_groups_flagged_with_field_tracking() {
         "    public int CRead() { return this.c + 1; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "3 disjoint field groups: a, b, c, got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "3 disjoint field groups: a, b, c, got: {out}");
 }
 
 #[test]
@@ -1237,7 +1226,7 @@ fn lcom4_transitive_connected_not_flagged() {
         "    public int M3() { return this.b; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b transitively, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b transitively, got: {out}");
 }
 
 // ===========================================================================
@@ -1251,7 +1240,7 @@ fn constructor_reports_injection_not_excess() {
         "    public S(int a, int b, int c, int d, int e, int f) {}\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
     let lines: Vec<&str> = out
         .lines()
         .filter(|l| l.contains("S(") || l.contains(".S"))
@@ -1264,8 +1253,8 @@ fn regular_method_reports_excess_args() {
     let out = check(
         "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1290,8 +1279,8 @@ fn multiple_smells_same_function() {
     code.push_str("        }\n");
     code.push_str("    }\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1316,7 +1305,7 @@ fn duplication_two_is_minimum() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -1337,7 +1326,7 @@ fn duplication_mixed_test_and_prod_flagged() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "mixed test+prod should be flagged, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "mixed test+prod should be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -1348,36 +1337,36 @@ fn duplication_mixed_test_and_prod_flagged() {
 fn god_class_requires_god_method() {
     let mut code = String::from("public class Big {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    static int Fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding {}\n", i));
+        code.push_str(&format!("// padding {i}\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "God Class"), "no god method, should not fire, got: {}", out);
+    assert!(!has_smell(&out, "God Class"), "no god method, should not fire, got: {out}");
 }
 
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("public class Monster {\n    static void DoMonster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("        if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("        if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int y{} = {};\n", i, i));
+        code.push_str(&format!("        int y{i} = {i};\n"));
     }
     code.push_str("    }\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    static int Fn{i}() {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("    static readonly int V{} = {};\n", i, i));
+        code.push_str(&format!("    static readonly int V{i} = {i};\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "God Method"), "got: {}", out);
-    assert!(has_smell(&out, "God Class"), "got: {}", out);
+    assert!(has_smell(&out, "God Method"), "got: {out}");
+    assert!(has_smell(&out, "God Class"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1388,30 +1377,30 @@ fn god_class_triggers_with_god_method() {
 fn overall_function_size_below_threshold() {
     let mut code = String::from("public class T {\n");
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("    static void Lg{}() {{\n", i));
+        code.push_str(&format!("    static void Lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Overall Function Size"), "2 large fns below threshold=3, got: {}", out);
+    assert!(!has_smell(&out, "Overall Function Size"), "2 large fns below threshold=3, got: {out}");
 }
 
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::from("public class T {\n");
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("    static void Lg{}() {{\n", i));
+        code.push_str(&format!("    static void Lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Overall Function Size"), "3 large fns should fire, got: {}", out);
+    assert!(has_smell(&out, "Overall Function Size"), "3 large fns should fire, got: {out}");
 }
 
 // ===========================================================================
@@ -1422,20 +1411,20 @@ fn overall_function_size_at_threshold() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("public class T{} {{}}\n", i));
+        code.push_str(&format!("public class T{i} {{}}\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Declarations"), "10 below threshold=20, got: {}", out);
+    assert!(!has_smell(&out, "Declarations"), "10 below threshold=20, got: {out}");
 }
 
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("public class T{} {{}}\n", i));
+        code.push_str(&format!("public class T{i} {{}}\n"));
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Declarations"), "25 above threshold=20, got: {}", out);
+    assert!(has_smell(&out, "Declarations"), "25 above threshold=20, got: {out}");
 }
 
 // ===========================================================================
@@ -1461,7 +1450,7 @@ fn deep_nesting_with_switch() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1501,8 +1490,7 @@ fn nested_conditional_chunks_detected() {
     ));
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -1515,7 +1503,7 @@ fn output_starts_with_pulse() {
     let out = check(
         "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
     );
-    assert!(out.starts_with("pulse:"), "got: {}", out);
+    assert!(out.starts_with("pulse:"), "got: {out}");
 }
 
 #[test]
@@ -1524,7 +1512,7 @@ fn output_has_line_numbers() {
         "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
     );
     let has_loc = out.lines().any(|l| l.contains("(L") && l.contains("): "));
-    assert!(has_loc, "got: {}", out);
+    assert!(has_loc, "got: {out}");
 }
 
 #[test]
@@ -1567,14 +1555,14 @@ fn multiple_empty_catches() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
-    assert!(out.contains("2 empty catch blocks"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
+    assert!(out.contains("2 empty catch blocks"), "got: {out}");
 }
 
 #[test]
 fn no_try_catch_no_smell() {
     let out = check("public class T { static void f() { int x = 1; } }");
-    assert!(!has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(!has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1596,19 +1584,19 @@ fn clean_csharp_module_not_flagged() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "clean code should not be flagged, got: {}", out);
+    assert!(out.is_empty(), "clean code should not be flagged, got: {out}");
 }
 
 #[test]
 fn comments_only() {
     let out = check("// just comments\n// only\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
 fn empty_file() {
     let out = check("");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -1619,9 +1607,9 @@ fn empty_file() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("public class S{} {{\n    private int d{};\n", i, i));
+        code.push_str(&format!("public class S{i} {{\n    private int d{i};\n"));
         for j in 0..5 {
-            code.push_str(&format!("    public int M{}() {{ return this.d{}; }}\n", j, i));
+            code.push_str(&format!("    public int M{j}() {{ return this.d{i}; }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -1648,7 +1636,7 @@ fn issue_count_matches() {
     );
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)), "got: {}", out);
+    assert!(first.contains(&format!("{findings} issue")), "got: {out}");
 }
 
 // ===========================================================================
@@ -1658,7 +1646,7 @@ fn issue_count_matches() {
 #[test]
 fn shallow_global_not_flagged() {
     let out = check("public class T { static void f() {} }");
-    assert!(!has_smell(&out, "Deep Global Nesting"), "got: {}", out);
+    assert!(!has_smell(&out, "Deep Global Nesting"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1669,12 +1657,12 @@ fn shallow_global_not_flagged() {
 fn output_has_module_prefix() {
     let mut code = String::from("public class Big {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    static int Fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    static int Fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// line {}\n", i));
+        code.push_str(&format!("// line {i}\n"));
     }
     let out = check(&code);
-    assert!(out.contains("Module:"), "got: {}", out);
+    assert!(out.contains("Module:"), "got: {out}");
 }

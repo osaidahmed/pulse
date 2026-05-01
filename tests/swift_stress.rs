@@ -1,7 +1,6 @@
 mod common;
 
 use common::*;
-use std::process::Command;
 
 lang_helpers!("swift");
 
@@ -84,7 +83,7 @@ fn cc_counts_logical_or() {
 fn cc_counts_mixed_boolean() {
     let out = debug("func f(a: Bool, b: Bool, c: Bool) -> Bool {\n    if a && b || c {\n        return true\n    }\n    return false\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -155,7 +154,7 @@ fn cc_complex_combination() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 7, "got: {}", cc);
+    assert!(cc >= 7, "got: {cc}");
 }
 
 // ===========================================================================
@@ -178,7 +177,7 @@ fn cogc_nested_if_weighted() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "nested if should get extra weight, got: {}", cogc);
+    assert!(cogc >= 3, "nested if should get extra weight, got: {cogc}");
 }
 
 #[test]
@@ -191,7 +190,7 @@ fn cogc_else_if_flat() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
@@ -210,14 +209,14 @@ fn cogc_nested_loop_weighted() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
 fn cogc_guard_increments() {
     let out = debug("func f(x: Int) -> Int {\n    guard x > 0 else { return 0 }\n    return x\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "got: {}", cogc);
+    assert!(cogc >= 1, "got: {cogc}");
 }
 
 #[test]
@@ -231,21 +230,21 @@ fn cogc_switch_increments() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "got: {}", cogc);
+    assert!(cogc >= 1, "got: {cogc}");
 }
 
 #[test]
 fn cogc_ternary_increments() {
     let out = debug("func f(x: Int) -> Int {\n    return x > 0 ? 1 : 0\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "got: {}", cogc);
+    assert!(cogc >= 1, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_sequence_change() {
     let out = debug("func f(a: Bool, b: Bool, c: Bool) -> Bool {\n    if a && b || c {\n        return true\n    }\n    return false\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -260,7 +259,7 @@ fn cogc_deep_nesting_costly() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 6, "3 nested ifs should be costly, got: {}", cogc);
+    assert!(cogc >= 6, "3 nested ifs should be costly, got: {cogc}");
 }
 
 #[test]
@@ -276,14 +275,14 @@ fn cogc_catch_increments() {
         "func something() throws {}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "got: {}", cogc);
+    assert!(cogc >= 1, "got: {cogc}");
 }
 
 #[test]
 fn cogc_repeat_while() {
     let out = debug("func f() {\n    var x = 5\n    repeat {\n        x -= 1\n    } while x > 0\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "got: {}", cogc);
+    assert!(cogc >= 1, "got: {cogc}");
 }
 
 // ===========================================================================
@@ -400,7 +399,7 @@ fn bumps_counted_for_nested_chunks() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -415,7 +414,7 @@ fn bumps_three_chunks() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 3, "got: {}", bumps);
+    assert!(bumps >= 3, "got: {bumps}");
 }
 
 #[test]
@@ -462,7 +461,7 @@ fn args_six_triggers_excess() {
         "    return 0\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -557,11 +556,11 @@ fn embedded_zero_when_no_strings() {
 fn embedded_large_triggers() {
     let mut code = String::from("func f() -> String {\n    let s = \"\"\"\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("    line {}\n", i));
+        code.push_str(&format!("    line {i}\n"));
     }
     code.push_str("    \"\"\"\n    return s\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 // ===========================================================================
@@ -574,7 +573,7 @@ fn identical_functions_detected_as_duplicates() {
         "func a(x: [Int]) -> Int {\n    var r = 0\n    for v in x {\n        r += v\n    }\n    r = r * 2\n    return r\n}\n",
         "func b(x: [Int]) -> Int {\n    var r = 0\n    for v in x {\n        r += v\n    }\n    r = r * 2\n    return r\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -583,7 +582,7 @@ fn duplication_detected_inline() {
         "func a(x: [Int]) -> Int {\n    var r = 0\n    for v in x {\n        r += v\n    }\n    r = r * 2\n    return r\n}\n",
         "func b(x: [Int]) -> Int {\n    var r = 0\n    for v in x {\n        r += v\n    }\n    r = r * 2\n    return r\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -624,7 +623,7 @@ fn assert_count_for_calls() {
         "}\n",
     ));
     let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
-    assert!(asserts >= 3, "got: {}", asserts);
+    assert!(asserts >= 3, "got: {asserts}");
 }
 
 #[test]
@@ -637,7 +636,7 @@ fn assert_block_non_consecutive() {
         "}\n",
     ));
     let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
-    assert!(asserts <= 1, "non-consecutive should not accumulate, got: {}", asserts);
+    assert!(asserts <= 1, "non-consecutive should not accumulate, got: {asserts}");
 }
 
 #[test]
@@ -648,7 +647,7 @@ fn assert_block_threshold() {
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 // ===========================================================================
@@ -659,7 +658,7 @@ fn assert_block_threshold() {
 fn compound_condition_two_ops() {
     let out = debug("func f(a: Bool, b: Bool, c: Bool) {\n    if a && b && c {}\n}\n");
     let cond = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert!(cond >= 1, "got: {}", cond);
+    assert!(cond >= 1, "got: {cond}");
 }
 
 #[test]
@@ -673,14 +672,14 @@ fn compound_condition_one_op_no_flag() {
 fn compound_condition_mixed_ops() {
     let out = debug("func f(a: Bool, b: Bool, c: Bool) {\n    if a && b || c {}\n}\n");
     let cond = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert!(cond >= 1, "got: {}", cond);
+    assert!(cond >= 1, "got: {cond}");
 }
 
 #[test]
 fn compound_condition_guard() {
     let out = debug("func f(a: Bool, b: Bool, c: Bool) {\n    guard a && b || c else { return }\n}\n");
     let cond = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert!(cond >= 1, "got: {}", cond);
+    assert!(cond >= 1, "got: {cond}");
 }
 
 // ===========================================================================
@@ -697,7 +696,7 @@ fn init_over_injection_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
@@ -739,8 +738,7 @@ fn primitive_obsession_high_ratio() {
     ));
     assert!(
         has_smell(&out, "Primitive Obsession"),
-        "4/4 primitives should trigger, got: {}",
-        out
+        "4/4 primitives should trigger, got: {out}"
     );
 }
 
@@ -785,7 +783,7 @@ fn empty_catch_detected() {
         "}\n",
         "func something() throws {}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -814,7 +812,7 @@ fn empty_catch_count_detected() {
         "}\n",
         "func something() throws {}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -827,7 +825,7 @@ fn multiple_empty_catches_detected() {
         "func a() throws {}\n",
         "func b() throws {}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 // ===========================================================================
@@ -844,7 +842,7 @@ fn field_access_self_dot() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains(r#"fields=["count"]"#), "got: {}", out);
+    assert!(out.contains(r#"fields=["count"]"#), "got: {out}");
 }
 
 #[test]
@@ -860,7 +858,7 @@ fn field_access_multiple_fields() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains(r#""a""#) && out.contains(r#""b""#), "got: {}", out);
+    assert!(out.contains(r#""a""#) && out.contains(r#""b""#), "got: {out}");
 }
 
 #[test]
@@ -872,7 +870,7 @@ fn no_field_access_without_self() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains("fields=[]"), "got: {}", out);
+    assert!(out.contains("fields=[]"), "got: {out}");
 }
 
 #[test]
@@ -888,7 +886,7 @@ fn low_cohesion_many_disconnected_methods() {
         "    func useE() -> Int { return self.e }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -902,7 +900,7 @@ fn lcom4_methods_connected_by_call() {
         "    func send(_ e: Int) -> Bool { return true }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -931,7 +929,7 @@ fn lcom4_god_class_still_fires() {
         "    func auditLog() -> Int { return self.audit }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -958,7 +956,7 @@ fn module_declaration_count() {
         "class B {}\n",
         "struct C {\n    var x: Int\n}\n",
     ));
-    assert!(out.contains("declarations=3"), "got: {}", out);
+    assert!(out.contains("declarations=3"), "got: {out}");
 }
 
 #[test]
@@ -968,13 +966,13 @@ fn module_function_count() {
         "func b() {}\n",
         "func c() {}\n",
     ));
-    assert!(out.contains("3 functions"), "got: {}", out);
+    assert!(out.contains("3 functions"), "got: {out}");
 }
 
 #[test]
 fn module_loc() {
     let out = debug("func f() -> Int {\n    return 0\n}\n");
-    assert!(out.contains("3 LOC"), "got: {}", out);
+    assert!(out.contains("3 LOC"), "got: {out}");
 }
 
 #[test]
@@ -985,5 +983,5 @@ fn extension_not_counted_as_declaration() {
         "    func magnitude() -> Int { return x }\n",
         "}\n",
     ));
-    assert!(out.contains("declarations=1"), "extensions should not count, got: {}", out);
+    assert!(out.contains("declarations=1"), "extensions should not count, got: {out}");
 }

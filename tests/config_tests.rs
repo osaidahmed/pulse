@@ -19,10 +19,10 @@ fn empty_config_parses_to_defaults() {
 #[test]
 fn minimal_threshold_override() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         arg_max = 10
-        "#,
+        ",
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
@@ -48,13 +48,13 @@ fn disable_section_parses() {
 #[test]
 fn language_override_parses() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         arg_max = 8
 
         [languages.go]
         arg_max = 12
-        "#,
+        ",
     )
     .unwrap();
     let go_thresholds = config::resolve_thresholds(Some(&cfg), Language::Go);
@@ -89,10 +89,10 @@ fn full_config_parses() {
 #[test]
 fn unknown_top_level_key_errors() {
     let result = toml::from_str::<PulseConfig>(
-        r#"
+        r"
         [bogus]
         foo = 1
-        "#,
+        ",
     );
     assert!(result.is_err());
 }
@@ -108,11 +108,11 @@ fn no_config_returns_defaults() {
 #[test]
 fn override_specific_fields_rest_default() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         cc_warning = 15
         file_loc_warning = 600
-        "#,
+        ",
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Rust);
@@ -126,14 +126,14 @@ fn override_specific_fields_rest_default() {
 #[test]
 fn language_override_further_overrides_base() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         arg_max = 8
         cc_warning = 12
 
         [languages.go]
         arg_max = 12
-        "#,
+        ",
     )
     .unwrap();
     let go = config::resolve_thresholds(Some(&cfg), Language::Go);
@@ -144,13 +144,13 @@ fn language_override_further_overrides_base() {
 #[test]
 fn language_not_in_config_uses_base() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         arg_max = 8
 
         [languages.java]
         arg_max = 10
-        "#,
+        ",
     )
     .unwrap();
     let rust = config::resolve_thresholds(Some(&cfg), Language::Rust);
@@ -160,14 +160,14 @@ fn language_not_in_config_uses_base() {
 #[test]
 fn multiple_language_sections_independent() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [languages.go]
         arg_max = 7
 
         [languages.java]
         arg_max = 10
         fn_loc_warning = 120
-        "#,
+        ",
     )
     .unwrap();
     let go = config::resolve_thresholds(Some(&cfg), Language::Go);
@@ -181,13 +181,13 @@ fn multiple_language_sections_independent() {
 #[test]
 fn resolve_base_thresholds_ignores_language() {
     let cfg: PulseConfig = toml::from_str(
-        r#"
+        r"
         [thresholds]
         arg_max = 8
 
         [languages.go]
         arg_max = 20
-        "#,
+        ",
     )
     .unwrap();
     let base = config::resolve_base_thresholds(Some(&cfg));

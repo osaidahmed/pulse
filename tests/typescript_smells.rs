@@ -10,8 +10,7 @@ fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.ts");
     assert!(
         output.is_empty(),
-        "clean TS file should produce no output, got: {}",
-        output
+        "clean TS file should produce no output, got: {output}"
     );
 }
 
@@ -20,8 +19,7 @@ fn complex_method_detected() {
     let output = run_check(LANG, "complex_method.ts");
     assert!(
         has_smell(&output, "Complex Method"),
-        "should detect complex method, got: {}",
-        output
+        "should detect complex method, got: {output}"
     );
     assert!(has_function(&output, "processOrder"));
 }
@@ -30,7 +28,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.ts");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -38,8 +36,7 @@ fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.ts");
     assert!(
         has_smell(&output, "Deep Nested"),
-        "should detect deep nesting, got: {}",
-        output
+        "should detect deep nesting, got: {output}"
     );
     assert!(has_function(&output, "deeplyNested"));
 }
@@ -55,8 +52,7 @@ fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.ts");
     assert!(
         has_smell(&output, "Excess Arguments"),
-        "should detect excess args, got: {}",
-        output
+        "should detect excess args, got: {output}"
     );
     assert!(has_function(&output, "createUser"));
 }
@@ -72,8 +68,7 @@ fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.ts");
     assert!(
         has_smell(&output, "Constructor Over-Injection"),
-        "should detect constructor over-injection, got: {}",
-        output
+        "should detect constructor over-injection, got: {output}"
     );
     assert!(has_function(&output, "UserService.constructor"));
 }
@@ -83,8 +78,7 @@ fn primitive_obsession_detected_in_typescript() {
     let output = run_check(LANG, "excess_args.ts");
     assert!(
         has_smell(&output, "Primitive Obsession"),
-        "should detect primitive obsession in TS, got: {}",
-        output
+        "should detect primitive obsession in TS, got: {output}"
     );
 }
 
@@ -93,8 +87,7 @@ fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.ts");
     assert!(
         has_smell(&output, "Code Duplication"),
-        "should detect duplication in TS, got: {}",
-        output
+        "should detect duplication in TS, got: {output}"
     );
     assert!(has_function(&output, "processUserReport"));
     assert!(has_function(&output, "processAdminReport"));
@@ -107,7 +100,7 @@ fn lcom4_detects_low_cohesion() {
     let path = dir.path().join("low_cohesion.ts");
     std::fs::write(
         &path,
-        r#"
+        r"
 class KitchenSink {
     private users: any[] = [];
     private orders: any[] = [];
@@ -125,7 +118,7 @@ class KitchenSink {
     getLogs() { return this.logs; }
     clearLogs() { this.logs = []; }
 }
-"#,
+",
     )
     .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -135,8 +128,7 @@ class KitchenSink {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Low Cohesion"),
-        "should detect low cohesion in TS class, got: {}",
-        stdout
+        "should detect low cohesion in TS class, got: {stdout}"
     );
 }
 
@@ -146,11 +138,11 @@ fn arrow_function_analyzed() {
     let path = dir.path().join("arrow.ts");
     std::fs::write(
         &path,
-        r#"
+        r"
 const handler = (a: string, b: string, c: string, d: string, e: string, f: string, g: string) => {
     return a + b;
 };
-"#,
+",
     )
     .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -160,8 +152,7 @@ const handler = (a: string, b: string, c: string, d: string, e: string, f: strin
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Excess Arguments"),
-        "arrow function with 7 args should be flagged, got: {}",
-        stdout
+        "arrow function with 7 args should be flagged, got: {stdout}"
     );
 }
 
@@ -196,8 +187,7 @@ function handleAction(action: string): string {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Complex Method"),
-        "9 switch cases should trigger cc >= 9, got: {}",
-        stdout
+        "9 switch cases should trigger cc >= 9, got: {stdout}"
     );
 }
 
@@ -245,8 +235,7 @@ fn performance_ts_under_500ms() {
     let mut code = String::new();
     for i in 0..30 {
         code.push_str(&format!(
-            "function func{}(data: any): any {{\n    const r: any = {{}};\n    r.id = data.id;\n    r.name = data.name;\n    r.value = data.value;\n    r.active = data.active;\n    r.category = data.category;\n    r.priority = data.priority;\n    return r;\n}}\n\n",
-            i
+            "function func{i}(data: any): any {{\n    const r: any = {{}};\n    r.id = data.id;\n    r.name = data.name;\n    r.value = data.value;\n    r.active = data.active;\n    r.category = data.category;\n    r.priority = data.priority;\n    return r;\n}}\n\n"
         ));
     }
     std::fs::write(&path, &code).unwrap();
@@ -271,7 +260,7 @@ fn performance_ts_under_500ms() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "deep_nesting.ts");
     let depth = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(depth > 4, "nesting should be > 4, got: {}", depth);
+    assert!(depth > 4, "nesting should be > 4, got: {depth}");
 }
 
 #[test]
@@ -279,8 +268,7 @@ fn nested_conditional_chunks_detected() {
     let output = run_check(LANG, "bumpy_road.ts");
     assert!(
         has_smell(&output, "Nested Conditional Chunks"),
-        "got: {}",
-        output
+        "got: {output}"
     );
     assert!(has_function(&output, "validateAndProcess"));
 }
@@ -290,8 +278,7 @@ fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.ts");
     assert!(
         has_smell(&output, "Large Embedded Block"),
-        "got: {}",
-        output
+        "got: {output}"
     );
     assert!(has_function(&output, "getActiveUsers"));
 }
@@ -305,15 +292,15 @@ fn simple_query_not_flagged() {
 #[test]
 fn low_cohesion_from_fixture() {
     let output = run_check(LANG, "low_cohesion.ts");
-    assert!(has_smell(&output, "Low Cohesion"), "got: {}", output);
-    assert!(output.contains("LCOM4=4"), "got: {}", output);
+    assert!(has_smell(&output, "Low Cohesion"), "got: {output}");
+    assert!(output.contains("LCOM4=4"), "got: {output}");
 }
 
 #[test]
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "excess_args.ts");
     let args = function_metric(&debug, "createUser", "args").unwrap_or(0);
-    assert_eq!(args, 8, "got: {}", args);
+    assert_eq!(args, 8, "got: {args}");
 }
 
 #[test]
@@ -325,13 +312,12 @@ fn cc_base_case_is_1() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let output = pulse_check_code("function f(): void {\n    if (a && b && c) {}\n}\n", "ts");
+    let _output = pulse_check_code("function f(): void {\n    if (a && b && c) {}\n}\n", "ts");
     let debug = pulse_debug_code("function f(): void {\n    if (a && b && c) {}\n}\n", "ts");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(
         cc >= 4,
-        "boolean operators should increment cc, got: {}",
-        cc
+        "boolean operators should increment cc, got: {cc}"
     );
 }
 
@@ -355,7 +341,7 @@ fn issue_count_in_header_matches_findings() {
     let output = run_check(LANG, "excess_args.ts");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 #[test]
@@ -375,8 +361,7 @@ fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("function f(): void {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n}\n", "ts");
     assert!(
         has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {}",
-        out
+        "cc=9 should trigger, got: {out}"
     );
 }
 
@@ -385,8 +370,7 @@ fn function_below_cc_boundary_not_flagged() {
     let out = pulse_check_code("function f(): void {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n}\n", "ts");
     assert!(
         !has_smell(&out, "Complex Method"),
-        "cc=8 should not trigger, got: {}",
-        out
+        "cc=8 should not trigger, got: {out}"
     );
 }
 
@@ -422,7 +406,7 @@ fn large_method_detected() {
     let path = dir.path().join("large.ts");
     let mut code = String::from("function buildReport(): void {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const x{} = {};\n", i, i));
+        code.push_str(&format!("    const x{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -433,8 +417,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "should detect large method, got: {}",
-        stdout
+        "should detect large method, got: {stdout}"
     );
 }
 
@@ -448,10 +431,10 @@ fn god_method_detected() {
     let path = dir.path().join("god.ts");
     let mut code = String::from("function processDataPipeline(): void {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+        code.push_str(&format!("    if (x === {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const y{} = {};\n", i, i));
+        code.push_str(&format!("    const y{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -460,7 +443,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -469,10 +452,10 @@ fn god_method_has_high_cc_and_loc() {
     let path = dir.path().join("god2.ts");
     let mut code = String::from("function processDataPipeline(): void {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+        code.push_str(&format!("    if (x === {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const y{} = {};\n", i, i));
+        code.push_str(&format!("    const y{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -483,8 +466,8 @@ fn god_method_has_high_cc_and_loc() {
     let stderr = String::from_utf8(out.stderr).unwrap();
     let cc = function_metric(&stderr, "processDataPipeline", "cc").unwrap_or(0);
     let loc = function_metric(&stderr, "processDataPipeline", "loc").unwrap_or(0);
-    assert!(cc >= 9, "god method cc >= 9, got: {}", cc);
-    assert!(loc >= t().fn_loc_warning, "god method loc >= t().fn_loc_warning, got: {}", loc);
+    assert!(cc >= 9, "god method cc >= 9, got: {cc}");
+    assert!(loc >= t().fn_loc_warning, "god method loc >= t().fn_loc_warning, got: {loc}");
 }
 
 #[test]
@@ -493,10 +476,10 @@ fn god_method_not_reported_as_separate_complex_and_large() {
     let path = dir.path().join("god3.ts");
     let mut code = String::from("function processDataPipeline(): void {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x === {}) {{}}\n", i));
+        code.push_str(&format!("    if (x === {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const y{} = {};\n", i, i));
+        code.push_str(&format!("    const y{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -528,7 +511,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
 fn nested_conditional_chunks_bump_count() {
     let debug = run_debug(LANG, "bumpy_road.ts");
     let bumps = function_metric(&debug, "validateAndProcess", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "should have >= 2 bumps, got: {}", bumps);
+    assert!(bumps >= 2, "should have >= 2 bumps, got: {bumps}");
 }
 
 // ===========================================================================
@@ -566,8 +549,7 @@ fn complex_conditional_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Complex Conditional") || has_smell(&stdout, "Complex Method"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
     assert!(has_function(&stdout, "checkEligibility"));
 }
@@ -636,7 +618,7 @@ fn global_conditionals_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Global Conditionals"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Global Conditionals"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -649,10 +631,10 @@ fn file_too_large_detected() {
     let path = dir.path().join("huge.ts");
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const VAR{} = {};\n", i, i));
+        code.push_str(&format!("const VAR{i} = {i};\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -660,7 +642,7 @@ fn file_too_large_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "File Too Large"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "File Too Large"), "got: {stdout}");
 }
 
 #[test]
@@ -669,10 +651,10 @@ fn too_many_functions_detected() {
     let path = dir.path().join("huge2.ts");
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const VAR{} = {};\n", i, i));
+        code.push_str(&format!("const VAR{i} = {i};\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -680,7 +662,7 @@ fn too_many_functions_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Too Many Functions"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Too Many Functions"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -697,8 +679,7 @@ fn decorated_function_analyzed() {
     ), "ts");
     assert!(
         has_smell(&out, "Excess Arguments") || has_function(&out, "longDeco"),
-        "function with 8 args should be flagged, got: {}",
-        out
+        "function with 8 args should be flagged, got: {out}"
     );
 }
 
@@ -712,10 +693,10 @@ fn analysis_completes_under_500ms() {
     let path = dir.path().join("perf.ts");
     let mut code = String::new();
     for i in 0..25 {
-        code.push_str(&format!("function fn{}(): number {{ return {}; }}\n", i, i));
+        code.push_str(&format!("function fn{i}(): number {{ return {i}; }}\n"));
     }
     for i in 0..500 {
-        code.push_str(&format!("const VAR{} = {};\n", i, i));
+        code.push_str(&format!("const VAR{i} = {i};\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let start = std::time::Instant::now();
@@ -733,7 +714,7 @@ fn large_method_loc_at_least_65() {
     let path = dir.path().join("large_loc.ts");
     let mut code = String::from("function buildReport(): void {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("    const x{} = {};\n", i, i));
+        code.push_str(&format!("    const x{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -743,5 +724,5 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc should be >= 50, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc should be >= 50, got: {loc}");
 }

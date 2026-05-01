@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -51,7 +53,7 @@ pub fn run_hook(file_path: &str) -> String {
     } else {
         (file_path.to_string(), None)
     };
-    let json = format!(r#"{{"tool_input":{{"file_path":"{}"}}}}"#, actual_path);
+    let json = format!(r#"{{"tool_input":{{"file_path":"{actual_path}"}}}}"#);
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["--hook"])
         .stdin(std::process::Stdio::piped())
@@ -84,7 +86,7 @@ pub fn function_metric(debug_output: &str, func_name: &str, metric: &str) -> Opt
     for line in debug_output.lines() {
         if line.contains(func_name) {
             for part in line.split_whitespace() {
-                if part.starts_with(&format!("{}=", metric)) {
+                if part.starts_with(&format!("{metric}=")) {
                     return part.split('=').nth(1)?.parse().ok();
                 }
             }
@@ -145,7 +147,7 @@ macro_rules! lang_helpers {
 
 pub fn pulse_check_code(code: &str, ext: &str) -> String {
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join(format!("test.{}", ext));
+    let path = dir.path().join(format!("test.{ext}"));
     std::fs::write(&path, code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
@@ -156,7 +158,7 @@ pub fn pulse_check_code(code: &str, ext: &str) -> String {
 
 pub fn pulse_debug_code(code: &str, ext: &str) -> String {
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join(format!("test.{}", ext));
+    let path = dir.path().join(format!("test.{ext}"));
     std::fs::write(&path, code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["debug", path.to_str().unwrap()])

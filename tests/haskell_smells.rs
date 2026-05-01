@@ -8,13 +8,13 @@ const LANG: &str = "haskell";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "Clean.hs");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "ComplexMethod.hs");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -28,7 +28,7 @@ fn complex_method_cc_at_least_9() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "ExcessArgs.hs");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "createUser"));
 }
 
@@ -36,7 +36,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "ExcessArgs.hs");
     let args = function_metric(&debug, "createUser", "args").unwrap_or(0);
-    assert!(args > t().arg_max, "got: {}", args);
+    assert!(args > t().arg_max, "got: {args}");
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn simple_func_not_flagged() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "DeepNesting.hs");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
     assert!(has_function(&output, "deeplyNested"));
 }
 
@@ -56,7 +56,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "DeepNesting.hs");
     let depth = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(depth > t().nesting_depth, "got: {}", depth);
+    assert!(depth > t().nesting_depth, "got: {depth}");
 }
 
 #[test]
@@ -69,19 +69,19 @@ fn moderate_nesting_not_flagged() {
 fn cc_base_case_is_1() {
     let debug = run_debug(LANG, "Clean.hs");
     let cc = function_metric(&debug, "add", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "got: {}", cc);
+    assert_eq!(cc, 1, "got: {cc}");
 }
 
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "ComplexMethod.hs");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "ComplexMethod.hs");
-    assert!(output.contains("(L"), "got: {}", output);
+    assert!(output.contains("(L"), "got: {output}");
 }
 
 #[test]
@@ -89,14 +89,14 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "ComplexMethod.hs");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 #[test]
 fn hook_clean_file_silent() {
     let path = fixtures_dir(LANG).join("Clean.hs");
     let output = run_hook(path.to_str().unwrap());
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -109,13 +109,13 @@ fn hook_smelly_file_produces_output() {
 #[test]
 fn hook_nonexistent_file_silent() {
     let output = run_hook("/tmp/nonexistent_haskell_file.hs");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
 fn empty_file() {
     let output = pulse_check_code("", "hs");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn function_at_cc_boundary_flagged() {
     }
     code.push_str("  _ -> \"z\"\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
 }
 
 #[test]
@@ -138,7 +138,7 @@ fn function_below_cc_boundary_not_flagged() {
     }
     code.push_str("  _ -> \"z\"\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(!has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(!has_smell(&output, "Complex Method"), "got: {output}");
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn large_method_detected() {
     }
     code.push_str("  in x\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Large Method"), "got: {}", output);
+    assert!(has_smell(&output, "Large Method"), "got: {output}");
 }
 
 #[test]
@@ -161,7 +161,7 @@ fn large_method_loc_at_least_threshold() {
     code.push_str("  in x\n");
     let debug = pulse_debug_code(&code, "hs");
     let loc = function_metric(&debug, "f", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "got: {loc}");
 }
 
 #[test]
@@ -175,7 +175,7 @@ fn god_method_detected() {
     }
     code.push_str("  x\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "God Method"), "got: {}", output);
+    assert!(has_smell(&output, "God Method"), "got: {output}");
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn god_method_not_reported_as_separate() {
     }
     code.push_str("  x\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(!has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(!has_smell(&output, "Complex Method"), "got: {output}");
 }
 
 #[test]
@@ -198,7 +198,7 @@ fn complex_conditional_detected() {
         "f :: Bool -> Bool -> Bool -> Bool\nf a b c =\n  if a && b || c then True\n  else if a || b && c then True\n  else if a && b && c then True\n  else False\n",
         "hs",
     );
-    assert!(has_smell(&output, "Complex Conditional"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Conditional"), "got: {output}");
 }
 
 #[test]
@@ -208,7 +208,7 @@ fn file_too_large_detected() {
         code.push_str(&format!("x{i} = {i}\n"));
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "File Too Large"), "got: {}", output);
+    assert!(has_smell(&output, "File Too Large"), "got: {output}");
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn hook_invalid_json_silent() {
         })
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.is_empty(), "got: {}", stdout);
+    assert!(stdout.is_empty(), "got: {stdout}");
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn boolean_operators_increment_cc() {
         "hs",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "cc should be >= 4 (1+if+2&&), got: {}", cc);
+    assert!(cc >= 4, "cc should be >= 4 (1+if+2&&), got: {cc}");
 }
 
 #[test]
@@ -250,19 +250,19 @@ fn output_has_module_prefix() {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Too Many Functions"), "got: {}", output);
+    assert!(has_smell(&output, "Too Many Functions"), "got: {output}");
 }
 
 #[test]
 fn comments_only_file() {
     let output = pulse_check_code("-- just a comment\n{- block comment -}\n", "hs");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
 fn hook_unsupported_extension_silent() {
     let output = run_hook("/tmp/file.xyz");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -291,26 +291,26 @@ fn embedded_block_detected() {
     }
     code.push_str("\"\n");
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 
 #[test]
 fn simple_string_not_flagged() {
     let output = pulse_check_code("f :: String\nf = \"hello\"\n", "hs");
-    assert!(!has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(!has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 
 #[test]
 fn case_expression_increments_cc() {
     let output = run_check(LANG, "CaseExpression.hs");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
 }
 
 #[test]
 fn case_expression_cc_value() {
     let debug = run_debug(LANG, "CaseExpression.hs");
     let cc = function_metric(&debug, "dispatch", "cc").unwrap_or(0);
-    assert!(cc >= t().cc_warning + 1, "cc should be > cc_warning, got: {}", cc);
+    assert!(cc > t().cc_warning, "cc should be > cc_warning, got: {cc}");
 }
 
 #[test]
@@ -326,7 +326,7 @@ fn code_duplication_detected() {
         "a :: Int -> Int\na x =\n  let\n{a_body}  in x\n\nb :: Int -> Int\nb x =\n  let\n{b_body}  in x\n"
     );
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
@@ -335,7 +335,7 @@ fn primitive_obsession_recognizes_haskell_types() {
         "f :: Int -> Float -> Double -> Bool -> Char -> Int\nf a b c d e = 0\n",
         "hs",
     );
-    assert!(has_smell(&output, "Primitive Obsession"), "got: {}", output);
+    assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 
 #[test]
@@ -344,7 +344,7 @@ fn primitive_obsession_mixed_not_flagged() {
         "f :: Int -> Float -> [String] -> Maybe Int -> Int\nf a b c d = 0\n",
         "hs",
     );
-    assert!(!has_smell(&output, "Primitive Obsession"), "got: {}", output);
+    assert!(!has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 
 #[test]
@@ -353,7 +353,7 @@ fn nested_conditional_chunks_detected() {
         "f :: Int -> Int -> Int -> Int\nf x y z =\n  case x of\n    0 -> if y > 0 then if z > 0 then 1 else 0 else 0\n    1 -> if y > 1 then if z > 1 then 2 else 0 else 0\n    _ -> if y > 2 then if z > 2 then 3 else 0 else 0\n",
         "hs",
     );
-    assert!(has_smell(&output, "Nested Conditional"), "got: {}", output);
+    assert!(has_smell(&output, "Nested Conditional"), "got: {output}");
 }
 
 #[test]
@@ -364,7 +364,7 @@ fn declarations_above_threshold() {
         code.push_str(&format!("data T{i} = T{i}\n"));
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Excessive Declarations"), "got: {}", output);
+    assert!(has_smell(&output, "Excessive Declarations"), "got: {output}");
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn overall_function_size_below_threshold() {
         code.push_str("  x\n\n");
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(!has_smell(&output, "Overall Function Size"), "got: {}", output);
+    assert!(!has_smell(&output, "Overall Function Size"), "got: {output}");
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn overall_function_size_at_threshold() {
         code.push_str("  x\n\n");
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "Overall Function Size"), "got: {}", output);
+    assert!(has_smell(&output, "Overall Function Size"), "got: {output}");
 }
 
 #[test]
@@ -409,7 +409,7 @@ fn god_class_requires_god_method() {
         code.push_str("  x\n\n");
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(!has_smell(&output, "God Class"), "got: {}", output);
+    assert!(!has_smell(&output, "God Class"), "got: {output}");
 }
 
 #[test]
@@ -431,7 +431,7 @@ fn god_class_triggers_with_god_method() {
         code.push_str("  x\n\n");
     }
     let output = pulse_check_code(&code, "hs");
-    assert!(has_smell(&output, "God Class"), "got: {}", output);
+    assert!(has_smell(&output, "God Class"), "got: {output}");
 }
 
 #[test]
@@ -441,47 +441,47 @@ fn guards_produce_cc() {
         "hs",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "expected cc >= 4, got: {}", cc);
+    assert!(cc >= 4, "expected cc >= 4, got: {cc}");
 }
 
 #[test]
 fn haskell_features_type_class() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
-    assert!(debug.contains("Describable.describe"), "expected type class method, got: {}", debug);
+    assert!(debug.contains("Describable.describe"), "expected type class method, got: {debug}");
 }
 
 #[test]
 fn haskell_features_instance() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
-    assert!(debug.contains("Describable.describe"), "expected instance method, got: {}", debug);
+    assert!(debug.contains("Describable.describe"), "expected instance method, got: {debug}");
 }
 
 #[test]
 fn haskell_features_guards() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
     let cc = function_metric(&debug, "classify", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expected cc >= 3 for guards, got: {}", cc);
+    assert!(cc >= 3, "expected cc >= 3 for guards, got: {cc}");
 }
 
 #[test]
 fn haskell_features_where_clause() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
-    assert!(debug.contains("withWhere.doubled"), "expected where func, got: {}", debug);
-    assert!(debug.contains("withWhere.tripled"), "expected where func, got: {}", debug);
+    assert!(debug.contains("withWhere.doubled"), "expected where func, got: {debug}");
+    assert!(debug.contains("withWhere.tripled"), "expected where func, got: {debug}");
 }
 
 #[test]
 fn haskell_features_let_in() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
     let cc = function_metric(&debug, "withLet", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "let-in should not add CC, got: {}", cc);
+    assert_eq!(cc, 1, "let-in should not add CC, got: {cc}");
 }
 
 #[test]
 fn haskell_features_do_notation() {
     let debug = run_debug(LANG, "HaskellFeatures.hs");
     let cc = function_metric(&debug, "doExample", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "do-notation should not add CC, got: {}", cc);
+    assert_eq!(cc, 1, "do-notation should not add CC, got: {cc}");
 }
 
 // ── Production fixture tests ──────────────────────────────────────────
@@ -489,7 +489,7 @@ fn haskell_features_do_notation() {
 #[test]
 fn production_api_complex_method() {
     let output = run_check(LANG, "ProductionApiService.hs");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processPayment"));
 }
 
@@ -504,7 +504,7 @@ fn production_api_process_payment_cc() {
 fn production_api_guard_functions_detected() {
     let debug = run_debug(LANG, "ProductionApiService.hs");
     let cc = function_metric(&debug, "getPaymentStatus", "cc").unwrap_or(0);
-    assert!(cc >= 5, "expected guards to produce cc >= 5, got: {}", cc);
+    assert!(cc >= 5, "expected guards to produce cc >= 5, got: {cc}");
 }
 
 #[test]
@@ -518,46 +518,46 @@ fn production_api_helper_functions_clean() {
 fn production_api_refund_guard_cc() {
     let debug = run_debug(LANG, "ProductionApiService.hs");
     let cc = function_metric(&debug, "refund", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expected cc >= 3 for guarded refund, got: {}", cc);
+    assert!(cc >= 3, "expected cc >= 3 for guarded refund, got: {cc}");
 }
 
 #[test]
 fn production_pipeline_process_event_cc() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
     let cc = function_metric(&debug, "processEvent", "cc").unwrap_or(0);
-    assert!(cc >= 7, "expected cc >= 7 for processEvent, got: {}", cc);
+    assert!(cc >= 7, "expected cc >= 7 for processEvent, got: {cc}");
 }
 
 #[test]
 fn production_pipeline_where_functions() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
-    assert!(debug.contains("validateConfig.batchErr"), "expected where func, got: {}", debug);
-    assert!(debug.contains("validateConfig.retryErr"), "expected where func, got: {}", debug);
-    assert!(debug.contains("validateConfig.timeoutErr"), "expected where func, got: {}", debug);
+    assert!(debug.contains("validateConfig.batchErr"), "expected where func, got: {debug}");
+    assert!(debug.contains("validateConfig.retryErr"), "expected where func, got: {debug}");
+    assert!(debug.contains("validateConfig.timeoutErr"), "expected where func, got: {debug}");
 }
 
 #[test]
 fn production_pipeline_dispatch_command() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
     let cc = function_metric(&debug, "dispatchCommand", "cc").unwrap_or(0);
-    assert!(cc >= 7, "expected cc >= 7 for case dispatch, got: {}", cc);
+    assert!(cc >= 7, "expected cc >= 7 for case dispatch, got: {cc}");
 }
 
 #[test]
 fn production_pipeline_format_output_case() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
     let cc = function_metric(&debug, "formatOutput", "cc").unwrap_or(0);
-    assert!(cc >= 4, "expected cc >= 4 for format cases, got: {}", cc);
+    assert!(cc >= 4, "expected cc >= 4 for format cases, got: {cc}");
 }
 
 #[test]
 fn production_pipeline_classify_where_lambda() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
-    assert!(debug.contains("classifyEvents.classify"), "expected where func classify, got: {}", debug);
+    assert!(debug.contains("classifyEvents.classify"), "expected where func classify, got: {debug}");
 }
 
 #[test]
 fn production_pipeline_declarations_counted() {
     let debug = run_debug(LANG, "ProductionDataPipeline.hs");
-    assert!(debug.contains("declarations=3"), "expected 3 declarations, got: {}", debug);
+    assert!(debug.contains("declarations=3"), "expected 3 declarations, got: {debug}");
 }

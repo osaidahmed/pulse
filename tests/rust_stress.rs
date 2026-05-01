@@ -68,7 +68,7 @@ fn cc_nested_if_in_for() {
 fn cc_chained_boolean() {
     let out = debug("fn f(a: bool, b: bool, c: bool, d: bool) {\n    if a && b && c && d {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 4, "chained boolean should increase cc, got: {}", cc);
+    assert!(cc >= 4, "chained boolean should increase cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -196,7 +196,7 @@ fn lcom4_methods_connected_by_call() {
         "    fn send(&self, _e: i32) -> bool { true }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -224,7 +224,7 @@ fn lcom4_god_struct_still_fires() {
         "    fn audit_log(&self) -> i32 { self.audit }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -287,7 +287,7 @@ fn duplication_test_functions_suppressed() {
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("struct T{} {{}}\n", i));
+        code.push_str(&format!("struct T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -301,10 +301,10 @@ fn declarations_above_threshold() {
 fn god_method_detected() {
     let mut code = String::from("fn monster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if {} > 0 {{}}\n", i));
+        code.push_str(&format!("    if {i} > 0 {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let x{} = {};\n", i, i));
+        code.push_str(&format!("    let x{i} = {i};\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -319,9 +319,9 @@ fn god_method_detected() {
 fn overall_function_size_triggered() {
     let mut code = String::new();
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("fn lg{}() {{\n", i));
+        code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    let x{} = {};\n", j, j));
+            code.push_str(&format!("    let x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -364,7 +364,7 @@ fn regular_function_reports_excess_args() {
 fn embedded_block_detected() {
     let mut code = String::from("fn query() -> &'static str {\n    let q = r#\"\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
+        code.push_str(&format!("        SELECT field_{i} FROM table_{i}\n"));
     }
     code.push_str("    \"#;\n    q\n}\n");
     let out = check(&code);
@@ -392,11 +392,10 @@ fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
         code.push_str(&format!(
-            "fn func{}(data: &Data) -> Result<(), Error> {{\n",
-            i
+            "fn func{i}(data: &Data) -> Result<(), Error> {{\n"
         ));
         for j in 0..18 {
-            code.push_str(&format!("    let f{} = data.field{};\n", j, j));
+            code.push_str(&format!("    let f{j} = data.field{j};\n"));
         }
         code.push_str("    Ok(())\n}\n\n");
     }
@@ -417,13 +416,11 @@ fn performance_impl_blocks() {
     let mut code = String::new();
     for i in 0..10 {
         code.push_str(&format!(
-            "struct S{} {{ data: Vec<i32> }}\nimpl S{} {{\n",
-            i, i
+            "struct S{i} {{ data: Vec<i32> }}\nimpl S{i} {{\n"
         ));
         for j in 0..5 {
             code.push_str(&format!(
-                "    fn m{}(&self) -> &[i32] {{ &self.data }}\n",
-                j
+                "    fn m{j}(&self) -> &[i32] {{ &self.data }}\n"
             ));
         }
         code.push_str("}\n\n");
@@ -458,7 +455,7 @@ fn cc_counts_loop_keyword() {
 fn nesting_match_counts_depth() {
     let out = debug("fn f(x: i32) {\n    match x {\n        1 => {\n            if true {}\n        },\n        _ => {},\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "match+if should be >= 2, got: {}", depth);
+    assert!(depth >= 2, "match+if should be >= 2, got: {depth}");
 }
 
 // ===========================================================================
@@ -560,10 +557,10 @@ fn duplication_test_suppressed() {
 fn god_class_requires_god_method() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
+        code.push_str(&format!("fn fn{i}() -> i32 {{ {i} }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const VAR{}: i32 = {};\n", i, i));
+        code.push_str(&format!("const VAR{i}: i32 = {i};\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "God Class"));
@@ -577,17 +574,17 @@ fn god_class_requires_god_method() {
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("fn monster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if {} > 0 {{}}\n", i));
+        code.push_str(&format!("    if {i} > 0 {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let y{} = {};\n", i, i));
+        code.push_str(&format!("    let y{i} = {i};\n"));
     }
     code.push_str("}\n\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("fn fn{}() -> i32 {{ {} }}\n", i, i));
+        code.push_str(&format!("fn fn{i}() -> i32 {{ {i} }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("const V{}: i32 = {};\n", i, i));
+        code.push_str(&format!("const V{i}: i32 = {i};\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "God Method"));
@@ -616,7 +613,7 @@ fn assertion_block_interrupted_resets() {
 fn assertion_block_at_threshold() {
     let mut code = String::from("fn test_exact() {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("    assert_eq!(x{}, {});\n", i, i));
+        code.push_str(&format!("    assert_eq!(x{i}, {i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -627,7 +624,7 @@ fn assertion_block_at_threshold() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("fn test_big() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    assert_eq!(x{}, {});\n", i, i));
+        code.push_str(&format!("    assert_eq!(x{i}, {i});\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -642,9 +639,9 @@ fn assertion_block_above_threshold() {
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("fn lg{}() {{\n", i));
+        code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    let x{} = {};\n", j, j));
+            code.push_str(&format!("    let x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -660,7 +657,7 @@ fn overall_function_size_below_threshold() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("struct T{} {{}}\n", i));
+        code.push_str(&format!("struct T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(!has_smell(&out, "Declarations"));
@@ -680,7 +677,7 @@ fn small_string_not_flagged_as_embedded() {
 fn multiline_raw_string_flagged() {
     let mut code = String::from("fn f() -> &'static str {\n    let q = r#\"\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        SELECT field_{} FROM table_{}\n", i, i));
+        code.push_str(&format!("        SELECT field_{i} FROM table_{i}\n"));
     }
     code.push_str("    \"#;\n    q\n}\n");
     let out = check(&code);
@@ -708,7 +705,7 @@ fn function_can_have_multiple_smells() {
     );
     code.push_str("    let q = r#\"\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        SELECT field_{}\n", i));
+        code.push_str(&format!("        SELECT field_{i}\n"));
     }
     code.push_str("    \"#;\n");
     code.push_str("    for x in 0..1 {\n");
@@ -798,7 +795,7 @@ fn hook_empty_stdin() {
 fn cc_counts_not_operator() {
     let out = debug("fn f(a: bool) {\n    if !a {}\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 2, "if !a should have cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "if !a should have cc >= 2, got: {cc}");
 }
 
 // ===========================================================================
@@ -830,7 +827,7 @@ fn nesting_loop_counts_depth() {
     let out =
         debug("fn f() {\n    loop {\n        if true {\n            break;\n        }\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 2, "loop+if should be >= 2, got: {}", depth);
+    assert!(depth >= 2, "loop+if should be >= 2, got: {depth}");
 }
 
 // ===========================================================================
@@ -901,7 +898,7 @@ fn duplication_mixed_test_and_prod_flagged() {
 fn decorated_structs_counted_as_declarations() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("#[derive(Debug)]\nstruct T{} {{}}\n", i));
+        code.push_str(&format!("#[derive(Debug)]\nstruct T{i} {{}}\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Declarations"));
@@ -929,8 +926,7 @@ fn clean_rust_module_not_flagged() {
     ));
     assert!(
         out.is_empty(),
-        "clean Rust module should not be flagged, got: {}",
-        out
+        "clean Rust module should not be flagged, got: {out}"
     );
 }
 
@@ -978,8 +974,7 @@ fn cc_match_many_arms() {
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(
         cc >= 9,
-        "8 match arms + base should give cc >= 9, got: {}",
-        cc
+        "8 match arms + base should give cc >= 9, got: {cc}"
     );
 }
 
@@ -1014,9 +1009,9 @@ fn regular_function_reports_excess_not_constructor() {
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("fn lg{}() {{\n", i));
+        code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    let x{} = {};\n", j, j));
+            code.push_str(&format!("    let x{j} = {j};\n"));
         }
         code.push_str("}\n\n");
     }
@@ -1165,8 +1160,8 @@ fn cogc_triggers_complex_method() {
     let d = debug(code);
     let cogc = function_metric(&d, "f", "cogc").unwrap();
     let cc = function_metric(&d, "f", "cc").unwrap();
-    assert!(cogc >= 15, "cogc should be >= 15, got: {}", cogc);
-    assert!(cc < 9, "cc should be < 9, got: {}", cc);
+    assert!(cogc >= 15, "cogc should be >= 15, got: {cogc}");
+    assert!(cc < 9, "cc should be < 9, got: {cc}");
     assert!(has_smell(&out, "Complex Method"));
 }
 
@@ -1177,6 +1172,6 @@ fn cogc_triggers_complex_method() {
 #[test]
 fn trait_method_without_body_skipped() {
     let out = debug("trait Foo {\n    fn bar(&self);\n}\nfn f() { if true {} }\n");
-    assert!(!out.contains("bar"), "trait method without body should be skipped: {}", out);
-    assert!(out.contains("f"));
+    assert!(!out.contains("bar"), "trait method without body should be skipped: {out}");
+    assert!(out.contains('f'));
 }

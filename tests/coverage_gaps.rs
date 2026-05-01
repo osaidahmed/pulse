@@ -19,7 +19,7 @@ fn invalid_args_prints_usage() {
         .unwrap();
     assert!(!out.status.success());
     let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("usage:"), "should print usage on bad args: {}", stderr);
+    assert!(stderr.contains("usage:"), "should print usage on bad args: {stderr}");
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn debug_unsupported_file_errors() {
 
 #[test]
 fn csharp_namespace_functions() {
-    let out = debug(r#"
+    let out = debug(r"
 namespace MyApp {
     public class Service {
         public void Process() {
@@ -71,13 +71,13 @@ namespace MyApp {
         }
     }
 }
-"#, "cs");
-    assert!(out.contains("Process"), "should find method in namespace: {}", out);
+", "cs");
+    assert!(out.contains("Process"), "should find method in namespace: {out}");
 }
 
 #[test]
 fn csharp_nested_class() {
-    let out = debug(r#"
+    let out = debug(r"
 public class Outer {
     public class Inner {
         public void Work() {
@@ -85,86 +85,86 @@ public class Outer {
         }
     }
 }
-"#, "cs");
-    assert!(out.contains("Inner.Work"), "should find nested class method: {}", out);
+", "cs");
+    assert!(out.contains("Inner.Work"), "should find nested class method: {out}");
 }
 
 #[test]
 fn csharp_constructor() {
-    let out = debug(r#"
+    let out = debug(r"
 public class Service {
     public Service(int x, int y) {
         if (x > 0) { }
     }
 }
-"#, "cs");
-    assert!(out.contains("Service.Service"), "should find constructor: {}", out);
+", "cs");
+    assert!(out.contains("Service.Service"), "should find constructor: {out}");
 }
 
 #[test]
 fn csharp_record_declaration() {
-    let out = debug(r#"
+    let out = debug(r"
 public record Config {
     public void Validate() {
         if (true) { }
     }
 }
-"#, "cs");
-    assert!(out.contains("Validate"), "should find method in record: {}", out);
+", "cs");
+    assert!(out.contains("Validate"), "should find method in record: {out}");
 }
 
 #[test]
 fn csharp_struct_declaration() {
-    let out = debug(r#"
+    let out = debug(r"
 public struct Point {
     public double Distance() {
         if (true) { }
         return 0.0;
     }
 }
-"#, "cs");
-    assert!(out.contains("Point.Distance"), "should find struct method: {}", out);
+", "cs");
+    assert!(out.contains("Point.Distance"), "should find struct method: {out}");
 }
 
 #[test]
 fn csharp_interface_methods() {
-    let out = debug(r#"
+    let out = debug(r"
 public interface IService {
     public void Execute() {
         if (true) { }
     }
 }
-"#, "cs");
-    assert!(out.contains("Execute"), "should find interface default method: {}", out);
+", "cs");
+    assert!(out.contains("Execute"), "should find interface default method: {out}");
 }
 
 #[test]
 fn csharp_ternary_expression() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public int F(int x) {
         return x > 0 ? x : -x;
     }
 }
-"#, "cs");
+", "cs");
     assert_eq!(function_metric(&out, "F", "cc"), Some(2));
 }
 
 #[test]
 fn csharp_lambda_skipped() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void F() {
         var fn = (int x) => { if (x > 0) { } };
     }
 }
-"#, "cs");
+", "cs");
     assert_eq!(function_metric(&out, "F", "cc"), Some(1));
 }
 
 #[test]
 fn csharp_try_catch_finally() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void F() {
         try {
@@ -178,14 +178,14 @@ public class T {
         }
     }
 }
-"#, "cs");
+", "cs");
     let cc = function_metric(&out, "F", "cc").unwrap_or(0);
-    assert!(cc >= 4, "try/catch/finally should add cc: {}", cc);
+    assert!(cc >= 4, "try/catch/finally should add cc: {cc}");
 }
 
 #[test]
 fn csharp_empty_catch() {
-    let out = check(r#"
+    let out = check(r"
 public class T {
     public void F() {
         try { throw new Exception(); }
@@ -196,14 +196,14 @@ public class T {
         catch (Exception e) { }
     }
 }
-"#, "cs");
+", "cs");
     // Empty catch is tracked but not a standalone smell; just exercises the path
     let _ = out;
 }
 
 #[test]
 fn csharp_else_if_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public int F(int x) {
         if (x > 10) { return 1; }
@@ -212,9 +212,9 @@ public class T {
         else { return 0; }
     }
 }
-"#, "cs");
+", "cs");
     let cc = function_metric(&out, "F", "cc").unwrap_or(0);
-    assert!(cc >= 4, "else-if chain should increase cc: {}", cc);
+    assert!(cc >= 4, "else-if chain should increase cc: {cc}");
 }
 
 #[test]
@@ -231,34 +231,34 @@ public class T {
 "#, "cs");
     let cc = function_metric(&out, "F", "cc").unwrap_or(0);
     // switch_statement adds 1 (track_nesting cogc), case adds 1, default does not
-    assert!(cc >= 2, "default should not add cc: {}", cc);
+    assert!(cc >= 2, "default should not add cc: {cc}");
 }
 
 #[test]
 fn csharp_type_identifier_primitive() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void F(String a, String b, String c, String d, String e) {
         if (true) { }
     }
 }
-"#, "cs");
-    assert!(out.contains("args=5"), "should count 5 args: {}", out);
+", "cs");
+    assert!(out.contains("args=5"), "should count 5 args: {out}");
 }
 
 #[test]
 fn csharp_top_level_method() {
-    let out = debug(r#"
+    let out = debug(r"
 void TopLevel() {
     if (true) { }
 }
-"#, "cs");
-    assert!(out.contains("TopLevel"), "should find top-level method: {}", out);
+", "cs");
+    assert!(out.contains("TopLevel"), "should find top-level method: {out}");
 }
 
 #[test]
 fn csharp_local_function() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void F() {
         void Inner() {
@@ -266,8 +266,8 @@ public class T {
         }
     }
 }
-"#, "cs");
-    assert!(out.contains("Inner") || out.contains("F"), "should find local function: {}", out);
+", "cs");
+    assert!(out.contains("Inner") || out.contains('F'), "should find local function: {out}");
 }
 
 // ===========================================================================
@@ -276,64 +276,64 @@ public class T {
 
 #[test]
 fn cpp_namespace_functions() {
-    let out = debug(r#"
+    let out = debug(r"
 namespace ns {
     void process() {
         if (true) { }
     }
 }
-"#, "cpp");
-    assert!(out.contains("process"), "should find namespace function: {}", out);
+", "cpp");
+    assert!(out.contains("process"), "should find namespace function: {out}");
 }
 
 #[test]
 fn cpp_pointer_return_function() {
-    let out = debug(r#"
+    let out = debug(r"
 int* create(int n) {
     if (n > 0) { }
     return nullptr;
 }
-"#, "cpp");
-    assert!(out.contains("create"), "should find pointer-return function: {}", out);
+", "cpp");
+    assert!(out.contains("create"), "should find pointer-return function: {out}");
 }
 
 #[test]
 fn cpp_for_range_loop() {
-    let out = debug(r#"
+    let out = debug(r"
 void f() {
     int arr[] = {1, 2, 3};
     for (auto x : arr) {
         if (x > 0) { }
     }
 }
-"#, "cpp");
+", "cpp");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "range-for should add cc: {}", cc);
+    assert!(cc >= 3, "range-for should add cc: {cc}");
 }
 
 #[test]
 fn cpp_ternary() {
-    let out = debug(r#"
+    let out = debug(r"
 int f(int x) {
     return x > 0 ? x : -x;
 }
-"#, "cpp");
+", "cpp");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn cpp_lambda_skipped() {
-    let out = debug(r#"
+    let out = debug(r"
 void f() {
     auto fn = [](int x) { if (x > 0) {} };
 }
-"#, "cpp");
+", "cpp");
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
 #[test]
 fn cpp_try_catch_finally() {
-    let out = debug(r#"
+    let out = debug(r"
 void f() {
     try {
         if (true) { }
@@ -341,76 +341,76 @@ void f() {
         if (true) { }
     }
 }
-"#, "cpp");
+", "cpp");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "try/catch should add cc: {}", cc);
+    assert!(cc >= 3, "try/catch should add cc: {cc}");
 }
 
 #[test]
 fn cpp_else_if_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 int f(int x) {
     if (x > 10) { return 1; }
     else if (x > 5) { return 2; }
     else { return 0; }
 }
-"#, "cpp");
+", "cpp");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 #[test]
 fn cpp_void_param_list() {
-    let out = debug(r#"
+    let out = debug(r"
 void f(void) {
     if (true) { }
 }
-"#, "cpp");
-    assert!(out.contains("args=0"), "void param should count as 0 args: {}", out);
+", "cpp");
+    assert!(out.contains("args=0"), "void param should count as 0 args: {out}");
 }
 
 #[test]
 fn cpp_variadic_params() {
     // Exercises the variadic_parameter branch in count_param_children
     // C++ tree-sitter may parse `...` as plain token; test exercises the fold path
-    let out = debug(r#"
+    let out = debug(r"
 void f(int a, int b, ...) {
     if (true) { }
 }
-"#, "cpp");
-    assert!(out.contains("args="), "should parse params: {}", out);
+", "cpp");
+    assert!(out.contains("args="), "should parse params: {out}");
 }
 
 #[test]
 fn cpp_type_identifier_primitive() {
-    let out = debug(r#"
+    let out = debug(r"
 void f(string a, string b, auto c) {
     if (true) { }
 }
-"#, "cpp");
-    assert!(out.contains("args=3"), "should count 3 args: {}", out);
+", "cpp");
+    assert!(out.contains("args=3"), "should count 3 args: {out}");
 }
 
 #[test]
 fn cpp_empty_catch() {
-    let out = debug(r#"
+    let out = debug(r"
 void f() {
     try { } catch (int e) { }
 }
-"#, "cpp");
-    assert!(out.contains("f"), "empty catch path exercised: {}", out);
+", "cpp");
+    assert!(out.contains('f'), "empty catch path exercised: {out}");
 }
 
 #[test]
 fn cpp_class_method_constructor() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo {
     void bar() {
         if (true) { }
     }
 };
-"#, "cpp");
-    assert!(out.contains("Foo::bar"), "should find class method: {}", out);
+", "cpp");
+    assert!(out.contains("Foo::bar"), "should find class method: {out}");
 }
 
 // ===========================================================================
@@ -419,7 +419,7 @@ class Foo {
 
 #[test]
 fn ruby_singleton_method() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def self.bar
     if true
@@ -427,27 +427,27 @@ class Foo
     end
   end
 end
-"#, "rb");
-    assert!(out.contains("bar"), "should find singleton method: {}", out);
+", "rb");
+    assert!(out.contains("bar"), "should find singleton method: {out}");
 }
 
 #[test]
 fn ruby_unless_modifier() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar
     x = 1 unless false
     y = 2 if true
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "unless modifier should add cc: {}", cc);
+    assert!(cc >= 3, "unless modifier should add cc: {cc}");
 }
 
 #[test]
 fn ruby_while_modifier() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar
     x = 1
@@ -455,9 +455,9 @@ class Foo
     x -= 1 until x <= 0
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "while/until modifiers should add cc: {}", cc);
+    assert!(cc >= 3, "while/until modifiers should add cc: {cc}");
 }
 
 #[test]
@@ -476,7 +476,7 @@ class Foo
 end
 "#, "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 2, "rescue should add cc: {}", cc);
+    assert!(cc >= 2, "rescue should add cc: {cc}");
 }
 
 #[test]
@@ -491,25 +491,25 @@ class Foo
   end
 end
 "#, "rb");
-    assert!(out.contains("bar"), "empty rescue path exercised: {}", out);
+    assert!(out.contains("bar"), "empty rescue path exercised: {out}");
 }
 
 #[test]
 fn ruby_ternary_conditional() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar(x)
     x > 0 ? x : -x
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 2, "ternary should add cc: {}", cc);
+    assert!(cc >= 2, "ternary should add cc: {cc}");
 }
 
 #[test]
 fn ruby_boolean_operators() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar(a, b, c)
     if a && b || c
@@ -517,14 +517,14 @@ class Foo
     end
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "boolean ops should add cc: {}", cc);
+    assert!(cc >= 3, "boolean ops should add cc: {cc}");
 }
 
 #[test]
 fn ruby_do_block() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar
     [1, 2].each do |x|
@@ -534,13 +534,13 @@ class Foo
     end
   end
 end
-"#, "rb");
-    assert!(out.contains("bar"), "do_block path exercised: {}", out);
+", "rb");
+    assert!(out.contains("bar"), "do_block path exercised: {out}");
 }
 
 #[test]
 fn ruby_heredoc() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar
     text = <<~HEREDOC
@@ -553,8 +553,8 @@ class Foo
     HEREDOC
   end
 end
-"#, "rb");
-    assert!(out.contains("bar"), "heredoc path exercised: {}", out);
+", "rb");
+    assert!(out.contains("bar"), "heredoc path exercised: {out}");
 }
 
 #[test]
@@ -575,12 +575,12 @@ class Foo
   end
 end
 "#, "rb");
-    assert!(out.contains("bar"), "field access path exercised: {}", out);
+    assert!(out.contains("bar"), "field access path exercised: {out}");
 }
 
 #[test]
 fn ruby_check_condition_ops() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar(a, b, c)
     if a and b or c
@@ -588,14 +588,14 @@ class Foo
     end
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 2, "and/or should count: {}", cc);
+    assert!(cc >= 2, "and/or should count: {cc}");
 }
 
 #[test]
 fn ruby_elsif_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo
   def bar(x)
     if x > 10
@@ -609,9 +609,9 @@ class Foo
     end
   end
 end
-"#, "rb");
+", "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 4, "elsif chain should increase cc: {}", cc);
+    assert!(cc >= 4, "elsif chain should increase cc: {cc}");
 }
 
 // ===========================================================================
@@ -620,19 +620,19 @@ end
 
 #[test]
 fn java_constructor() {
-    let out = debug(r#"
+    let out = debug(r"
 public class Service {
     public Service(int x, int y) {
         if (x > 0) { }
     }
 }
-"#, "java");
-    assert!(out.contains("Service.Service"), "should find constructor: {}", out);
+", "java");
+    assert!(out.contains("Service.Service"), "should find constructor: {out}");
 }
 
 #[test]
 fn java_nested_class() {
-    let out = debug(r#"
+    let out = debug(r"
 public class Outer {
     public class Inner {
         public void work() {
@@ -640,13 +640,13 @@ public class Outer {
         }
     }
 }
-"#, "java");
-    assert!(out.contains("Inner.work"), "should find nested class method: {}", out);
+", "java");
+    assert!(out.contains("Inner.work"), "should find nested class method: {out}");
 }
 
 #[test]
 fn java_try_with_resources() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void f() throws Exception {
         try (var r = new Object()) {
@@ -658,20 +658,20 @@ public class T {
         }
     }
 }
-"#, "java");
+", "java");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "try-with-resources/catch/finally: {}", cc);
+    assert!(cc >= 4, "try-with-resources/catch/finally: {cc}");
 }
 
 #[test]
 fn java_ternary() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public int f(int x) {
         return x > 0 ? x : -x;
     }
 }
-"#, "java");
+", "java");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -691,12 +691,12 @@ public class T {
     }
 }
 "#, "java");
-    assert!(out.contains("f"), "text_block path exercised: {}", out);
+    assert!(out.contains('f'), "text_block path exercised: {out}");
 }
 
 #[test]
 fn java_else_if_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public int f(int x) {
         if (x > 10) { return 1; }
@@ -704,9 +704,9 @@ public class T {
         else { return 0; }
     }
 }
-"#, "java");
+", "java");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 #[test]
@@ -722,43 +722,43 @@ public class T {
 }
 "#, "java");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 2, "default should not add cc: {}", cc);
+    assert_eq!(cc, 2, "default should not add cc: {cc}");
 }
 
 #[test]
 fn java_spread_parameter() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void f(String... args) {
         if (true) { }
     }
 }
-"#, "java");
-    assert!(out.contains("args=1"), "spread should count as 1 arg: {}", out);
+", "java");
+    assert!(out.contains("args=1"), "spread should count as 1 arg: {out}");
 }
 
 #[test]
 fn java_type_identifier_primitive() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void f(String a) {
         if (true) { }
     }
 }
-"#, "java");
-    assert!(out.contains("primitives=1"), "String should be primitive: {}", out);
+", "java");
+    assert!(out.contains("primitives=1"), "String should be primitive: {out}");
 }
 
 #[test]
 fn java_empty_catch() {
-    let out = debug(r#"
+    let out = debug(r"
 public class T {
     public void f() {
         try { } catch (Exception e) { }
     }
 }
-"#, "java");
-    assert!(out.contains("f"), "empty catch path exercised: {}", out);
+", "java");
+    assert!(out.contains('f'), "empty catch path exercised: {out}");
 }
 
 // ===========================================================================
@@ -767,33 +767,33 @@ public class T {
 
 #[test]
 fn python_assert_with_boolean() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(x, y):
     assert x > 0 and y > 0
-"#, "py");
+", "py");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "assert with boolean should add cc: {}", cc);
+    assert!(cc >= 2, "assert with boolean should add cc: {cc}");
 }
 
 #[test]
 fn python_condition_complexity() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(a, b, c):
     if a and b or c:
         pass
-"#, "py");
+", "py");
     let cond = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert!(cond >= 1, "complex condition: {}", cond);
+    assert!(cond >= 1, "complex condition: {cond}");
 }
 
 #[test]
 fn python_primitive_types() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(a: int, b: str, c: float):
     if True:
         pass
-"#, "py");
-    assert!(out.contains("primitives=3"), "should detect 3 primitive types: {}", out);
+", "py");
+    assert!(out.contains("primitives=3"), "should detect 3 primitive types: {out}");
 }
 
 #[test]
@@ -803,22 +803,22 @@ def f(a: int = 0, b: str = ""):
     if True:
         pass
 "#, "py");
-    assert!(out.contains("args=2"), "typed defaults count as args: {}", out);
+    assert!(out.contains("args=2"), "typed defaults count as args: {out}");
 }
 
 #[test]
 fn python_splat_patterns() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(*args, **kwargs):
     if True:
         pass
-"#, "py");
-    assert!(out.contains("args=2"), "splats should count as args: {}", out);
+", "py");
+    assert!(out.contains("args=2"), "splats should count as args: {out}");
 }
 
 #[test]
 fn python_try_finally() {
-    let out = debug(r#"
+    let out = debug(r"
 def f():
     try:
         if True:
@@ -828,14 +828,14 @@ def f():
     finally:
         if True:
             pass
-"#, "py");
+", "py");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "except/finally should work: {}", cc);
+    assert!(cc >= 3, "except/finally should work: {cc}");
 }
 
 #[test]
 fn python_except_in_try_children() {
-    let out = debug(r#"
+    let out = debug(r"
 def f():
     try:
         pass
@@ -844,21 +844,21 @@ def f():
             pass
     except KeyError:
         pass
-"#, "py");
+", "py");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "multiple except clauses: {}", cc);
+    assert!(cc >= 3, "multiple except clauses: {cc}");
 }
 
 #[test]
 fn python_empty_except() {
-    let out = debug(r#"
+    let out = debug(r"
 def f():
     try:
         pass
     except:
         pass
-"#, "py");
-    assert!(out.contains("f"), "empty except path exercised: {}", out);
+", "py");
+    assert!(out.contains('f'), "empty except path exercised: {out}");
 }
 
 // ===========================================================================
@@ -867,24 +867,24 @@ def f():
 
 #[test]
 fn typescript_generator_function() {
-    let out = debug(r#"
+    let out = debug(r"
 function* gen() {
     if (true) { }
     yield 1;
 }
-"#, "ts");
-    assert!(out.contains("gen"), "should find generator function: {}", out);
+", "ts");
+    assert!(out.contains("gen"), "should find generator function: {out}");
 }
 
 #[test]
 fn typescript_function_expression() {
     // Arrow function from variable declaration exercises the collect_arrow_functions path
-    let out = debug(r#"
+    let out = debug(r"
 const myFunc = () => {
     if (true) { }
 };
-"#, "ts");
-    assert!(out.contains("myFunc"), "should find arrow function: {}", out);
+", "ts");
+    assert!(out.contains("myFunc"), "should find arrow function: {out}");
 }
 
 #[test]
@@ -898,12 +898,12 @@ function f(x: number): string {
 }
 "#, "ts");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 2, "default should not add cc: {}", cc);
+    assert_eq!(cc, 2, "default should not add cc: {cc}");
 }
 
 #[test]
 fn typescript_try_catch_finally() {
-    let out = debug(r#"
+    let out = debug(r"
 function f() {
     try {
         if (true) { }
@@ -913,53 +913,53 @@ function f() {
         if (true) { }
     }
 }
-"#, "ts");
+", "ts");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "try/catch/finally should add cc: {}", cc);
+    assert!(cc >= 4, "try/catch/finally should add cc: {cc}");
 }
 
 #[test]
 fn typescript_else_if_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 function f(x: number): number {
     if (x > 10) { return 1; }
     else if (x > 5) { return 2; }
     else { return 0; }
 }
-"#, "ts");
+", "ts");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 #[test]
 fn typescript_empty_catch() {
-    let out = debug(r#"
+    let out = debug(r"
 function f() {
     try { } catch (e) { }
 }
-"#, "ts");
-    assert!(out.contains("f"), "empty catch path: {}", out);
+", "ts");
+    assert!(out.contains('f'), "empty catch path: {out}");
 }
 
 #[test]
 fn typescript_exported_class() {
-    let out = debug(r#"
+    let out = debug(r"
 export class Foo {
     bar(): void {
         if (true) { }
     }
 }
-"#, "ts");
-    assert!(out.contains("Foo.bar"), "should find exported class method: {}", out);
+", "ts");
+    assert!(out.contains("Foo.bar"), "should find exported class method: {out}");
 }
 
 #[test]
 fn typescript_ternary() {
-    let out = debug(r#"
+    let out = debug(r"
 function f(x: number): number {
     return x > 0 ? x : -x;
 }
-"#, "ts");
+", "ts");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -969,7 +969,7 @@ function f(x: number): number {
 
 #[test]
 fn go_pointer_receiver() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 type Foo struct{}
@@ -977,13 +977,13 @@ type Foo struct{}
 func (f *Foo) Bar() {
     if true { }
 }
-"#, "go");
-    assert!(out.contains("Foo.Bar"), "should find pointer receiver method: {}", out);
+", "go");
+    assert!(out.contains("Foo.Bar"), "should find pointer receiver method: {out}");
 }
 
 #[test]
 fn go_type_switch() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(x interface{}) {
@@ -993,14 +993,14 @@ func f(x interface{}) {
     default:
     }
 }
-"#, "go");
+", "go");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "type switch should add cc: {}", cc);
+    assert!(cc >= 3, "type switch should add cc: {cc}");
 }
 
 #[test]
 fn go_select_statement() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(ch chan int) {
@@ -1010,14 +1010,14 @@ func f(ch chan int) {
     default:
     }
 }
-"#, "go");
+", "go");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "select should add cc: {}", cc);
+    assert!(cc >= 2, "select should add cc: {cc}");
 }
 
 #[test]
 fn go_else_body() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(x int) int {
@@ -1027,13 +1027,13 @@ func f(x int) int {
         return 0
     }
 }
-"#, "go");
-    assert!(out.contains("f"), "else body path exercised: {}", out);
+", "go");
+    assert!(out.contains('f'), "else body path exercised: {out}");
 }
 
 #[test]
 fn go_else_if() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(x int) int {
@@ -1045,58 +1045,58 @@ func f(x int) int {
         return 0
     }
 }
-"#, "go");
+", "go");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 #[test]
 fn go_pointer_primitive_type() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(x *int) {
     if true { }
 }
-"#, "go");
-    assert!(out.contains("primitives=1"), "pointer to int is primitive: {}", out);
+", "go");
+    assert!(out.contains("primitives=1"), "pointer to int is primitive: {out}");
 }
 
 #[test]
 fn go_slice_primitive_type() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(x []string) {
     if true { }
 }
-"#, "go");
-    assert!(out.contains("primitives=1"), "slice of string is primitive: {}", out);
+", "go");
+    assert!(out.contains("primitives=1"), "slice of string is primitive: {out}");
 }
 
 #[test]
 fn go_variadic_param() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f(args ...int) {
     if true { }
 }
-"#, "go");
-    assert!(out.contains("args=1"), "variadic counts as 1 arg: {}", out);
+", "go");
+    assert!(out.contains("args=1"), "variadic counts as 1 arg: {out}");
 }
 
 #[test]
 fn go_defer_statement() {
-    let out = debug(r#"
+    let out = debug(r"
 package main
 
 func f() {
     defer func() {}()
     if true { }
 }
-"#, "go");
-    assert!(out.contains("f"), "defer path exercised: {}", out);
+", "go");
+    assert!(out.contains('f'), "defer path exercised: {out}");
 }
 
 // ===========================================================================
@@ -1105,48 +1105,48 @@ func f() {
 
 #[test]
 fn objc_c_function() {
-    let out = debug(r#"
+    let out = debug(r"
 void helper(int x) {
     if (x > 0) { }
 }
-"#, "m");
-    assert!(out.contains("helper"), "should find C function in ObjC: {}", out);
+", "m");
+    assert!(out.contains("helper"), "should find C function in ObjC: {out}");
 }
 
 #[test]
 fn objc_pointer_function() {
-    let out = debug(r#"
+    let out = debug(r"
 int* create(int n) {
     if (n > 0) { }
     return 0;
 }
-"#, "m");
-    assert!(out.contains("create"), "should find pointer-return C function: {}", out);
+", "m");
+    assert!(out.contains("create"), "should find pointer-return C function: {out}");
 }
 
 #[test]
 fn objc_void_params() {
-    let out = debug(r#"
+    let out = debug(r"
 void f(void) {
     if (1) { }
 }
-"#, "m");
-    assert!(out.contains("args=0"), "void should be 0 args: {}", out);
+", "m");
+    assert!(out.contains("args=0"), "void should be 0 args: {out}");
 }
 
 #[test]
 fn objc_variadic_param() {
-    let out = debug(r#"
+    let out = debug(r"
 void f(int x, ...) {
     if (1) { }
 }
-"#, "m");
-    assert!(out.contains("args=2"), "variadic counts: {}", out);
+", "m");
+    assert!(out.contains("args=2"), "variadic counts: {out}");
 }
 
 #[test]
 fn objc_else_if() {
-    let out = debug(r#"
+    let out = debug(r"
 @implementation Foo
 - (void)bar {
     if (1) { }
@@ -1154,35 +1154,35 @@ fn objc_else_if() {
     else { }
 }
 @end
-"#, "m");
+", "m");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else if/else in ObjC: {}", cc);
+    assert!(cc >= 3, "else if/else in ObjC: {cc}");
 }
 
 #[test]
 fn objc_empty_catch() {
-    let out = debug(r#"
+    let out = debug(r"
 @implementation Foo
 - (void)bar {
     @try { }
     @catch (NSException *e) { }
 }
 @end
-"#, "m");
-    assert!(out.contains("bar"), "empty catch path: {}", out);
+", "m");
+    assert!(out.contains("bar"), "empty catch path: {out}");
 }
 
 #[test]
 fn objc_ternary() {
-    let out = debug(r#"
+    let out = debug(r"
 @implementation Foo
 - (int)bar:(int)x {
     return x > 0 ? x : -x;
 }
 @end
-"#, "m");
+", "m");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 2, "ternary should add cc: {}", cc);
+    assert!(cc >= 2, "ternary should add cc: {cc}");
 }
 
 // ===========================================================================
@@ -1191,7 +1191,7 @@ fn objc_ternary() {
 
 #[test]
 fn zig_labeled_block() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f() void {
     const x = blk: {
         if (true) {}
@@ -1199,13 +1199,13 @@ fn f() void {
     };
     _ = x;
 }
-"#, "zig");
-    assert!(out.contains("f"), "labeled block path exercised: {}", out);
+", "zig");
+    assert!(out.contains('f'), "labeled block path exercised: {out}");
 }
 
 #[test]
 fn zig_catch_expression() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f() !void {
     const x = getVal() catch |err| {
         if (true) {}
@@ -1217,51 +1217,51 @@ fn f() !void {
 fn getVal() !i32 {
     return 42;
 }
-"#, "zig");
+", "zig");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "catch should add cc: {}", cc);
+    assert!(cc >= 2, "catch should add cc: {cc}");
 }
 
 #[test]
 fn zig_orelse() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f() void {
     const x: ?i32 = null;
     const y = x orelse 0;
     _ = y;
 }
-"#, "zig");
+", "zig");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "orelse should add cc: {}", cc);
+    assert!(cc >= 2, "orelse should add cc: {cc}");
 }
 
 #[test]
 fn zig_defer_errdefer() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f() !void {
     defer {}
     errdefer {}
     if (true) {}
 }
-"#, "zig");
-    assert!(out.contains("f"), "defer/errdefer path: {}", out);
+", "zig");
+    assert!(out.contains('f'), "defer/errdefer path: {out}");
 }
 
 #[test]
 fn zig_comptime() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f() void {
     comptime {
         if (true) {}
     }
 }
-"#, "zig");
-    assert!(out.contains("f"), "comptime path exercised: {}", out);
+", "zig");
+    assert!(out.contains('f'), "comptime path exercised: {out}");
 }
 
 #[test]
 fn zig_else_if_chain() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f(x: i32) i32 {
     if (x > 10) {
         return 1;
@@ -1271,14 +1271,14 @@ fn f(x: i32) i32 {
         return 0;
     }
 }
-"#, "zig");
+", "zig");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 #[test]
 fn zig_switch_default() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f(x: u8) u8 {
     return switch (x) {
         1 => 10,
@@ -1286,9 +1286,9 @@ fn f(x: u8) u8 {
         else => 0,
     };
 }
-"#, "zig");
+", "zig");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "switch non-default cases add cc: {}", cc);
+    assert!(cc >= 3, "switch non-default cases add cc: {cc}");
 }
 
 // ===========================================================================
@@ -1297,15 +1297,15 @@ fn f(x: u8) u8 {
 
 #[test]
 fn swift_extension() {
-    let out = debug(r#"
+    let out = debug(r"
 struct Foo {}
 extension Foo {
     func bar() {
         if true { }
     }
 }
-"#, "swift");
-    assert!(out.contains("Foo.bar"), "should find extension method: {}", out);
+", "swift");
+    assert!(out.contains("Foo.bar"), "should find extension method: {out}");
 }
 
 #[test]
@@ -1319,12 +1319,12 @@ enum Direction {
     }
 }
 "#, "swift");
-    assert!(out.contains("label"), "should find enum method: {}", out);
+    assert!(out.contains("label"), "should find enum method: {out}");
 }
 
 #[test]
 fn swift_protocol_declaration() {
-    let out = check(r#"
+    let out = check(r"
 protocol Serviceable {}
 protocol Configurable {}
 protocol Loggable {}
@@ -1332,14 +1332,14 @@ protocol Cacheable {}
 protocol Validatable {}
 protocol Serializable {}
 protocol Buildable {}
-"#, "swift");
+", "swift");
     // Protocols count as declarations - exercises count_declarations protocol path
     let _ = out;
 }
 
 #[test]
 fn swift_empty_do_catch() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo {
     func bar() {
         do {
@@ -1348,8 +1348,8 @@ class Foo {
         }
     }
 }
-"#, "swift");
-    assert!(out.contains("bar"), "empty catch path: {}", out);
+", "swift");
+    assert!(out.contains("bar"), "empty catch path: {out}");
 }
 
 #[test]
@@ -1373,26 +1373,26 @@ class Foo {
 }
 "#, "swift");
     // Exercises collect_swift_field_accesses and try_extract_self_field
-    assert!(out.contains("Foo.bar"), "field access tracking: {}", out);
+    assert!(out.contains("Foo.bar"), "field access tracking: {out}");
 }
 
 #[test]
 fn swift_guard_statement() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo {
     func bar(x: Int?) {
         guard let v = x else { return }
         if v > 0 { }
     }
 }
-"#, "swift");
+", "swift");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "guard should add cc: {}", cc);
+    assert!(cc >= 3, "guard should add cc: {cc}");
 }
 
 #[test]
 fn swift_repeat_while() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo {
     func bar() {
         var x = 0
@@ -1401,9 +1401,9 @@ class Foo {
         } while x < 10
     }
 }
-"#, "swift");
+", "swift");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 2, "repeat-while should add cc: {}", cc);
+    assert!(cc >= 2, "repeat-while should add cc: {cc}");
 }
 
 // ===========================================================================
@@ -1422,20 +1422,20 @@ fn f(x: i32) -> &'static str {
 }
 "#, "rs");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 3, "wildcard should not add cc: {}", cc);
+    assert_eq!(cc, 3, "wildcard should not add cc: {cc}");
 }
 
 #[test]
 fn rust_else_if() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f(x: i32) -> i32 {
     if x > 10 { 1 }
     else if x > 5 { 2 }
     else { 0 }
 }
-"#, "rs");
+", "rs");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add cc: {}", cc);
+    assert!(cc >= 3, "else-if should add cc: {cc}");
 }
 
 // ===========================================================================
@@ -1444,7 +1444,7 @@ fn f(x: i32) -> i32 {
 
 #[test]
 fn module_large_struct_detected() {
-    let code = r#"
+    let code = r"
 struct BigStruct {
     f1: i32,
     f2: i32,
@@ -1464,9 +1464,9 @@ struct BigStruct {
 fn dummy() {
     if true { }
 }
-"#;
+";
     let out = check(code, "rs");
-    assert!(out.contains("Large Struct"), "should detect large struct: {}", out);
+    assert!(out.contains("Large Struct"), "should detect large struct: {out}");
 }
 
 #[test]
@@ -1492,7 +1492,7 @@ fn module_god_class_detected() {
     }
     code.push_str("}\n");
     let out = check(&code, "rs");
-    assert!(out.contains("God Class"), "should detect God Class: {}", out);
+    assert!(out.contains("God Class"), "should detect God Class: {out}");
 }
 
 #[test]
@@ -1523,7 +1523,7 @@ fn module_overall_function_size() {
     code.push_str("    sum\n}\n");
 
     let out = check(&code, "rs");
-    assert!(out.contains("Overall Function Size"), "should detect: {}", out);
+    assert!(out.contains("Overall Function Size"), "should detect: {out}");
 }
 
 // ===========================================================================
@@ -1600,7 +1600,7 @@ fn analytics_stop_hook_exercises_resolve() {
 #[test]
 fn module_similar_clones_detected() {
     // Two functions with same skeleton but slightly different sizes (within 1.3 ratio)
-    let code = r#"
+    let code = r"
 fn process_alpha(items: &[i32]) -> i32 {
     let mut result = 0;
     for item in items {
@@ -1644,7 +1644,7 @@ fn process_beta(items: &[i32]) -> i32 {
     total += 30;
     total
 }
-"#;
+";
     let out = check(code, "rs");
     // Exercises detect_similar_clones and are_size_similar paths
     let _ = out;
@@ -1656,7 +1656,7 @@ fn process_beta(items: &[i32]) -> i32 {
 
 #[test]
 fn python_elif_with_depth() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(x):
     if x > 100:
         if x > 200:
@@ -1667,21 +1667,21 @@ def f(x):
         return 1
     else:
         return 0
-"#, "py");
+", "py");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "nested elif should work: {}", cc);
+    assert!(cc >= 4, "nested elif should work: {cc}");
 }
 
 #[test]
 fn python_not_operator_in_condition() {
-    let out = debug(r#"
+    let out = debug(r"
 def f(a, b):
     if not a and not b:
         return True
     return False
-"#, "py");
+", "py");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "not operator: {}", cc);
+    assert!(cc >= 2, "not operator: {cc}");
 }
 
 // ===========================================================================
@@ -1690,7 +1690,7 @@ def f(a, b):
 
 #[test]
 fn typescript_class_type_identifier() {
-    let out = debug(r#"
+    let out = debug(r"
 class MyService {
     constructor() {
         if (true) { }
@@ -1699,9 +1699,9 @@ class MyService {
         if (true) { }
     }
 }
-"#, "ts");
-    assert!(out.contains("MyService.constructor"), "should find constructor: {}", out);
-    assert!(out.contains("MyService.process"), "should find method: {}", out);
+", "ts");
+    assert!(out.contains("MyService.constructor"), "should find constructor: {out}");
+    assert!(out.contains("MyService.process"), "should find method: {out}");
 }
 
 // ===========================================================================
@@ -1721,7 +1721,7 @@ func (f Foo) Name() string {
     return ""
 }
 "#, "go");
-    assert!(out.contains("Foo.Name"), "value receiver method: {}", out);
+    assert!(out.contains("Foo.Name"), "value receiver method: {out}");
 }
 
 // ===========================================================================
@@ -1740,12 +1740,12 @@ test "basic addition" {
     }
 }
 "#, "zig");
-    assert!(out.contains("test_basic_addition"), "should find test: {}", out);
+    assert!(out.contains("test_basic_addition"), "should find test: {out}");
 }
 
 #[test]
 fn zig_switch_with_if() {
-    let out = debug(r#"
+    let out = debug(r"
 fn f(x: u8) u8 {
     return switch (x) {
         1 => blk: {
@@ -1756,9 +1756,9 @@ fn f(x: u8) u8 {
         else => 0,
     };
 }
-"#, "zig");
+", "zig");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "switch with if in case: {}", cc);
+    assert!(cc >= 3, "switch with if in case: {cc}");
 }
 
 // ===========================================================================
@@ -1767,15 +1767,15 @@ fn f(x: u8) u8 {
 
 #[test]
 fn objc_method_with_primitives() {
-    let out = debug(r#"
+    let out = debug(r"
 @implementation Calculator
 - (NSInteger)add:(NSInteger)a to:(NSInteger)b {
     if (a > 0) { }
     return a + b;
 }
 @end
-"#, "m");
-    assert!(out.contains("Calculator.add"), "should find ObjC method with params: {}", out);
+", "m");
+    assert!(out.contains("Calculator.add"), "should find ObjC method with params: {out}");
 }
 
 // ===========================================================================
@@ -1798,19 +1798,19 @@ class Service {
     }
 }
 "#, "swift");
-    assert!(out.contains("Service.init"), "should find init: {}", out);
+    assert!(out.contains("Service.init"), "should find init: {out}");
 }
 
 #[test]
 fn swift_type_annotation_param() {
-    let out = debug(r#"
+    let out = debug(r"
 class Foo {
     func bar(x: Int, y: Double, z: String) {
         if true { }
     }
 }
-"#, "swift");
-    assert!(out.contains("primitives=3"), "Int/Double/String are primitives: {}", out);
+", "swift");
+    assert!(out.contains("primitives=3"), "Int/Double/String are primitives: {out}");
 }
 
 // ===========================================================================
@@ -1819,17 +1819,17 @@ class Foo {
 
 #[test]
 fn cpp_sized_type_specifier() {
-    let out = debug(r#"
+    let out = debug(r"
 void f(unsigned int a, long long b) {
     if (true) { }
 }
-"#, "cpp");
-    assert!(out.contains("primitives=2"), "sized types are primitive: {}", out);
+", "cpp");
+    assert!(out.contains("primitives=2"), "sized types are primitive: {out}");
 }
 
 #[test]
 fn cpp_for_range_loop_nested() {
-    let out = debug(r#"
+    let out = debug(r"
 #include <vector>
 void f() {
     std::vector<int> v = {1, 2, 3};
@@ -1839,9 +1839,9 @@ void f() {
         }
     }
 }
-"#, "cpp");
+", "cpp");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "nested range-for with if: {}", cc);
+    assert!(cc >= 4, "nested range-for with if: {cc}");
 }
 
 // ===========================================================================
@@ -1864,7 +1864,7 @@ fn java_interface_and_enum_declarations() {
 
 #[test]
 fn ruby_nested_module_class() {
-    let out = debug(r#"
+    let out = debug(r"
 module Outer
   class Inner
     def work
@@ -1874,8 +1874,8 @@ module Outer
     end
   end
 end
-"#, "rb");
-    assert!(out.contains("Inner.work"), "nested module class: {}", out);
+", "rb");
+    assert!(out.contains("Inner.work"), "nested module class: {out}");
 }
 
 #[test]
@@ -1895,7 +1895,7 @@ class Foo
 end
 "#, "rb");
     let cc = function_metric(&out, "bar", "cc").unwrap_or(0);
-    assert!(cc >= 3, "case/when should add cc: {}", cc);
+    assert!(cc >= 3, "case/when should add cc: {cc}");
 }
 
 // ===========================================================================

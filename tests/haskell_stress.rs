@@ -46,7 +46,7 @@ fn cc_counts_or() {
 fn cc_chained_boolean() {
     let out = debug("f :: Bool -> Bool -> Bool -> Bool -> Int\nf a b c d = if a && b && c && d then 1 else 0\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 5, "expected cc >= 5, got: {}", cc);
+    assert!(cc >= 5, "expected cc >= 5, got: {cc}");
 }
 
 #[test]
@@ -83,14 +83,14 @@ fn cc_guards_with_otherwise() {
 fn cc_guard_with_boolean_ops() {
     let out = debug("f :: Int -> Int -> String\nf x y\n  | x > 0 && y > 0 = \"both\"\n  | otherwise = \"nope\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expected cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "expected cc >= 3, got: {cc}");
 }
 
 #[test]
 fn cc_nested_case_in_case() {
     let out = debug("f :: Int -> Int -> String\nf x y = case x of\n  0 -> case y of\n    0 -> \"zero\"\n    1 -> \"one\"\n    _ -> \"y\"\n  _ -> \"x\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "expected cc >= 4, got: {}", cc);
+    assert!(cc >= 4, "expected cc >= 4, got: {cc}");
 }
 
 #[test]
@@ -109,14 +109,14 @@ fn cc_else_if_chain() {
 fn cc_case_with_guards() {
     let out = debug("f :: Int -> Int -> String\nf x y = case x of\n  0 | y > 0 -> \"pos\"\n    | otherwise -> \"neg\"\n  _ -> \"other\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expected cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "expected cc >= 3, got: {cc}");
 }
 
 #[test]
 fn cc_multi_guard_comma() {
     let out = debug("f :: Int -> Int -> String\nf x y\n  | x > 0, y > 0 = \"both\"\n  | otherwise = \"no\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "expected cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "expected cc >= 2, got: {cc}");
 }
 
 #[test]
@@ -129,9 +129,9 @@ fn cc_case_wildcard_no_cc() {
 fn cc_where_function_separate() {
     let out = debug("f :: Int -> Int\nf x = helper x\n  where\n    helper n = if n > 0 then n else 0\n");
     let parent_cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(parent_cc, 1, "parent should have cc=1, got: {}", parent_cc);
+    assert_eq!(parent_cc, 1, "parent should have cc=1, got: {parent_cc}");
     let helper_cc = function_metric(&out, "f.helper", "cc").unwrap_or(0);
-    assert_eq!(helper_cc, 2, "helper should have cc=2, got: {}", helper_cc);
+    assert_eq!(helper_cc, 2, "helper should have cc=2, got: {helper_cc}");
 }
 
 #[test]
@@ -177,7 +177,7 @@ fn nesting_deep_exceeds_threshold() {
 fn nesting_case_in_if() {
     let out = debug("f :: Bool -> Int -> String\nf b x = if b then case x of\n  0 -> \"zero\"\n  _ -> \"other\" else \"no\"\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(n >= 2, "expected nesting >= 2, got: {}", n);
+    assert!(n >= 2, "expected nesting >= 2, got: {n}");
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn nesting_do_transparent() {
 fn nesting_case_with_nested_conditional() {
     let out = debug("f :: Int -> Bool -> String\nf x b = case x of\n  1 -> if b then \"yes\" else \"no\"\n  _ -> \"other\"\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(n >= 2, "expected nesting >= 2, got: {}", n);
+    assert!(n >= 2, "expected nesting >= 2, got: {n}");
 }
 
 // ── Arguments ─────────────────────────────────────────────────────────
@@ -224,31 +224,31 @@ fn args_wildcard_counted() {
 #[test]
 fn primitive_obsession_all_primitives() {
     let out = check("f :: Int -> Float -> Double -> Bool -> Char -> Int\nf a b c d e = 0\n");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_mixed_below_threshold() {
     let out = check("f :: Int -> Float -> [String] -> Maybe Int -> Int\nf a b c d = 0\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_below_min_typed() {
     let out = check("f :: Int -> Int -> Int -> Int\nf a b c = 0\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_recognizes_int_word() {
     let out = check("f :: Int -> Word -> Word8 -> Integer -> Char -> Int\nf a b c d e = 0\n");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_complex_types_not_flagged() {
     let out = check("f :: [Int] -> Maybe String -> Either Int String -> IO () -> Int\nf a b c d = 0\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 // ── Duplication ───────────────────────────────────────────────────────
@@ -262,7 +262,7 @@ fn duplication_detected() {
     }
     let code = format!("a :: Int -> Int\na x =\n  let\n{body}  in x\n\nb :: Int -> Int\nb x =\n  let\n{body}  in x\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -274,7 +274,7 @@ fn duplication_test_suppressed() {
     }
     let code = format!("test_a :: Int -> Int\ntest_a x =\n  let\n{body}  in x\n\ntest_b :: Int -> Int\ntest_b x =\n  let\n{body}  in x\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -286,7 +286,7 @@ fn duplication_mixed_test_and_prod_flagged() {
     }
     let code = format!("test_a :: Int -> Int\ntest_a x =\n  let\n{body}  in x\n\nprod :: Int -> Int\nprod x =\n  let\n{body}  in x\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -298,7 +298,7 @@ fn duplication_two_is_minimum() {
     }
     let code = format!("a :: Int -> Int\na x =\n  let\n{body}  in x\n\nb :: Int -> Int\nb x =\n  let\n{body}  in x\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ── Assertion blocks ─────────────────────────────────────────────────
@@ -311,7 +311,7 @@ fn assertion_block_at_threshold() {
         code.push_str(&format!("  assert ({i} > 0)\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -340,7 +340,7 @@ fn assertion_block_interrupted_resets() {
         code.push_str(&format!("  assert ({i} > 0)\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 // ── Overall function size ────────────────────────────────────────────
@@ -357,7 +357,7 @@ fn overall_function_size_below_threshold() {
         code.push_str("  x\n\n");
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Overall Function Size"), "got: {}", out);
+    assert!(!has_smell(&out, "Overall Function Size"), "got: {out}");
 }
 
 #[test]
@@ -372,7 +372,7 @@ fn overall_function_size_at_threshold() {
         code.push_str("  x\n\n");
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Overall Function Size"), "got: {}", out);
+    assert!(has_smell(&out, "Overall Function Size"), "got: {out}");
 }
 
 // ── Declarations ─────────────────────────────────────────────────────
@@ -385,7 +385,7 @@ fn declarations_below_threshold() {
         code.push_str(&format!("data T{i} = T{i}\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Excessive Declarations"), "got: {}", out);
+    assert!(!has_smell(&out, "Excessive Declarations"), "got: {out}");
 }
 
 #[test]
@@ -396,7 +396,7 @@ fn declarations_above_threshold() {
         code.push_str(&format!("data T{i} = T{i}\n"));
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Excessive Declarations"), "got: {}", out);
+    assert!(has_smell(&out, "Excessive Declarations"), "got: {out}");
 }
 
 // ── Embedded blocks ──────────────────────────────────────────────────
@@ -404,7 +404,7 @@ fn declarations_above_threshold() {
 #[test]
 fn small_string_not_flagged() {
     let out = check("f :: String\nf = \"hello\"\n");
-    assert!(!has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -416,7 +416,7 @@ fn multiline_string_flagged() {
     }
     code.push_str("\"\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 // ── Cognitive complexity ─────────────────────────────────────────────
@@ -425,7 +425,7 @@ fn multiline_string_flagged() {
 fn cogc_flat_branches() {
     let out = debug("f :: Int -> Int\nf x =\n  if x > 1 then 1 else\n  if x > 2 then 2 else\n  if x > 3 then 3 else\n  if x > 4 then 4 else\n  0\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 4, "got: {}", cogc);
+    assert!(cogc >= 4, "got: {cogc}");
 }
 
 #[test]
@@ -433,7 +433,7 @@ fn cogc_nested_ifs() {
     let out = debug("f :: Bool -> Bool -> Bool -> Bool -> Int\nf a b c d =\n  if a then\n    if b then\n      if c then\n        if d then 1 else 0\n      else 0\n    else 0\n  else 0\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
     // Haskell if-then-else counts else as +1 cogc_flat for each level
-    assert!(cogc >= 10, "expected cogc >= 10, got: {}", cogc);
+    assert!(cogc >= 10, "expected cogc >= 10, got: {cogc}");
 }
 
 // ── Nested conditional chunks ────────────────────────────────────────
@@ -441,7 +441,7 @@ fn cogc_nested_ifs() {
 #[test]
 fn nested_conditional_chunks_detected() {
     let out = check("f :: Int -> Int -> Int -> Int\nf x y z =\n  case x of\n    0 -> if y > 0 then if z > 0 then 1 else 0 else 0\n    1 -> if y > 1 then if z > 1 then 2 else 0 else 0\n    _ -> if y > 2 then if z > 2 then 3 else 0 else 0\n");
-    assert!(has_smell(&out, "Nested Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Nested Conditional"), "got: {out}");
 }
 
 // ── Module-level ─────────────────────────────────────────────────────
@@ -449,7 +449,7 @@ fn nested_conditional_chunks_detected() {
 #[test]
 fn shallow_global_not_flagged() {
     let out = check("f :: Int -> Int\nf x = x + 1\n");
-    assert!(!has_smell(&out, "Global Conditionals"), "got: {}", out);
+    assert!(!has_smell(&out, "Global Conditionals"), "got: {out}");
 }
 
 #[test]
@@ -460,7 +460,7 @@ fn output_has_module_prefix() {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
     }
     let out = check(&code);
-    assert!(out.contains("Module:"), "got: {}", out);
+    assert!(out.contains("Module:"), "got: {out}");
 }
 
 #[test]
@@ -475,7 +475,7 @@ fn god_class_requires_god_method_stress() {
         code.push_str("  x\n\n");
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "God Class"), "got: {}", out);
+    assert!(!has_smell(&out, "God Class"), "got: {out}");
 }
 
 #[test]
@@ -497,7 +497,7 @@ fn god_class_triggers_with_god_method_stress() {
         code.push_str("  x\n\n");
     }
     let out = check(&code);
-    assert!(has_smell(&out, "God Class"), "got: {}", out);
+    assert!(has_smell(&out, "God Class"), "got: {out}");
 }
 
 // ── Multiple smells ──────────────────────────────────────────────────
@@ -516,7 +516,7 @@ fn multiple_smells_same_function() {
     code.push_str("  a0\n");
     let out = check(&code);
     let func_lines: Vec<_> = out.lines().filter(|l| l.contains("(L")).collect();
-    assert!(func_lines.len() >= 2, "expected multiple smells, got: {}", out);
+    assert!(func_lines.len() >= 2, "expected multiple smells, got: {out}");
 }
 
 #[test]
@@ -533,8 +533,8 @@ fn function_can_have_excess_and_embedded() {
     }
     code.push_str("\" ++ a0\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 // ── Output format ────────────────────────────────────────────────────
@@ -547,7 +547,7 @@ fn output_starts_with_pulse() {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
     }
     let out = check(&code);
-    assert!(out.starts_with("pulse:"), "got: {}", out);
+    assert!(out.starts_with("pulse:"), "got: {out}");
 }
 
 #[test]
@@ -558,7 +558,7 @@ fn output_has_line_numbers() {
     }
     code.push_str("  _ -> \"z\"\n");
     let out = check(&code);
-    assert!(out.contains("(L"), "got: {}", out);
+    assert!(out.contains("(L"), "got: {out}");
 }
 
 #[test]
@@ -571,7 +571,7 @@ fn issue_count_matches() {
     let out = check(&code);
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ── Hook edge cases ──────────────────────────────────────────────────
@@ -621,19 +621,19 @@ fn hook_empty_stdin() {
 #[test]
 fn clean_module_not_flagged() {
     let out = check("f :: Int -> Int\nf x = x + 1\n\ng :: Int -> Int\ng x = x + 2\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
 fn comments_only() {
     let out = check("-- just a comment\n{- block -}\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
 fn empty_file() {
     let out = check("");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ── Performance ──────────────────────────────────────────────────────
@@ -676,28 +676,28 @@ fn performance_module_hierarchy() {
 fn case_expression_increments_cc() {
     let out = debug("f :: Int -> String\nf x = case x of\n  1 -> \"a\"\n  2 -> \"b\"\n  3 -> \"c\"\n  _ -> \"d\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 4, "expected cc=4 (1+3 branches), got: {}", cc);
+    assert_eq!(cc, 4, "expected cc=4 (1+3 branches), got: {cc}");
 }
 
 #[test]
 fn case_wildcard_no_cc() {
     let out = debug("f :: Int -> String\nf x = case x of\n  1 -> \"a\"\n  _ -> \"b\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 2, "expected cc=2, wildcard is free, got: {}", cc);
+    assert_eq!(cc, 2, "expected cc=2, wildcard is free, got: {cc}");
 }
 
 #[test]
 fn guards_increment_cc() {
     let out = debug("f :: Int -> String\nf x\n  | x > 0 = \"pos\"\n  | x < 0 = \"neg\"\n  | otherwise = \"zero\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 3, "expected cc=3, got: {}", cc);
+    assert_eq!(cc, 3, "expected cc=3, got: {cc}");
 }
 
 #[test]
 fn guards_otherwise_no_cc() {
     let out = debug("f :: Int -> String\nf x\n  | x > 0 = \"pos\"\n  | otherwise = \"other\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 2, "expected cc=2 (otherwise is free), got: {}", cc);
+    assert_eq!(cc, 2, "expected cc=2 (otherwise is free), got: {cc}");
 }
 
 #[test]
@@ -721,53 +721,53 @@ fn let_in_transparent() {
 #[test]
 fn where_functions_collected() {
     let out = debug("f :: Int -> Int\nf x = helper x\n  where\n    helper n = n * 2\n");
-    assert!(out.contains("f.helper"), "expected where func, got: {}", out);
+    assert!(out.contains("f.helper"), "expected where func, got: {out}");
 }
 
 #[test]
 fn class_methods_collected() {
     let out = debug("class Foo a where\n  bar :: a -> Int\n  bar _ = 0\n");
-    assert!(out.contains("Foo.bar"), "expected class method, got: {}", out);
+    assert!(out.contains("Foo.bar"), "expected class method, got: {out}");
 }
 
 #[test]
 fn instance_methods_collected() {
     let out = debug("data X = X\nclass Foo a where\n  bar :: a -> Int\ninstance Foo X where\n  bar _ = 0\n");
-    assert!(out.contains("Foo.bar"), "expected instance method, got: {}", out);
+    assert!(out.contains("Foo.bar"), "expected instance method, got: {out}");
 }
 
 #[test]
 fn expression_body_analyzed() {
     let out = debug("f :: Int -> Int\nf x = x + 1\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "simple expression body should have cc=1, got: {}", cc);
+    assert_eq!(cc, 1, "simple expression body should have cc=1, got: {cc}");
 }
 
 #[test]
 fn bind_as_function() {
     let out = debug("val :: Int\nval = 42\n");
-    assert!(out.contains("val"), "expected bind as function, got: {}", out);
+    assert!(out.contains("val"), "expected bind as function, got: {out}");
 }
 
 #[test]
 fn lambda_not_recursed() {
     let out = debug("f :: [Int] -> [Int]\nf xs = filter (\\x -> x > 0) xs\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "lambda should not add CC, got: {}", cc);
+    assert_eq!(cc, 1, "lambda should not add CC, got: {cc}");
 }
 
 #[test]
 fn pattern_match_equations_grouped() {
     let out = debug("f :: Int -> Int\nf 0 = 1\nf n = n * 2\n");
     let count = out.lines().filter(|l| l.contains("f (L")).count();
-    assert_eq!(count, 1, "equations should be grouped, got: {}", out);
+    assert_eq!(count, 1, "equations should be grouped, got: {out}");
 }
 
 #[test]
 fn multi_guard_with_comma() {
     let out = debug("f :: Int -> Int -> String\nf x y\n  | x > 0, y > 0 = \"both\"\n  | otherwise = \"no\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "expected cc >= 2, got: {}", cc);
+    assert!(cc >= 2, "expected cc >= 2, got: {cc}");
 }
 
 // ── Additional Haskell stress tests ──────────────────────────────────
@@ -775,8 +775,8 @@ fn multi_guard_with_comma() {
 #[test]
 fn nested_where_functions() {
     let out = debug("f :: Int -> Int\nf x = g x\n  where\n    g n = h n\n      where\n        h m = m + 1\n");
-    assert!(out.contains("f.g"), "expected f.g, got: {}", out);
-    assert!(out.contains("f.g.h"), "expected f.g.h, got: {}", out);
+    assert!(out.contains("f.g"), "expected f.g, got: {out}");
+    assert!(out.contains("f.g.h"), "expected f.g.h, got: {out}");
 }
 
 #[test]
@@ -784,28 +784,28 @@ fn multiple_pattern_equations_with_guards() {
     let out = debug("f :: Int -> Int -> Int\nf 0 y\n  | y > 0 = 1\n  | otherwise = 0\nf x _\n  | x > 0 = x\n  | otherwise = 0\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
     // 2 equations (+1) + 2 non-otherwise guards (+2) + base = 4
-    assert!(cc >= 4, "expected cc >= 4, got: {}", cc);
+    assert!(cc >= 4, "expected cc >= 4, got: {cc}");
 }
 
 #[test]
 fn case_in_do_block_nesting() {
     let out = debug("f :: Int -> IO ()\nf x = do\n  case x of\n    0 -> putStrLn \"zero\"\n    _ -> if x > 0 then putStrLn \"pos\" else putStrLn \"neg\"\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(n >= 2, "expected nesting >= 2 in do+case+if, got: {}", n);
+    assert!(n >= 2, "expected nesting >= 2 in do+case+if, got: {n}");
 }
 
 #[test]
 fn if_in_guard_rhs() {
     let out = debug("f :: Int -> Int -> String\nf x y\n  | x > 0 = if y > 0 then \"both\" else \"x-only\"\n  | otherwise = \"none\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expected cc >= 3 (guard + if + base), got: {}", cc);
+    assert!(cc >= 3, "expected cc >= 3 (guard + if + base), got: {cc}");
 }
 
 #[test]
 fn deeply_nested_case_guards() {
     let out = debug("f :: Int -> Int -> Int -> String\nf x y z = case x of\n  0 -> case y of\n    0 | z > 0 -> \"deep-pos\"\n      | otherwise -> \"deep-neg\"\n    _ -> \"y-other\"\n  _ -> \"x-other\"\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "expected cc >= 4, got: {}", cc);
+    assert!(cc >= 4, "expected cc >= 4, got: {cc}");
 }
 
 #[test]
@@ -815,7 +815,7 @@ fn excess_args_above_threshold() {
     let types: Vec<&str> = (0..count).map(|_| "Int").collect();
     let code = format!("f :: {} -> Int\nf {} = 0\n", types.join(" -> "), params.join(" "));
     let out = check(&code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -825,50 +825,50 @@ fn args_at_threshold_not_flagged() {
     let types: Vec<&str> = (0..count).map(|_| "Int").collect();
     let code = format!("f :: {} -> Int\nf {} = 0\n", types.join(" -> "), params.join(" "));
     let out = check(&code);
-    assert!(!has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(!has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
 fn bind_with_complex_body() {
     let out = debug("result :: String\nresult = case 42 of\n  0 -> \"zero\"\n  _ -> if True then \"yes\" else \"no\"\n");
     let cc = function_metric(&out, "result", "cc").unwrap_or(0);
-    assert!(cc >= 3, "bind with case+if should have cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "bind with case+if should have cc >= 3, got: {cc}");
 }
 
 #[test]
 fn data_type_counts_as_declaration() {
     let out = debug("data Color = Red | Green | Blue\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {}", out);
+    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {out}");
 }
 
 #[test]
 fn newtype_counts_as_declaration() {
     let out = debug("newtype Wrapper a = Wrapper a\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {}", out);
+    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {out}");
 }
 
 #[test]
 fn type_synonym_counts_as_declaration() {
     let out = debug("type Name = String\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {}", out);
+    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {out}");
 }
 
 #[test]
 fn class_counts_as_declaration() {
     let out = debug("class Printable a where\n  display :: a -> String\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {}", out);
+    assert!(out.contains("declarations=1"), "expected 1 declaration, got: {out}");
 }
 
 #[test]
 fn module_header_not_counted() {
     let out = debug("module Main where\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("1 functions"), "got: {}", out);
+    assert!(out.contains("1 functions"), "got: {out}");
 }
 
 #[test]
 fn import_not_counted() {
     let out = debug("import Data.List\nf :: Int -> Int\nf x = x\n");
-    assert!(out.contains("1 functions"), "got: {}", out);
+    assert!(out.contains("1 functions"), "got: {out}");
 }
 
 #[test]
@@ -893,14 +893,14 @@ fn three_equations_add_two_cc() {
 fn where_function_with_guard() {
     let out = debug("f :: Int -> Int\nf x = helper x\n  where\n    helper n\n      | n > 0 = n\n      | otherwise = 0\n");
     let cc = function_metric(&out, "f.helper", "cc").unwrap_or(0);
-    assert_eq!(cc, 2, "where func with guard should have cc=2, got: {}", cc);
+    assert_eq!(cc, 2, "where func with guard should have cc=2, got: {cc}");
 }
 
 #[test]
 fn let_in_does_not_add_nesting() {
     let out = debug("f :: Int -> Int\nf x =\n  let y = x + 1\n  in if y > 0 then y else 0\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert_eq!(n, 1, "let-in should not add nesting, got: {}", n);
+    assert_eq!(n, 1, "let-in should not add nesting, got: {n}");
 }
 
 #[test]
@@ -913,5 +913,5 @@ fn case_with_all_wildcards_cc_1() {
 fn string_match_arms_counted() {
     let out = debug("f :: String -> String\nf x = case x of\n  \"a\" -> \"1\"\n  \"b\" -> \"2\"\n  \"c\" -> \"3\"\n  \"d\" -> \"4\"\n  \"e\" -> \"5\"\n  \"f\" -> \"6\"\n  _ -> \"0\"\n");
     let arms = function_metric(&out, "f", "str_match").unwrap_or(0);
-    assert!(arms >= 6, "expected str_match >= 6, got: {}", arms);
+    assert!(arms >= 6, "expected str_match >= 6, got: {arms}");
 }

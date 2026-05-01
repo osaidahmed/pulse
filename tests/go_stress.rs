@@ -475,7 +475,7 @@ fn compound_condition_detected() {
         "package main\n\nfunc f(a, b, c, d bool) {\n\tif a && b || c && d {}\n}\n",
     );
     let conditions = function_metric(&out, "f", "conditions").unwrap();
-    assert!(conditions >= 1, "compound condition should be detected, got: {}", conditions);
+    assert!(conditions >= 1, "compound condition should be detected, got: {conditions}");
 }
 
 #[test]
@@ -492,7 +492,7 @@ fn compound_condition_simple_not_detected() {
 fn embedded_large_raw_string() {
     let mut code = String::from("package main\n\nfunc f() string {\n\treturn `\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("line {}\n", i));
+        code.push_str(&format!("line {i}\n"));
     }
     code.push_str("`\n}\n");
     let out = check(&code);
@@ -649,7 +649,7 @@ fn test_function_duplication_suppressed() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("package main\n\nfunc testBig() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("\tassert(x{} == {})\n", i, i));
+        code.push_str(&format!("\tassert(x{i} == {i})\n"));
     }
     code.push_str("}\n");
     let out = debug(&code);
@@ -662,7 +662,7 @@ fn assertion_block_above_threshold() {
 fn assertion_block_below_threshold() {
     let mut code = String::from("package main\n\nfunc testSmall() {\n");
     for i in 0..asserts_at() {
-        code.push_str(&format!("\tassert(x{} == {})\n", i, i));
+        code.push_str(&format!("\tassert(x{i} == {i})\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
@@ -776,7 +776,7 @@ fn lcom4_methods_connected_by_call() {
         "func (c *Coord) Dispatch(e int) bool { return c.Send(e) }\n",
         "func (c *Coord) Send(e int) bool { return true }\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -802,7 +802,7 @@ fn lcom4_god_struct_still_fires() {
         "func (s *Svc) Publish() int { return s.events }\n",
         "func (s *Svc) AuditLog() int { return s.audit }\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -830,7 +830,7 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 #[test]
 fn function_has_no_prefix() {
     let out = debug("package main\n\nfunc process() {}\n");
-    assert!(out.contains("process"), "function name should be 'process', got: {}", out);
+    assert!(out.contains("process"), "function name should be 'process', got: {out}");
     assert!(!out.contains(".process"));
 }
 
@@ -841,7 +841,7 @@ fn method_has_receiver_type_prefix() {
         "type Server struct{}\n\n",
         "func (s *Server) Handle() {}\n",
     ));
-    assert!(out.contains("Server.Handle"), "should be Server.Handle, got: {}", out);
+    assert!(out.contains("Server.Handle"), "should be Server.Handle, got: {out}");
 }
 
 #[test]
@@ -851,7 +851,7 @@ fn method_on_pointer_receiver() {
         "type Config struct{}\n\n",
         "func (c *Config) Load() {}\n",
     ));
-    assert!(out.contains("Config.Load"), "pointer receiver type extracted, got: {}", out);
+    assert!(out.contains("Config.Load"), "pointer receiver type extracted, got: {out}");
 }
 
 // ===========================================================================
@@ -955,10 +955,10 @@ fn multiple_return_values_no_crash() {
 fn performance_1000_loc() {
     let mut code = String::from("package main\n\n");
     for i in 0..50 {
-        code.push_str(&format!("func func{}(data int) int {{\n", i));
+        code.push_str(&format!("func func{i}(data int) int {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("\tf{} := data + {}\n", j, j));
-            code.push_str(&format!("\t_ = f{}\n", j));
+            code.push_str(&format!("\tf{j} := data + {j}\n"));
+            code.push_str(&format!("\t_ = f{j}\n"));
         }
         code.push_str("\treturn data\n}\n\n");
     }
@@ -982,14 +982,13 @@ fn performance_1000_loc() {
 fn performance_struct_hierarchy() {
     let mut code = String::from("package main\n\n");
     for i in 0..10 {
-        code.push_str(&format!("type S{} struct {{\n\td{} int\n}}\n\n", i, i));
+        code.push_str(&format!("type S{i} struct {{\n\td{i} int\n}}\n\n"));
         for j in 0..5 {
             code.push_str(&format!(
-                "func (s *S{}) M{}() int {{ return s.d{} }}\n",
-                i, j, i
+                "func (s *S{i}) M{j}() int {{ return s.d{i} }}\n"
             ));
         }
-        code.push_str("\n");
+        code.push('\n');
     }
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("structs.go");
@@ -1025,8 +1024,7 @@ fn clean_go_module_not_flagged() {
     ));
     assert!(
         out.is_empty(),
-        "clean Go code should not be flagged, got: {}",
-        out
+        "clean Go code should not be flagged, got: {out}"
     );
 }
 
@@ -1051,7 +1049,7 @@ fn value_receiver_method() {
         "\treturn \"point\"\n",
         "}\n",
     ));
-    assert!(out.contains("Point.String"), "value receiver type, got: {}", out);
+    assert!(out.contains("Point.String"), "value receiver type, got: {out}");
 }
 
 #[test]
@@ -1137,7 +1135,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base >= 9, got: {cc}");
 }
 
 #[test]
@@ -1224,8 +1222,7 @@ fn interface_type_param_not_primitive() {
     ));
     assert!(
         !has_smell(&out, "Primitive Obsession"),
-        "interface params should not be primitives, got: {}",
-        out
+        "interface params should not be primitives, got: {out}"
     );
 }
 

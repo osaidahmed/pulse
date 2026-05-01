@@ -77,7 +77,7 @@ fn python_short_vars_count_in_debug() {
     code.push_str("    return 0\n");
     let out = dbg(&code, "py");
     let sv = function_metric(&out, "func", "short_vars").unwrap_or(0);
-    assert!(sv >= 6, "should count 6 short vars, got: {}", sv);
+    assert!(sv >= 6, "should count 6 short vars, got: {sv}");
 }
 
 // ===========================================================================
@@ -201,7 +201,7 @@ fn rust_string_match_count_in_debug() {
 }"#;
     let out = dbg(code, "rs");
     let arms = function_metric(&out, "dispatch", "str_match").unwrap_or(0);
-    assert!(arms >= 7, "should count 7 string arms, got: {}", arms);
+    assert!(arms >= 7, "should count 7 string arms, got: {arms}");
 }
 
 // ===========================================================================
@@ -292,7 +292,7 @@ fn struct_at_12_fields_not_flagged() {
 #[test]
 fn struct_at_13_fields_flagged() {
     let mut code = String::from("struct S {\n");
-    for i in 0..(struct_fields_at() + 1) { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..=struct_fields_at() { code.push_str(&format!("    f{i}: i32,\n")); }
     code.push_str("}\n");
     assert!(has_smell(&check(&code, "rs"), "Large Struct"));
 }

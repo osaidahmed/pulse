@@ -1,3 +1,5 @@
+#![allow(clippy::format_collect, clippy::unused_self)]
+
 mod common;
 
 use common::*;
@@ -118,22 +120,22 @@ impl TestEnv {
 // Helper: generate N lines of variable declarations
 fn var_lines(prefix: &str, count: usize) -> String {
     (0..count)
-        .map(|i| format!("{}_{} = {}\n", prefix, i, i))
+        .map(|i| format!("{prefix}_{i} = {i}\n"))
         .collect()
 }
 
 // Helper: generate N simple functions
 fn simple_functions(count: usize) -> String {
     (0..count)
-        .map(|i| format!("def fn_{}():\n    return {}\n\n", i, i))
+        .map(|i| format!("def fn_{i}():\n    return {i}\n\n"))
         .collect()
 }
 
 // Helper: generate a complex function with given CC
 fn complex_function(name: &str, branches: usize) -> String {
-    let mut code = format!("def {}(x):\n", name);
+    let mut code = format!("def {name}(x):\n");
     for i in 0..branches {
-        code.push_str(&format!("    if x == {}:\n        pass\n", i));
+        code.push_str(&format!("    if x == {i}:\n        pass\n"));
     }
     code.push_str("    return x\n\n");
     code
@@ -190,17 +192,16 @@ fn baseline_captures_preexisting_module_findings() {
 
     // 25 functions + 200 vars = well over 400 LOC, >20 functions
     let code = format!("{}{}", simple_functions(25), var_lines("x", file_padding()));
-    std::fs::write(&path, format!("{}MARKER = 1\n", code)).unwrap();
+    std::fs::write(&path, format!("{code}MARKER = 1\n")).unwrap();
 
     let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
-    std::fs::write(&path, format!("{}MARKER = 2\n", code)).unwrap();
+    std::fs::write(&path, format!("{code}MARKER = 2\n")).unwrap();
     env.run_hook(&json);
 
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         counts.contains_key("File Too Large") || counts.contains_key("Too Many Functions"),
-        "baseline should capture module findings: {:?}",
-        counts
+        "baseline should capture module findings: {counts:?}"
     );
 }
 
@@ -217,8 +218,7 @@ fn baseline_empty_for_clean_file() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         counts.is_empty(),
-        "baseline should be empty for clean file: {:?}",
-        counts
+        "baseline should be empty for clean file: {counts:?}"
     );
 }
 
@@ -285,8 +285,7 @@ fn baseline_reconstruction_reverses_edit() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         !counts.contains_key("Too Many Functions"),
-        "baseline should reflect pre-edit state (19 functions, not 20+): {:?}",
-        counts
+        "baseline should reflect pre-edit state (19 functions, not 20+): {counts:?}"
     );
 }
 
@@ -368,8 +367,7 @@ fn stop_silent_when_file_shrinks_below_threshold() {
     let out = env.run_stop();
     assert!(
         out.is_empty(),
-        "shrinking below threshold is not a regression: {}",
-        out
+        "shrinking below threshold is not a regression: {out}"
     );
 }
 
@@ -388,8 +386,7 @@ fn stop_silent_when_file_deleted_between_hook_and_stop() {
     let out = env.run_stop();
     assert!(
         out.is_empty(),
-        "deleted file should not cause errors: {}",
-        out
+        "deleted file should not cause errors: {out}"
     );
 }
 
@@ -406,8 +403,7 @@ fn stop_silent_when_unsupported_file_in_manifest() {
     let out = env.run_stop();
     assert!(
         out.is_empty(),
-        "unsupported file should not trigger regressions: {}",
-        out
+        "unsupported file should not trigger regressions: {out}"
     );
 }
 
@@ -453,16 +449,14 @@ fn stop_detects_file_too_large_regression() {
     std::fs::write(&path, &big).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("file too large"), "should detect: {}", out);
+    assert!(out.contains("file too large"), "should detect: {out}");
     assert!(
         out.contains("error[pulse]"),
-        "finding should use error[pulse] prefix: {}",
-        out
+        "finding should use error[pulse] prefix: {out}"
     );
     assert!(
         out.contains("crossed"),
-        "informational finding should use 'crossed' framing: {}",
-        out
+        "informational finding should use 'crossed' framing: {out}"
     );
 }
 
@@ -482,12 +476,12 @@ fn stop_detects_too_many_functions_regression() {
     // Add functions past 20
     let mut grown = std::fs::read_to_string(&path).unwrap();
     for i in 18..25 {
-        grown.push_str(&format!("def added_{}():\n    return {}\n\n", i, i));
+        grown.push_str(&format!("def added_{i}():\n    return {i}\n\n"));
     }
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
-    assert!(out.contains("too many functions"), "should detect: {}", out);
+    assert!(out.contains("too many functions"), "should detect: {out}");
 }
 
 #[test]
@@ -498,7 +492,7 @@ fn stop_detects_overall_complexity_regression() {
     // Start with moderate complexity (under 100 total CC)
     let mut code = String::new();
     for i in 0..8 {
-        code.push_str(&complex_function(&format!("fn_{}", i), 8));
+        code.push_str(&complex_function(&format!("fn_{i}"), 8));
     }
     code.push_str("MARKER = 1\n");
     std::fs::write(&path, &code).unwrap();
@@ -510,15 +504,14 @@ fn stop_detects_overall_complexity_regression() {
     // Add more complex functions to push total CC past 100
     let mut grown = std::fs::read_to_string(&path).unwrap();
     for i in 8..18 {
-        grown.push_str(&complex_function(&format!("added_{}", i), 12));
+        grown.push_str(&complex_function(&format!("added_{i}"), 12));
     }
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
     assert!(
         out.contains("overall code complexity"),
-        "should detect overall code complexity: {}",
-        out
+        "should detect overall code complexity: {out}"
     );
 }
 
@@ -531,7 +524,7 @@ fn stop_detects_excessive_declarations_regression() {
     let below = t().max_declarations as usize / 2;
     let mut code = String::new();
     for i in 0..below {
-        code.push_str(&format!("class C_{}:\n    pass\n\n", i));
+        code.push_str(&format!("class C_{i}:\n    pass\n\n"));
     }
     code.push_str("MARKER = 1\n");
     std::fs::write(&path, &code).unwrap();
@@ -543,15 +536,14 @@ fn stop_detects_excessive_declarations_regression() {
     // Add class declarations past threshold
     let mut grown = std::fs::read_to_string(&path).unwrap();
     for i in below..declarations_above() {
-        grown.push_str(&format!("class Added_{}:\n    pass\n\n", i));
+        grown.push_str(&format!("class Added_{i}:\n    pass\n\n"));
     }
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
     assert!(
         out.contains("excessive declarations"),
-        "should detect excessive declarations: {}",
-        out
+        "should detect excessive declarations: {out}"
     );
 }
 
@@ -576,8 +568,7 @@ fn stop_detects_global_conditionals_regression() {
     let out = env.run_stop();
     assert!(
         out.contains("global conditionals"),
-        "should detect global conditionals: {}",
-        out
+        "should detect global conditionals: {out}"
     );
 }
 
@@ -589,9 +580,9 @@ fn stop_detects_overall_function_size_regression() {
     // Start with 2 large functions (threshold is 3+ functions with loc >= 40)
     let mut code = String::new();
     for i in 0..2 {
-        code.push_str(&format!("def big_{}():\n", i));
+        code.push_str(&format!("def big_{i}():\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    x_{} = {}\n", j, j));
+            code.push_str(&format!("    x_{j} = {j}\n"));
         }
         code.push('\n');
     }
@@ -606,15 +597,14 @@ fn stop_detects_overall_function_size_regression() {
     let mut grown = std::fs::read_to_string(&path).unwrap();
     grown.push_str("def big_2():\n");
     for j in 0..large_fn_lines() {
-        grown.push_str(&format!("    y_{} = {}\n", j, j));
+        grown.push_str(&format!("    y_{j} = {j}\n"));
     }
     std::fs::write(&path, &grown).unwrap();
 
     let out = env.run_stop();
     assert!(
         out.contains("overall function size"),
-        "should detect overall function size: {}",
-        out
+        "should detect overall function size: {out}"
     );
 }
 
@@ -625,7 +615,7 @@ fn stop_detects_code_duplication_regression() {
 
     // Start with one function (no duplication possible)
     let func = "def original(a, b, c):\n    x = a + b\n    y = b + c\n    z = x * y\n    w = z + 1\n    v = w - 2\n    u = v * 3\n    return u\n\n";
-    let code = format!("{}MARKER = 1\n", func);
+    let code = format!("{func}MARKER = 1\n");
     std::fs::write(&path, &code).unwrap();
 
     let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
@@ -640,8 +630,7 @@ fn stop_detects_code_duplication_regression() {
     let out = env.run_stop();
     assert!(
         out.contains("code duplication"),
-        "should detect code duplication: {}",
-        out
+        "should detect code duplication: {out}"
     );
 }
 
@@ -679,20 +668,18 @@ fn stop_reports_regressions_across_multiple_files() {
 
     let mut big_b = std::fs::read_to_string(&path_b).unwrap();
     for i in 18..25 {
-        big_b.push_str(&format!("def extra_{}():\n    return {}\n\n", i, i));
+        big_b.push_str(&format!("def extra_{i}():\n    return {i}\n\n"));
     }
     std::fs::write(&path_b, &big_b).unwrap();
 
     let out = env.run_stop();
     assert!(
         out.contains("file too large"),
-        "should report A's regression: {}",
-        out
+        "should report A's regression: {out}"
     );
     assert!(
         out.contains("too many functions"),
-        "should report B's regression: {}",
-        out
+        "should report B's regression: {out}"
     );
 }
 
@@ -722,13 +709,11 @@ fn stop_one_file_regresses_other_stays_clean() {
     let out = env.run_stop();
     assert!(
         out.contains("file too large"),
-        "dirty file should regress: {}",
-        out
+        "dirty file should regress: {out}"
     );
     assert!(
         out.contains("dirty.py"),
-        "output should reference the right file: {}",
-        out
+        "output should reference the right file: {out}"
     );
 }
 
@@ -738,16 +723,16 @@ fn stop_many_files_in_manifest() {
     let mut paths = Vec::new();
 
     for i in 0..10 {
-        let path = env.file_path(&format!("file_{}.py", i));
+        let path = env.file_path(&format!("file_{i}.py"));
         std::fs::write(
             &path,
-            &format!("def fn_{}():\n    return {}\nMARKER = 1\n", i, i),
+            format!("def fn_{i}():\n    return {i}\nMARKER = 1\n"),
         )
         .unwrap();
         let json = env.edit_hook_json(&path, "MARKER = 1", "MARKER = 2");
         std::fs::write(
             &path,
-            &format!("def fn_{}():\n    return {}\nMARKER = 2\n", i, i),
+            format!("def fn_{i}():\n    return {i}\nMARKER = 2\n"),
         )
         .unwrap();
         env.run_hook(&json);
@@ -766,8 +751,7 @@ fn stop_many_files_in_manifest() {
     let out = env.run_stop();
     assert!(
         out.is_empty(),
-        "10 clean files should produce no regressions: {}",
-        out
+        "10 clean files should produce no regressions: {out}"
     );
 }
 
@@ -793,13 +777,11 @@ fn stop_informational_uses_note_not_regression() {
     let out = env.run_stop();
     assert!(
         out.contains("error[pulse]"),
-        "informational should use error[pulse] prefix: {}",
-        out
+        "informational should use error[pulse] prefix: {out}"
     );
     assert!(
         out.contains("crossed"),
-        "informational should use 'crossed' label: {}",
-        out
+        "informational should use 'crossed' label: {out}"
     );
 }
 
@@ -822,16 +804,14 @@ fn stop_actionable_uses_regression_framing() {
     let out = env.run_stop();
     assert!(
         out.contains("regression"),
-        "actionable should use 'regression' framing: {}",
-        out
+        "actionable should use 'regression' framing: {out}"
     );
     let parsed: serde_json::Value = serde_json::from_str(out.trim())
         .unwrap_or_default();
     assert_eq!(
         parsed.get("decision").and_then(|v| v.as_str()),
         Some("block"),
-        "actionable should produce blocking decision: {}",
-        out
+        "actionable should produce blocking decision: {out}"
     );
 }
 
@@ -854,10 +834,9 @@ fn stop_mixed_produces_blocking_decision() {
     let out = env.run_stop();
     assert!(
         out.contains("regression"),
-        "should have regression in reason: {}",
-        out
+        "should have regression in reason: {out}"
     );
-    assert!(out.contains("crossed"), "should have threshold crossed finding: {}", out);
+    assert!(out.contains("crossed"), "should have threshold crossed finding: {out}");
 }
 
 #[test]
@@ -882,8 +861,7 @@ fn stop_output_is_json_decision() {
         assert_eq!(
             parsed.get("decision").and_then(|v| v.as_str()),
             Some("block"),
-            "should be a blocking decision: {}",
-            out
+            "should be a blocking decision: {out}"
         );
     }
 }
@@ -906,8 +884,7 @@ fn stop_output_contains_filename() {
     let out = env.run_stop();
     assert!(
         out.contains("named.py"),
-        "output should include filename: {}",
-        out
+        "output should include filename: {out}"
     );
 }
 
@@ -929,8 +906,7 @@ fn stop_output_contains_detail() {
     let out = env.run_stop();
     assert!(
         out.contains("LOC"),
-        "output should include detail with LOC count: {}",
-        out
+        "output should include detail with LOC count: {out}"
     );
 }
 
@@ -947,7 +923,7 @@ fn hook_excludes_module_but_shows_function_findings() {
     let mut code = String::new();
     code.push_str("def complex_fn(x):\n");
     for i in 0..11 {
-        code.push_str(&format!("    if x == {}:\n        pass\n", i));
+        code.push_str(&format!("    if x == {i}:\n        pass\n"));
     }
     code.push_str("    return x\n\n");
     code.push_str(&var_lines("pad", file_padding()));
@@ -959,18 +935,15 @@ fn hook_excludes_module_but_shows_function_findings() {
 
     assert!(
         out.contains("complex_fn"),
-        "should show function findings: {}",
-        out
+        "should show function findings: {out}"
     );
     assert!(
         out.contains("complex method") || out.contains("god method"),
-        "should show complexity finding: {}",
-        out
+        "should show complexity finding: {out}"
     );
     assert!(
         !out.contains("File Too Large"),
-        "must NOT show module findings: {}",
-        out
+        "must NOT show module findings: {out}"
     );
 }
 
@@ -990,13 +963,11 @@ fn hook_edit_mode_excludes_module_findings() {
 
     assert!(
         !out.contains("File Too Large"),
-        "no module findings in edit mode: {}",
-        out
+        "no module findings in edit mode: {out}"
     );
     assert!(
         !out.contains("Too Many Functions"),
-        "no module findings in edit mode: {}",
-        out
+        "no module findings in edit mode: {out}"
     );
 }
 
@@ -1008,8 +979,7 @@ fn hook_write_mode_excludes_module_findings() {
     let mut code = String::new();
     for i in 0..25 {
         code.push_str(&format!(
-            "def fn_{}(a, b, c, d, e, f, g, h):\n    return a\n\n",
-            i
+            "def fn_{i}(a, b, c, d, e, f, g, h):\n    return a\n\n"
         ));
     }
     code.push_str(&var_lines("x", file_padding()));
@@ -1020,18 +990,15 @@ fn hook_write_mode_excludes_module_findings() {
 
     assert!(
         out.contains("excess arguments"),
-        "write mode should show function findings: {}",
-        out
+        "write mode should show function findings: {out}"
     );
     assert!(
         !out.contains("File Too Large"),
-        "write mode must exclude module: {}",
-        out
+        "write mode must exclude module: {out}"
     );
     assert!(
         !out.contains("Too Many Functions"),
-        "write mode must exclude module: {}",
-        out
+        "write mode must exclude module: {out}"
     );
 }
 
@@ -1045,7 +1012,7 @@ fn hook_clean_file_is_silent() {
     std::fs::write(&path, "def foo():\n    return 2\n").unwrap();
     let out = env.run_hook(&json);
 
-    assert!(out.is_empty(), "clean file should be silent: {}", out);
+    assert!(out.is_empty(), "clean file should be silent: {out}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1060,10 +1027,10 @@ fn manifest_deduplicates_same_file() {
 
     // Edit same file three times
     for i in 1..=3 {
-        let old = format!("return {}", i);
+        let old = format!("return {i}");
         let new = format!("return {}", i + 1);
         let json = env.edit_hook_json(&path, &old, &new);
-        std::fs::write(&path, &format!("def foo():\n    {}\n", new)).unwrap();
+        std::fs::write(&path, format!("def foo():\n    {new}\n")).unwrap();
         env.run_hook(&json);
     }
 
@@ -1071,8 +1038,7 @@ fn manifest_deduplicates_same_file() {
     let count = manifest.lines().filter(|l| l.contains("dedup.py")).count();
     assert_eq!(
         count, 1,
-        "manifest should have exactly one entry per file, got {}",
-        count
+        "manifest should have exactly one entry per file, got {count}"
     );
 }
 
@@ -1081,8 +1047,8 @@ fn manifest_tracks_multiple_files() {
     let env = TestEnv::new();
     let paths: Vec<_> = (0..5)
         .map(|i| {
-            let p = env.file_path(&format!("multi_{}.py", i));
-            std::fs::write(&p, &format!("def fn():\n    return {}\n", i)).unwrap();
+            let p = env.file_path(&format!("multi_{i}.py"));
+            std::fs::write(&p, format!("def fn():\n    return {i}\n")).unwrap();
             p
         })
         .collect();
@@ -1090,10 +1056,10 @@ fn manifest_tracks_multiple_files() {
     for (i, path) in paths.iter().enumerate() {
         let json = env.edit_hook_json(
             path,
-            &format!("return {}", i),
+            &format!("return {i}"),
             &format!("return {}", i + 10),
         );
-        std::fs::write(path, &format!("def fn():\n    return {}\n", i + 10)).unwrap();
+        std::fs::write(path, format!("def fn():\n    return {}\n", i + 10)).unwrap();
         env.run_hook(&json);
     }
 
@@ -1163,8 +1129,7 @@ fn baseline_works_for_typescript() {
     let mut code = String::new();
     for i in 0..25 {
         code.push_str(&format!(
-            "function fn_{}(): number {{ return {}; }}\n",
-            i, i
+            "function fn_{i}(): number {{ return {i}; }}\n"
         ));
     }
     code.push_str(&var_lines("const x", file_padding()));
@@ -1182,8 +1147,7 @@ fn baseline_works_for_typescript() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         !counts.is_empty(),
-        "TypeScript baseline should capture module findings: {:?}",
-        counts
+        "TypeScript baseline should capture module findings: {counts:?}"
     );
 }
 
@@ -1194,10 +1158,10 @@ fn baseline_works_for_rust() {
 
     let mut code = String::new();
     for i in 0..25 {
-        code.push_str(&format!("fn fn_{}() -> i32 {{ {} }}\n", i, i));
+        code.push_str(&format!("fn fn_{i}() -> i32 {{ {i} }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("static X_{}: i32 = {};\n", i, i));
+        code.push_str(&format!("static X_{i}: i32 = {i};\n"));
     }
     code.push_str("static MARKER: i32 = 1;\n");
     std::fs::write(&path, &code).unwrap();
@@ -1215,8 +1179,7 @@ fn baseline_works_for_rust() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         !counts.is_empty(),
-        "Rust baseline should capture module findings: {:?}",
-        counts
+        "Rust baseline should capture module findings: {counts:?}"
     );
 }
 
@@ -1228,12 +1191,11 @@ fn baseline_works_for_java() {
     let mut code = "public class BigClass {\n".to_string();
     for i in 0..25 {
         code.push_str(&format!(
-            "    public static int fn_{}() {{ return {}; }}\n",
-            i, i
+            "    public static int fn_{i}() {{ return {i}; }}\n"
         ));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("    static int x_{} = {};\n", i, i));
+        code.push_str(&format!("    static int x_{i} = {i};\n"));
     }
     code.push_str("    static int MARKER = 1;\n");
     code.push_str("}\n");
@@ -1252,8 +1214,7 @@ fn baseline_works_for_java() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         !counts.is_empty(),
-        "Java baseline should capture module findings: {:?}",
-        counts
+        "Java baseline should capture module findings: {counts:?}"
     );
 }
 
@@ -1264,10 +1225,10 @@ fn baseline_works_for_c() {
 
     let mut code = "#include <stdio.h>\n".to_string();
     for i in 0..25 {
-        code.push_str(&format!("int fn_{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("int fn_{i}() {{ return {i}; }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("int x_{} = {};\n", i, i));
+        code.push_str(&format!("int x_{i} = {i};\n"));
     }
     code.push_str("int MARKER = 1;\n");
     std::fs::write(&path, &code).unwrap();
@@ -1285,8 +1246,7 @@ fn baseline_works_for_c() {
     let counts = env.baseline_counts(path.to_str().unwrap());
     assert!(
         !counts.is_empty(),
-        "C baseline should capture module findings: {:?}",
-        counts
+        "C baseline should capture module findings: {counts:?}"
     );
 }
 
@@ -1328,9 +1288,7 @@ fn stop_detects_multiple_regressions_in_same_file() {
 
     assert!(
         regression_types.len() >= 2,
-        "should detect at least 2 regressions in same file, found {:?} in: {}",
-        regression_types,
-        out
+        "should detect at least 2 regressions in same file, found {regression_types:?} in: {out}"
     );
 }
 
@@ -1375,8 +1333,7 @@ fn stop_full_lifecycle_three_edits_then_stop() {
     let out = env.run_stop();
     assert!(
         out.contains("file too large"),
-        "lifecycle: should detect file too large after 3 edits: {}",
-        out
+        "lifecycle: should detect file too large after 3 edits: {out}"
     );
 
     // Baselines should be cleaned up
@@ -1403,7 +1360,7 @@ fn checkpoint_fires_at_5th_edit() {
     // Add functions one by one to cross Too Many Functions threshold
     let mut code = String::new();
     for i in 0..22 {
-        code.push_str(&format!("def fn_{}():\n    return {}\n\n", i, i));
+        code.push_str(&format!("def fn_{i}():\n    return {i}\n\n"));
     }
     std::fs::write(&path, &code).unwrap();
 
@@ -1416,8 +1373,7 @@ fn checkpoint_fires_at_5th_edit() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("too many functions"),
-        "2nd edit on new file should trigger checkpoint: {}",
-        out
+        "2nd edit on new file should trigger checkpoint: {out}"
     );
 }
 
@@ -1448,8 +1404,7 @@ fn checkpoint_silent_between_intervals() {
     let out = env.run_hook(&json3);
     assert!(
         !out.contains("too many functions"),
-        "edit 3 should not trigger module checkpoint: {}",
-        out
+        "edit 3 should not trigger module checkpoint: {out}"
     );
 }
 
@@ -1468,7 +1423,7 @@ fn checkpoint_silent_when_no_regressions() {
     // Edits 2-5: small changes that don't add functions
     let mut current = format!("{code}MARKER = 2\n");
     for i in 2..=5 {
-        let old = format!("MARKER = {}", i);
+        let old = format!("MARKER = {i}");
         let new = format!("MARKER = {}", i + 1);
         let json = env.edit_hook_json(&path, &old, &new);
         current = current.replacen(&old, &new, 1);
@@ -1476,9 +1431,7 @@ fn checkpoint_silent_when_no_regressions() {
         let out = env.run_hook(&json);
         assert!(
             !out.contains("too many functions"),
-            "edit {}: no regression should be reported since baseline captured pre-existing: {}",
-            i,
-            out
+            "edit {i}: no regression should be reported since baseline captured pre-existing: {out}"
         );
     }
 }
@@ -1496,7 +1449,7 @@ fn checkpoint_skips_test_files() {
     env.run_hook(&json);
 
     for i in 1..=5 {
-        let old = format!("return {}", i);
+        let old = format!("return {i}");
         let new = format!("return {}", i + 100);
         let json = env.edit_hook_json(&path, &old, &new);
         code = code.replacen(&old, &new, 1);
@@ -1523,7 +1476,7 @@ fn checkpoint_fires_again_at_10th_edit() {
 
     let mut fired_at = Vec::new();
     for i in 1..=10 {
-        let old = format!("return {}", i);
+        let old = format!("return {i}");
         let new = format!("return {}", i + 200);
         let json = env.edit_hook_json(&path, &old, &new);
         code = code.replacen(&old, &new, 1);
@@ -1535,13 +1488,11 @@ fn checkpoint_fires_again_at_10th_edit() {
     }
     assert!(
         fired_at.contains(&5) || fired_at.contains(&6),
-        "should fire near edit 5, fired at: {:?}",
-        fired_at
+        "should fire near edit 5, fired at: {fired_at:?}"
     );
     assert!(
         fired_at.contains(&10) || fired_at.contains(&11),
-        "should fire near edit 10, fired at: {:?}",
-        fired_at
+        "should fire near edit 10, fired at: {fired_at:?}"
     );
 }
 
@@ -1562,7 +1513,7 @@ fn edit_counter_persists_across_invocations() {
         path.to_str().unwrap().hash(&mut hasher);
         hasher.finish()
     };
-    let counter_path = env.baseline_path().join(format!("{:016x}.edits", hash));
+    let counter_path = env.baseline_path().join(format!("{hash:016x}.edits"));
     assert!(counter_path.exists(), "counter file should exist");
     let count: u32 = std::fs::read_to_string(&counter_path)
         .unwrap()
@@ -1598,7 +1549,7 @@ fn checkpoint_includes_function_findings_too() {
     // Edits 2-4
     let mut current = code.clone();
     for i in 1..=3 {
-        let old = format!("return {}", i);
+        let old = format!("return {i}");
         let new = format!("return {}", i + 300);
         let json = env.edit_hook_json(&path, &old, &new);
         current = current.replacen(&old, &new, 1);
@@ -1616,8 +1567,7 @@ fn checkpoint_includes_function_findings_too() {
     // Should have module findings from checkpoint
     assert!(
         out.contains("too many functions") || out.contains("file too large"),
-        "5th edit should include module checkpoint: {}",
-        out
+        "5th edit should include module checkpoint: {out}"
     );
 }
 
@@ -1635,8 +1585,7 @@ fn first_write_blocks_on_too_many_functions() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("too many functions"),
-        "first write of new file with 25 functions should block: {}",
-        out
+        "first write of new file with 25 functions should block: {out}"
     );
 }
 
@@ -1650,8 +1599,7 @@ fn first_write_blocks_on_file_too_large() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("file too large"),
-        "first write of 600-line file should block: {}",
-        out
+        "first write of 600-line file should block: {out}"
     );
 }
 
@@ -1666,13 +1614,11 @@ fn first_write_reports_multiple_module_findings() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("too many functions"),
-        "should report too many functions: {}",
-        out
+        "should report too many functions: {out}"
     );
     assert!(
         out.contains("file too large"),
-        "should report file too large: {}",
-        out
+        "should report file too large: {out}"
     );
 }
 
@@ -1685,8 +1631,7 @@ fn first_write_silent_when_under_thresholds() {
     let out = env.run_hook(&json);
     assert!(
         out.is_empty(),
-        "clean new file should produce no output: {}",
-        out
+        "clean new file should produce no output: {out}"
     );
 }
 
@@ -1717,13 +1662,11 @@ fn non_checkpoint_edit_does_not_include_module_findings() {
 
     assert!(
         !out.contains("too many functions"),
-        "non-checkpoint edit should not report module findings: {}",
-        out
+        "non-checkpoint edit should not report module findings: {out}"
     );
     assert!(
         !out.contains("file too large"),
-        "non-checkpoint edit should not report module findings: {}",
-        out
+        "non-checkpoint edit should not report module findings: {out}"
     );
 }
 
@@ -1746,13 +1689,11 @@ fn first_edit_of_existing_file_skips_preexisting_module_smells() {
     // Module findings should be filtered out — they were in the baseline
     assert!(
         !out.contains("too many functions"),
-        "pre-existing too-many-functions should not block: {}",
-        out
+        "pre-existing too-many-functions should not block: {out}"
     );
     assert!(
         !out.contains("file too large"),
-        "pre-existing file-too-large should not block: {}",
-        out
+        "pre-existing file-too-large should not block: {out}"
     );
 }
 
@@ -1764,9 +1705,9 @@ fn first_write_includes_overall_cc_when_exceeded() {
     // Generate functions with high CC that sum > 100
     let mut code = String::new();
     for i in 0..12 {
-        code.push_str(&format!("def fn_{}(x):\n", i));
+        code.push_str(&format!("def fn_{i}(x):\n"));
         for j in 0..10 {
-            code.push_str(&format!("    if x == {}:\n        pass\n", j));
+            code.push_str(&format!("    if x == {j}:\n        pass\n"));
         }
         code.push_str("    return x\n\n");
     }
@@ -1775,8 +1716,7 @@ fn first_write_includes_overall_cc_when_exceeded() {
     let out = env.run_hook(&json);
     assert!(
         out.contains("overall code complexity"),
-        "first write with total cc>100 should block: {}",
-        out
+        "first write with total cc>100 should block: {out}"
     );
 }
 
@@ -1789,5 +1729,5 @@ fn first_write_decision_is_block_json() {
     let json = env.write_hook_json(&path);
     let out = env.run_hook(&json);
     let v: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
-    assert_eq!(v["decision"], "block", "should output blocking decision: {}", out);
+    assert_eq!(v["decision"], "block", "should output blocking decision: {out}");
 }

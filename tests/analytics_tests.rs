@@ -151,7 +151,7 @@ fn resolved_as_addressed_when_finding_gone() {
         .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
         .unwrap();
     let analytics_content = read_analytics(analytics.path());
-    assert!(analytics_content.contains("\"addressed\""), "fixed finding should be addressed, got: {}", analytics_content);
+    assert!(analytics_content.contains("\"addressed\""), "fixed finding should be addressed, got: {analytics_content}");
 }
 
 #[test]
@@ -177,7 +177,7 @@ fn resolved_as_ignored_when_finding_persists() {
         .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
         .unwrap();
     let analytics_content = read_analytics(analytics.path());
-    assert!(analytics_content.contains("\"ignored\""), "unfixed finding should be ignored, got: {}", analytics_content);
+    assert!(analytics_content.contains("\"ignored\""), "unfixed finding should be ignored, got: {analytics_content}");
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn analytics_includes_session_id() {
         .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
         .unwrap();
     let content = read_analytics(analytics.path());
-    assert!(content.contains("analytics-test"), "should include session_id, got: {}", content);
+    assert!(content.contains("analytics-test"), "should include session_id, got: {content}");
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn analytics_deduplicates_same_finding() {
     let lines: Vec<&str> = content.lines().collect();
     // Same finding should be deduped to 1 entry
     let excess_count = lines.iter().filter(|l| l.contains("Excess Arguments")).count();
-    assert_eq!(excess_count, 1, "should deduplicate, got {} entries", excess_count);
+    assert_eq!(excess_count, 1, "should deduplicate, got {excess_count} entries");
 }
 
 #[test]
@@ -252,5 +252,5 @@ fn no_analytics_when_no_findings() {
         .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
         .unwrap();
     let content = read_analytics(analytics.path());
-    assert!(content.is_empty(), "no findings should produce no analytics, got: {}", content);
+    assert!(content.is_empty(), "no findings should produce no analytics, got: {content}");
 }

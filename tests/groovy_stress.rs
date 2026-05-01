@@ -166,7 +166,7 @@ fn cc_switch_many_cases() {
         "}\n",
     ));
     let cc = function_metric(&d, "f", "cc").unwrap();
-    assert!(cc >= 9, "8 cases + base >= 9, got: {}", cc);
+    assert!(cc >= 9, "8 cases + base >= 9, got: {cc}");
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn cc_not_operator() {
         "}\n",
     ));
     let cc = function_metric(&d, "f", "cc").unwrap();
-    assert!(cc >= 2, "got: {}", cc);
+    assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
@@ -222,7 +222,7 @@ fn cogc_nested_ifs() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 6, "1+(1+1)+(1+2) = 6, got: {}", cogc);
+    assert_eq!(cogc, 6, "1+(1+1)+(1+2) = 6, got: {cogc}");
 }
 
 #[test]
@@ -237,14 +237,14 @@ fn cogc_else_if_no_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(99);
-    assert_eq!(cogc, 3, "else-if chain is flat, got: {}", cogc);
+    assert_eq!(cogc, 3, "else-if chain is flat, got: {cogc}");
 }
 
 #[test]
 fn cogc_else_increases() {
     let d = debug("class T { void f(int x) { if (x > 0) {} else {} } }\n");
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 2, "if=1 + else=1, got: {}", cogc);
+    assert_eq!(cogc, 2, "if=1 + else=1, got: {cogc}");
 }
 
 #[test]
@@ -259,7 +259,7 @@ fn cogc_for_nested() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 3, "for=1, nested if=1+1, got: {}", cogc);
+    assert_eq!(cogc, 3, "for=1, nested if=1+1, got: {cogc}");
 }
 
 #[test]
@@ -274,7 +274,7 @@ fn cogc_enhanced_for_nested() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 3, "for=1, nested if=1+1, got: {}", cogc);
+    assert_eq!(cogc, 3, "for=1, nested if=1+1, got: {cogc}");
 }
 
 #[test]
@@ -290,7 +290,7 @@ fn cogc_while_nested() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 3, "while=1, nested if=1+1, got: {}", cogc);
+    assert_eq!(cogc, 3, "while=1, nested if=1+1, got: {cogc}");
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn cogc_do_while_nested() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 3, "do=1, nested if=1+1, got: {}", cogc);
+    assert_eq!(cogc, 3, "do=1, nested if=1+1, got: {cogc}");
 }
 
 #[test]
@@ -319,14 +319,14 @@ fn cogc_switch_counted() {
 fn cogc_boolean_single_sequence() {
     let d = debug("class T { boolean f(boolean a, boolean b, boolean c) { if (a && b && c) { return true } return false } }\n");
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 2, "if=1 + 1 sequence, got: {}", cogc);
+    assert_eq!(cogc, 2, "if=1 + 1 sequence, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let d = debug("class T { boolean f(boolean a, boolean b, boolean c) { if (a && b || c) { return true } return false } }\n");
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert_eq!(cogc, 3, "if=1 + 2 sequences, got: {}", cogc);
+    assert_eq!(cogc, 3, "if=1 + 2 sequences, got: {cogc}");
 }
 
 #[test]
@@ -343,7 +343,7 @@ fn cogc_catch_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 4, "try body if + catch + catch body if, got: {}", cogc);
+    assert!(cogc >= 4, "try body if + catch + catch body if, got: {cogc}");
 }
 
 // ===========================================================================
@@ -423,7 +423,7 @@ fn nesting_switch_depth() {
         "}\n",
     ));
     let n = function_metric(&d, "f", "nesting").unwrap_or(0);
-    assert!(n >= 2, "switch + case if, got: {}", n);
+    assert!(n >= 2, "switch + case if, got: {n}");
 }
 
 #[test]
@@ -442,7 +442,7 @@ fn nesting_deep_for_if_for() {
         "}\n",
     ));
     let depth = function_metric(&d, "f", "nesting").unwrap_or(0);
-    assert!(depth >= 4, "got: {}", depth);
+    assert!(depth >= 4, "got: {depth}");
 }
 
 // ===========================================================================
@@ -461,14 +461,14 @@ fn bump_count_tracked() {
         "  }\n",
         "}\n",
     ));
-    assert!(d.contains("bumps="), "got: {}", d);
+    assert!(d.contains("bumps="), "got: {d}");
 }
 
 #[test]
 fn bump_flat_function_zero() {
     let d = debug("class T { void f(int x) { if (x > 0) {} if (x < 0) {} } }\n");
     let bumps = function_metric(&d, "f", "bumps").unwrap_or(99);
-    assert_eq!(bumps, 0, "flat ifs should have 0 bumps, got: {}", bumps);
+    assert_eq!(bumps, 0, "flat ifs should have 0 bumps, got: {bumps}");
 }
 
 // ===========================================================================
@@ -502,7 +502,7 @@ fn args_six() {
 #[test]
 fn args_six_flagged() {
     let out = check("class T { void f(int a, int b, int c, int d, int e, int g) { int x = 1 } }\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================
@@ -519,7 +519,7 @@ fn args_typed_params() {
 fn args_untyped_params() {
     let d = debug("class T { void f(def a, def b) { println(a) } }\n");
     let args = function_metric(&d, "f", "args").unwrap_or(0);
-    assert!(args >= 2, "untyped params still counted, got: {}", args);
+    assert!(args >= 2, "untyped params still counted, got: {args}");
 }
 
 // ===========================================================================
@@ -551,7 +551,7 @@ fn loc_comments_excluded_from_module() {
 #[test]
 fn constructor_is_constructor() {
     let d = debug("class Foo { Foo(int x) { int y = x } }\n");
-    assert!(d.contains("Foo.Foo"), "got: {}", d);
+    assert!(d.contains("Foo.Foo"), "got: {d}");
 }
 
 #[test]
@@ -564,13 +564,13 @@ fn constructor_arg_count() {
 #[test]
 fn constructor_over_injection() {
     let out = check("class Foo { Foo(int a, int b, int c, int d, int e, int f, int g) { int x = 1 } }\n");
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
 fn regular_method_reports_excess_not_injection() {
     let out = check("class T { void f(int a, int b, int c, int d, int e, int f, int g) { int x = 1 } }\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
     assert!(!has_smell(&out, "Constructor Over-Injection"));
 }
 
@@ -581,7 +581,7 @@ fn regular_method_reports_excess_not_injection() {
 #[test]
 fn constructor_reports_injection_not_excess() {
     let out = check("class S { S(int a, int b, int c, int d, int e, int f) {} }\n");
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("S(") || l.contains(".S")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
@@ -589,8 +589,8 @@ fn constructor_reports_injection_not_excess() {
 #[test]
 fn regular_method_reports_excess_args() {
     let out = check("class T { void f(int a, int b, int c, int d, int e, int f, int g) {} }\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 // ===========================================================================
@@ -600,13 +600,13 @@ fn regular_method_reports_excess_args() {
 #[test]
 fn method_class_prefix() {
     let d = debug("class Foo { void bar() { int x = 1 } }\n");
-    assert!(d.contains("Foo.bar"), "got: {}", d);
+    assert!(d.contains("Foo.bar"), "got: {d}");
 }
 
 #[test]
 fn standalone_function_no_class() {
     let d = debug("class T { void hello() { int x = 1 } }\n");
-    assert!(d.contains("hello"), "got: {}", d);
+    assert!(d.contains("hello"), "got: {d}");
 }
 
 #[test]
@@ -619,8 +619,8 @@ fn nested_class_methods_stress() {
         "  void outerWork() { int y = 2 }\n",
         "}\n",
     ));
-    assert!(d.contains("Inner.work"), "got: {}", d);
-    assert!(d.contains("Outer.outerWork"), "got: {}", d);
+    assert!(d.contains("Inner.work"), "got: {d}");
+    assert!(d.contains("Outer.outerWork"), "got: {d}");
 }
 
 #[test]
@@ -631,7 +631,7 @@ fn interface_method_has_prefix() {
         "}\n",
     ));
     // Interfaces with no body won't produce metrics but should not crash
-    assert!(!d.is_empty(), "got: {}", d);
+    assert!(!d.is_empty(), "got: {d}");
 }
 
 // ===========================================================================
@@ -642,12 +642,12 @@ fn interface_method_has_prefix() {
 fn embedded_large_gstring() {
     let mut code = String::from("class T {\n  String f() {\n    String s = \"\"\"");
     for i in 0..20 {
-        code.push_str(&format!("line{}\\n", i));
+        code.push_str(&format!("line{i}\\n"));
     }
     code.push_str("\"\"\"\n    return s\n  }\n}\n");
     let d = debug(&code);
     let emb = function_metric(&d, "f", "embedded").unwrap_or(0);
-    assert!(emb >= 1, "got: {}", emb);
+    assert!(emb >= 1, "got: {emb}");
 }
 
 #[test]
@@ -664,24 +664,24 @@ fn embedded_small_not_flagged() {
 fn short_var_detected() {
     let mut code = String::from("class T {\n  void f() {\n");
     for n in 0..20 {
-        code.push_str(&format!("    int var{} = {}\n", n, n));
+        code.push_str(&format!("    int var{n} = {n}\n"));
     }
     code.push_str("    int a = 1\n    int b = 2\n    int c = 3\n    int d = 4\n  }\n}\n");
     let d = debug(&code);
     let sv = function_metric(&d, "f", "short_vars").unwrap_or(0);
-    assert!(sv >= 4, "got: {}", sv);
+    assert!(sv >= 4, "got: {sv}");
 }
 
 #[test]
 fn short_var_ijk_exempt() {
     let mut code = String::from("class T {\n  void f() {\n");
     for n in 0..20 {
-        code.push_str(&format!("    int var{} = {}\n", n, n));
+        code.push_str(&format!("    int var{n} = {n}\n"));
     }
     code.push_str("    int i = 1\n    int j = 2\n    int k = 3\n  }\n}\n");
     let d = debug(&code);
     let sv = function_metric(&d, "f", "short_vars").unwrap_or(99);
-    assert!(sv <= 3, "i/j/k should be exempt, got: {}", sv);
+    assert!(sv <= 3, "i/j/k should be exempt, got: {sv}");
 }
 
 // ===========================================================================
@@ -706,7 +706,7 @@ fn string_switch_arms_counted() {
         "}\n",
     ));
     let arms = function_metric(&d, "f", "str_match").unwrap_or(0);
-    assert!(arms >= 6, "got: {}", arms);
+    assert!(arms >= 6, "got: {arms}");
 }
 
 #[test]
@@ -732,7 +732,7 @@ fn string_switch_below_threshold() {
 #[test]
 fn empty_catch_detected() {
     let out = check("class T { void f() { try { int x = 1 } catch (Exception e) { } } }\n");
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -744,7 +744,7 @@ fn non_empty_catch_ok() {
 #[test]
 fn multiple_empty_catches() {
     let d = debug("class T { void f() { try { int x = 1 } catch (Exception e) { } try { int y = 2 } catch (Exception e) { } } }\n");
-    assert!(d.contains("f"), "function should be parsed");
+    assert!(d.contains('f'), "function should be parsed");
 }
 
 // ===========================================================================
@@ -769,7 +769,7 @@ fn exact_duplication_detected() {
         "  }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -790,7 +790,7 @@ fn duplication_two_is_minimum() {
         "  }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -811,7 +811,7 @@ fn duplication_mixed_test_and_prod_flagged() {
         "  }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -822,14 +822,14 @@ fn duplication_mixed_test_and_prod_flagged() {
 fn compound_condition_two_ops() {
     let d = debug("class T { boolean f(int a, int b, int c) { if (a > 0 && b > 0 || c > 0) { return true } return false } }\n");
     let cc_count = function_metric(&d, "f", "conditions").unwrap_or(0);
-    assert!(cc_count >= 1, "got: {}", cc_count);
+    assert!(cc_count >= 1, "got: {cc_count}");
 }
 
 #[test]
 fn compound_condition_single_op() {
     let d = debug("class T { boolean f(int a, int b) { if (a > 0 && b > 0) { return true } return false } }\n");
     let cc_count = function_metric(&d, "f", "conditions").unwrap_or(99);
-    assert_eq!(cc_count, 0, "single op should not count, got: {}", cc_count);
+    assert_eq!(cc_count, 0, "single op should not count, got: {cc_count}");
 }
 
 // ===========================================================================
@@ -839,13 +839,13 @@ fn compound_condition_single_op() {
 #[test]
 fn primitive_obsession_recognizes_all_types() {
     let out = check("class T { void f(long a, float b, double c, int d) {} }\n");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn primitive_obsession_complex_types_not_flagged() {
     let out = check("class T { void f(MyList a, String b, MyObj c, OtherObj d) {} }\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 // ===========================================================================
@@ -860,7 +860,7 @@ fn lcom4_single_method_not_flagged() {
         "  int get() { return this.x }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -878,7 +878,7 @@ fn lcom4_three_groups_flagged() {
         "  int cRead() { return this.c + 1 }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -892,7 +892,7 @@ fn lcom4_transitive_connected_not_flagged() {
         "  int m3() { return this.b }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b, got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "M2 bridges a and b, got: {out}");
 }
 
 #[test]
@@ -906,7 +906,7 @@ fn lcom4_methods_connected_by_call() {
         "  boolean send(int e) { return true }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -934,7 +934,7 @@ fn lcom4_god_class_still_fires() {
         "  Object auditLog() { return this.audit }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -958,36 +958,36 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 fn god_class_requires_god_method() {
     let mut code = String::from("class Big {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("  int fn{}() {{ return {} }}\n", i, i));
+        code.push_str(&format!("  int fn{i}() {{ return {i} }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding {}\n", i));
+        code.push_str(&format!("// padding {i}\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "God Class"), "no god method, should not fire, got: {}", out);
+    assert!(!has_smell(&out, "God Class"), "no god method, should not fire, got: {out}");
 }
 
 #[test]
 fn god_class_triggers_with_god_method() {
     let mut code = String::from("class Monster {\n  void doMonster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("    if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    int y{} = {}\n", i, i));
+        code.push_str(&format!("    int y{i} = {i}\n"));
     }
     code.push_str("  }\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("  int fn{}() {{ return {} }}\n", i, i));
+        code.push_str(&format!("  int fn{i}() {{ return {i} }}\n"));
     }
     for i in 0..file_padding() {
-        code.push_str(&format!("  int v{} = {}\n", i, i));
+        code.push_str(&format!("  int v{i} = {i}\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "God Method"), "got: {}", out);
-    assert!(has_smell(&out, "God Class"), "got: {}", out);
+    assert!(has_smell(&out, "God Method"), "got: {out}");
+    assert!(has_smell(&out, "God Class"), "got: {out}");
 }
 
 // ===========================================================================
@@ -998,30 +998,30 @@ fn god_class_triggers_with_god_method() {
 fn overall_function_size_below_threshold_stress() {
     let mut code = String::from("class T {\n");
     for i in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("  void lg{}() {{\n", i));
+        code.push_str(&format!("  void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    int x{} = {}\n", j, j));
+            code.push_str(&format!("    int x{j} = {j}\n"));
         }
         code.push_str("  }\n");
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Overall Function Size"), "got: {}", out);
+    assert!(!has_smell(&out, "Overall Function Size"), "got: {out}");
 }
 
 #[test]
 fn overall_function_size_at_threshold_stress() {
     let mut code = String::from("class T {\n");
     for i in 0..t().large_fn_count as usize {
-        code.push_str(&format!("  void lg{}() {{\n", i));
+        code.push_str(&format!("  void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
-            code.push_str(&format!("    int x{} = {}\n", j, j));
+            code.push_str(&format!("    int x{j} = {j}\n"));
         }
         code.push_str("  }\n");
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Overall Function Size"), "got: {}", out);
+    assert!(has_smell(&out, "Overall Function Size"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1032,20 +1032,20 @@ fn overall_function_size_at_threshold_stress() {
 fn declarations_below_threshold() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
-    assert!(!has_smell(&out, "Declarations"), "got: {}", out);
+    assert!(!has_smell(&out, "Declarations"), "got: {out}");
 }
 
 #[test]
 fn declarations_above_threshold() {
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Declarations"), "got: {}", out);
+    assert!(has_smell(&out, "Declarations"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1071,7 +1071,7 @@ fn deep_nesting_with_switch() {
         "  }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1105,7 +1105,7 @@ fn nested_conditional_chunks_detected() {
     ));
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
@@ -1131,8 +1131,8 @@ fn multiple_smells_same_function() {
     code.push_str("    }\n");
     code.push_str("  }\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(has_smell(&out, "Deep Nested"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1143,45 +1143,45 @@ fn multiple_smells_same_function() {
 fn closure_not_walked() {
     let d = debug("class T { void f() { def fn = { x -> if (x > 0) { if (x > 1) {} } } } }\n");
     let cc = function_metric(&d, "f", "cc").unwrap_or(99);
-    assert_eq!(cc, 1, "closure body should not contribute to outer cc, got: {}", cc);
+    assert_eq!(cc, 1, "closure body should not contribute to outer cc, got: {cc}");
 }
 
 #[test]
 fn closure_in_method_arg() {
     let d = debug("class T { void f() { [1,2,3].each { if (it > 0) {} } } }\n");
     let cc = function_metric(&d, "f", "cc").unwrap_or(99);
-    assert_eq!(cc, 1, "closure arg should not contribute, got: {}", cc);
+    assert_eq!(cc, 1, "closure arg should not contribute, got: {cc}");
 }
 
 #[test]
 fn gstring_template_tracked() {
     let mut code = String::from("class T {\n  String f(String name) {\n    String s = \"\"\"");
     for i in 0..25 {
-        code.push_str(&format!("line {} ${{name}}\n", i));
+        code.push_str(&format!("line {i} ${{name}}\n"));
     }
     code.push_str("\"\"\"\n    return s\n  }\n}\n");
     let d = debug(&code);
     let emb = function_metric(&d, "f", "embedded").unwrap_or(0);
-    assert!(emb >= 1, "GString should be tracked, got: {}", emb);
+    assert!(emb >= 1, "GString should be tracked, got: {emb}");
 }
 
 #[test]
 fn untyped_params_not_primitive() {
     let d = debug("class T { void f(def a, def b) { println(a) } }\n");
-    assert!(d.contains("primitives=0/"), "untyped should not be primitive, got: {}", d);
+    assert!(d.contains("primitives=0/"), "untyped should not be primitive, got: {d}");
 }
 
 #[test]
 fn typed_groovy_params() {
     let d = debug("class T { void f(int a, String b) { println(a) } }\n");
-    assert!(d.contains("primitives=2/2"), "got: {}", d);
+    assert!(d.contains("primitives=2/2"), "got: {d}");
 }
 
 #[test]
 fn mixed_typed_untyped_params() {
     let d = debug("class T { void f(int a, def b) { println(a) } }\n");
     let args = function_metric(&d, "f", "args").unwrap_or(0);
-    assert_eq!(args, 2, "both params counted, got: {}", args);
+    assert_eq!(args, 2, "both params counted, got: {args}");
 }
 
 // ===========================================================================
@@ -1191,7 +1191,7 @@ fn mixed_typed_untyped_params() {
 #[test]
 fn clean_class_no_smells() {
     let out = check("class Foo { void bar() { int x = 1 } }\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
@@ -1209,9 +1209,9 @@ fn empty_method_body() {
 #[test]
 fn multiple_independent_functions() {
     let d = debug("class T { void f() { int x = 1 } void g() { int y = 2 } void h() { int z = 3 } }\n");
-    assert!(d.contains("f"));
-    assert!(d.contains("g"));
-    assert!(d.contains("h"));
+    assert!(d.contains('f'));
+    assert!(d.contains('g'));
+    assert!(d.contains('h'));
 }
 
 // ===========================================================================
@@ -1222,9 +1222,9 @@ fn multiple_independent_functions() {
 fn performance_1000_loc() {
     let mut code = String::from("class Big {\n");
     for i in 0..50 {
-        code.push_str(&format!("  int func{}(int data) {{\n", i));
+        code.push_str(&format!("  int func{i}(int data) {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("    int f{} = data + {}\n", j, j));
+            code.push_str(&format!("    int f{j} = data + {j}\n"));
         }
         code.push_str("    return data\n  }\n\n");
     }
@@ -1244,9 +1244,9 @@ fn performance_1000_loc() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("class S{} {{\n  int d{}\n", i, i));
+        code.push_str(&format!("class S{i} {{\n  int d{i}\n"));
         for j in 0..5 {
-            code.push_str(&format!("  int m{}() {{ return this.d{} }}\n", j, i));
+            code.push_str(&format!("  int m{j}() {{ return this.d{i} }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -1268,7 +1268,7 @@ fn performance_class_hierarchy() {
 #[test]
 fn shallow_global_not_flagged() {
     let out = check("class T { void f() {} }\n");
-    assert!(!has_smell(&out, "Deep Global Nesting"), "got: {}", out);
+    assert!(!has_smell(&out, "Deep Global Nesting"), "got: {out}");
 }
 
 #[test]
@@ -1286,7 +1286,7 @@ fn global_conditional_detected() {
     ));
     assert!(
         has_smell(&out, "Global Conditionals") || has_smell(&out, "Deep Global Nesting"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
@@ -1297,14 +1297,14 @@ fn global_conditional_detected() {
 #[test]
 fn output_starts_with_pulse_stress() {
     let out = check("class T { void f(int a, int b, int c, int d, int e, int f, int g) {} }\n");
-    assert!(out.starts_with("pulse:"), "got: {}", out);
+    assert!(out.starts_with("pulse:"), "got: {out}");
 }
 
 #[test]
 fn output_has_line_numbers_stress() {
     let out = check("class T { void f(int a, int b, int c, int d, int e, int f, int g) {} }\n");
     let has_loc = out.lines().any(|l| l.contains("(L") && l.contains("): "));
-    assert!(has_loc, "got: {}", out);
+    assert!(has_loc, "got: {out}");
 }
 
 #[test]

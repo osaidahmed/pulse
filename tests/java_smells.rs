@@ -8,13 +8,13 @@ const LANG: &str = "java";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "Clean.java");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "ComplexMethod.java");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -22,13 +22,13 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "ComplexMethod.java");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "ExcessArgs.java");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "createUser"));
 }
 
@@ -36,7 +36,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "ExcessArgs.java");
     let args = function_metric(&debug, "createUser", "args").unwrap_or(0);
-    assert_eq!(args, 8, "got: {}", args);
+    assert_eq!(args, 8, "got: {args}");
 }
 
 #[test]
@@ -50,15 +50,14 @@ fn constructor_over_injection_detected() {
     let output = run_check(LANG, "ExcessArgs.java");
     assert!(
         has_smell(&output, "Constructor Over-Injection"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "DeepNesting.java");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
     assert!(has_function(&output, "deeplyNested"));
 }
 
@@ -66,7 +65,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "DeepNesting.java");
     let depth = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(depth > 4, "got: {}", depth);
+    assert!(depth > 4, "got: {depth}");
 }
 
 #[test]
@@ -127,8 +126,7 @@ fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("class T {\n    void f() {\n        if (a) {}\n        if (b) {}\n        if (c) {}\n        if (d) {}\n        if (e) {}\n        if (f) {}\n        if (g) {}\n        if (h) {}\n    }\n}\n", "java");
     assert!(
         has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {}",
-        out
+        "cc=9 should trigger, got: {out}"
     );
 }
 
@@ -143,7 +141,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "ComplexMethod.java");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -156,7 +154,7 @@ fn large_method_detected() {
     let path = dir.path().join("Large.java");
     let mut code = String::from("class Large {\n    void buildReport() {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int x{} = {};\n", i, i));
+        code.push_str(&format!("        int x{i} = {i};\n"));
     }
     code.push_str("    }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -167,8 +165,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -178,7 +175,7 @@ fn large_method_loc_at_least_65() {
     let path = dir.path().join("LargeLoc.java");
     let mut code = String::from("class LargeLoc {\n    void buildReport() {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int x{} = {};\n", i, i));
+        code.push_str(&format!("        int x{i} = {i};\n"));
     }
     code.push_str("    }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -188,7 +185,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
 }
 
 // ===========================================================================
@@ -201,10 +198,10 @@ fn god_method_detected() {
     let path = dir.path().join("God.java");
     let mut code = String::from("class God {\n    void processDataPipeline() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("        if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("        if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int y{} = {};\n", i, i));
+        code.push_str(&format!("        int y{i} = {i};\n"));
     }
     code.push_str("    }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -213,7 +210,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -222,10 +219,10 @@ fn god_method_not_reported_as_separate() {
     let path = dir.path().join("God2.java");
     let mut code = String::from("class God2 {\n    void processDataPipeline() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("        if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("        if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int y{} = {};\n", i, i));
+        code.push_str(&format!("        int y{i} = {i};\n"));
     }
     code.push_str("    }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -269,8 +266,7 @@ fn complex_conditional_detected() {
     );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -284,11 +280,11 @@ fn file_too_large_detected() {
     let path = dir.path().join("Huge.java");
     let mut code = String::from("class Huge {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding line {}\n", i));
+        code.push_str(&format!("// padding line {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -298,8 +294,7 @@ fn file_too_large_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "File Too Large") || has_smell(&stdout, "Too Many Functions"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -331,7 +326,7 @@ fn hook_invalid_json_silent() {
 fn boolean_operators_increment_cc() {
     let debug = pulse_debug_code("class T {\n    void f(boolean a, boolean b, boolean c) {\n        if (a && b && c) {}\n    }\n}\n", "java");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -344,11 +339,11 @@ fn output_has_module_prefix() {
     let path = dir.path().join("Mod.java");
     let mut code = String::from("class Mod {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding {}\n", i));
+        code.push_str(&format!("// padding {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -356,7 +351,7 @@ fn output_has_module_prefix() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("Module:"), "got: {}", stdout);
+    assert!(stdout.contains("Module:"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -389,11 +384,11 @@ fn analysis_completes_under_500ms() {
     let path = dir.path().join("Perf.java");
     let mut code = String::from("class Perf {\n");
     for i in 0..25 {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..500 {
-        code.push_str(&format!("// line {}\n", i));
+        code.push_str(&format!("// line {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let start = std::time::Instant::now();
@@ -415,13 +410,12 @@ fn embedded_block_detected() {
     let mut code = String::from("class T {\n    String query() {\n        String q = \"\"\"\n");
     for i in 0..embedded_lines_above() {
         code.push_str(&format!(
-            "            SELECT field_{} FROM table_{}\n",
-            i, i
+            "            SELECT field_{i} FROM table_{i}\n"
         ));
     }
     code.push_str("            \"\"\";\n        return q;\n    }\n}\n");
     let out = pulse_check_code(&code, "java");
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -443,7 +437,7 @@ fn annotated_function_analyzed() {
         "class T {\n    @Override\n    void longArgs(int a, int b, int c, int d, int e, int f, int g, int h) {}\n}\n",
         "java",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================
@@ -473,7 +467,7 @@ fn switch_case_increments_cc() {
         ),
         "java",
     );
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -501,7 +495,7 @@ fn code_duplication_detected() {
         ),
         "java",
     );
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -557,8 +551,7 @@ fn nested_conditional_chunks_detected() {
     );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -572,7 +565,7 @@ fn declarations_above_threshold() {
     let path = dir.path().join("Decl.java");
     let mut code = String::new();
     for i in 0..declarations_above() {
-        code.push_str(&format!("class T{} {{}}\n", i));
+        code.push_str(&format!("class T{i} {{}}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -580,7 +573,7 @@ fn declarations_above_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Declarations"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Declarations"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -593,9 +586,9 @@ fn overall_function_size_below_threshold() {
     let path = dir.path().join("Size.java");
     let mut code = String::from("class Size {\n");
     for i in 0..2 {
-        code.push_str(&format!("    void lg{}() {{\n", i));
+        code.push_str(&format!("    void lg{i}() {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
@@ -615,9 +608,9 @@ fn overall_function_size_at_threshold() {
     let path = dir.path().join("Size2.java");
     let mut code = String::from("class Size2 {\n");
     for i in 0..3 {
-        code.push_str(&format!("    void lg{}() {{\n", i));
+        code.push_str(&format!("    void lg{i}() {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("        int x{} = {};\n", j, j));
+            code.push_str(&format!("        int x{j} = {j};\n"));
         }
         code.push_str("    }\n");
     }
@@ -630,8 +623,7 @@ fn overall_function_size_at_threshold() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Overall Function Size"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -645,11 +637,11 @@ fn god_class_requires_god_method() {
     let path = dir.path().join("GC.java");
     let mut code = String::from("class GC {\n");
     for i in 0..declarations_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     code.push_str("}\n");
     for i in 0..file_padding() {
-        code.push_str(&format!("// padding {}\n", i));
+        code.push_str(&format!("// padding {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -670,18 +662,18 @@ fn god_class_triggers_with_god_method() {
     let path = dir.path().join("GC2.java");
     let mut code = String::from("class GC2 {\n    void monster() {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("        if ({} > 0) {{}}\n", i));
+        code.push_str(&format!("        if ({i} > 0) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("        int y{} = {};\n", i, i));
+        code.push_str(&format!("        int y{i} = {i};\n"));
     }
     code.push_str("    }\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("    int fn{}() {{ return {}; }}\n", i, i));
+        code.push_str(&format!("    int fn{i}() {{ return {i}; }}\n"));
     }
     // Pad with actual code lines (not just comments) to ensure file is large
     for i in 0..file_padding() {
-        code.push_str(&format!("    static final int V{} = {};\n", i, i));
+        code.push_str(&format!("    static final int V{i} = {i};\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -714,7 +706,7 @@ fn lcom4_detects_low_cohesion() {
         ),
         "java",
     );
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 // ===========================================================================
@@ -727,7 +719,7 @@ fn annotated_class_method_analyzed() {
         "class T {\n    @Deprecated\n    void longArgs(int a, int b, int c, int d, int e, int f, int g, int h) {}\n}\n",
         "java",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================

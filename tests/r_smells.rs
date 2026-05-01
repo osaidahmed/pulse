@@ -12,7 +12,7 @@ const LANG: &str = "r";
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "complex_methods.r");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
@@ -24,7 +24,7 @@ fn output_has_function_line_numbers() {
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "production_service.r");
-    assert!(output.contains("Module:"), "got: {}", output);
+    assert!(output.contains("Module:"), "got: {output}");
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "complex_methods.r");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -42,7 +42,7 @@ fn issue_count_matches_findings() {
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.r");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn comments_only_file() {
 #[test]
 fn simple_func_not_flagged() {
     let out = pulse_check_code("add <- function(a, b) {\n  a + b\n}\n", "r");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -77,18 +77,18 @@ fn cc_base_case_is_1() {
 fn function_at_cc_boundary_flagged() {
     let mut code = String::from("f <- function(a, b, c, d, e, f2, g, h) {\n");
     for v in ["a", "b", "c", "d", "e", "f2", "g", "h"] {
-        code.push_str(&format!("  if ({} > 0) return(1)\n", v));
+        code.push_str(&format!("  if ({v} > 0) return(1)\n"));
     }
     code.push_str("  0\n}\n");
     let out = pulse_check_code(&code, "r");
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
 fn function_below_cc_boundary_not_flagged() {
     let mut code = String::from("f <- function(a, b, c, d, e, f2, g) {\n");
     for v in ["a", "b", "c", "d", "e", "f2", "g"] {
-        code.push_str(&format!("  if ({} > 0) return(1)\n", v));
+        code.push_str(&format!("  if ({v} > 0) return(1)\n"));
     }
     code.push_str("  0\n}\n");
     let out = pulse_check_code(&code, "r");
@@ -102,7 +102,7 @@ fn boolean_operators_increment_cc() {
         "r",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -112,7 +112,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.r");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "process_order"));
 }
 
@@ -120,7 +120,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_methods.r");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -129,10 +129,10 @@ fn god_method_detected() {
     let path = dir.path().join("god.r");
     let mut code = String::from("process_data_pipeline <- function(x) {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("  if (x > {}) return(1)\n", i));
+        code.push_str(&format!("  if (x > {i}) return(1)\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("  y{} <- {}\n", i, i));
+        code.push_str(&format!("  y{i} <- {i}\n"));
     }
     code.push_str("  0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -141,7 +141,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn large_method_detected() {
     let path = dir.path().join("large.r");
     let mut code = String::from("build_report <- function() {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("  x{} <- {}\n", i, i));
+        code.push_str(&format!("  x{i} <- {i}\n"));
     }
     code.push_str("  0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -161,7 +161,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {}", stdout
+        "got: {stdout}"
     );
 }
 
@@ -172,7 +172,7 @@ fn large_method_detected() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.r");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
     assert!(has_function(&output, "deeply_nested"));
 }
 
@@ -180,7 +180,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "deep_nesting.r");
     let depth = function_metric(&debug, "deeply_nested", "nesting").unwrap_or(0);
-    assert!(depth >= 4, "got: {}", depth);
+    assert!(depth >= 4, "got: {depth}");
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.r");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "create_user"));
 }
 
@@ -204,7 +204,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "excess_args.r");
     let args = function_metric(&debug, "create_user", "args").unwrap_or(0);
-    assert!(args >= 6, "got: {}", args);
+    assert!(args >= 6, "got: {args}");
 }
 
 #[test]
@@ -220,13 +220,13 @@ fn simple_func_in_excess_args_not_flagged() {
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.r");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.r");
-    assert!(has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 
 #[test]
@@ -234,7 +234,7 @@ fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.r");
     assert!(
         has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {}", output
+        "got: {output}"
     );
 }
 
@@ -244,9 +244,9 @@ fn overall_function_size_at_threshold() {
     let path = dir.path().join("size_at.r");
     let mut code = String::new();
     for i in 0..3 {
-        code.push_str(&format!("lg{} <- function() {{\n", i));
+        code.push_str(&format!("lg{i} <- function() {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("  x{} <- {}\n", j, j));
+            code.push_str(&format!("  x{j} <- {j}\n"));
         }
         code.push_str("  0\n}\n\n");
     }
@@ -256,7 +256,7 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 #[test]
@@ -265,9 +265,9 @@ fn overall_function_size_below_threshold() {
     let path = dir.path().join("size_below.r");
     let mut code = String::new();
     for i in 0..2 {
-        code.push_str(&format!("lg{} <- function() {{\n", i));
+        code.push_str(&format!("lg{i} <- function() {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("  x{} <- {}\n", j, j));
+            code.push_str(&format!("  x{j} <- {j}\n"));
         }
         code.push_str("  0\n}\n\n");
     }
@@ -307,7 +307,7 @@ fn complex_conditional_detected() {
     ), "r");
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
@@ -368,7 +368,7 @@ fn switch_increments_cc() {
         "}\n",
     ), "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "switch with 3 cases should have cc>=4, got: {}", cc);
+    assert!(cc >= 4, "switch with 3 cases should have cc>=4, got: {cc}");
 }
 
 #[test]
@@ -383,7 +383,7 @@ fn try_catch_increments_cc() {
         "}\n",
     ), "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "tryCatch with 2 handlers should have cc>=3, got: {}", cc);
+    assert!(cc >= 3, "tryCatch with 2 handlers should have cc>=3, got: {cc}");
 }
 
 #[test]
@@ -396,7 +396,7 @@ fn empty_try_catch_handler_detected() {
         "  )\n",
         "}\n",
     ), "r");
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -409,7 +409,7 @@ fn repeat_increments_cc() {
         "}\n",
     ), "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "repeat should add CC, got: {}", cc);
+    assert!(cc >= 2, "repeat should add CC, got: {cc}");
 }
 
 #[test]
@@ -419,7 +419,7 @@ fn for_loop_increments_cc() {
         "r",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "for should increment cc, got: {}", cc);
+    assert!(cc >= 2, "for should increment cc, got: {cc}");
 }
 
 #[test]
@@ -429,7 +429,7 @@ fn while_loop_increments_cc() {
         "r",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "while should increment cc, got: {}", cc);
+    assert!(cc >= 2, "while should increment cc, got: {cc}");
 }
 
 #[test]
@@ -446,25 +446,25 @@ fn else_if_increments_cc() {
         "}\n",
     ), "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "else-if should add CC, got: {}", cc);
+    assert!(cc >= 3, "else-if should add CC, got: {cc}");
 }
 
 #[test]
 fn function_name_from_assignment() {
     let debug = pulse_debug_code("my_func <- function(x) {\n  x + 1\n}\n", "r");
-    assert!(debug.contains("my_func"), "got: {}", debug);
+    assert!(debug.contains("my_func"), "got: {debug}");
 }
 
 #[test]
 fn global_assignment_operator() {
     let debug = pulse_debug_code("my_func <<- function(x) {\n  x + 1\n}\n", "r");
-    assert!(debug.contains("my_func"), "got: {}", debug);
+    assert!(debug.contains("my_func"), "got: {debug}");
 }
 
 #[test]
 fn global_conditionals_detected() {
     let output = run_check(LANG, "global_conditionals.r");
-    assert!(has_smell(&output, "Global Conditionals"), "got: {}", output);
+    assert!(has_smell(&output, "Global Conditionals"), "got: {output}");
 }
 
 #[test]
@@ -481,7 +481,7 @@ fn code_duplication_inline() {
         "  r <- r * 2\n  r\n",
         "}\n",
     ), "r");
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -516,7 +516,7 @@ fn nested_conditional_chunks_detected() {
     ), "r");
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
@@ -537,7 +537,7 @@ fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.r");
     assert!(
         has_smell(&output, "Constructor Over-Injection") || has_smell(&output, "Excess Arguments"),
-        "got: {}", output
+        "got: {output}"
     );
 }
 
@@ -547,7 +547,7 @@ fn large_method_loc_verification() {
     let path = dir.path().join("large_loc.r");
     let mut code = String::from("build_report <- function() {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("  x{} <- {}\n", i, i));
+        code.push_str(&format!("  x{i} <- {i}\n"));
     }
     code.push_str("  0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -557,7 +557,7 @@ fn large_method_loc_verification() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= threshold, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc >= threshold, got: {loc}");
 }
 
 #[test]
@@ -567,7 +567,7 @@ fn vectorized_and_not_cc() {
         "r",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "vectorized & should not increment CC, got: {}", cc);
+    assert_eq!(cc, 1, "vectorized & should not increment CC, got: {cc}");
 }
 
 #[test]
@@ -577,7 +577,7 @@ fn vectorized_or_not_cc() {
         "r",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "vectorized | should not increment CC, got: {}", cc);
+    assert_eq!(cc, 1, "vectorized | should not increment CC, got: {cc}");
 }
 
 // ===========================================================================
@@ -587,7 +587,7 @@ fn vectorized_or_not_cc() {
 #[test]
 fn production_service_complex_method() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "process_order"));
 }
 
@@ -595,39 +595,39 @@ fn production_service_complex_method() {
 fn production_service_process_order_cc_high() {
     let debug = run_debug(LANG, "production_service.r");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= 10, "production process_order should have high cc, got: {}", cc);
+    assert!(cc >= 10, "production process_order should have high cc, got: {cc}");
 }
 
 #[test]
 fn production_service_excess_args() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "process_order"));
 }
 
 #[test]
 fn production_service_deep_nesting() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn production_service_nested_chunks() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {}", output);
+    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {output}");
 }
 
 #[test]
 fn production_service_code_duplication() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn production_service_pipeline_complex() {
     let debug = run_debug(LANG, "production_service.r");
     let cc = function_metric(&debug, "process_data_pipeline", "cc").unwrap_or(0);
-    assert!(cc >= 10, "pipeline should be complex, got: {}", cc);
+    assert!(cc >= 10, "pipeline should be complex, got: {cc}");
 }
 
 #[test]
@@ -643,14 +643,14 @@ fn production_service_clean_helpers_not_flagged() {
 #[test]
 fn production_api_short_variable_names() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Short Variable Names"), "got: {}", output);
+    assert!(has_smell(&output, "Short Variable Names"), "got: {output}");
     assert!(has_function(&output, "process_event"));
 }
 
 #[test]
 fn production_api_complex_handler() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "handle_api_request"));
 }
 
@@ -658,38 +658,38 @@ fn production_api_complex_handler() {
 fn production_api_handler_cc_high() {
     let debug = run_debug(LANG, "production_api_service.r");
     let cc = function_metric(&debug, "handle_api_request", "cc").unwrap_or(0);
-    assert!(cc >= 15, "handler should have high cc, got: {}", cc);
+    assert!(cc >= 15, "handler should have high cc, got: {cc}");
 }
 
 #[test]
 fn production_api_empty_handler() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Empty Error Handler"), "got: {}", output);
+    assert!(has_smell(&output, "Empty Error Handler"), "got: {output}");
 }
 
 #[test]
 fn production_api_code_duplication() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn production_api_parse_query_deep_nesting() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn production_api_middleware_empty_catch() {
     let debug = run_debug(LANG, "production_api_service.r");
-    assert!(debug.contains("apply_middleware"), "should find apply_middleware, got: {}", debug);
+    assert!(debug.contains("apply_middleware"), "should find apply_middleware, got: {debug}");
 }
 
 #[test]
 fn production_api_multiple_issues() {
     let output = run_check(LANG, "production_api_service.r");
     let issue_count: usize = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(issue_count >= 5, "should have many issues, got: {}", issue_count);
+    assert!(issue_count >= 5, "should have many issues, got: {issue_count}");
 }
 
 // ===========================================================================
@@ -721,14 +721,14 @@ fn nesting_depth_3_not_flagged() {
         "  }\n",
         "}\n",
     ), "r");
-    assert!(!has_smell(&out, "Deep Nested"), "depth=3 should not flag, got: {}", out);
+    assert!(!has_smell(&out, "Deep Nested"), "depth=3 should not flag, got: {out}");
 }
 
 #[test]
 fn cc_8_not_flagged() {
     let mut code = String::from("f <- function(a, b, c, d, e, f2, g) {\n");
     for v in ["a", "b", "c", "d", "e", "f2", "g"] {
-        code.push_str(&format!("  if ({} > 0) return(1)\n", v));
+        code.push_str(&format!("  if ({v} > 0) return(1)\n"));
     }
     code.push_str("  0\n}\n");
     let out = pulse_check_code(&code, "r");
@@ -765,7 +765,7 @@ fn non_duplicate_functions_not_flagged() {
         "  total\n",
         "}\n",
     ), "r");
-    assert!(!has_smell(&out, "Code Duplication"), "structurally different functions should not trigger, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "structurally different functions should not trigger, got: {out}");
 }
 
 #[test]
@@ -833,7 +833,7 @@ fn six_args_triggers_excess() {
         "f <- function(a, b, c, d, e, g) {\n  a + b + c + d + e + g\n}\n",
         "r",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "6 args should trigger, got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "6 args should trigger, got: {out}");
 }
 
 #[test]
@@ -842,7 +842,7 @@ fn too_many_functions_detected() {
     let path = dir.path().join("many_fns.r");
     let mut code = String::new();
     for i in 0..functions_above() {
-        code.push_str(&format!("fn{} <- function(x) {{\n  x + {}\n}}\n\n", i, i));
+        code.push_str(&format!("fn{i} <- function(x) {{\n  x + {i}\n}}\n\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -850,7 +850,7 @@ fn too_many_functions_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Too Many Functions"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Too Many Functions"), "got: {stdout}");
 }
 
 #[test]
@@ -859,7 +859,7 @@ fn file_too_large_detected() {
     let path = dir.path().join("huge.r");
     let mut code = String::new();
     for i in 0..file_padding() {
-        code.push_str(&format!("x{} <- {}\n", i, i));
+        code.push_str(&format!("x{i} <- {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -867,7 +867,7 @@ fn file_too_large_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "File Too Large"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "File Too Large"), "got: {stdout}");
 }
 
 #[test]
@@ -876,9 +876,9 @@ fn overall_code_complexity_detected() {
     let path = dir.path().join("complex_total.r");
     let mut code = String::new();
     for i in 0..15 {
-        code.push_str(&format!("fn{} <- function(x) {{\n", i));
+        code.push_str(&format!("fn{i} <- function(x) {{\n"));
         for j in 0..8 {
-            code.push_str(&format!("  if (x > {}) return({})\n", j, j));
+            code.push_str(&format!("  if (x > {j}) return({j})\n"));
         }
         code.push_str("  0\n}\n\n");
     }
@@ -890,7 +890,7 @@ fn overall_code_complexity_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"),
-        "got: {}", stdout
+        "got: {stdout}"
     );
 }
 
@@ -898,14 +898,14 @@ fn overall_code_complexity_detected() {
 fn short_variable_names_inline() {
     let mut code = String::from("f <- function(data) {\n");
     for ch in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] {
-        code.push_str(&format!("  {} <- data[\"{}\"]\n", ch, ch));
+        code.push_str(&format!("  {ch} <- data[\"{ch}\"]\n"));
     }
     for i in 0..20 {
-        code.push_str(&format!("  x{} <- {}\n", i, i));
+        code.push_str(&format!("  x{i} <- {i}\n"));
     }
     code.push_str("  a + b + c + d + e + f + g + h\n}\n");
     let out = pulse_check_code(&code, "r");
-    assert!(has_smell(&out, "Short Variable Names"), "got: {}", out);
+    assert!(has_smell(&out, "Short Variable Names"), "got: {out}");
 }
 
 #[test]
@@ -926,16 +926,16 @@ fn short_vars_not_triggered_with_long_names() {
 fn duplicated_assertion_blocks_above_threshold() {
     let mut code = String::from("test_a <- function() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("  stopifnot({} > 0)\n", i));
+        code.push_str(&format!("  stopifnot({i} > 0)\n"));
     }
     code.push_str("}\n\ntest_b <- function() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("  stopifnot({} > 0)\n", i));
+        code.push_str(&format!("  stopifnot({i} > 0)\n"));
     }
     code.push_str("}\n");
     let out = pulse_check_code(&code, "r");
     assert!(
         has_smell(&out, "Duplicated Assertion Blocks") || has_smell(&out, "Large Assertion Block"),
-        "got: {}", out
+        "got: {out}"
     );
 }

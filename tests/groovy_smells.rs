@@ -12,7 +12,7 @@ const LANG: &str = "groovy";
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "complex_methods.groovy");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
@@ -24,7 +24,7 @@ fn output_has_function_line_numbers() {
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(output.contains("Module:"), "got: {}", output);
+    assert!(output.contains("Module:"), "got: {output}");
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "complex_methods.groovy");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -42,7 +42,7 @@ fn issue_count_matches_findings() {
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.groovy");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn simple_function_not_flagged() {
         "class T { int add(int a, int b) { return a + b } }\n",
         "groovy",
     );
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -100,7 +100,7 @@ fn function_at_cc_boundary_flagged() {
         ),
         "groovy",
     );
-    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn boolean_operators_increment_cc() {
         "groovy",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -142,7 +142,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.groovy");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -150,7 +150,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_methods.groovy");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -159,10 +159,10 @@ fn god_method_detected() {
     let path = dir.path().join("god.groovy");
     let mut code = String::from("class T {\n  int processDataPipeline(int x) {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x > {}) {{}}\n", i));
+        code.push_str(&format!("    if (x > {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    int y{} = {}\n", i, i));
+        code.push_str(&format!("    int y{i} = {i}\n"));
     }
     code.push_str("    return 0\n  }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -170,7 +170,7 @@ fn god_method_detected() {
         .args(["check", path.to_str().unwrap()])
         .output().expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -179,10 +179,10 @@ fn god_method_not_reported_as_separate() {
     let path = dir.path().join("god.groovy");
     let mut code = String::from("class T {\n  int processDataPipeline(int x) {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x > {}) {{}}\n", i));
+        code.push_str(&format!("    if (x > {i}) {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    int y{} = {}\n", i, i));
+        code.push_str(&format!("    int y{i} = {i}\n"));
     }
     code.push_str("    return 0\n  }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -201,7 +201,7 @@ fn large_method_detected() {
     let path = dir.path().join("large.groovy");
     let mut code = String::from("class T {\n  int bigFunc() {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("    int x{} = {}\n", i, i));
+        code.push_str(&format!("    int x{i} = {i}\n"));
     }
     code.push_str("    return 0\n  }\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -209,7 +209,7 @@ fn large_method_detected() {
         .args(["check", path.to_str().unwrap()])
         .output().expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Large Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Large Method"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -219,7 +219,7 @@ fn large_method_detected() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.groovy");
-    assert!(has_smell(&output, "Deep Nested Complexity"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested Complexity"), "got: {output}");
     assert!(has_function(&output, "deeplyNested"));
 }
 
@@ -227,7 +227,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "deep_nesting.groovy");
     let n = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(n >= 4, "nesting should be >= 4, got: {}", n);
+    assert!(n >= 4, "nesting should be >= 4, got: {n}");
 }
 
 #[test]
@@ -243,7 +243,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.groovy");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "createRecord"));
 }
 
@@ -251,7 +251,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "excess_args.groovy");
     let args = function_metric(&debug, "createRecord", "args").unwrap_or(0);
-    assert!(args >= 6, "args should be >= 6, got: {}", args);
+    assert!(args >= 6, "args should be >= 6, got: {args}");
 }
 
 // ===========================================================================
@@ -261,13 +261,13 @@ fn excess_args_count_correct() {
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.groovy");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.groovy");
-    assert!(has_smell(&output, "Large Embedded Block"), "got: {}", output);
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 
 #[test]
@@ -275,7 +275,7 @@ fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.groovy");
     assert!(
         has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {}", output
+        "got: {output}"
     );
 }
 
@@ -284,14 +284,14 @@ fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.groovy");
     assert!(
         has_smell(&output, "Low Cohesion") || has_smell(&output, "Code Duplication"),
-        "got: {}", output
+        "got: {output}"
     );
 }
 
 #[test]
 fn primitive_obsession_detected() {
     let output = run_check(LANG, "primitive_obsession.groovy");
-    assert!(has_smell(&output, "Primitive Obsession"), "got: {}", output);
+    assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 
 #[test]
@@ -299,10 +299,10 @@ fn overall_function_size_at_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("overall.groovy");
     let mut code = String::from("class T {\n");
-    for f in 0..t().large_fn_count + 1 {
-        code.push_str(&format!("  int func{}() {{\n", f));
+    for f in 0..=t().large_fn_count {
+        code.push_str(&format!("  int func{f}() {{\n"));
         for i in 0..t().large_fn_loc + 5 {
-            code.push_str(&format!("    int x{} = {}\n", i, i));
+            code.push_str(&format!("    int x{i} = {i}\n"));
         }
         code.push_str("    return 0\n  }\n\n");
     }
@@ -312,7 +312,7 @@ fn overall_function_size_at_threshold() {
         .args(["check", path.to_str().unwrap()])
         .output().expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Overall Function Size"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 #[test]
@@ -321,9 +321,9 @@ fn overall_function_size_below_threshold() {
     let path = dir.path().join("overall.groovy");
     let mut code = String::from("class T {\n");
     for f in 0..(t().large_fn_count as usize - 1) {
-        code.push_str(&format!("  int func{}() {{\n", f));
+        code.push_str(&format!("  int func{f}() {{\n"));
         for i in 0..large_fn_lines() {
-            code.push_str(&format!("    int x{} = {}\n", i, i));
+            code.push_str(&format!("    int x{i} = {i}\n"));
         }
         code.push_str("    return 0\n  }\n\n");
     }
@@ -345,7 +345,7 @@ fn hook_clean_file_silent() {
     let dir = fixtures_dir(LANG);
     let path = dir.join("clean.groovy");
     let output = run_hook(path.to_str().unwrap());
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -373,7 +373,7 @@ fn closure_not_walked() {
         "groovy",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(99);
-    assert_eq!(cc, 1, "closure body should not contribute to outer cc, got: {}", cc);
+    assert_eq!(cc, 1, "closure body should not contribute to outer cc, got: {cc}");
 }
 
 #[test]
@@ -392,7 +392,7 @@ fn gstring_embedded_block() {
         ),
         "groovy",
     );
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -411,7 +411,7 @@ fn class_method_name_prefixed() {
         "class Foo { void bar() { int x = 1 } }\n",
         "groovy",
     );
-    assert!(debug.contains("Foo.bar"), "got: {}", debug);
+    assert!(debug.contains("Foo.bar"), "got: {debug}");
 }
 
 #[test]
@@ -420,7 +420,7 @@ fn constructor_detected() {
         "class Foo { Foo(int x) { int y = x } }\n",
         "groovy",
     );
-    assert!(debug.contains("Foo.Foo"), "got: {}", debug);
+    assert!(debug.contains("Foo.Foo"), "got: {debug}");
 }
 
 #[test]
@@ -430,7 +430,7 @@ fn switch_case_increments_cc() {
         "groovy",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 3, "base 1 + 2 cases, got: {}", cc);
+    assert_eq!(cc, 3, "base 1 + 2 cases, got: {cc}");
 }
 
 #[test]
@@ -449,7 +449,7 @@ fn empty_catch_detected() {
         "class T { void f() { try { int x = 1 } catch (Exception e) { } } }\n",
         "groovy",
     );
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -485,8 +485,8 @@ fn nested_class_methods() {
         ),
         "groovy",
     );
-    assert!(debug.contains("Inner.work"), "got: {}", debug);
-    assert!(debug.contains("Outer.outerWork"), "got: {}", debug);
+    assert!(debug.contains("Inner.work"), "got: {debug}");
+    assert!(debug.contains("Outer.outerWork"), "got: {debug}");
 }
 
 // ===========================================================================
@@ -502,7 +502,7 @@ fn production_service_has_issues() {
 #[test]
 fn production_service_complex_method() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -510,39 +510,39 @@ fn production_service_complex_method() {
 fn production_service_process_order_cc_high() {
     let debug = run_debug(LANG, "production_service.groovy");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= 10, "got: {}", cc);
+    assert!(cc >= 10, "got: {cc}");
 }
 
 #[test]
 fn production_service_excess_args() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
 #[test]
 fn production_service_deep_nesting() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn production_service_nested_chunks() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {}", output);
+    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {output}");
 }
 
 #[test]
 fn production_service_code_duplication() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn production_service_pipeline_complex() {
     let debug = run_debug(LANG, "production_service.groovy");
     let cc = function_metric(&debug, "processDataPipeline", "cc").unwrap_or(0);
-    assert!(cc >= 10, "pipeline should be complex, got: {}", cc);
+    assert!(cc >= 10, "pipeline should be complex, got: {cc}");
 }
 
 #[test]
@@ -558,14 +558,14 @@ fn production_service_clean_helpers_not_flagged() {
 #[test]
 fn production_api_short_variable_names() {
     let output = run_check(LANG, "production_api_service.groovy");
-    assert!(has_smell(&output, "Short Variable Names"), "got: {}", output);
+    assert!(has_smell(&output, "Short Variable Names"), "got: {output}");
     assert!(has_function(&output, "processEvent"));
 }
 
 #[test]
 fn production_api_complex_handler() {
     let output = run_check(LANG, "production_api_service.groovy");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "handleApiRequest"));
 }
 
@@ -573,38 +573,38 @@ fn production_api_complex_handler() {
 fn production_api_handler_cc_high() {
     let debug = run_debug(LANG, "production_api_service.groovy");
     let cc = function_metric(&debug, "handleApiRequest", "cc").unwrap_or(0);
-    assert!(cc >= 15, "handler should have high cc, got: {}", cc);
+    assert!(cc >= 15, "handler should have high cc, got: {cc}");
 }
 
 #[test]
 fn production_api_empty_handler() {
     let output = run_check(LANG, "production_api_service.groovy");
-    assert!(has_smell(&output, "Empty Error Handler"), "got: {}", output);
+    assert!(has_smell(&output, "Empty Error Handler"), "got: {output}");
 }
 
 #[test]
 fn production_api_code_duplication() {
     let output = run_check(LANG, "production_api_service.groovy");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn production_api_deep_nesting() {
     let output = run_check(LANG, "production_api_service.groovy");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn production_api_middleware_empty_catch() {
     let debug = run_debug(LANG, "production_api_service.groovy");
-    assert!(debug.contains("applyMiddleware"), "got: {}", debug);
+    assert!(debug.contains("applyMiddleware"), "got: {debug}");
 }
 
 #[test]
 fn production_api_multiple_issues() {
     let output = run_check(LANG, "production_api_service.groovy");
     let issue_count: usize = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(issue_count >= 5, "should have many issues, got: {}", issue_count);
+    assert!(issue_count >= 5, "should have many issues, got: {issue_count}");
 }
 
 // ===========================================================================
@@ -639,14 +639,14 @@ fn nesting_depth_3_not_flagged() {
         ),
         "groovy",
     );
-    assert!(!has_smell(&out, "Deep Nested"), "depth=3 should not flag, got: {}", out);
+    assert!(!has_smell(&out, "Deep Nested"), "depth=3 should not flag, got: {out}");
 }
 
 #[test]
 fn cc_8_not_flagged() {
     let mut code = String::from("class T {\n  void f(int a, int b, int c, int d, int e, int g, int h) {\n");
     for v in ["a", "b", "c", "d", "e", "g", "h"] {
-        code.push_str(&format!("    if ({} > 0) {{ return }}\n", v));
+        code.push_str(&format!("    if ({v} > 0) {{ return }}\n"));
     }
     code.push_str("  }\n}\n");
     let out = pulse_check_code(&code, "groovy");
@@ -681,7 +681,7 @@ fn non_duplicate_functions_not_flagged() {
         ),
         "groovy",
     );
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -745,7 +745,7 @@ fn six_args_triggers_excess() {
         "class T { void f(int a, int b, int c, int d, int e, int g) { println(a) } }\n",
         "groovy",
     );
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -754,7 +754,7 @@ fn too_many_functions_detected() {
     let path = dir.path().join("many_fns.groovy");
     let mut code = String::from("class T {\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("  int fn{}(int x) {{ return x + {} }}\n", i, i));
+        code.push_str(&format!("  int fn{i}(int x) {{ return x + {i} }}\n"));
     }
     code.push_str("}\n");
     std::fs::write(&path, &code).unwrap();
@@ -762,7 +762,7 @@ fn too_many_functions_detected() {
         .args(["check", path.to_str().unwrap()])
         .output().expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "Too Many Functions"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "Too Many Functions"), "got: {stdout}");
 }
 
 #[test]
@@ -771,14 +771,14 @@ fn file_too_large_detected() {
     let path = dir.path().join("huge.groovy");
     let mut code = String::new();
     for i in 0..file_padding() {
-        code.push_str(&format!("int x{} = {}\n", i, i));
+        code.push_str(&format!("int x{i} = {i}\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output().expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "File Too Large"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "File Too Large"), "got: {stdout}");
 }
 
 #[test]
@@ -787,9 +787,9 @@ fn overall_code_complexity_detected() {
     let path = dir.path().join("complex_total.groovy");
     let mut code = String::from("class T {\n");
     for i in 0..15 {
-        code.push_str(&format!("  int fn{}(int x) {{\n", i));
+        code.push_str(&format!("  int fn{i}(int x) {{\n"));
         for j in 0..8 {
-            code.push_str(&format!("    if (x > {}) {{ return {} }}\n", j, j));
+            code.push_str(&format!("    if (x > {j}) {{ return {j} }}\n"));
         }
         code.push_str("    return 0\n  }\n\n");
     }
@@ -801,7 +801,7 @@ fn overall_code_complexity_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"),
-        "got: {}", stdout
+        "got: {stdout}"
     );
 }
 
@@ -809,14 +809,14 @@ fn overall_code_complexity_detected() {
 fn short_variable_names_inline() {
     let mut code = String::from("class T {\n  void f(int data) {\n");
     for ch in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] {
-        code.push_str(&format!("    int {} = data + 1\n", ch));
+        code.push_str(&format!("    int {ch} = data + 1\n"));
     }
     for i in 0..20 {
-        code.push_str(&format!("    int x{} = {}\n", i, i));
+        code.push_str(&format!("    int x{i} = {i}\n"));
     }
     code.push_str("  }\n}\n");
     let out = pulse_check_code(&code, "groovy");
-    assert!(has_smell(&out, "Short Variable Names"), "got: {}", out);
+    assert!(has_smell(&out, "Short Variable Names"), "got: {out}");
 }
 
 #[test]
@@ -841,25 +841,25 @@ fn short_vars_not_triggered_with_long_names() {
 fn duplicated_assertion_blocks_above_threshold() {
     let mut code = String::from("class T {\n  void testA() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    assert {} > 0\n", i));
+        code.push_str(&format!("    assert {i} > 0\n"));
     }
     code.push_str("  }\n  void testB() {\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    assert {} > 0\n", i));
+        code.push_str(&format!("    assert {i} > 0\n"));
     }
     code.push_str("  }\n}\n");
     let out = pulse_check_code(&code, "groovy");
     assert!(
         has_smell(&out, "Duplicated Assertion Blocks") || has_smell(&out, "Large Assertion Block")
             || has_smell(&out, "Code Duplication"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "production_service.groovy");
-    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {}", output);
+    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {output}");
 }
 
 // ===========================================================================
@@ -884,13 +884,13 @@ fn complex_conditional_detected() {
     );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}", out
+        "got: {out}"
     );
 }
 
 #[test]
 fn test_file_analyzed() {
-    let output = run_check(LANG, "test_smells.groovy");
+    let _output = run_check(LANG, "test_smells.groovy");
     let debug = run_debug(LANG, "test_smells.groovy");
     assert!(debug.contains("testAdd"), "test methods should be parsed");
 }

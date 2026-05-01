@@ -25,8 +25,8 @@ fn py_production_god_method_has_high_cc_and_loc() {
     let debug = run_debug("python", "production_service.py");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "process_order", "loc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
-    assert!(loc >= 50, "loc should be >= 50, got: {}", loc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
+    assert!(loc >= 50, "loc should be >= 50, got: {loc}");
 }
 
 #[test]
@@ -86,8 +86,7 @@ fn py_production_clean_functions_not_flagged_individually() {
         .collect();
     assert!(
         function_lines.is_empty(),
-        "get_user should have no individual smells, got: {:?}",
-        function_lines
+        "get_user should have no individual smells, got: {function_lines:?}"
     );
 }
 
@@ -166,8 +165,8 @@ fn lua_production_complex_method_has_high_cc_and_loc() {
     let debug = run_debug("lua", "production_service.lua");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "processOrder", "loc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
-    assert!(loc >= 40, "loc should be >= 40, got: {}", loc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
+    assert!(loc >= 40, "loc should be >= 40, got: {loc}");
 }
 
 #[test]
@@ -220,8 +219,7 @@ fn lua_production_clean_functions_not_flagged_individually() {
         .collect();
     assert!(
         function_lines.is_empty(),
-        "getOrder should have no individual smells, got: {:?}",
-        function_lines
+        "getOrder should have no individual smells, got: {function_lines:?}"
     );
 }
 
@@ -287,8 +285,8 @@ fn cobol_production_complex_method_has_high_cc_and_loc() {
     let debug = run_debug("cobol", "production_service.cob");
     let cc = function_metric(&debug, "PROCESS-ORDER", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "PROCESS-ORDER", "loc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
-    assert!(loc >= 40, "loc should be >= 40, got: {}", loc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
+    assert!(loc >= 40, "loc should be >= 40, got: {loc}");
 }
 
 #[test]
@@ -347,8 +345,7 @@ fn cobol_production_clean_functions_not_flagged_individually() {
         .collect();
     assert!(
         function_lines.is_empty(),
-        "GET-ORDER should have no individual smells, got: {:?}",
-        function_lines
+        "GET-ORDER should have no individual smells, got: {function_lines:?}"
     );
 }
 
@@ -380,9 +377,9 @@ fn cobol_api_production_handler_duplication() {
 fn cobol_api_production_evaluate_metrics() {
     let debug = run_debug("cobol", "production_api_service.cob");
     let cc = function_metric(&debug, "HANDLE-REQUEST", "cc").unwrap_or(0);
-    assert!(cc >= 5, "HANDLE-REQUEST should have high cc from EVALUATE, got: {}", cc);
+    assert!(cc >= 5, "HANDLE-REQUEST should have high cc from EVALUATE, got: {cc}");
     let arms = function_metric(&debug, "HANDLE-REQUEST", "str_match").unwrap_or(0);
-    assert!(arms >= 4, "HANDLE-REQUEST should have WHEN arms, got: {}", arms);
+    assert!(arms >= 4, "HANDLE-REQUEST should have WHEN arms, got: {arms}");
 }
 
 #[test]
@@ -413,7 +410,7 @@ fn d_production_complex_method() {
 fn d_production_complex_method_has_high_cc() {
     let debug = run_debug("d", "production_service.d");
     let cc = function_metric(&debug, "PaymentService.processPayment", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -425,7 +422,7 @@ fn d_production_exact_duplication() {
 #[test]
 fn d_production_low_cohesion() {
     let output = run_check("d", "production_service.d");
-    assert!(has_smell(&output, "Low Cohesion"), "got: {}", output);
+    assert!(has_smell(&output, "Low Cohesion"), "got: {output}");
 }
 
 #[test]
@@ -448,7 +445,7 @@ fn d_api_production_complex_handler() {
 fn d_api_production_string_switch() {
     let debug = run_debug("d", "production_api_service.d");
     let arms = function_metric(&debug, "routeRequest", "str_match").unwrap_or(0);
-    assert!(arms >= 6, "routeRequest should have string switch arms, got: {}", arms);
+    assert!(arms >= 6, "routeRequest should have string switch arms, got: {arms}");
 }
 
 #[test]

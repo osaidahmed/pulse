@@ -25,7 +25,7 @@ fn debug_shows_module_and_function_metrics() {
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(x):\n    if x > 0:\n        return 1\n    return 0\n").unwrap();
     let (_, stderr, _) = pulse(&["debug", p.to_str().unwrap()]);
-    assert!(stderr.contains("Module:"), "should show module line, got: {}", stderr);
+    assert!(stderr.contains("Module:"), "should show module line, got: {stderr}");
     assert!(stderr.contains("cc="), "should show cc metric");
     assert!(stderr.contains("cogc="), "should show cogc metric");
     assert!(stderr.contains("short_vars="), "should show short_vars metric");
@@ -60,16 +60,16 @@ fn budget_shows_headroom() {
 #[test]
 fn budget_new_shows_thresholds() {
     let (_, stderr, _) = pulse(&["budget", "--new"]);
-    assert!(stderr.contains("max functions:"), "got: {}", stderr);
-    assert!(stderr.contains("max LOC:"), "got: {}", stderr);
-    assert!(stderr.contains("max total cc:"), "got: {}", stderr);
-    assert!(stderr.contains("per-function:"), "got: {}", stderr);
+    assert!(stderr.contains("max functions:"), "got: {stderr}");
+    assert!(stderr.contains("max LOC:"), "got: {stderr}");
+    assert!(stderr.contains("max total cc:"), "got: {stderr}");
+    assert!(stderr.contains("per-function:"), "got: {stderr}");
 }
 
 #[test]
 fn budget_nonexistent_file_shows_error() {
     let (_, stderr, _) = pulse(&["budget", "/no/such/file.rs"]);
-    assert!(stderr.contains("unsupported or unreadable"), "got: {}", stderr);
+    assert!(stderr.contains("unsupported or unreadable"), "got: {stderr}");
 }
 
 // ===========================================================================
@@ -87,7 +87,7 @@ fn check_all_finds_smells_in_directory() {
         .output()
         .expect("failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("Excess Arguments"), "should find smell, got: {}", stdout);
+    assert!(stdout.contains("Excess Arguments"), "should find smell, got: {stdout}");
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn check_all_skips_hidden_dirs() {
         .output()
         .expect("failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.is_empty(), "hidden dir should be skipped, got: {}", stdout);
+    assert!(stdout.is_empty(), "hidden dir should be skipped, got: {stdout}");
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn check_all_skips_test_files_by_default() {
         .output()
         .expect("failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.is_empty(), "test files should be skipped, got: {}", stdout);
+    assert!(stdout.is_empty(), "test files should be skipped, got: {stdout}");
     assert!(output.status.success(), "no findings → exit 0");
 }
 
@@ -148,7 +148,7 @@ fn check_all_includes_tests_with_flag() {
         .output()
         .expect("failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("Excess Arguments"), "test should be analyzed with --include-tests, got: {}", stdout);
+    assert!(stdout.contains("Excess Arguments"), "test should be analyzed with --include-tests, got: {stdout}");
 }
 
 #[test]
@@ -167,7 +167,7 @@ fn check_all_skips_test_files_does_not_skip_lookalikes() {
         .expect("failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
     for name in &["attestation.py", "contestant.py", "manifest.py", "latest.py"] {
-        assert!(stdout.contains(name), "production file {} should be analyzed, got: {}", name, stdout);
+        assert!(stdout.contains(name), "production file {name} should be analyzed, got: {stdout}");
     }
 }
 
@@ -177,7 +177,7 @@ fn check_explicit_test_file_still_analyzes() {
     let p = dir.path().join("test_foo.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains("Excess Arguments"), "explicit check on test file should analyze, got: {}", stdout);
+    assert!(stdout.contains("Excess Arguments"), "explicit check on test file should analyze, got: {stdout}");
 }
 
 // ===========================================================================
@@ -188,7 +188,7 @@ fn check_explicit_test_file_still_analyzes() {
 fn no_args_shows_usage() {
     let (_, stderr, code) = pulse(&[]);
     assert_eq!(code, 1);
-    assert!(stderr.contains("usage:"), "should show usage, got: {}", stderr);
+    assert!(stderr.contains("usage:"), "should show usage, got: {stderr}");
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn large_struct_detected_in_rust() {
     code.push_str("}\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains("Large Struct"), "should detect large struct, got: {}", stdout);
+    assert!(stdout.contains("Large Struct"), "should detect large struct, got: {stdout}");
     assert!(stdout.contains("15 fields"), "should show field count");
     assert!(stdout.contains(&format!("threshold: {}", t().max_struct_fields)), "should show threshold");
 }
@@ -240,7 +240,7 @@ fn small_struct_not_flagged() {
     let p = dir.path().join("t.rs");
     std::fs::write(&p, "struct Point {\n    x: f64,\n    y: f64,\n}\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(!stdout.contains("Large Struct"), "small struct should not be flagged, got: {}", stdout);
+    assert!(!stdout.contains("Large Struct"), "small struct should not be flagged, got: {stdout}");
 }
 
 #[test]
@@ -255,7 +255,7 @@ fn short_vars_detected_in_python() {
     code.push_str("    return 0\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains("Short Variable Names"), "should detect short vars, got: {}", stdout);
+    assert!(stdout.contains("Short Variable Names"), "should detect short vars, got: {stdout}");
     assert!(stdout.contains(&format!("threshold: {}", t().short_var_max_count)), "should show threshold");
 }
 
@@ -270,7 +270,7 @@ fn short_vars_exempt_loop_counters() {
     code.push_str("    return 0\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(!stdout.contains("Short Variable Names"), "exempt vars should not trigger, got: {}", stdout);
+    assert!(!stdout.contains("Short Variable Names"), "exempt vars should not trigger, got: {stdout}");
 }
 
 #[test]
@@ -279,7 +279,7 @@ fn short_vars_not_flagged_in_short_function() {
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f():\n    a = 1\n    b = 2\n    c = 3\n    d = 4\n    return a\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(!stdout.contains("Short Variable Names"), "short function should not flag, got: {}", stdout);
+    assert!(!stdout.contains("Short Variable Names"), "short function should not flag, got: {stdout}");
 }
 
 #[test]
@@ -295,7 +295,7 @@ fn stringly_typed_detected_in_rust() {
 }"#;
     std::fs::write(&p, code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains("Stringly-Typed Switch"), "should detect string match, got: {}", stdout);
+    assert!(stdout.contains("Stringly-Typed Switch"), "should detect string match, got: {stdout}");
     assert!(stdout.contains(&format!("threshold: {}", t().max_string_match_arms)), "should show threshold");
 }
 
@@ -312,7 +312,7 @@ fn few_string_match_arms_not_flagged() {
 }"#;
     std::fs::write(&p, code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(!stdout.contains("Stringly-Typed"), "few arms should not flag, got: {}", stdout);
+    assert!(!stdout.contains("Stringly-Typed"), "few arms should not flag, got: {stdout}");
 }
 
 #[test]
@@ -324,7 +324,7 @@ fn threshold_values_shown_in_complex_method() {
     code.push_str("    return x\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains("threshold:"), "complex method should show threshold, got: {}", stdout);
+    assert!(stdout.contains("threshold:"), "complex method should show threshold, got: {stdout}");
 }
 
 #[test]
@@ -333,5 +333,5 @@ fn threshold_values_shown_in_excess_args() {
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains(&format!("threshold: {}", t().arg_max)), "excess args should show threshold, got: {}", stdout);
+    assert!(stdout.contains(&format!("threshold: {}", t().arg_max)), "excess args should show threshold, got: {stdout}");
 }

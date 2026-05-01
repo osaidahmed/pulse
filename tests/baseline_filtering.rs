@@ -96,20 +96,20 @@ fn new_excess_args_reported_across_languages() {
     // Python
     let e = Env::new("t.py", "def f(a, b, c, d, e, f, g, h):\n    return a\n");
     let out = e.edit("def f(a, b):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
-    assert!(out.contains("excess arguments"), "Python: {}", out);
+    assert!(out.contains("excess arguments"), "Python: {out}");
     // TypeScript
     let e = Env::new("t.ts",
         "function f(a: number, b: number, c: number, d: number, e: number, f2: number, g: number, h: number): number { return a; }\n");
     let out = e.edit(
         "function f(a: number): number { return a; }",
         "function f(a: number, b: number, c: number, d: number, e: number, f2: number, g: number, h: number): number { return a; }");
-    assert!(out.contains("excess arguments"), "TypeScript: {}", out);
+    assert!(out.contains("excess arguments"), "TypeScript: {out}");
     // Rust
     let e = Env::new("t.rs",
         "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }\n");
     let out = e.edit("fn f(a: i32) -> i32 { a }",
         "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }");
-    assert!(out.contains("excess arguments"), "Rust: {}", out);
+    assert!(out.contains("excess arguments"), "Rust: {out}");
 }
 
 #[test]
@@ -119,14 +119,14 @@ fn worsened_cc_reported() {
     code.push_str("    if x > 99:\n        pass\n    return x\n");
     let e = Env::new("t.py", &code);
     let out = e.edit("    return x", "    if x > 99:\n        pass\n    return x");
-    assert!(out.contains("complex method"), "worsened cc should be reported, got: {}", out);
+    assert!(out.contains("complex method"), "worsened cc should be reported, got: {out}");
 }
 
 #[test]
 fn write_mode_reports_all_new_findings() {
     let e = Env::new("t.py", "def f(a, b, c, d, e, f, g, h):\n    return a\n");
     let out = e.write_hook();
-    assert!(out.contains("excess arguments"), "write mode should report all, got: {}", out);
+    assert!(out.contains("excess arguments"), "write mode should report all, got: {out}");
 }
 
 // ===========================================================================
@@ -152,8 +152,8 @@ fn only_newly_smelly_function_in_mixed_file() {
     ));
     let out = e.edit(
         "def func_b(a, b):\n    return a", "def func_b(a, b, c, d, e, f, g, h):\n    return a");
-    assert!(out.contains("func_b"), "new func_b smell should appear, got: {}", out);
-    assert!(!out.contains("func_a"), "preexisting func_a should NOT appear, got: {}", out);
+    assert!(out.contains("func_b"), "new func_b smell should appear, got: {out}");
+    assert!(!out.contains("func_a"), "preexisting func_a should NOT appear, got: {out}");
 }
 
 // ===========================================================================
@@ -255,7 +255,7 @@ fn stop_blocks_on_module_regression() {
     for i in 0..(Thresholds::default().file_loc_warning as usize + 20) { big.push_str(&format!("x_{i} = {i}\n")); }
     std::fs::write(&e.path, &big).unwrap();
     let out = e.stop();
-    assert!(out.contains("file too large"), "should report regression, got: {}", out);
+    assert!(out.contains("file too large"), "should report regression, got: {out}");
     let v: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
     assert_eq!(v["decision"], "block");
 }

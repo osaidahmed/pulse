@@ -12,7 +12,7 @@ const LANG: &str = "swift";
 #[test]
 fn output_starts_with_pulse() {
     let output = run_check(LANG, "complex_methods.swift");
-    assert!(output.starts_with("pulse:"), "got: {}", output);
+    assert!(output.starts_with("pulse:"), "got: {output}");
 }
 
 #[test]
@@ -26,7 +26,7 @@ fn output_has_function_line_numbers() {
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "production_service.swift");
-    assert!(output.contains("Module:"), "got: {}", output);
+    assert!(output.contains("Module:"), "got: {output}");
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn issue_count_matches_findings() {
     let output = run_check(LANG, "complex_methods.swift");
     let first = output.lines().next().unwrap_or("");
     let findings = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(first.contains(&format!("{} issue", findings)));
+    assert!(first.contains(&format!("{findings} issue")));
 }
 
 // ===========================================================================
@@ -44,7 +44,7 @@ fn issue_count_matches_findings() {
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.swift");
-    assert!(output.is_empty(), "got: {}", output);
+    assert!(output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn simple_func_not_flagged() {
         "func add(a: Int, b: Int) -> Int {\n    return a + b\n}\n",
         "swift",
     );
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 // ===========================================================================
@@ -102,8 +102,7 @@ fn function_at_cc_boundary_flagged() {
     );
     assert!(
         has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {}",
-        out
+        "cc=9 should trigger, got: {out}"
     );
 }
 
@@ -134,7 +133,7 @@ fn boolean_operators_increment_cc() {
         "swift",
     );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 // ===========================================================================
@@ -144,7 +143,7 @@ fn boolean_operators_increment_cc() {
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_methods.swift");
-    assert!(has_smell(&output, "Complex Method"), "got: {}", output);
+    assert!(has_smell(&output, "Complex Method"), "got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -152,7 +151,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_methods.swift");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= 9, "cc should be >= 9, got: {}", cc);
+    assert!(cc >= 9, "cc should be >= 9, got: {cc}");
 }
 
 #[test]
@@ -161,10 +160,10 @@ fn god_method_detected() {
     let path = dir.path().join("god.swift");
     let mut code = String::from("func processDataPipeline(x: Int) -> Int {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if x > {} {{}}\n", i));
+        code.push_str(&format!("    if x > {i} {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let y{} = {}\n", i, i));
+        code.push_str(&format!("    let y{i} = {i}\n"));
     }
     code.push_str("    return 0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -173,7 +172,7 @@ fn god_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(has_smell(&stdout, "God Method"), "got: {}", stdout);
+    assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -182,10 +181,10 @@ fn god_method_not_reported_as_separate() {
     let path = dir.path().join("god2.swift");
     let mut code = String::from("func processDataPipeline(x: Int) -> Int {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if x > {} {{}}\n", i));
+        code.push_str(&format!("    if x > {i} {{}}\n"));
     }
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let y{} = {}\n", i, i));
+        code.push_str(&format!("    let y{i} = {i}\n"));
     }
     code.push_str("    return 0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -209,7 +208,7 @@ fn large_method_detected() {
     let path = dir.path().join("large.swift");
     let mut code = String::from("func buildReport() -> Int {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let x{} = {}\n", i, i));
+        code.push_str(&format!("    let x{i} = {i}\n"));
     }
     code.push_str("    return 0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -220,8 +219,7 @@ fn large_method_detected() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -232,7 +230,7 @@ fn large_method_detected() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.swift");
-    assert!(has_smell(&output, "Deep Nested"), "got: {}", output);
+    assert!(has_smell(&output, "Deep Nested"), "got: {output}");
     assert!(has_function(&output, "deeplyNested"));
 }
 
@@ -240,7 +238,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "deep_nesting.swift");
     let depth = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(depth > 4, "got: {}", depth);
+    assert!(depth > 4, "got: {depth}");
 }
 
 #[test]
@@ -256,7 +254,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.swift");
-    assert!(has_smell(&output, "Excess Arguments"), "got: {}", output);
+    assert!(has_smell(&output, "Excess Arguments"), "got: {output}");
     assert!(has_function(&output, "createUser"));
 }
 
@@ -264,7 +262,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "excess_args.swift");
     let args = function_metric(&debug, "createUser", "args").unwrap_or(0);
-    assert!(args >= 6, "got: {}", args);
+    assert!(args >= 6, "got: {args}");
 }
 
 // ===========================================================================
@@ -274,7 +272,7 @@ fn excess_args_count_correct() {
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.swift");
-    assert!(has_smell(&output, "Code Duplication"), "got: {}", output);
+    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
@@ -282,8 +280,7 @@ fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.swift");
     assert!(
         has_smell(&output, "Large Embedded Block"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -292,8 +289,7 @@ fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.swift");
     assert!(
         has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -304,8 +300,7 @@ fn low_cohesion_detected() {
         has_smell(&output, "Low Cohesion")
             || has_smell(&output, "Too Many Functions")
             || !output.is_empty(),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -314,8 +309,7 @@ fn primitive_obsession_detected() {
     let output = run_check(LANG, "primitive_obsession.swift");
     assert!(
         has_smell(&output, "Primitive Obsession") || has_smell(&output, "Excess Arguments"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -325,9 +319,9 @@ fn overall_function_size_at_threshold() {
     let path = dir.path().join("size_at.swift");
     let mut code = String::new();
     for i in 0..3 {
-        code.push_str(&format!("func lg{}() -> Int {{\n", i));
+        code.push_str(&format!("func lg{i}() -> Int {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("    let x{} = {}\n", j, j));
+            code.push_str(&format!("    let x{j} = {j}\n"));
         }
         code.push_str("    return 0\n}\n\n");
     }
@@ -339,8 +333,7 @@ fn overall_function_size_at_threshold() {
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(
         has_smell(&stdout, "Overall Function Size"),
-        "got: {}",
-        stdout
+        "got: {stdout}"
     );
 }
 
@@ -350,9 +343,9 @@ fn overall_function_size_below_threshold() {
     let path = dir.path().join("size_below.swift");
     let mut code = String::new();
     for i in 0..2 {
-        code.push_str(&format!("func lg{}() -> Int {{\n", i));
+        code.push_str(&format!("func lg{i}() -> Int {{\n"));
         for j in 0..45 {
-            code.push_str(&format!("    let x{} = {}\n", j, j));
+            code.push_str(&format!("    let x{j} = {j}\n"));
         }
         code.push_str("    return 0\n}\n\n");
     }
@@ -398,8 +391,7 @@ fn complex_conditional_detected() {
     );
     assert!(
         has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -477,7 +469,7 @@ fn switch_case_increments_cc() {
         ),
         "swift",
     );
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -503,8 +495,7 @@ fn init_detected_as_constructor() {
     let output = run_check(LANG, "excess_args.swift");
     assert!(
         has_smell(&output, "Constructor Over-Injection"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -525,8 +516,7 @@ fn extension_method_attributed_to_type() {
     );
     assert!(
         debug.contains("Point.magnitude"),
-        "extension method should be attributed, got: {}",
-        debug
+        "extension method should be attributed, got: {debug}"
     );
 }
 
@@ -539,8 +529,7 @@ fn global_conditionals_detected() {
     let output = run_check(LANG, "global_conditionals.swift");
     assert!(
         has_smell(&output, "Global Conditionals"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -567,8 +556,7 @@ fn constructor_over_injection_detected() {
     assert!(
         has_smell(&output, "Constructor Over-Injection")
             || has_smell(&output, "Excess Arguments"),
-        "got: {}",
-        output
+        "got: {output}"
     );
 }
 
@@ -592,7 +580,7 @@ fn large_method_loc_at_least_65() {
     let path = dir.path().join("large_loc.swift");
     let mut code = String::from("func buildReport() -> Int {\n");
     for i in 0..fn_padding() {
-        code.push_str(&format!("    let x{} = {}\n", i, i));
+        code.push_str(&format!("    let x{i} = {i}\n"));
     }
     code.push_str("    return 0\n}\n");
     std::fs::write(&path, &code).unwrap();
@@ -602,7 +590,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {}", loc);
+    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
 }
 
 // ===========================================================================
@@ -632,7 +620,7 @@ fn code_duplication_inline() {
         ),
         "swift",
     );
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -679,8 +667,7 @@ fn nested_conditional_chunks_detected() {
     );
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -695,7 +682,7 @@ fn for_in_increments_cc() {
         "swift",
     );
     let cc = function_metric(&debug, "sum", "cc").unwrap_or(0);
-    assert!(cc >= 2, "for-in should increment cc, got: {}", cc);
+    assert!(cc >= 2, "for-in should increment cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -716,8 +703,7 @@ fn method_attributed_to_class() {
     );
     assert!(
         debug.contains("Svc.handle"),
-        "method should be attributed to class, got: {}",
-        debug
+        "method should be attributed to class, got: {debug}"
     );
 }
 
@@ -737,7 +723,6 @@ fn primitive_obsession_inline() {
     );
     assert!(
         has_smell(&out, "Primitive Obsession") || has_smell(&out, "Excess Arguments"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }

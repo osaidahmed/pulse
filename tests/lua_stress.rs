@@ -1,7 +1,6 @@
 mod common;
 
 use common::*;
-use std::process::Command;
 
 lang_helpers!("lua");
 
@@ -63,14 +62,14 @@ fn cc_counts_or() {
 fn cc_chained_boolean() {
     let out = debug("function f(a, b, c)\n    if a and b or c then\n        return true\n    end\n    return false\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean_4way() {
     let out = debug("function f(a, b, c, d)\n    if a and b and c and d then\n        return true\n    end\n    return false\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 5, "got: {}", cc);
+    assert!(cc >= 5, "got: {cc}");
 }
 
 #[test]
@@ -107,7 +106,7 @@ fn cc_combined_for_and_if() {
 fn cc_repeat_with_boolean_condition() {
     let out = debug("function f(x, y)\n    repeat\n        x = x + 1\n    until x > 10 or y\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 // ===========================================================================
@@ -124,42 +123,42 @@ fn cogc_flat_branches() {
 fn cogc_nested_ifs() {
     let out = debug("function f(a, b)\n    if a then\n        if b then end\n    end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "nested ifs should have cogc >= 3, got: {}", cogc);
+    assert!(cogc >= 3, "nested ifs should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_elseif_no_extra_nesting() {
     let out = debug("function f(x)\n    if x > 0 then\n    elseif x < 0 then\n    end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(99);
-    assert!(cogc <= 3, "elseif should not add excessive nesting, got: {}", cogc);
+    assert!(cogc <= 3, "elseif should not add excessive nesting, got: {cogc}");
 }
 
 #[test]
 fn cogc_else_flat() {
     let out = debug("function f(x)\n    if x then\n    else\n    end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "else should add flat increment, got: {}", cogc);
+    assert!(cogc >= 2, "else should add flat increment, got: {cogc}");
 }
 
 #[test]
 fn cogc_for_loop_nested() {
     let out = debug("function f(t)\n    for _, v in ipairs(t) do\n        if v > 0 then end\n    end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "for+nested if should have cogc >= 3, got: {}", cogc);
+    assert!(cogc >= 3, "for+nested if should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("function f(a, b)\n    if a and b then end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "boolean op should add cogc, got: {}", cogc);
+    assert!(cogc >= 2, "boolean op should add cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("function f(a, b, c)\n    if a and b or c then end\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "mixed boolean ops should add more cogc, got: {}", cogc);
+    assert!(cogc >= 3, "mixed boolean ops should add more cogc, got: {cogc}");
 }
 
 #[test]
@@ -170,7 +169,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "cogc should trigger, got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "cogc should trigger, got: {out}");
 }
 
 #[test]
@@ -183,7 +182,7 @@ fn cogc_below_threshold_no_smell() {
 fn cogc_repeat_until_nested() {
     let out = debug("function f(x)\n    repeat\n        if x > 0 then end\n        x = x + 1\n    until x > 10\nend\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "repeat with nested if should have cogc >= 3, got: {}", cogc);
+    assert!(cogc >= 3, "repeat with nested if should have cogc >= 3, got: {cogc}");
 }
 
 // ===========================================================================
@@ -254,8 +253,7 @@ fn bumpy_road_two_bumps() {
     ));
     assert!(
         has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {}",
-        out
+        "got: {out}"
     );
 }
 
@@ -295,7 +293,7 @@ fn args_five_at_threshold() {
 #[test]
 fn args_six_over_threshold() {
     let out = check("function f(a, b, c, d, e, g)\n    return 0\nend\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -329,13 +327,13 @@ fn loc_multiline() {
 #[test]
 fn loc_comments_excluded_module() {
     let out = debug("-- comment\nfunction f()\n    return 1\nend\n");
-    assert!(out.contains("3 LOC"), "comments should be excluded, got: {}", out);
+    assert!(out.contains("3 LOC"), "comments should be excluded, got: {out}");
 }
 
 #[test]
 fn loc_empty_lines_excluded_module() {
     let out = debug("\n\nfunction f()\n    return 1\nend\n\n");
-    assert!(out.contains("3 LOC"), "empty lines should be excluded, got: {}", out);
+    assert!(out.contains("3 LOC"), "empty lines should be excluded, got: {out}");
 }
 
 // ===========================================================================
@@ -346,11 +344,11 @@ fn loc_empty_lines_excluded_module() {
 fn embedded_large_long_string() {
     let mut code = String::from("function f()\n    return [[\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        line {}\n", i));
+        code.push_str(&format!("        line {i}\n"));
     }
     code.push_str("    ]]\nend\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -369,7 +367,7 @@ fn exact_duplication_detected() {
         "function a(d)\n    local r = 0\n    for _, v in ipairs(d) do\n        r = r + v\n    end\n    r = r * 2\n    return r\nend\n\n",
         "function b(d)\n    local r = 0\n    for _, v in ipairs(d) do\n        r = r + v\n    end\n    r = r * 2\n    return r\nend\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -387,7 +385,7 @@ fn fuzzy_duplication_detected() {
         "function a(d)\n    local r = 0\n    for _, v in ipairs(d) do\n        r = r + v\n    end\n    r = r * 2\n    return r\nend\n\n",
         "function b(d)\n    local r = 0\n    for _, v in ipairs(d) do\n        r = r + v\n    end\n    r = r * 3\n    return r\nend\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -407,18 +405,18 @@ fn test_function_duplication_suppressed() {
 fn assertion_block_above_threshold() {
     let mut code = String::from("function test_many()\n");
     for i in 0..asserts_above() {
-        code.push_str(&format!("    assert({} > 0)\n", i));
+        code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
 fn assertion_block_below_threshold() {
     let mut code = String::from("function test_few()\n");
     for i in 0..3 {
-        code.push_str(&format!("    assert({} > 0)\n", i));
+        code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("end\n");
     let out = check(&code);
@@ -429,7 +427,7 @@ fn assertion_block_below_threshold() {
 fn assertion_block_interrupted_resets() {
     let mut code = String::from("function test_split()\n");
     for i in 0..5 {
-        code.push_str(&format!("    assert({} > 0)\n", i));
+        code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("    local x = 1\n");
     for i in 0..5 {
@@ -448,7 +446,7 @@ fn assertion_block_interrupted_resets() {
 fn compound_condition_detected() {
     let out = debug("function f(a, b, c)\n    if a and b or c then end\n    return 0\nend\n");
     let cond = function_metric(&out, "f", "conditions").unwrap_or(0);
-    assert!(cond >= 1, "compound condition should be detected, got: {}", cond);
+    assert!(cond >= 1, "compound condition should be detected, got: {cond}");
 }
 
 #[test]
@@ -471,7 +469,7 @@ fn primitive_obsession_not_triggered() {
 #[test]
 fn typed_param_count_always_zero() {
     let out = debug("function f(a, b, c)\n    return 0\nend\n");
-    assert!(out.contains("primitives=0/0"), "lua should have no types, got: {}", out);
+    assert!(out.contains("primitives=0/0"), "lua should have no types, got: {out}");
 }
 
 // ===========================================================================
@@ -493,12 +491,11 @@ fn lcom4_disconnected() {
     let mut code = String::from("local M = {}\n");
     for i in 0..8 {
         code.push_str(&format!(
-            "function M:get{}()\n    return self.field{}\nend\n",
-            i, i
+            "function M:get{i}()\n    return self.field{i}\nend\n"
         ));
     }
     let out = check(&code);
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -519,7 +516,7 @@ fn lcom4_methods_connected_by_call() {
         "function Coord:dispatch(e) return self:send(e) end\n",
         "function Coord:send(e) return true end\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -543,7 +540,7 @@ fn lcom4_god_class_still_fires() {
         "function Svc:publish() return self.events end\n",
         "function Svc:auditLog() return self.audit end\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -564,14 +561,14 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 #[test]
 fn function_has_no_prefix() {
     let out = debug("function doWork()\nend\n");
-    assert!(out.contains("doWork"), "got: {}", out);
-    assert!(!out.contains(".doWork"), "standalone should have no class prefix, got: {}", out);
+    assert!(out.contains("doWork"), "got: {out}");
+    assert!(!out.contains(".doWork"), "standalone should have no class prefix, got: {out}");
 }
 
 #[test]
 fn method_has_class_prefix() {
     let out = debug("local M = {}\nfunction M:doWork()\nend\n");
-    assert!(out.contains("M.doWork"), "got: {}", out);
+    assert!(out.contains("M.doWork"), "got: {out}");
 }
 
 #[test]
@@ -579,8 +576,7 @@ fn init_is_constructor() {
     let out = debug("local M = {}\nfunction M:init(a, b, c, d, e, g)\nend\n");
     assert!(
         out.contains("M.init"),
-        "constructor should be detected, got: {}",
-        out
+        "constructor should be detected, got: {out}"
     );
 }
 
@@ -598,7 +594,7 @@ fn repeat_until_cc() {
 fn repeat_until_boolean() {
     let out = debug("function f(x, y)\n    repeat\n        x = x + 1\n    until x > 10 and y\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "repeat with and should have cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "repeat with and should have cc >= 3, got: {cc}");
 }
 
 #[test]
@@ -616,7 +612,7 @@ fn for_numeric_cc() {
 #[test]
 fn colon_method_detected() {
     let out = debug("local C = {}\nfunction C:process(x)\n    self.x = x\nend\n");
-    assert!(out.contains("C.process"), "got: {}", out);
+    assert!(out.contains("C.process"), "got: {out}");
 }
 
 #[test]
@@ -634,14 +630,14 @@ fn dot_method_no_self_exclusion() {
 #[test]
 fn local_function_analyzed() {
     let out = debug("local function helper(x)\n    return x + 1\nend\n");
-    assert!(out.contains("helper"), "got: {}", out);
+    assert!(out.contains("helper"), "got: {out}");
     assert_eq!(function_metric(&out, "helper", "args"), Some(1));
 }
 
 #[test]
 fn anonymous_function_in_variable() {
     let out = debug("local f = function(a, b)\n    return a + b\nend\n");
-    assert!(out.contains(" f "), "got: {}", out);
+    assert!(out.contains(" f "), "got: {out}");
     assert_eq!(function_metric(&out, "f", "args"), Some(2));
 }
 
@@ -649,17 +645,17 @@ fn anonymous_function_in_variable() {
 fn long_string_tracked() {
     let mut code = String::from("function f()\n    return [[\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        line {}\n", i));
+        code.push_str(&format!("        line {i}\n"));
     }
     code.push_str("    ]]\nend\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
 fn multiline_comment_first_line_excluded() {
     let out = debug("-- single line comment\nfunction f()\n    return 1\nend\n");
-    assert!(out.contains("3 LOC"), "single-line comments should be excluded, got: {}", out);
+    assert!(out.contains("3 LOC"), "single-line comments should be excluded, got: {out}");
 }
 
 #[test]
@@ -672,7 +668,7 @@ fn nested_functions_outer_only() {
         "    return inner(x)\n",
         "end\n",
     ));
-    assert!(out.contains("1 functions"), "only outer should be top-level, got: {}", out);
+    assert!(out.contains("1 functions"), "only outer should be top-level, got: {out}");
 }
 
 // ===========================================================================
@@ -683,9 +679,9 @@ fn nested_functions_outer_only() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..20 {
-        code.push_str(&format!("function fn{}(x)\n", i));
+        code.push_str(&format!("function fn{i}(x)\n"));
         for j in 0..48 {
-            code.push_str(&format!("    local v{} = {}\n", j, j));
+            code.push_str(&format!("    local v{j} = {j}\n"));
         }
         code.push_str("    return 0\nend\n\n");
     }
@@ -699,7 +695,7 @@ fn performance_1000_loc() {
 fn performance_module_hierarchy() {
     let mut code = String::from("local M = {}\n");
     for i in 0..15 {
-        code.push_str(&format!("function M:method{}(x)\n    self.f{} = x\nend\n", i, i));
+        code.push_str(&format!("function M:method{i}(x)\n    self.f{i} = x\nend\n"));
     }
     let start = std::time::Instant::now();
     let _ = check(&code);
@@ -719,7 +715,7 @@ fn clean_lua_module_not_flagged() {
         "function M:get()\n    return self.x\nend\n",
         "return M\n",
     ));
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]

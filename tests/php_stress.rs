@@ -114,7 +114,7 @@ fn cc_keyword_or() {
 fn cc_chained_boolean() {
     let out = debug("<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -247,13 +247,13 @@ fn nesting_loop_with_if() {
 #[test]
 fn bumpy_road_two_chunks() {
     let out = check("<?php\nfunction f(int $a, int $b, int $c): void {\n  if ($a > 0) { if ($b > 0) { if ($c > 0) { echo 'x'; } } }\n  echo 'mid';\n  if ($a > 0) { if ($b > 0) { if ($c > 0) { echo 'y'; } } }\n}\n");
-    assert!(has_smell(&out, "Nested Conditional Chunks"), "got: {}", out);
+    assert!(has_smell(&out, "Nested Conditional Chunks"), "got: {out}");
 }
 
 #[test]
 fn bumpy_road_single_chunk_not_flagged() {
     let out = check("<?php\nfunction f(int $a, int $b, int $c): void {\n  if ($a > 0) { if ($b > 0) { if ($c > 0) { echo 'x'; } } }\n}\n");
-    assert!(!has_smell(&out, "Nested Conditional Chunks"), "got: {}", out);
+    assert!(!has_smell(&out, "Nested Conditional Chunks"), "got: {out}");
 }
 
 // ===========================================================================
@@ -278,7 +278,7 @@ fn args_above_threshold_flagged() {
     let params: Vec<String> = (0..n).map(|i| format!("int $p{i}")).collect();
     let code = format!("<?php\nfunction f({}): void {{}}\n", params.join(", "));
     let out = check(&code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -331,13 +331,13 @@ fn heredoc_above_threshold() {
     let lines: Vec<String> = (0..n).map(|i| format!("    line {i}")).collect();
     let code = format!("<?php\nfunction f(): string {{\n  return <<<EOT\n{}\n  EOT;\n}}\n", lines.join("\n"));
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
 fn small_string_not_flagged() {
     let out = check("<?php\nfunction f(): string { return \"hello\"; }\n");
-    assert!(!has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 // ===========================================================================
@@ -349,14 +349,14 @@ fn exact_duplication() {
     let body = "  $t = 0;\n  foreach ($a as $v) {\n    if ($v > 0) { $t += $v; }\n  }\n  return $t;\n";
     let code = format!("<?php\nfunction fa(array $a): int {{\n{body}}}\nfunction fb(array $a): int {{\n{body}}}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
 fn below_min_loc_no_duplication() {
     let code = "<?php\nfunction fa(): int { return 1; }\nfunction fb(): int { return 1; }\n";
     let out = check(code);
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -364,7 +364,7 @@ fn test_prefix_duplication_suppressed() {
     let body = "  $t = 0;\n  foreach ($a as $v) {\n    if ($v > 0) { $t += $v; }\n  }\n  return $t;\n";
     let code = format!("<?php\nfunction test_a(array $a): int {{\n{body}}}\nfunction test_b(array $a): int {{\n{body}}}\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -377,14 +377,14 @@ fn consecutive_asserts_above_threshold() {
     let asserts: Vec<String> = (0..n).map(|i| format!("  assert({i} === {i});")).collect();
     let code = format!("<?php\nfunction f(): void {{\n{}\n}}\n", asserts.join("\n"));
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
 fn asserts_below_threshold_not_flagged() {
     let code = "<?php\nfunction f(): void {\n  assert(1 === 1);\n  assert(2 === 2);\n}\n";
     let out = check(code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -393,7 +393,7 @@ fn assert_interruption_resets() {
     let asserts: Vec<String> = (0..half).map(|i| format!("  assert({i} === {i});")).collect();
     let code = format!("<?php\nfunction f(): void {{\n{}\n  echo 'break';\n{}\n}}\n", asserts.join("\n"), asserts.join("\n"));
     let out = check(&code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 // ===========================================================================
@@ -403,13 +403,13 @@ fn assert_interruption_resets() {
 #[test]
 fn compound_condition_detected() {
     let out = check("<?php\nfunction f(bool $a, bool $b, bool $c): void {\n  if ($a && $b || $c) { echo '1'; }\n  if ($a || $b && $c) { echo '2'; }\n  if ($a && $b || $c) { echo '3'; }\n}\n");
-    assert!(has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 #[test]
 fn simple_condition_not_flagged() {
     let out = check("<?php\nfunction f(bool $a, bool $b): void { if ($a && $b) { echo 'x'; } }\n");
-    assert!(!has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(!has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 // ===========================================================================
@@ -419,19 +419,19 @@ fn simple_condition_not_flagged() {
 #[test]
 fn all_primitives_flagged() {
     let out = check("<?php\nfunction f(int $a, string $b, float $c, bool $d, int $e): void {}\n");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn mixed_types_ratio() {
     let out = check("<?php\nfunction f(int $a, DateTime $b, int $c, Logger $d): void {}\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
 fn no_type_hints_not_flagged() {
     let out = check("<?php\nfunction f($a, $b, $c, $d, $e): void {}\n");
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 // ===========================================================================
@@ -447,7 +447,7 @@ fn lcom4_shared_fields_cohesive() {
         "  public function getC(): int { return $this->data + 2; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -460,13 +460,13 @@ fn lcom4_disjoint_fields() {
         "  public function d(): int { return $this->w; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
 fn lcom4_single_method_no_smell() {
     let out = check("<?php\nclass C {\n  public function f(): int { return $this->x; }\n}\n");
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -480,7 +480,7 @@ fn lcom4_methods_connected_by_call() {
         "    public function send($e) { return true; }\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -508,7 +508,7 @@ fn lcom4_god_class_still_fires() {
         "    public function auditLog() { return $this->audit; }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -531,20 +531,20 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 #[test]
 fn standalone_function_no_prefix() {
     let out = debug("<?php\nfunction helper(): int { return 1; }\n");
-    assert!(out.contains("helper"), "got: {}", out);
-    assert!(!out.contains(".helper"), "got: {}", out);
+    assert!(out.contains("helper"), "got: {out}");
+    assert!(!out.contains(".helper"), "got: {out}");
 }
 
 #[test]
 fn class_method_has_prefix() {
     let out = debug("<?php\nclass Foo {\n  public function bar(): int { return 1; }\n}\n");
-    assert!(out.contains("Foo.bar"), "got: {}", out);
+    assert!(out.contains("Foo.bar"), "got: {out}");
 }
 
 #[test]
 fn constructor_has_prefix() {
     let out = debug("<?php\nclass Foo {\n  public function __construct() {}\n}\n");
-    assert!(out.contains("Foo.__construct"), "got: {}", out);
+    assert!(out.contains("Foo.__construct"), "got: {out}");
 }
 
 // ===========================================================================
@@ -572,13 +572,13 @@ fn catch_multiple_types() {
 #[test]
 fn empty_catch_flagged() {
     let out = check("<?php\nfunction f(): void { try { echo 'a'; } catch (Exception $e) {} }\n");
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
 fn non_empty_catch_not_flagged() {
     let out = check("<?php\nfunction f(): void { try { echo 'a'; } catch (Exception $e) { echo $e->getMessage(); } }\n");
-    assert!(!has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(!has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -602,7 +602,7 @@ fn closure_with_use() {
 #[test]
 fn namespace_function_found() {
     let out = debug("<?php\nnamespace App\\Util;\nfunction calc(int $x): int { return $x * 2; }\n");
-    assert!(out.contains("calc"), "got: {}", out);
+    assert!(out.contains("calc"), "got: {out}");
     assert_eq!(function_metric(&out, "calc", "cc"), Some(1));
 }
 
@@ -615,8 +615,8 @@ fn constructor_promotion_counted() {
 #[test]
 fn field_access_this() {
     let out = debug("<?php\nclass C {\n  public function getX(): int { return $this->x; }\n  public function getY(): int { return $this->y; }\n}\n");
-    assert!(out.contains("fields=[\"x\"]"), "got: {}", out);
-    assert!(out.contains("fields=[\"y\"]"), "got: {}", out);
+    assert!(out.contains("fields=[\"x\"]"), "got: {out}");
+    assert!(out.contains("fields=[\"y\"]"), "got: {out}");
 }
 
 #[test]
@@ -625,31 +625,31 @@ fn heredoc_embedded() {
     let lines: Vec<String> = (0..n).map(|i| format!("  line {i}")).collect();
     let code = format!("<?php\nfunction f(): string {{\n  return <<<EOT\n{}\nEOT;\n}}\n", lines.join("\n"));
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
 fn string_match_arms_flagged() {
     let out = check("<?php\nfunction f(string $s): int {\n  return match($s) { 'a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6, default => 0 };\n}\n");
-    assert!(has_smell(&out, "Stringly-Typed Switch"), "got: {}", out);
+    assert!(has_smell(&out, "Stringly-Typed Switch"), "got: {out}");
 }
 
 #[test]
 fn trait_methods_found() {
     let out = debug("<?php\ntrait Greetable {\n  public function greet(): string { return 'hello'; }\n}\n");
-    assert!(out.contains("Greetable.greet"), "got: {}", out);
+    assert!(out.contains("Greetable.greet"), "got: {out}");
 }
 
 #[test]
 fn interface_methods_skipped_without_body() {
     let out = debug("<?php\ninterface I {\n  public function doThing(): void;\n}\n");
-    assert!(!out.contains("doThing"), "interface method without body should not appear, got: {}", out);
+    assert!(!out.contains("doThing"), "interface method without body should not appear, got: {out}");
 }
 
 #[test]
 fn enum_methods_found() {
     let out = debug("<?php\nenum Color {\n  case Red;\n  case Blue;\n  public function label(): string { return 'color'; }\n}\n");
-    assert!(out.contains("Color.label"), "got: {}", out);
+    assert!(out.contains("Color.label"), "got: {out}");
 }
 
 // ===========================================================================
@@ -685,19 +685,19 @@ fn performance_class_hierarchy() {
 #[test]
 fn clean_class_no_smells() {
     let out = check("<?php\nclass C {\n  public function f(): int { return 1; }\n  public function g(): int { return 2; }\n}\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
 fn comments_only_silent() {
     let out = check("<?php\n// comment\n# another\n/* block */\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
 fn empty_file_no_crash() {
     let out = check("<?php\n");
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
@@ -710,7 +710,7 @@ fn empty_method_body() {
 #[test]
 fn multiple_independent_functions() {
     let out = debug("<?php\nfunction a(): int { return 1; }\nfunction b(): int { return 2; }\nfunction c(): int { return 3; }\n");
-    assert!(out.contains("a") && out.contains("b") && out.contains("c"), "got: {}", out);
+    assert!(out.contains('a') && out.contains('b') && out.contains('c'), "got: {out}");
 }
 
 // ===========================================================================
@@ -753,21 +753,21 @@ fn cogc_else_increases_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "else should contribute to nesting, got: {}", cogc);
+    assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("<?php\nfunction f(bool $a, bool $b): bool { if ($a && $b) { return true; } return false; }\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -778,7 +778,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("  return 0;\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -803,7 +803,7 @@ fn nesting_switch_with_nested_if() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 // ===========================================================================
@@ -820,7 +820,7 @@ fn bumpy_road_metric_two_bumps() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 // ===========================================================================
@@ -836,7 +836,7 @@ fn args_five_at_threshold_not_flagged() {
 #[test]
 fn args_six_over_threshold_flagged() {
     let out = check("<?php\nfunction f(int $a, int $b, int $c, int $d, int $e, int $g): int { return $a; }\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 // ===========================================================================
@@ -869,7 +869,7 @@ fn fuzzy_duplication_detected() {
         "  }\n  return $count;\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -887,7 +887,7 @@ fn try_catch_finally_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "two catches should add CC, got: {}", cc);
+    assert!(cc >= 3, "two catches should add CC, got: {cc}");
 }
 
 #[test]
@@ -900,8 +900,8 @@ fn nested_classes_found() {
         "  public function innerMethod(): int { return 2; }\n",
         "}\n",
     ));
-    assert!(out.contains("Outer.outerMethod"), "got: {}", out);
-    assert!(out.contains("Inner.innerMethod"), "got: {}", out);
+    assert!(out.contains("Outer.outerMethod"), "got: {out}");
+    assert!(out.contains("Inner.innerMethod"), "got: {out}");
 }
 
 #[test]
@@ -913,5 +913,5 @@ fn method_attributed_to_class() {
         "  }\n",
         "}\n",
     ));
-    assert!(debug.contains("Svc.handle"), "method should be attributed to class, got: {}", debug);
+    assert!(debug.contains("Svc.handle"), "method should be attributed to class, got: {debug}");
 }

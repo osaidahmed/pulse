@@ -1,7 +1,6 @@
 mod common;
 
 use common::*;
-use std::process::Command;
 
 lang_helpers!("m");
 
@@ -102,7 +101,7 @@ fn cc_counts_mixed_boolean() {
         "@implementation X\n- (void)f:(BOOL)a b:(BOOL)b c:(BOOL)c {\n    if (a && b || c) {}\n}\n@end\n",
     );
     let cc = function_metric(&out, "X.f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "cc={}", cc);
+    assert!(cc >= 4, "cc={cc}");
 }
 
 #[test]
@@ -156,7 +155,7 @@ fn cc_combined_constructs() {
         "@end\n"
     ));
     let cc = function_metric(&out, "X.f", "cc").unwrap_or(0);
-    assert!(cc >= 6, "cc={}", cc);
+    assert!(cc >= 6, "cc={cc}");
 }
 
 // ===========================================================================
@@ -209,7 +208,7 @@ fn nesting_four_plus() {
         "@end\n"
     ));
     let nesting = function_metric(&out, "X.f", "nesting").unwrap_or(0);
-    assert!(nesting >= 4, "nesting={}", nesting);
+    assert!(nesting >= 4, "nesting={nesting}");
 }
 
 #[test]
@@ -243,7 +242,7 @@ fn nesting_switch_counts() {
         "@end\n"
     ));
     let nesting = function_metric(&out, "X.f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "nesting={}", nesting);
+    assert!(nesting >= 2, "nesting={nesting}");
 }
 
 // ===========================================================================
@@ -280,7 +279,7 @@ fn args_six_triggers() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -308,7 +307,7 @@ fn args_init_constructor() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
@@ -346,7 +345,7 @@ fn exact_duplication_detected() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -372,7 +371,7 @@ fn fuzzy_duplication_detected() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -384,7 +383,7 @@ fn different_bodies_not_flagged() {
         "@end\n"
     );
     let out = check(code);
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -408,7 +407,7 @@ fn test_function_duplication_suppressed() {
         "}\n"
     );
     let out = check(code);
-    assert!(!has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -432,7 +431,7 @@ fn c_function_duplication() {
         "}\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -466,7 +465,7 @@ fn three_way_duplication() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 // ===========================================================================
@@ -476,7 +475,7 @@ fn three_way_duplication() {
 #[test]
 fn single_class_counted() {
     let out = debug("@implementation X\n- (void)f {}\n@end\n");
-    assert!(out.contains("declarations=1"), "got: {}", out);
+    assert!(out.contains("declarations=1"), "got: {out}");
 }
 
 #[test]
@@ -484,7 +483,7 @@ fn multiple_classes_counted() {
     let out = debug(
         "@implementation A\n- (void)f {}\n@end\n@implementation B\n- (void)g {}\n@end\n",
     );
-    assert!(out.contains("declarations=2"), "got: {}", out);
+    assert!(out.contains("declarations=2"), "got: {out}");
 }
 
 #[test]
@@ -492,14 +491,14 @@ fn protocol_counted() {
     let out = debug(
         "@protocol P <NSObject>\n- (void)didFinish;\n@end\n@implementation X\n- (void)f {}\n@end\n",
     );
-    assert!(out.contains("declarations=2"), "got: {}", out);
+    assert!(out.contains("declarations=2"), "got: {out}");
 }
 
 #[test]
 fn below_declaration_threshold_not_flagged() {
     let code = "@implementation X\n- (void)f {}\n@end\n";
     let out = check(code);
-    assert!(!has_smell(&out, "Excessive Declarations"), "got: {}", out);
+    assert!(!has_smell(&out, "Excessive Declarations"), "got: {out}");
 }
 
 // ===========================================================================
@@ -510,21 +509,21 @@ fn below_declaration_threshold_not_flagged() {
 fn god_method_triggered() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
+        code.push_str(&format!("    if (x > {i}) {{\n        NSLog(@\"{i}\");\n    }}\n"));
     }
     for _ in 0..fn_padding() {
         code.push_str("    NSLog(@\"padding\");\n");
     }
     code.push_str("}\n@end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "God Method"), "got: {}", out);
+    assert!(has_smell(&out, "God Method"), "got: {out}");
 }
 
 #[test]
 fn god_method_subsumes() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
     for i in 0..cc_branches() {
-        code.push_str(&format!("    if (x > {}) {{\n        NSLog(@\"{}\");\n    }}\n", i, i));
+        code.push_str(&format!("    if (x > {i}) {{\n        NSLog(@\"{i}\");\n    }}\n"));
     }
     for _ in 0..fn_padding() {
         code.push_str("    NSLog(@\"padding\");\n");
@@ -535,8 +534,7 @@ fn god_method_subsumes() {
     let god_lines: Vec<&str> = out.lines().filter(|l| l.contains("X.god")).collect();
     assert!(
         !god_lines.iter().any(|l| l.contains("Complex Method")),
-        "got: {:?}",
-        god_lines
+        "got: {god_lines:?}"
     );
 }
 
@@ -544,11 +542,11 @@ fn god_method_subsumes() {
 fn god_class_via_many_methods() {
     let mut code = String::from("@implementation X\n");
     for i in 0..functions_above() {
-        code.push_str(&format!("- (void)f{}:(int)x {{\n    if (x > 0) {{}}\n}}\n", i));
+        code.push_str(&format!("- (void)f{i}:(int)x {{\n    if (x > 0) {{}}\n}}\n"));
     }
     code.push_str("@end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Too Many Functions"), "got: {}", out);
+    assert!(has_smell(&out, "Too Many Functions"), "got: {out}");
 }
 
 #[test]
@@ -556,13 +554,12 @@ fn god_class_via_high_cc() {
     let mut code = String::from("@implementation X\n");
     for i in 0..8 {
         code.push_str(&format!(
-            "- (void)f{}:(int)x {{\n    if (x>0) {{}}\n    if (x>1) {{}}\n    if (x>2) {{}}\n    if (x>3) {{}}\n    if (x>4) {{}}\n    if (x>5) {{}}\n    if (x>6) {{}}\n    if (x>7) {{}}\n    if (x>8) {{}}\n    if (x>9) {{}}\n    if (x>10) {{}}\n    if (x>11) {{}}\n    if (x>12) {{}}\n}}\n",
-            i
+            "- (void)f{i}:(int)x {{\n    if (x>0) {{}}\n    if (x>1) {{}}\n    if (x>2) {{}}\n    if (x>3) {{}}\n    if (x>4) {{}}\n    if (x>5) {{}}\n    if (x>6) {{}}\n    if (x>7) {{}}\n    if (x>8) {{}}\n    if (x>9) {{}}\n    if (x>10) {{}}\n    if (x>11) {{}}\n    if (x>12) {{}}\n}}\n"
         ));
     }
     code.push_str("@end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Overall Code Complexity"), "got: {}", out);
+    assert!(has_smell(&out, "Overall Code Complexity"), "got: {out}");
 }
 
 // ===========================================================================
@@ -574,7 +571,7 @@ fn large_file_under_500ms() {
     let mut code = String::from("@implementation X\n");
     code.push_str("- (void)big:(int)x {\n");
     for i in 0..1000 {
-        code.push_str(&format!("    NSLog(@\"{}\");\n", i));
+        code.push_str(&format!("    NSLog(@\"{i}\");\n"));
     }
     code.push_str("}\n@end\n");
     let start = std::time::Instant::now();
@@ -587,8 +584,7 @@ fn many_methods_under_500ms() {
     let mut code = String::from("@implementation X\n");
     for i in 0..50 {
         code.push_str(&format!(
-            "- (void)m{}:(int)x {{\n    if (x > 0) {{ NSLog(@\"a\"); }}\n}}\n",
-            i
+            "- (void)m{i}:(int)x {{\n    if (x > 0) {{ NSLog(@\"a\"); }}\n}}\n"
         ));
     }
     code.push_str("@end\n");
@@ -649,7 +645,7 @@ fn empty_catch_detected() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -666,7 +662,7 @@ fn non_empty_catch_not_flagged() {
         "@end\n"
     );
     let out = check(code);
-    assert!(!has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(!has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -674,7 +670,7 @@ fn class_method_plus() {
     let out = debug(
         "@implementation X\n+ (instancetype)shared {\n    static X *s = nil;\n    return s;\n}\n@end\n",
     );
-    assert!(out.contains("X.shared"), "got: {}", out);
+    assert!(out.contains("X.shared"), "got: {out}");
 }
 
 #[test]
@@ -682,7 +678,7 @@ fn instance_method_minus() {
     let out = debug(
         "@implementation X\n- (void)doWork {\n    NSLog(@\"work\");\n}\n@end\n",
     );
-    assert!(out.contains("X.doWork"), "got: {}", out);
+    assert!(out.contains("X.doWork"), "got: {out}");
 }
 
 #[test]
@@ -695,7 +691,7 @@ fn self_field_access() {
         "}\n",
         "@end\n"
     ));
-    assert!(out.contains("fields=[\"name\"]"), "got: {}", out);
+    assert!(out.contains("fields=[\"name\"]"), "got: {out}");
 }
 
 #[test]
@@ -708,8 +704,8 @@ fn self_field_multiple() {
         "}\n",
         "@end\n"
     ));
-    assert!(out.contains("age"), "got: {}", out);
-    assert!(out.contains("name"), "got: {}", out);
+    assert!(out.contains("age"), "got: {out}");
+    assert!(out.contains("name"), "got: {out}");
 }
 
 #[test]
@@ -722,7 +718,7 @@ fn message_expression_in_body() {
         "}\n",
         "@end\n"
     ));
-    assert!(out.contains("X.f"), "got: {}", out);
+    assert!(out.contains("X.f"), "got: {out}");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(1));
 }
 
@@ -730,18 +726,18 @@ fn message_expression_in_body() {
 fn nsstring_embedded_block() {
     let mut code = String::from("@implementation X\n- (NSString *)f {\n    NSString *s = @\"line1\\n\"\n");
     for i in 2..20 {
-        code.push_str(&format!("        \"line{}\\n\"\n", i));
+        code.push_str(&format!("        \"line{i}\\n\"\n"));
     }
     code.push_str("        \"end\";\n    return s;\n}\n@end\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
 fn short_nsstring_not_flagged() {
     let code = "@implementation X\n- (void)f {\n    NSString *s = @\"hello\";\n    NSLog(@\"%@\", s);\n}\n@end\n";
     let out = check(code);
-    assert!(!has_smell(&out, "Embedded Block"), "got: {}", out);
+    assert!(!has_smell(&out, "Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -758,7 +754,7 @@ fn at_syntax_not_confused() {
         "@end\n"
     );
     let out = debug(code);
-    assert!(out.contains("X.f"), "got: {}", out);
+    assert!(out.contains("X.f"), "got: {out}");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
@@ -786,8 +782,8 @@ fn c_function_in_objc_file() {
         "void standalone(int x) {\n    if (x > 0) {}\n}\n"
     );
     let out = debug(code);
-    assert!(out.contains("X.method"), "got: {}", out);
-    assert!(out.contains("standalone"), "got: {}", out);
+    assert!(out.contains("X.method"), "got: {out}");
+    assert!(out.contains("standalone"), "got: {out}");
 }
 
 #[test]
@@ -797,8 +793,8 @@ fn multiple_classes_in_file() {
         "@implementation B\n- (void)fb { NSLog(@\"b\"); }\n@end\n"
     );
     let out = debug(code);
-    assert!(out.contains("A.fa"), "got: {}", out);
-    assert!(out.contains("B.fb"), "got: {}", out);
+    assert!(out.contains("A.fa"), "got: {out}");
+    assert!(out.contains("B.fb"), "got: {out}");
 }
 
 // ===========================================================================
@@ -815,10 +811,10 @@ fn init_is_constructor() {
         "}\n",
         "@end\n"
     );
-    let out = check(code);
+    let _out = check(code);
     // init with 0 args doesn't trigger, but verify it's detected
     let d = debug(code);
-    assert!(d.contains("X.init"), "got: {}", d);
+    assert!(d.contains("X.init"), "got: {d}");
 }
 
 #[test]
@@ -834,7 +830,7 @@ fn init_with_is_constructor() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
@@ -848,8 +844,8 @@ fn regular_method_not_constructor() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
-    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
+    assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
@@ -863,7 +859,7 @@ fn init_constructor_over_injection() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {}", out);
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 // ===========================================================================
@@ -880,7 +876,7 @@ fn all_primitive_params_flagged() {
         "@end\n"
     );
     let out = check(code);
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
@@ -893,7 +889,7 @@ fn mixed_types_not_flagged() {
         "@end\n"
     );
     let out = check(code);
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
@@ -906,9 +902,9 @@ fn objc_specific_primitives() {
         "@end\n"
     );
     let d = debug(code);
-    let prim = function_metric(&d, "X.f", "primitives");
+    let _prim = function_metric(&d, "X.f", "primitives");
     // All 4 should be detected as primitive
-    assert!(d.contains("primitives=4/4"), "got: {}", d);
+    assert!(d.contains("primitives=4/4"), "got: {d}");
 }
 
 #[test]
@@ -921,7 +917,7 @@ fn below_primitive_threshold_not_flagged() {
         "@end\n"
     );
     let out = check(code);
-    assert!(!has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(!has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 // ===========================================================================
@@ -949,7 +945,7 @@ fn cogc_nested_if_increments_more() {
     );
     let cogc = function_metric(&out, "X.f", "cogc").unwrap_or(0);
     // Outer if: 1, inner if: 1 + 1 (nesting) = 2, total = 3
-    assert!(cogc >= 3, "cogc={}", cogc);
+    assert!(cogc >= 3, "cogc={cogc}");
 }
 
 #[test]

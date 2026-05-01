@@ -148,7 +148,7 @@ fn setup_idempotent_claude_md() {
     run_setup(dir.path());
 
     let md = read_claude_md(dir.path());
-    let pulse_count = md.matches("\n# Pulse").count() + if md.starts_with("# Pulse") { 1 } else { 0 };
+    let pulse_count = md.matches("\n# Pulse").count() + usize::from(md.starts_with("# Pulse"));
     assert_eq!(pulse_count, 1, "should have exactly one Pulse section");
 }
 

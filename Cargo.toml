@@ -62,6 +62,7 @@ missing_docs_in_private_items = "allow"
 needless_pass_by_value = "allow"
 implicit_hasher = "allow"
 new_without_default = "allow"
+format_push_string = "allow"
 
 [profile.release]
 opt-level = 3

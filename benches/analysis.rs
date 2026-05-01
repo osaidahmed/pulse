@@ -6,11 +6,11 @@ use pulse::thresholds::Thresholds;
 fn generate_python(num_functions: usize) -> String {
     let mut code = String::new();
     for i in 0..num_functions {
-        code.push_str(&format!("def fn_{}(a, b, c, d, e, f):\n", i));
+        code.push_str(&format!("def fn_{i}(a, b, c, d, e, f):\n"));
         for j in 0..10 {
-            code.push_str(&format!("    if a == {}:\n", j));
-            code.push_str(&format!("        for x in range({}):\n", j));
-            code.push_str(&format!("            if b == {}:\n", j));
+            code.push_str(&format!("    if a == {j}:\n"));
+            code.push_str(&format!("        for x in range({j}):\n"));
+            code.push_str(&format!("            if b == {j}:\n"));
             code.push_str("                pass\n");
         }
         code.push_str("    return a\n\n");
@@ -22,13 +22,12 @@ fn generate_typescript(num_functions: usize) -> String {
     let mut code = String::new();
     for i in 0..num_functions {
         code.push_str(&format!(
-            "function fn_{}(a: number, b: number, c: number): number {{\n",
-            i
+            "function fn_{i}(a: number, b: number, c: number): number {{\n"
         ));
         for j in 0..10 {
-            code.push_str(&format!("    if (a === {}) {{\n", j));
-            code.push_str(&format!("        for (let x = 0; x < {}; x++) {{\n", j));
-            code.push_str(&format!("            if (b === {}) {{}}\n", j));
+            code.push_str(&format!("    if (a === {j}) {{\n"));
+            code.push_str(&format!("        for (let x = 0; x < {j}; x++) {{\n"));
+            code.push_str(&format!("            if (b === {j}) {{}}\n"));
             code.push_str("        }\n");
             code.push_str("    }\n");
         }
@@ -40,11 +39,11 @@ fn generate_typescript(num_functions: usize) -> String {
 fn generate_rust_code(num_functions: usize) -> String {
     let mut code = String::new();
     for i in 0..num_functions {
-        code.push_str(&format!("fn fn_{}(a: i32, b: i32, c: i32) -> i32 {{\n", i));
+        code.push_str(&format!("fn fn_{i}(a: i32, b: i32, c: i32) -> i32 {{\n"));
         for j in 0..10 {
-            code.push_str(&format!("    if a == {} {{\n", j));
-            code.push_str(&format!("        for x in 0..{} {{\n", j));
-            code.push_str(&format!("            if b == {} {{}}\n", j));
+            code.push_str(&format!("    if a == {j} {{\n"));
+            code.push_str(&format!("        for x in 0..{j} {{\n"));
+            code.push_str(&format!("            if b == {j} {{}}\n"));
             code.push_str("        }\n");
             code.push_str("    }\n");
         }

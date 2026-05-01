@@ -20,7 +20,7 @@ fn similar_functions_same_shape_detected() {
     for i in 0..15 { code.push_str(&format!("    phase_{i} = transform_b(route, {i})\n")); }
     code.push_str("    return format_b(route)\n");
     let out = pulse_check_code(&code, "py");
-    assert!(has_smell(&out, "Code Duplication"), "similar shape should be detected, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "similar shape should be detected, got: {out}");
 }
 
 #[test]
@@ -45,8 +45,8 @@ fn exact_clones_say_identical_structure() {
         ),
         "py",
     );
-    assert!(has_smell(&out, "Code Duplication"), "exact clones should match, got: {}", out);
-    assert!(out.contains("identical structure"), "should say identical, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "exact clones should match, got: {out}");
+    assert!(out.contains("identical structure"), "should say identical, got: {out}");
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn different_shaped_functions_no_match() {
         ),
         "py",
     );
-    assert!(!has_smell(&out, "Code Duplication"), "different shapes should not match, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "different shapes should not match, got: {out}");
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn similar_functions_in_typescript() {
     for i in 0..17 { code.push_str(&format!("    output.f{i} = transform_b(info, {i});\n")); }
     code.push_str("    return output;\n}\n");
     let out = pulse_check_code(&code, "ts");
-    assert!(has_smell(&out, "Code Duplication"), "should detect similar TS functions, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "should detect similar TS functions, got: {out}");
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn similar_functions_in_rust() {
     for i in 0..18 { code.push_str(&format!("    let v{i} = input[{i}];\n")); }
     code.push_str("    v0\n}\n");
     let out = pulse_check_code(&code, "rs");
-    assert!(has_smell(&out, "Code Duplication"), "should detect similar Rust functions, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "should detect similar Rust functions, got: {out}");
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn similar_functions_in_java() {
     for i in 0..17 { code.push_str(&format!("        int v{i} = e[{i}];\n")); }
     code.push_str("        return v0;\n    }\n}\n");
     let out = pulse_check_code(&code, "java");
-    assert!(has_smell(&out, "Code Duplication"), "should detect similar Java functions, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "should detect similar Java functions, got: {out}");
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn similar_functions_in_c() {
     for i in 0..18 { code.push_str(&format!("    int v{i} = e[{i}];\n")); }
     code.push_str("    return v0;\n}\n");
     let out = pulse_check_code(&code, "c");
-    assert!(has_smell(&out, "Code Duplication"), "should detect similar C functions, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "should detect similar C functions, got: {out}");
 }
 
 // ===========================================================================
@@ -147,7 +147,7 @@ fn test_function_exact_duplication_suppressed() {
         ),
         "py",
     );
-    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {out}");
 }
 
 #[test]
@@ -172,7 +172,7 @@ fn mixed_test_and_prod_duplication_still_flagged() {
         ),
         "py",
     );
-    assert!(has_smell(&out, "Code Duplication"), "mixed test+prod should be flagged, got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "mixed test+prod should be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -205,5 +205,5 @@ fn short_similar_functions_not_flagged_as_similar() {
         "py",
     );
     // These would have matched under the old set hash, but not under multiset + LOC floor
-    assert!(!out.contains("similar structure"), "short functions should not trigger similar match, got: {}", out);
+    assert!(!out.contains("similar structure"), "short functions should not trigger similar match, got: {out}");
 }

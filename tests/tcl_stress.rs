@@ -38,7 +38,7 @@ fn cc_counts_foreach() {
 fn cc_counts_for_command() {
     let out = debug("proc f {} {\n    for {set i 0} {$i < 10} {incr i} {\n        puts $i\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "for should add CC, got: {}", cc);
+    assert!(cc >= 2, "for should add CC, got: {cc}");
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn cc_counts_switch_cases() {
 fn cc_counts_catch() {
     let out = debug("proc f {x} {\n    catch {error \"boom\"} result\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "catch should add CC, got: {}", cc);
+    assert!(cc >= 2, "catch should add CC, got: {cc}");
 }
 
 #[test]
@@ -74,28 +74,28 @@ fn cc_counts_try_on_error() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "try on error should add CC, got: {}", cc);
+    assert!(cc >= 2, "try on error should add CC, got: {cc}");
 }
 
 #[test]
 fn cc_counts_and_op() {
     let out = debug("proc f {a b} {\n    if {$a && $b} {\n        return 1\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_or_op() {
     let out = debug("proc f {a b} {\n    if {$a || $b} {\n        return 1\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean() {
     let out = debug("proc f {a b c} {\n    if {$a && $b || $c} {\n        return 1\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn cc_for_with_nested_if() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "for+if should give cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "for+if should give cc >= 3, got: {cc}");
 }
 
 #[test]
@@ -162,14 +162,14 @@ fn cc_foreach_with_if() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "foreach+if should give cc >= 3, got: {}", cc);
+    assert!(cc >= 3, "foreach+if should give cc >= 3, got: {cc}");
 }
 
 #[test]
 fn cc_expression_boolean() {
     let out = debug("proc f {a b} {\n    if {$a > 0 && $b > 0} {\n        return 1\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expression boolean should add CC, got: {}", cc);
+    assert!(cc >= 3, "expression boolean should add CC, got: {cc}");
 }
 
 // ===========================================================================
@@ -219,35 +219,35 @@ fn cogc_else_increases_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "else should contribute to nesting, got: {}", cogc);
+    assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
 fn cogc_while_nested() {
     let out = debug("proc f {x} {\n    while {$x > 0} {\n        if {$x > 5} {}\n        incr x -1\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "while+if should contribute cogc, got: {}", cogc);
+    assert!(cogc >= 3, "while+if should contribute cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_foreach_nested() {
     let out = debug("proc f {items} {\n    foreach item $items {\n        if {$item > 0} {}\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "foreach+if should contribute cogc, got: {}", cogc);
+    assert!(cogc >= 3, "foreach+if should contribute cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("proc f {a b} {\n    if {$a && $b} {\n        return 1\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("proc f {a b c} {\n    if {$a && $b || $c} {\n        return 1\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -258,7 +258,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("    return 0\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -311,7 +311,7 @@ fn nesting_deep_if_chain() {
 fn nesting_loop_with_if() {
     let out = debug("proc f {items} {\n    foreach item $items {\n        if {$item > 0} {}\n    }\n}\n");
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 #[test]
@@ -326,7 +326,7 @@ fn nesting_switch_depth() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 // ===========================================================================
@@ -343,7 +343,7 @@ fn bumpy_road_two_bumps() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -381,7 +381,7 @@ fn args_five_at_threshold() {
 #[test]
 fn args_six_over_threshold() {
     let out = check("proc f {a b c d e g} {\n    return $a\n}\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -432,11 +432,11 @@ fn loc_empty_lines_excluded_module() {
 fn embedded_large_quoted_string() {
     let mut code = String::from("proc f {} {\n    set tpl \"line 0\n");
     for i in 1..embedded_lines_above() {
-        code.push_str(&format!("line {}\n", i));
+        code.push_str(&format!("line {i}\n"));
     }
     code.push_str("\"\n    return $tpl\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -455,7 +455,7 @@ fn exact_duplication_detected() {
         "proc alpha {x} {\n    set r $x\n    set r [expr {$r * 2}]\n    set r [expr {$r + 1}]\n    set r [expr {$r - 3}]\n    return $r\n}\n",
         "proc beta {x} {\n    set r $x\n    set r [expr {$r * 2}]\n    set r [expr {$r + 1}]\n    set r [expr {$r - 3}]\n    return $r\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -480,7 +480,7 @@ fn fuzzy_duplication_detected() {
         "        } else {\n            set count [expr {$count + 1}]\n        }\n",
         "    }\n    return $count\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -489,7 +489,7 @@ fn test_function_duplication_suppressed() {
         "proc test_alpha {} {\n    set r 0\n    set r [expr {$r + 1}]\n    set r [expr {$r + 2}]\n    set r [expr {$r + 3}]\n    set r [expr {$r + 4}]\n    set r [expr {$r + 5}]\n}\n",
         "proc test_beta {} {\n    set r 0\n    set r [expr {$r + 1}]\n    set r [expr {$r + 2}]\n    set r [expr {$r + 3}]\n    set r [expr {$r + 4}]\n    set r [expr {$r + 5}]\n}\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {out}");
 }
 
 // ===========================================================================
@@ -504,7 +504,7 @@ fn assertion_block_above_threshold() {
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -550,7 +550,7 @@ fn compound_condition_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 #[test]
@@ -572,7 +572,7 @@ fn primitive_obsession_never_triggers() {
 #[test]
 fn no_typed_params() {
     let out = debug("proc f {a b c d} {\n    return $a\n}\n");
-    assert!(out.contains("primitives=0/0"), "got: {}", out);
+    assert!(out.contains("primitives=0/0"), "got: {out}");
 }
 
 #[test]
@@ -610,7 +610,7 @@ fn lcom4_disconnected() {
         "    proc set_d {v} {\n        variable vd\n        set vd $v\n    }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -626,14 +626,14 @@ fn lcom4_single_method_no_smell() {
 #[test]
 fn function_has_no_prefix() {
     let out = debug("proc standalone {} {\n    return 0\n}\n");
-    assert!(out.contains("standalone"), "got: {}", out);
+    assert!(out.contains("standalone"), "got: {out}");
     assert!(!out.contains(".standalone"));
 }
 
 #[test]
 fn method_has_namespace_prefix() {
     let out = debug("namespace eval Svc {\n    proc handle {} {\n        return 0\n    }\n}\n");
-    assert!(out.contains("Svc.handle"), "got: {}", out);
+    assert!(out.contains("Svc.handle"), "got: {out}");
 }
 
 #[test]
@@ -645,7 +645,7 @@ fn init_is_constructor() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains("Svc.init"), "got: {}", out);
+    assert!(out.contains("Svc.init"), "got: {out}");
 }
 
 // ===========================================================================
@@ -664,7 +664,7 @@ fn for_command_as_loop() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "for+if should nest, got: {}", nesting);
+    assert!(nesting >= 2, "for+if should nest, got: {nesting}");
 }
 
 #[test]
@@ -708,14 +708,14 @@ fn try_on_error_handler() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "try/on error should add CC, got: {}", cc);
+    assert!(cc >= 2, "try/on error should add CC, got: {cc}");
 }
 
 #[test]
 fn standalone_catch_increments_cc() {
     let out = debug("proc f {} {\n    catch {error \"boom\"} result\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "standalone catch should add CC, got: {}", cc);
+    assert!(cc >= 2, "standalone catch should add CC, got: {cc}");
 }
 
 #[test]
@@ -725,7 +725,7 @@ fn empty_catch_detected() {
         "    catch {} result\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -737,7 +737,7 @@ fn namespace_eval_body_parsed() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains("Helper.compute"), "got: {}", out);
+    assert!(out.contains("Helper.compute"), "got: {out}");
 }
 
 #[test]
@@ -754,28 +754,28 @@ fn namespace_variable_field_access() {
         "    }\n",
         "}\n",
     ));
-    assert!(out.contains("\"db\"") || out.contains("\"cache\""), "got: {}", out);
+    assert!(out.contains("\"db\"") || out.contains("\"cache\""), "got: {out}");
 }
 
 #[test]
 fn foreach_multiple_vars() {
     let out = debug("proc f {items} {\n    foreach item $items {\n        puts $item\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "foreach should add CC, got: {}", cc);
+    assert!(cc >= 2, "foreach should add CC, got: {cc}");
 }
 
 #[test]
 fn expr_boolean_in_condition() {
     let out = debug("proc f {a b} {\n    if {$a > 0 && $b > 0} {\n        return 1\n    }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "expr boolean in if should add CC, got: {}", cc);
+    assert!(cc >= 3, "expr boolean in if should add CC, got: {cc}");
 }
 
 #[test]
 fn set_variable_short_name() {
     let out = debug("proc f {data} {\n    set a 1\n    set b 2\n    set c 3\n    set d 4\n    return $a\n}\n");
     let sv = function_metric(&out, "f", "short_vars").unwrap_or(0);
-    assert!(sv >= 4, "should count short var names, got: {}", sv);
+    assert!(sv >= 4, "should count short var names, got: {sv}");
 }
 
 #[test]
@@ -794,7 +794,7 @@ fn switch_string_arms_counted() {
         "}\n",
     ));
     let arms = function_metric(&out, "f", "str_match").unwrap_or(0);
-    assert!(arms >= 6, "should count switch string arms, got: {}", arms);
+    assert!(arms >= 6, "should count switch string arms, got: {arms}");
 }
 
 #[test]
@@ -818,7 +818,7 @@ fn nested_braced_word_bodies() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 4, "nested control should accumulate depth, got: {}", nesting);
+    assert!(nesting >= 4, "nested control should accumulate depth, got: {nesting}");
 }
 
 // ===========================================================================
@@ -831,9 +831,9 @@ fn performance_1000_loc() {
     let path = dir.path().join("perf.tcl");
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("proc func{} {{x}} {{\n", i));
+        code.push_str(&format!("proc func{i} {{x}} {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("    set v{} {}\n", j, j));
+            code.push_str(&format!("    set v{j} {j}\n"));
         }
         code.push_str("    return $x\n}\n\n");
     }
@@ -852,9 +852,9 @@ fn performance_namespace_hierarchy() {
     let path = dir.path().join("namespaces.tcl");
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("namespace eval S{} {{\n", i));
+        code.push_str(&format!("namespace eval S{i} {{\n"));
         for j in 0..5 {
-            code.push_str(&format!("    proc m{} {{}} {{\n        variable x{}\n        return $x{}\n    }}\n", j, i, i));
+            code.push_str(&format!("    proc m{j} {{}} {{\n        variable x{i}\n        return $x{i}\n    }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -879,7 +879,7 @@ fn clean_namespace_not_flagged() {
         "}\n",
         "proc helper {x} {\n    expr {$x + 1}\n}\n",
     ));
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]

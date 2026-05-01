@@ -78,14 +78,14 @@ fn cc_counts_or() {
 fn cc_chained_boolean() {
     let out = debug("fn f(a: bool, b: bool, c: bool) bool {\n    if (a and b or c) {\n        return true;\n    }\n    return false;\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean_4way() {
     let out = debug("fn f(a: bool, b: bool, c: bool, d: bool) bool {\n    if (a and b and c and d) {\n        return true;\n    }\n    return false;\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 5, "got: {}", cc);
+    assert!(cc >= 5, "got: {cc}");
 }
 
 #[test]
@@ -157,28 +157,28 @@ fn cogc_flat_branches() {
 fn cogc_nested_ifs() {
     let out = debug("fn f(a: bool, b: bool) void {\n    if (a) {\n        if (b) {}\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
 fn cogc_else_if_no_extra_nesting() {
     let out = debug("fn f(a: bool, b: bool) void {\n    if (a) {\n    } else if (b) {\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_else_flat() {
     let out = debug("fn f(a: bool) void {\n    if (a) {\n    } else {\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_for_loop_nested() {
     let out = debug("fn f(items: []const u8) void {\n    for (items) |_| {\n        if (true) {}\n    }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "for+nested if should have high cogc, got: {}", cogc);
+    assert!(cogc >= 3, "for+nested if should have high cogc, got: {cogc}");
 }
 
 #[test]
@@ -192,21 +192,21 @@ fn cogc_switch_counted() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 1, "switch should add cogc, got: {}", cogc);
+    assert!(cogc >= 1, "switch should add cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("fn f(a: bool, b: bool) bool {\n    if (a and b) {\n        return true;\n    }\n    return false;\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("fn f(a: bool, b: bool, c: bool) bool {\n    if (a and b or c) {\n        return true;\n    }\n    return false;\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -217,7 +217,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("    return 0;\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -285,7 +285,7 @@ fn nesting_switch_depth() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 // ===========================================================================
@@ -302,7 +302,7 @@ fn bumpy_road_two_bumps() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -340,7 +340,7 @@ fn args_five_at_threshold() {
 #[test]
 fn args_six_over_threshold() {
     let out = check("fn f(a: i32, b: i32, c: i32, d: i32, e: i32, g: i32) void { _ = a; _ = b; _ = c; _ = d; _ = e; _ = g; }\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -398,11 +398,11 @@ fn loc_empty_lines_excluded_module() {
 fn embedded_large_multiline_string() {
     let mut code = String::from("fn f() []const u8 {\n    return\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("        \\\\line {}\n", i));
+        code.push_str(&format!("        \\\\line {i}\n"));
     }
     code.push_str("    ;\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -433,7 +433,7 @@ fn exact_duplication_detected() {
         "    return r;\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -471,7 +471,7 @@ fn fuzzy_duplication_detected() {
         "    return count;\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -495,7 +495,7 @@ fn test_function_duplication_suppressed() {
         "    r += 5;\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {out}");
 }
 
 // ===========================================================================
@@ -510,7 +510,7 @@ fn assertion_block_above_threshold() {
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -557,7 +557,7 @@ fn compound_condition_detected() {
         "    return false;\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 #[test]
@@ -580,7 +580,7 @@ fn compound_condition_simple_not_detected() {
 #[test]
 fn primitive_obsession_all_primitives() {
     let out = check("fn f(a: i32, b: i32, c: i32, d: i32) void { _ = a; _ = b; _ = c; _ = d; }\n");
-    assert!(has_smell(&out, "Primitive Obsession"), "got: {}", out);
+    assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
 #[test]
@@ -632,7 +632,7 @@ fn lcom4_disconnected() {
         "    pub fn setD(self: *S, v: i32) void { self.d = v; }\n",
         "};\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -657,7 +657,7 @@ fn lcom4_methods_connected_by_call() {
         "    pub fn send(self: *Coord, e: i32) bool { _ = self; _ = e; return true; }\n",
         "};\n",
     ));
-    assert!(!has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -685,7 +685,7 @@ fn lcom4_god_struct_still_fires() {
         "    pub fn auditLog(self: *Svc) i32 { return self.audit; }\n",
         "};\n",
     ));
-    assert!(has_smell(&out, "Low Cohesion"), "got: {}", out);
+    assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
 #[test]
@@ -708,7 +708,7 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 #[test]
 fn function_has_no_prefix() {
     let out = debug("fn standalone() void {}\n");
-    assert!(out.contains("standalone"), "got: {}", out);
+    assert!(out.contains("standalone"), "got: {out}");
     assert!(!out.contains(".standalone"));
 }
 
@@ -719,7 +719,7 @@ fn method_has_struct_type_prefix() {
         "    pub fn handle(self: Svc) void { _ = self; }\n",
         "};\n",
     ));
-    assert!(out.contains("Svc.handle"), "got: {}", out);
+    assert!(out.contains("Svc.handle"), "got: {out}");
 }
 
 #[test]
@@ -732,7 +732,7 @@ fn init_is_constructor() {
         "    }\n",
         "};\n",
     ));
-    assert!(out.contains("Svc.init"), "got: {}", out);
+    assert!(out.contains("Svc.init"), "got: {out}");
 }
 
 // ===========================================================================
@@ -761,7 +761,7 @@ fn test_decl_analyzed() {
         "    if (true) {}\n",
         "}\n",
     ));
-    assert!(out.contains("test_my_test"), "got: {}", out);
+    assert!(out.contains("test_my_test"), "got: {out}");
 }
 
 #[test]
@@ -772,7 +772,7 @@ fn test_decl_name_has_test_prefix() {
         "    if (true) {}\n",
         "}\n",
     ));
-    assert!(out.contains("test_some_feature"), "got: {}", out);
+    assert!(out.contains("test_some_feature"), "got: {out}");
 }
 
 #[test]
@@ -786,7 +786,7 @@ fn comptime_block_skipped() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "comptime block should not add CC, got: {}", cc);
+    assert_eq!(cc, 1, "comptime block should not add CC, got: {cc}");
 }
 
 #[test]
@@ -818,7 +818,7 @@ fn struct_method_detected() {
         "    }\n",
         "};\n",
     ));
-    assert!(out.contains("Point.sum"), "got: {}", out);
+    assert!(out.contains("Point.sum"), "got: {out}");
 }
 
 #[test]
@@ -858,9 +858,9 @@ fn performance_1000_loc() {
     let path = dir.path().join("perf.zig");
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("fn func{}(x: i32) i32 {{\n", i));
+        code.push_str(&format!("fn func{i}(x: i32) i32 {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("    const v{} = {};\n", j, j));
+            code.push_str(&format!("    const v{j} = {j};\n"));
         }
         code.push_str("    return x;\n}\n\n");
     }
@@ -884,11 +884,10 @@ fn performance_struct_hierarchy() {
     let path = dir.path().join("structs.zig");
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!("const S{} = struct {{\n    x: i32,\n", i));
+        code.push_str(&format!("const S{i} = struct {{\n    x: i32,\n"));
         for j in 0..5 {
             code.push_str(&format!(
-                "    pub fn m{}(self: S{}) i32 {{ return self.x + {}; }}\n",
-                j, i, j
+                "    pub fn m{j}(self: S{i}) i32 {{ return self.x + {j}; }}\n"
             ));
         }
         code.push_str("};\n\n");
@@ -925,7 +924,7 @@ fn clean_zig_module_not_flagged() {
         "    return x + 1;\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]

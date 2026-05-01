@@ -65,28 +65,28 @@ fn cc_counts_try_catch() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "tryCatch handler should add CC, got: {}", cc);
+    assert!(cc >= 2, "tryCatch handler should add CC, got: {cc}");
 }
 
 #[test]
 fn cc_counts_and_and() {
     let out = debug("f <- function(a, b) {\n  if (a && b) {\n    TRUE\n  }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_or_or() {
     let out = debug("f <- function(a, b) {\n  if (a || b) {\n    TRUE\n  }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(cc >= 3, "got: {}", cc);
+    assert!(cc >= 3, "got: {cc}");
 }
 
 #[test]
 fn cc_chained_boolean() {
     let out = debug("f <- function(a, b, c) {\n  if (a && b || c) {\n    TRUE\n  }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "got: {}", cc);
+    assert!(cc >= 4, "got: {cc}");
 }
 
 #[test]
@@ -117,14 +117,14 @@ fn cc_multiple_if_accumulates() {
 fn cc_vectorized_and_not_counted() {
     let out = debug("f <- function(a, b) {\n  if (a & b) {\n    TRUE\n  }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert_eq!(cc, 2, "vectorized & should NOT add CC, got: {}", cc);
+    assert_eq!(cc, 2, "vectorized & should NOT add CC, got: {cc}");
 }
 
 #[test]
 fn cc_vectorized_or_not_counted() {
     let out = debug("f <- function(a, b) {\n  if (a | b) {\n    TRUE\n  }\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert_eq!(cc, 2, "vectorized | should NOT add CC, got: {}", cc);
+    assert_eq!(cc, 2, "vectorized | should NOT add CC, got: {cc}");
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn cc_try_catch_multiple_handlers() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 4, "3 handlers should add 3 CC, got: {}", cc);
+    assert!(cc >= 4, "3 handlers should add 3 CC, got: {cc}");
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn cc_else_if_chain() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 4, "got: {}", cc);
+    assert_eq!(cc, 4, "got: {cc}");
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn cc_nested_switch() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "nested switch should compound, got: {}", cc);
+    assert!(cc >= 3, "nested switch should compound, got: {cc}");
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn cogc_else_increases_nesting() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
-    assert!(cogc >= 3, "else should contribute to nesting, got: {}", cogc);
+    assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
@@ -264,21 +264,21 @@ fn cogc_loop_nested() {
         "}\n",
     ));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "for+if should contribute cogc, got: {}", cogc);
+    assert!(cogc >= 3, "for+if should contribute cogc, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
     let out = debug("f <- function(a, b) {\n  if (a && b) {\n    TRUE\n  }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 2, "got: {}", cogc);
+    assert!(cogc >= 2, "got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
     let out = debug("f <- function(a, b, c) {\n  if (a && b || c) {\n    TRUE\n  }\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
-    assert!(cogc >= 3, "got: {}", cogc);
+    assert!(cogc >= 3, "got: {cogc}");
 }
 
 #[test]
@@ -289,7 +289,7 @@ fn cogc_triggers_complex_method() {
     }
     code.push_str("  0\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Complex Method"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -354,7 +354,7 @@ fn nesting_loop_with_if() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 2, "got: {}", nesting);
+    assert!(nesting >= 2, "got: {nesting}");
 }
 
 #[test]
@@ -368,7 +368,7 @@ fn nesting_switch_depth() {
         "}\n",
     ));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(nesting >= 1, "got: {}", nesting);
+    assert!(nesting >= 1, "got: {nesting}");
 }
 
 // ===========================================================================
@@ -385,7 +385,7 @@ fn bumpy_road_two_bumps() {
         "}\n",
     ));
     let bumps = function_metric(&out, "f", "bumps").unwrap_or(0);
-    assert!(bumps >= 2, "got: {}", bumps);
+    assert!(bumps >= 2, "got: {bumps}");
 }
 
 #[test]
@@ -423,7 +423,7 @@ fn args_five_at_threshold() {
 #[test]
 fn args_six_over_threshold() {
     let out = check("f <- function(a, b, c, d, e, g) {\n  a + b + c + d + e + g\n}\n");
-    assert!(has_smell(&out, "Excess Arguments"), "got: {}", out);
+    assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
@@ -474,11 +474,11 @@ fn loc_empty_lines_excluded_module() {
 fn embedded_large_string() {
     let mut code = String::from("f <- function() {\n  x <- \"\n");
     for i in 0..embedded_lines_above() {
-        code.push_str(&format!("    line {}\n", i));
+        code.push_str(&format!("    line {i}\n"));
     }
     code.push_str("  \"\n}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Embedded Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Embedded Block"), "got: {out}");
 }
 
 #[test]
@@ -497,7 +497,7 @@ fn exact_duplication_detected() {
         "alpha <- function(x) {\n  r <- x\n  r <- r * 2\n  r <- r + 1\n  r <- r - 3\n  r\n}\n",
         "beta <- function(x) {\n  r <- x\n  r <- r * 2\n  r <- r + 1\n  r <- r - 3\n  r\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -520,7 +520,7 @@ fn fuzzy_duplication_detected() {
         "    if (val > 100) {\n      count <- count + 2\n    } else {\n      count <- count + 1\n    }\n",
         "  }\n  count\n}\n",
     ));
-    assert!(has_smell(&out, "Code Duplication"), "got: {}", out);
+    assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
@@ -529,7 +529,7 @@ fn test_function_duplication_suppressed() {
         "test_alpha <- function() {\n  r <- 0\n  r <- r + 1\n  r <- r + 2\n  r <- r + 3\n  r <- r + 4\n  r <- r + 5\n}\n",
         "test_beta <- function() {\n  r <- 0\n  r <- r + 1\n  r <- r + 2\n  r <- r + 3\n  r <- r + 4\n  r <- r + 5\n}\n",
     ));
-    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {}", out);
+    assert!(!has_smell(&out, "Code Duplication"), "test duplication should be suppressed, got: {out}");
 }
 
 // ===========================================================================
@@ -544,7 +544,7 @@ fn assertion_block_above_threshold() {
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(has_smell(&out, "Large Assertion Block"), "got: {}", out);
+    assert!(has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
 
 #[test]
@@ -590,7 +590,7 @@ fn compound_condition_detected() {
         "  }\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Complex Conditional"), "got: {}", out);
+    assert!(has_smell(&out, "Complex Conditional"), "got: {out}");
 }
 
 #[test]
@@ -612,7 +612,7 @@ fn primitive_obsession_never_triggers() {
 #[test]
 fn no_typed_params() {
     let out = debug("f <- function(a, b, c, d) {\n  a\n}\n");
-    assert!(out.contains("primitives=0/0"), "got: {}", out);
+    assert!(out.contains("primitives=0/0"), "got: {out}");
 }
 
 #[test]
@@ -628,7 +628,7 @@ fn typed_param_count_zero() {
 #[test]
 fn function_has_extracted_name() {
     let out = debug("my_func <- function(x) {\n  x\n}\n");
-    assert!(out.contains("my_func"), "got: {}", out);
+    assert!(out.contains("my_func"), "got: {out}");
     assert!(!out.contains("<anonymous>"));
 }
 
@@ -643,7 +643,7 @@ fn anonymous_function_detected() {
 #[test]
 fn equals_assignment_extracts_name() {
     let out = debug("my_func = function(x) {\n  x\n}\n");
-    assert!(out.contains("my_func"), "got: {}", out);
+    assert!(out.contains("my_func"), "got: {out}");
 }
 
 // ===========================================================================
@@ -662,7 +662,7 @@ fn repeat_loop_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 3, "repeat+if should give cc>=3, got: {}", cc);
+    assert!(cc >= 3, "repeat+if should give cc>=3, got: {cc}");
 }
 
 #[test]
@@ -675,7 +675,7 @@ fn try_catch_empty_handler() {
         "  )\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -696,14 +696,14 @@ fn switch_each_case_increments() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 10, "9 cases should have cc>=10, got: {}", cc);
+    assert!(cc >= 10, "9 cases should have cc>=10, got: {cc}");
 }
 
 #[test]
 fn for_in_increments_cc() {
     let out = debug("f <- function(data) {\n  s <- 0\n  for (v in data) {\n    s <- s + v\n  }\n  s\n}\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc >= 2, "for should increment cc, got: {}", cc);
+    assert!(cc >= 2, "for should increment cc, got: {cc}");
 }
 
 #[test]
@@ -724,7 +724,7 @@ fn else_if_chain_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 5, "got: {}", cc);
+    assert_eq!(cc, 5, "got: {cc}");
 }
 
 #[test]
@@ -738,13 +738,13 @@ fn nested_function_separate_scope() {
         "}\n",
     ));
     let cc = function_metric(&out, "outer", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "nested function should not contribute CC to outer, got: {}", cc);
+    assert_eq!(cc, 1, "nested function should not contribute CC to outer, got: {cc}");
 }
 
 #[test]
 fn global_assignment_operator() {
     let out = debug("my_func <<- function(x) {\n  x + 1\n}\n");
-    assert!(out.contains("my_func"), "<<- should extract name, got: {}", out);
+    assert!(out.contains("my_func"), "<<- should extract name, got: {out}");
 }
 
 #[test]
@@ -755,7 +755,7 @@ fn field_access_via_dollar() {
         "}\n",
     ));
     // Should not crash, $ is traversed
-    assert!(out.contains("f"));
+    assert!(out.contains('f'));
 }
 
 #[test]
@@ -788,7 +788,7 @@ fn lapply_with_anonymous_function() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "anonymous function in lapply should be separate scope, got: {}", cc);
+    assert_eq!(cc, 1, "anonymous function in lapply should be separate scope, got: {cc}");
 }
 
 #[test]
@@ -807,7 +807,7 @@ fn multiple_assignments() {
         "a <- function(x) {\n  x + 1\n}\n",
         "b <- function(y) {\n  y + 2\n}\n",
     ));
-    assert!(out.contains("a") && out.contains("b"), "got: {}", out);
+    assert!(out.contains('a') && out.contains('b'), "got: {out}");
 }
 
 // ===========================================================================
@@ -820,9 +820,9 @@ fn performance_1000_loc() {
     let path = dir.path().join("perf.r");
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("func{} <- function(x) {{\n", i));
+        code.push_str(&format!("func{i} <- function(x) {{\n"));
         for j in 0..18 {
-            code.push_str(&format!("  v{} <- {}\n", j, j));
+            code.push_str(&format!("  v{j} <- {j}\n"));
         }
         code.push_str("  x\n}\n\n");
     }
@@ -841,7 +841,7 @@ fn performance_many_functions() {
     let path = dir.path().join("many.r");
     let mut code = String::new();
     for i in 0..30 {
-        code.push_str(&format!("fn{} <- function(x) {{\n  x + {}\n}}\n\n", i, i));
+        code.push_str(&format!("fn{i} <- function(x) {{\n  x + {i}\n}}\n\n"));
     }
     std::fs::write(&path, &code).unwrap();
     let start = std::time::Instant::now();
@@ -862,7 +862,7 @@ fn clean_code_not_flagged() {
         "add <- function(a, b) {\n  a + b\n}\n",
         "helper <- function(x) {\n  x + 1\n}\n",
     ));
-    assert!(out.is_empty(), "got: {}", out);
+    assert!(out.is_empty(), "got: {out}");
 }
 
 #[test]
@@ -924,7 +924,7 @@ fn realistic_data_pipeline_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "process", "cc").unwrap_or(0);
-    assert!(cc >= 8, "realistic pipeline should have high cc, got: {}", cc);
+    assert!(cc >= 8, "realistic pipeline should have high cc, got: {cc}");
 }
 
 #[test]
@@ -944,7 +944,7 @@ fn realistic_data_pipeline_nesting() {
         "}\n",
     ));
     let nesting = function_metric(&out, "process", "nesting").unwrap_or(0);
-    assert!(nesting >= 4, "should have deep nesting, got: {}", nesting);
+    assert!(nesting >= 4, "should have deep nesting, got: {nesting}");
 }
 
 #[test]
@@ -967,7 +967,7 @@ fn realistic_api_handler_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "handle", "cc").unwrap_or(0);
-    assert!(cc >= 7, "api handler should have cc>=7, got: {}", cc);
+    assert!(cc >= 7, "api handler should have cc>=7, got: {cc}");
 }
 
 #[test]
@@ -987,7 +987,7 @@ fn realistic_switch_dispatch() {
         "  )\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Complex Method"), "many switch arms should flag, got: {}", out);
+    assert!(has_smell(&out, "Complex Method"), "many switch arms should flag, got: {out}");
 }
 
 #[test]
@@ -1012,7 +1012,7 @@ fn realistic_try_catch_with_handlers() {
         "}\n",
     ));
     let cc = function_metric(&out, "safe_read", "cc").unwrap_or(0);
-    assert!(cc >= 4, "tryCatch with if + 2 handlers should have cc>=4, got: {}", cc);
+    assert!(cc >= 4, "tryCatch with if + 2 handlers should have cc>=4, got: {cc}");
 }
 
 #[test]
@@ -1037,9 +1037,9 @@ fn realistic_for_with_nested_if_else() {
         "}\n",
     ));
     let cc = function_metric(&out, "categorize", "cc").unwrap_or(0);
-    assert!(cc >= 5, "for+if+else_if should compound, got: {}", cc);
+    assert!(cc >= 5, "for+if+else_if should compound, got: {cc}");
     let nesting = function_metric(&out, "categorize", "nesting").unwrap_or(0);
-    assert!(nesting >= 3, "should have nesting>=3, got: {}", nesting);
+    assert!(nesting >= 3, "should have nesting>=3, got: {nesting}");
 }
 
 #[test]
@@ -1061,7 +1061,7 @@ fn realistic_short_vars_long_function() {
         "  result + extra\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Short Variable Names"), "got: {}", out);
+    assert!(has_smell(&out, "Short Variable Names"), "got: {out}");
 }
 
 #[test]
@@ -1077,7 +1077,7 @@ fn realistic_empty_catch_in_middleware() {
         "  req\n",
         "}\n",
     ));
-    assert!(has_smell(&out, "Empty Error Handler"), "got: {}", out);
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -1093,7 +1093,7 @@ fn realistic_non_empty_catch_clean() {
         "  )\n",
         "}\n",
     ));
-    assert!(!has_smell(&out, "Empty Error Handler"), "non-empty handler should be clean, got: {}", out);
+    assert!(!has_smell(&out, "Empty Error Handler"), "non-empty handler should be clean, got: {out}");
 }
 
 #[test]
@@ -1111,9 +1111,9 @@ fn realistic_multiple_nested_for_loops() {
         "}\n",
     ));
     let nesting = function_metric(&out, "matrix_op", "nesting").unwrap_or(0);
-    assert!(nesting >= 3, "nested loops + if should give nesting>=3, got: {}", nesting);
+    assert!(nesting >= 3, "nested loops + if should give nesting>=3, got: {nesting}");
     let cc = function_metric(&out, "matrix_op", "cc").unwrap_or(0);
-    assert_eq!(cc, 4, "2 for + 1 if + base = 4, got: {}", cc);
+    assert_eq!(cc, 4, "2 for + 1 if + base = 4, got: {cc}");
 }
 
 #[test]
@@ -1131,7 +1131,7 @@ fn realistic_while_with_break() {
         "}\n",
     ));
     let cc = function_metric(&out, "find_first", "cc").unwrap_or(0);
-    assert_eq!(cc, 3, "while + if + base = 3, got: {}", cc);
+    assert_eq!(cc, 3, "while + if + base = 3, got: {cc}");
 }
 
 #[test]
@@ -1149,7 +1149,7 @@ fn realistic_repeat_with_condition() {
         "}\n",
     ));
     let cc = function_metric(&out, "retry", "cc").unwrap_or(0);
-    assert!(cc >= 5, "repeat + tryCatch + 2 ifs = cc>=5, got: {}", cc);
+    assert!(cc >= 5, "repeat + tryCatch + 2 ifs = cc>=5, got: {cc}");
 }
 
 #[test]
@@ -1166,7 +1166,7 @@ fn realistic_sapply_with_anonymous_no_cc() {
         "}\n",
     ));
     let cc = function_metric(&out, "normalize", "cc").unwrap_or(0);
-    assert_eq!(cc, 1, "anonymous function is separate scope, got: {}", cc);
+    assert_eq!(cc, 1, "anonymous function is separate scope, got: {cc}");
 }
 
 #[test]
@@ -1188,7 +1188,7 @@ fn realistic_cogc_deeply_nested_pipeline() {
         "}\n",
     ));
     let cogc = function_metric(&out, "transform", "cogc").unwrap_or(0);
-    assert!(cogc >= 10, "deeply nested pipeline should have high cogc, got: {}", cogc);
+    assert!(cogc >= 10, "deeply nested pipeline should have high cogc, got: {cogc}");
 }
 
 #[test]
@@ -1207,7 +1207,7 @@ fn realistic_clean_utility_no_smells() {
         "  !is.null(x) && !is.na(x)\n",
         "}\n",
     ));
-    assert!(out.is_empty(), "clean utilities should not flag, got: {}", out);
+    assert!(out.is_empty(), "clean utilities should not flag, got: {out}");
 }
 
 #[test]
@@ -1216,7 +1216,7 @@ fn realistic_many_top_level_assignments_no_crash() {
     let path = dir.path().join("many_decls.r");
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!("x{} <- {}\n", i, i));
+        code.push_str(&format!("x{i} <- {i}\n"));
     }
     code.push_str("f <- function() { 1 }\n");
     std::fs::write(&path, &code).unwrap();
@@ -1243,7 +1243,7 @@ fn realistic_global_if_at_top() {
         "}\n",
         "run <- function(x) { x }\n",
     ));
-    assert!(has_smell(&out, "Global Conditionals"), "got: {}", out);
+    assert!(has_smell(&out, "Global Conditionals"), "got: {out}");
 }
 
 #[test]
