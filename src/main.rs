@@ -1,5 +1,7 @@
 mod analytics;
+mod audit_stub;
 mod baselines;
+mod cli;
 mod config;
 mod duplication;
 mod hook;
@@ -18,16 +20,6 @@ use std::process;
 
 use smells::{Finding, Location};
 
-enum Command {
-    Hook(hook::HookInput),
-    Check(String),
-    CheckAll { include_tests: bool },
-    Debug(String),
-    Budget(Option<String>),
-    Stop,
-    Cleanup,
-}
-
 const CHECKPOINT_INTERVAL: u32 = 5;
 const CHECKPOINT_INTERVAL_NEW: u32 = 2;
 
@@ -39,54 +31,6 @@ const SKIP_DIRS: &[&str] = &[
     "dist",
 ];
 
-fn parse_args() -> Command {
-    let args: Vec<String> = std::env::args().collect();
-    let cmd = args.get(1).map_or("", std::string::String::as_str);
-    let second = args.get(2).map(String::as_str);
-
-    if matches!(cmd, "--version" | "-V") {
-        println!("pulse {}", env!("CARGO_PKG_VERSION"));
-        process::exit(0);
-    }
-
-    if cmd == "setup" {
-        setup::run_setup();
-        process::exit(0);
-    }
-
-    if let Some(early) = parse_early_command(cmd, second) {
-        return early;
-    }
-
-    match cmd {
-        "--hook" => hook::parse_hook_input().map_or_else(|| process::exit(0), Command::Hook),
-        "--stop" => Command::Stop,
-        "--cleanup" => Command::Cleanup,
-        "check" | "debug" | "budget" if second.is_some() => file_command(cmd, args[2].clone()),
-        _ => {
-            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | --version");
-            process::exit(1);
-        }
-    }
-}
-
-fn parse_early_command(cmd: &str, second: Option<&str>) -> Option<Command> {
-    if matches!(cmd, "-a" | "--all") || (cmd == "check" && second.is_some_and(|a| a == "-a" || a == "--all")) {
-        let include_tests = std::env::args().any(|a| a == "--include-tests" || a == "-t");
-        return Some(Command::CheckAll { include_tests });
-    }
-    if cmd == "budget" && second.is_some_and(|a| a == "--new") {
-        return Some(Command::Budget(None));
-    }
-    None
-}
-
-fn file_command(cmd: &str, path: String) -> Command {
-    if cmd == "debug" { return Command::Debug(path); }
-    if cmd == "budget" { return Command::Budget(Some(path)); }
-    Command::Check(path)
-}
-
 fn read_session_id_from_stdin() -> Option<String> {
     let mut input = String::new();
     std::io::Read::read_to_string(&mut std::io::stdin(), &mut input).ok()?;
@@ -95,23 +39,47 @@ fn read_session_id_from_stdin() -> Option<String> {
 }
 
 fn main() {
-    match parse_args() {
-        Command::Debug(p) => run_debug(&p),
-        Command::Check(p) => run_check(&p),
-        Command::CheckAll { include_tests } => run_check_all(include_tests),
-        Command::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        Command::Hook(h) => {
-            baselines::init_session_dir(h.session_id.as_deref());
-            run_hook(h);
+    let Some(d) = dispatch_session(cli::parse()) else { return; };
+    dispatch_subcommand(d);
+}
+
+fn dispatch_session(d: cli::Dispatch) -> Option<cli::Dispatch> {
+    if matches!(d, cli::Dispatch::Hook) {
+        if let Some(input) = hook::parse_hook_input() {
+            baselines::init_session_dir(input.session_id.as_deref());
+            run_hook(input);
         }
-        Command::Stop => {
-            baselines::init_session_dir(read_session_id_from_stdin().as_deref());
-            run_stop();
+        return None;
+    }
+    if matches!(d, cli::Dispatch::Stop) {
+        baselines::init_session_dir(read_session_id_from_stdin().as_deref());
+        run_stop();
+        return None;
+    }
+    if matches!(d, cli::Dispatch::Cleanup) {
+        baselines::init_session_dir(read_session_id_from_stdin().as_deref());
+        run_cleanup();
+        return None;
+    }
+    if matches!(d, cli::Dispatch::UsageError) {
+        eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | --version");
+        process::exit(1);
+    }
+    Some(d)
+}
+
+fn dispatch_subcommand(d: cli::Dispatch) {
+    match d {
+        cli::Dispatch::Setup => {
+            setup::run_setup();
+            process::exit(0);
         }
-        Command::Cleanup => {
-            baselines::init_session_dir(read_session_id_from_stdin().as_deref());
-            run_cleanup();
-        }
+        cli::Dispatch::Check(p) => run_check(&p),
+        cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
+        cli::Dispatch::Debug(p) => run_debug(&p),
+        cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
+        cli::Dispatch::Audit(args) => audit_stub::run(&args),
+        _ => unreachable!(),
     }
 }
 

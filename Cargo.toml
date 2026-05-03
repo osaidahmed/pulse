@@ -30,6 +30,7 @@ serde_json = "1"
 memchr = "2"
 toml = "0.8"
 globset = "0.4"
+clap = { version = "4.6", features = ["derive"] }
 tree-sitter-lua = "0.5.0"
 tree-sitter-r = "1.2.0"
 tree-sitter-php = "0.24.2"
