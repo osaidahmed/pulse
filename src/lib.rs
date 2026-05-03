@@ -1,4 +1,5 @@
 pub mod analytics;
+pub mod audit;
 pub mod baselines;
 pub mod config;
 pub mod duplication;

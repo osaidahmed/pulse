@@ -1,6 +1,6 @@
 use crate::walk::{self, FileMetrics};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(usize)]
 pub enum Language {
     Python,

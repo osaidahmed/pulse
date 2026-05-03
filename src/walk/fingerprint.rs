@@ -27,6 +27,47 @@ pub fn compute_structural_fingerprint(node: Node) -> u64 {
     hasher.finish()
 }
 
+pub fn compute_subtree_fingerprint(node: Node) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    fingerprint_subtree_into(node, &mut hasher);
+    hasher.finish()
+}
+
+fn fingerprint_subtree_into(node: Node, hasher: &mut impl Hasher) {
+    if is_subtree_skipped_kind(node.kind()) {
+        return;
+    }
+    if let Some(inner) = unwrap_passthrough(node) {
+        fingerprint_subtree_into(inner, hasher);
+        return;
+    }
+    node.kind().hash(hasher);
+    if node.named_child_count() == 0 {
+        return;
+    }
+    0xFE_u8.hash(hasher);
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            fingerprint_subtree_into(child, hasher);
+        }
+    }
+    0xFD_u8.hash(hasher);
+}
+
+fn is_subtree_skipped_kind(kind: &str) -> bool {
+    matches!(kind, "comment" | "line_comment" | "block_comment")
+}
+
+fn unwrap_passthrough(node: Node) -> Option<Node> {
+    if !matches!(node.kind(), "parenthesized_expression") {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let result = node.children(&mut cursor).find(tree_sitter::Node::is_named);
+    result
+}
+
 fn is_literal_kind(kind: &str) -> bool {
     matches!(
         kind,

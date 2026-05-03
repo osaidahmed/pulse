@@ -1,4 +1,5 @@
 mod analytics;
+mod audit;
 mod audit_stub;
 mod baselines;
 mod cli;
