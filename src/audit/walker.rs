@@ -4,7 +4,9 @@ use tree_sitter::{Node, Tree};
 
 use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
-use crate::walk::fingerprint::compute_subtree_fingerprint;
+use crate::walk::fingerprint::compute_subtree_fingerprint_seeded;
+
+use super::lang_kinds;
 
 #[derive(Debug, Clone)]
 pub struct SubtreeRecord {
@@ -19,53 +21,52 @@ pub struct SubtreeRecord {
 pub fn extract_subtrees(
     tree: &Tree,
     source: &str,
-    _lang: Language,
+    lang: Language,
     file: &Path,
     thresholds: &AuditThresholds,
 ) -> Vec<SubtreeRecord> {
     let mut out = Vec::new();
-    visit(tree.root_node(), source, file, thresholds, &mut out);
+    let ctx = WalkCtx { source, lang, file, thresholds };
+    visit(tree.root_node(), &ctx, &mut out);
     out
 }
 
-fn visit(
-    node: Node,
-    source: &str,
-    file: &Path,
-    thresholds: &AuditThresholds,
-    out: &mut Vec<SubtreeRecord>,
-) {
+struct WalkCtx<'a> {
+    source: &'a str,
+    lang: Language,
+    file: &'a Path,
+    thresholds: &'a AuditThresholds,
+}
+
+fn visit(node: Node, ctx: &WalkCtx, out: &mut Vec<SubtreeRecord>) {
     if node.is_named() {
-        consider(node, source, file, thresholds, out);
+        consider(node, ctx, out);
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit(child, source, file, thresholds, out);
+        visit(child, ctx, out);
     }
 }
 
-fn consider(
-    node: Node,
-    source: &str,
-    file: &Path,
-    thresholds: &AuditThresholds,
-    out: &mut Vec<SubtreeRecord>,
-) {
+fn consider(node: Node, ctx: &WalkCtx, out: &mut Vec<SubtreeRecord>) {
+    if lang_kinds::is_skippable_root(ctx.lang, node.kind()) {
+        return;
+    }
     let depth = subtree_depth(node);
     let named_count = count_named(node);
-    if (depth as usize) < thresholds.subtree_min_depth
-        || (named_count as usize) < thresholds.subtree_min_nodes
+    if (depth as usize) < ctx.thresholds.subtree_min_depth
+        || (named_count as usize) < ctx.thresholds.subtree_min_nodes
     {
         return;
     }
-    let fingerprint = compute_subtree_fingerprint(node);
+    let fingerprint = compute_subtree_fingerprint_seeded(node, ctx.lang as u64);
     out.push(SubtreeRecord {
         fingerprint,
-        file: file.to_path_buf(),
+        file: ctx.file.to_path_buf(),
         line: node.start_position().row as u32 + 1,
         depth,
         named_node_count: named_count,
-        snippet: snippet_for(node, source),
+        snippet: snippet_for(node, ctx.source),
     });
 }
 

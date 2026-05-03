@@ -27,8 +27,16 @@ pub fn compute_structural_fingerprint(node: Node) -> u64 {
     hasher.finish()
 }
 
+#[allow(dead_code)]
 pub fn compute_subtree_fingerprint(node: Node) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    fingerprint_subtree_into(node, &mut hasher);
+    hasher.finish()
+}
+
+pub fn compute_subtree_fingerprint_seeded(node: Node, seed: u64) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    seed.hash(&mut hasher);
     fingerprint_subtree_into(node, &mut hasher);
     hasher.finish()
 }
