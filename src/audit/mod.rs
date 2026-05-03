@@ -1,13 +1,32 @@
 #![allow(dead_code)]
 
+pub mod discovery;
 pub mod finding;
+pub mod output;
+pub mod scoring;
 pub mod walker;
 
 use std::path::{Path, PathBuf};
 
 use crate::parse::{self, Language};
 use crate::thresholds::AuditThresholds;
+use finding::AuditFinding;
 use walker::SubtreeRecord;
+
+pub struct AuditOpts {
+    pub root: PathBuf,
+    pub layer: Option<u8>,
+    pub json: bool,
+}
+
+pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let lang = Language::Python;
+    let files = walk_python_files(&opts.root, lang);
+    let total_files = files.len();
+    let records = extract_subtrees_from_files(&files, lang, thresholds);
+    let clusters = discovery::freqt_mine(&records, thresholds);
+    scoring::apply_idf(clusters, total_files, thresholds)
+}
 
 const SKIP_DIRS: &[&str] = &[
     "node_modules",
@@ -23,18 +42,27 @@ pub fn extract_subtrees_for_dir(
     lang: Language,
     thresholds: &AuditThresholds,
 ) -> Vec<SubtreeRecord> {
-    let mut out = Vec::new();
     if !root.exists() {
-        return out;
+        return Vec::new();
     }
-    for path in walk_python_files(root, lang) {
-        let Ok(source) = std::fs::read_to_string(&path) else {
+    let files = walk_python_files(root, lang);
+    extract_subtrees_from_files(&files, lang, thresholds)
+}
+
+fn extract_subtrees_from_files(
+    files: &[PathBuf],
+    lang: Language,
+    thresholds: &AuditThresholds,
+) -> Vec<SubtreeRecord> {
+    let mut out = Vec::new();
+    for path in files {
+        let Ok(source) = std::fs::read_to_string(path) else {
             continue;
         };
         let Some(tree) = parse::parse_only(&source, lang) else {
             continue;
         };
-        out.extend(walker::extract_subtrees(&tree, &source, lang, &path, thresholds));
+        out.extend(walker::extract_subtrees(&tree, &source, lang, path, thresholds));
     }
     out
 }

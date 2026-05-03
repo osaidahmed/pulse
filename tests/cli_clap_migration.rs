@@ -87,37 +87,36 @@ fn debug_subcommand_help_exits_zero() {
 }
 
 #[test]
-fn audit_subcommand_exits_with_not_implemented_marker() {
-    let (_stdout, stderr, code) = pulse(&["audit"]);
-    assert_eq!(code, 2, "stub must exit with code 2, got {code}");
-    assert!(
-        stderr.contains("not yet implemented") || stderr.contains("not implemented"),
-        "stub stderr should declare it is not implemented, got: {stderr}",
-    );
-}
-
-#[test]
-fn audit_subcommand_with_json_flag_still_stubs() {
-    let (_stdout, stderr, code) = pulse(&["audit", "--json"]);
-    assert_eq!(code, 2);
-    assert!(stderr.to_lowercase().contains("not"), "got: {stderr}");
-}
-
-#[test]
-fn audit_subcommand_with_layer_flag_still_stubs() {
-    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3"]);
-    assert_eq!(code, 2);
-}
-
-#[test]
-fn audit_subcommand_with_root_flag_still_stubs() {
+fn audit_subcommand_in_empty_dir_exits_zero() {
     let dir = tempfile::tempdir().unwrap();
     let (_stdout, _stderr, code) = pulse(&["audit", "--root", dir.path().to_str().unwrap()]);
-    assert_eq!(code, 2);
+    assert_eq!(code, 0);
 }
 
 #[test]
-fn audit_subcommand_with_all_three_flags_still_stubs() {
+fn audit_subcommand_with_json_flag_emits_array() {
+    let dir = tempfile::tempdir().unwrap();
+    let (stdout, _stderr, code) = pulse(&["audit", "--json", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
+    assert!(stdout.trim().starts_with('['));
+}
+
+#[test]
+fn audit_subcommand_with_valid_layer_runs() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn audit_subcommand_with_root_flag_uses_directory() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_stdout, _stderr, code) = pulse(&["audit", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn audit_subcommand_with_combined_flags_runs() {
     let dir = tempfile::tempdir().unwrap();
     let (_stdout, _stderr, code) = pulse(&[
         "audit",
@@ -127,13 +126,14 @@ fn audit_subcommand_with_all_three_flags_still_stubs() {
         "--root",
         dir.path().to_str().unwrap(),
     ]);
-    assert_eq!(code, 2);
+    assert_eq!(code, 0);
 }
 
 #[test]
 fn audit_subcommand_layer_accepts_valid_integer() {
-    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3"]);
-    assert_eq!(code, 2, "stub valid layer should still stub-exit 2");
+    let dir = tempfile::tempdir().unwrap();
+    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
 }
 
 #[test]

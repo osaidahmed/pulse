@@ -1,6 +1,5 @@
 mod analytics;
 mod audit;
-mod audit_stub;
 mod baselines;
 mod cli;
 mod config;
@@ -79,9 +78,47 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        cli::Dispatch::Audit(args) => audit_stub::run(&args),
+        cli::Dispatch::Audit(args) => run_audit_cmd(args),
         _ => unreachable!(),
     }
+}
+
+fn run_audit_cmd(args: cli::AuditArgs) {
+    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
+    if !root.exists() {
+        eprintln!("audit: root path does not exist: {}", root.display());
+        process::exit(1);
+    }
+    if !root.is_dir() {
+        eprintln!("audit: root path is not a directory: {}", root.display());
+        process::exit(1);
+    }
+    if let Some(layer) = args.layer {
+        if layer != 3 {
+            eprintln!("audit: --layer must be 3 (only Layer 3 implemented)");
+            process::exit(1);
+        }
+    }
+    let cfg = config::load_config(&root);
+    let thresholds = config::resolve_base_thresholds(cfg.as_ref());
+    let opts = audit::AuditOpts {
+        root: root.clone(),
+        layer: args.layer,
+        json: args.json,
+    };
+    let findings = audit::run(&opts, &thresholds.audit);
+    let rendered = if args.json {
+        audit::output::format_findings_json(&findings, Some(&root))
+    } else {
+        audit::output::format_findings(&findings, Some(&root), &thresholds.audit)
+    };
+    if !rendered.is_empty() {
+        print!("{rendered}");
+    }
+    if findings.is_empty() {
+        process::exit(0);
+    }
+    process::exit(1);
 }
 
 fn run_debug(file_path: &str) {
