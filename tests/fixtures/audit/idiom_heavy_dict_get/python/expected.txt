@@ -1,0 +1,3 @@
+scenario: idiom_heavy_dict_get
+language: python
+no_findings: true

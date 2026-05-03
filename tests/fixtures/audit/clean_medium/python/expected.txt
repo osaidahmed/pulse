@@ -1,0 +1,3 @@
+scenario: clean_medium
+language: python
+no_findings: true

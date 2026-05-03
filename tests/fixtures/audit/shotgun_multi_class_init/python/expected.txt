@@ -1,0 +1,14 @@
+scenario: shotgun_multi_class_init
+language: python
+findings:
+  - kind: UncategorizedPattern
+    file_count_min: 6
+    support_min: 6
+    representative_substr: self.user
+    must_include_files:
+      - a.py
+      - b.py
+      - c.py
+      - d.py
+      - e.py
+      - f.py

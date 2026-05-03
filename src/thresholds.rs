@@ -51,6 +51,35 @@ pub struct Thresholds {
 
     // Stringly-typed switch
     pub max_string_match_arms: u32,
+
+    pub audit: AuditThresholds,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AuditThresholds {
+    pub freqt_min_support: usize,
+    pub subtree_min_depth: usize,
+    pub subtree_min_nodes: usize,
+    pub idiom_suppression_threshold: f64,
+    pub max_findings_reported: usize,
+    pub max_locations_per_finding: usize,
+}
+
+impl AuditThresholds {
+    pub const DEFAULTS: Self = Self {
+        freqt_min_support: 5,
+        subtree_min_depth: 3,
+        subtree_min_nodes: 5,
+        idiom_suppression_threshold: 0.5,
+        max_findings_reported: 50,
+        max_locations_per_finding: 20,
+    };
+}
+
+impl Default for AuditThresholds {
+    fn default() -> Self {
+        Self::DEFAULTS
+    }
 }
 
 impl Default for Thresholds {
@@ -86,6 +115,7 @@ impl Default for Thresholds {
             short_var_min_fn_loc: 15,
             short_var_max_count: 3,
             max_string_match_arms: 5,
+            audit: AuditThresholds::DEFAULTS,
         }
     }
 }

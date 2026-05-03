@@ -1,0 +1,13 @@
+scenario: shotgun_cache_pattern
+language: python
+findings:
+  - kind: UncategorizedPattern
+    file_count_min: 5
+    support_min: 5
+    representative_substr: cache
+    must_include_files:
+      - provider_a.py
+      - provider_b.py
+      - provider_c.py
+      - provider_d.py
+      - provider_e.py

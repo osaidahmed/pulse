@@ -1,0 +1,13 @@
+scenario: shotgun_media_type
+language: python
+findings:
+  - kind: UncategorizedPattern
+    file_count_min: 5
+    support_min: 8
+    representative_substr: media_type
+    must_include_files:
+      - managers.py
+      - services.py
+      - calendar.py
+      - api.py
+      - cli.py

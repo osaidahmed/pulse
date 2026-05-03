@@ -228,6 +228,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(base.short_var_min_fn_loc),
         short_var_max_count: a.short_var_max_count.unwrap_or(base.short_var_max_count),
         max_string_match_arms: a.max_string_match_arms.unwrap_or(base.max_string_match_arms),
+        audit: base.audit,
     }
 }
 

@@ -1,0 +1,3 @@
+scenario: clean_small
+language: python
+no_findings: true
