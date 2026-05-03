@@ -108,10 +108,18 @@ pub fn detect_language(path: &std::path::Path) -> Option<Language> {
         .map(|(_, lang)| *lang)
 }
 
-pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
-    let (ts_lang_fn, walk_fn) = DISPATCH[lang as usize];
+pub fn parse_only(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
+    let (ts_lang_fn, _) = DISPATCH[lang as usize];
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(&ts_lang_fn()).ok()?;
-    let tree = parser.parse(source, None)?;
-    Some(walk_fn(&tree, source))
+    parser.parse(source, None)
+}
+
+pub fn walk_only(tree: &tree_sitter::Tree, source: &str, lang: Language) -> FileMetrics {
+    let (_, walk_fn) = DISPATCH[lang as usize];
+    walk_fn(tree, source)
+}
+
+pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
+    parse_only(source, lang).map(|tree| walk_only(&tree, source, lang))
 }
