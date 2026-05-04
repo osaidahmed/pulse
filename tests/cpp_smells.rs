@@ -22,7 +22,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.cpp");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "cc should be >= t().cc_warning, got: {cc}");
+    assert!(cc >= t().function.cc_warning, "cc should be >= t().function.cc_warning, got: {cc}");
 }
 
 #[test]
@@ -212,7 +212,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc >= t().function.fn_loc_warning, got: {loc}");
 }
 
 // ===========================================================================

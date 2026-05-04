@@ -29,7 +29,7 @@ fn freqt_mine_returns_empty_when_no_records() {
 #[test]
 fn freqt_mine_returns_empty_when_all_below_min_support() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..4).map(|i| record(7, &format!("a{i}.py"), 1, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert!(clusters.is_empty());
@@ -38,7 +38,7 @@ fn freqt_mine_returns_empty_when_all_below_min_support() {
 #[test]
 fn freqt_mine_surfaces_cluster_at_exactly_min_support() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..5).map(|i| record(7, &format!("f{i}.py"), 1, "x == y")).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 1);
@@ -48,7 +48,7 @@ fn freqt_mine_surfaces_cluster_at_exactly_min_support() {
 #[test]
 fn freqt_mine_surfaces_cluster_above_min_support() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..10).map(|i| record(7, &format!("f{i}.py"), 1, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters[0].support, 10);
@@ -57,7 +57,7 @@ fn freqt_mine_surfaces_cluster_above_min_support() {
 #[test]
 fn freqt_mine_distinguishes_clusters_by_fingerprint() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records: Vec<SubtreeRecord> = vec![
         record(1, "a.py", 1, "x"), record(1, "b.py", 1, "x"), record(1, "c.py", 1, "x"),
         record(2, "d.py", 1, "y"), record(2, "e.py", 1, "y"), record(2, "f.py", 1, "y"),
@@ -72,7 +72,7 @@ fn freqt_mine_distinguishes_clusters_by_fingerprint() {
 #[test]
 fn freqt_mine_aggregates_records_with_same_fingerprint() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records = vec![record(99, "a.py", 1, "x"), record(99, "b.py", 5, "y")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 1);
@@ -84,7 +84,7 @@ fn freqt_mine_aggregates_records_with_same_fingerprint() {
 #[test]
 fn freqt_mine_counts_unique_files_correctly() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records = vec![
         record(7, "a.py", 1, "x"), record(7, "a.py", 5, "x"), record(7, "a.py", 9, "x"),
     ];
@@ -96,7 +96,7 @@ fn freqt_mine_counts_unique_files_correctly() {
 #[test]
 fn freqt_mine_min_support_is_occurrence_count_not_file_count() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..5).map(|i| record(7, "single.py", i, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 1, "5 occurrences in one file → surfaced");
@@ -106,7 +106,7 @@ fn freqt_mine_min_support_is_occurrence_count_not_file_count() {
 #[test]
 fn freqt_mine_preserves_locations() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records = vec![record(7, "a.py", 10, "x"), record(7, "b.py", 20, "x")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters[0].locations.len(), 2);
@@ -115,7 +115,7 @@ fn freqt_mine_preserves_locations() {
 #[test]
 fn freqt_mine_is_deterministic_across_runs() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records = vec![record(7, "a.py", 1, "x"), record(7, "b.py", 1, "x")];
     let a = freqt_mine(&records, &th);
     let b = freqt_mine(&records, &th);
@@ -127,7 +127,7 @@ fn freqt_mine_is_deterministic_across_runs() {
 #[test]
 fn freqt_mine_threshold_4_with_cluster_of_4_not_surfaced() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..4).map(|i| record(7, &format!("f{i}.py"), 1, "x")).collect();
     assert!(freqt_mine(&records, &th).is_empty());
 }
@@ -135,7 +135,7 @@ fn freqt_mine_threshold_4_with_cluster_of_4_not_surfaced() {
 #[test]
 fn freqt_mine_threshold_3_with_cluster_of_3_surfaced() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records: Vec<SubtreeRecord> = (0..3).map(|i| record(7, &format!("f{i}.py"), 1, "x")).collect();
     assert_eq!(freqt_mine(&records, &th).len(), 1);
 }
@@ -143,7 +143,7 @@ fn freqt_mine_threshold_3_with_cluster_of_3_surfaced() {
 #[test]
 fn freqt_mine_handles_thousand_distinct_fingerprints_below_threshold() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records: Vec<SubtreeRecord> = (0..1000).map(|i| record(i, "a.py", 1, "x")).collect();
     assert!(freqt_mine(&records, &th).is_empty());
 }
@@ -151,7 +151,7 @@ fn freqt_mine_handles_thousand_distinct_fingerprints_below_threshold() {
 #[test]
 fn freqt_mine_handles_one_giant_cluster() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let records: Vec<SubtreeRecord> = (0..1000).map(|i| record(42, &format!("f{i}.py"), 1, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 1);
@@ -161,7 +161,7 @@ fn freqt_mine_handles_one_giant_cluster() {
 #[test]
 fn freqt_mine_picks_representative_snippet_excluding_empty() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records = vec![
         record(7, "a.py", 1, ""),
         record(7, "b.py", 1, "media_type == X"),
@@ -175,7 +175,7 @@ fn freqt_mine_picks_representative_snippet_excluding_empty() {
 #[test]
 fn freqt_mine_picks_longest_non_empty_snippet() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records = vec![
         record(7, "a.py", 1, "x"),
         record(7, "b.py", 1, "media_type == X.value"),
@@ -188,7 +188,7 @@ fn freqt_mine_picks_longest_non_empty_snippet() {
 #[test]
 fn freqt_mine_does_not_collapse_distinct_fingerprints() {
     let mut th = t().audit;
-    th.freqt_min_support = 1;
+    th.pattern_mining.freqt_min_support = 1;
     let records = vec![record(1, "a.py", 1, "x"), record(2, "b.py", 1, "y")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 2);
@@ -197,7 +197,7 @@ fn freqt_mine_does_not_collapse_distinct_fingerprints() {
 #[test]
 fn freqt_mine_does_not_panic_on_unicode_snippet() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records = vec![record(7, "a.py", 1, "λ == δ"), record(7, "b.py", 1, "δ == λ")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 1);
@@ -206,7 +206,7 @@ fn freqt_mine_does_not_panic_on_unicode_snippet() {
 #[test]
 fn freqt_mine_records_with_zero_named_node_count_handled() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let mut r1 = record(7, "a.py", 1, "x");
     let mut r2 = record(7, "b.py", 1, "x");
     r1.named_node_count = 0;
@@ -217,7 +217,7 @@ fn freqt_mine_records_with_zero_named_node_count_handled() {
 #[test]
 fn freqt_mine_locations_sorted_for_determinism() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records = vec![
         record(7, "z.py", 5, "x"),
         record(7, "a.py", 10, "x"),
@@ -304,7 +304,7 @@ fn freqt_mine_returns_empty_vector_not_panic_on_empty() {
 #[test]
 fn freqt_mine_cluster_file_count_at_most_unique_records() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let records: Vec<SubtreeRecord> = (0..10).map(|i| record(7, &format!("f{}.py", i % 3), 1, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters[0].file_count, 3);

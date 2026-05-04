@@ -158,7 +158,10 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
         assert_hash: compute_assert_fingerprint(hash_node, "call_expression"),
         primitive_type_count, typed_param_count,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(), class_name: None,
+        field_accesses: Vec::new(),
+ foreign_field_accesses: Vec::new(),
+ class_name: None,
+ parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "switch_entry", &["line_string_literal"]),
     })

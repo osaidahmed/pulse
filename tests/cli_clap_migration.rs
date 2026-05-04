@@ -102,9 +102,9 @@ fn audit_subcommand_with_json_flag_emits_array() {
 }
 
 #[test]
-fn audit_subcommand_with_valid_layer_runs() {
+fn audit_subcommand_with_valid_pass_runs() {
     let dir = tempfile::tempdir().unwrap();
-    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
 
@@ -121,8 +121,8 @@ fn audit_subcommand_with_combined_flags_runs() {
     let (_stdout, _stderr, code) = pulse(&[
         "audit",
         "--json",
-        "--layer",
-        "3",
+        "--pass",
+        "pattern-mining",
         "--root",
         dir.path().to_str().unwrap(),
     ]);
@@ -130,21 +130,40 @@ fn audit_subcommand_with_combined_flags_runs() {
 }
 
 #[test]
-fn audit_subcommand_layer_accepts_valid_integer() {
+fn audit_subcommand_pass_accepts_package_metrics() {
     let dir = tempfile::tempdir().unwrap();
-    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "package-metrics", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
 
 #[test]
-fn audit_subcommand_layer_rejects_non_integer() {
-    let (_stdout, stderr, code) = pulse(&["audit", "--layer", "abc"]);
+fn audit_subcommand_pass_accepts_named_smells() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "named-smells", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn audit_subcommand_pass_accepts_all() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "all", "--root", dir.path().to_str().unwrap()]);
+    assert_eq!(code, 0);
+}
+
+#[test]
+fn audit_subcommand_pass_rejects_invalid_value() {
+    let (_stdout, stderr, code) = pulse(&["audit", "--pass", "abc"]);
     assert_ne!(code, 0);
     assert!(
-        stderr.contains("invalid value") || stderr.contains("invalid digit"),
-        "clap should reject non-integer layer with parse error, got: {stderr}",
+        stderr.contains("invalid value") || stderr.contains("possible values"),
+        "clap should reject invalid pass with parse error, got: {stderr}",
     );
-    assert!(!stderr.contains("not yet implemented"), "clap parse error must not reach stub");
+}
+
+#[test]
+fn audit_subcommand_legacy_layer_flag_unknown() {
+    let (_stdout, _stderr, code) = pulse(&["audit", "--layer", "3"]);
+    assert_ne!(code, 0);
 }
 
 #[test]

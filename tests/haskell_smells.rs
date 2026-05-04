@@ -22,7 +22,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "ComplexMethod.hs");
     let cc = function_metric(&debug, "processOrder", "cc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "cc should be >= {}, got: {}", t().cc_warning, cc);
+    assert!(cc >= t().function.cc_warning, "cc should be >= {}, got: {}", t().function.cc_warning, cc);
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn excess_args_detected() {
 fn excess_args_count_correct() {
     let debug = run_debug(LANG, "ExcessArgs.hs");
     let args = function_metric(&debug, "createUser", "args").unwrap_or(0);
-    assert!(args > t().arg_max, "got: {args}");
+    assert!(args > t().function.arg_max, "got: {args}");
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_exceeds_4() {
     let debug = run_debug(LANG, "DeepNesting.hs");
     let depth = function_metric(&debug, "deeplyNested", "nesting").unwrap_or(0);
-    assert!(depth > t().nesting_depth, "got: {depth}");
+    assert!(depth > t().function.nesting_depth, "got: {depth}");
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn empty_file() {
 fn function_at_cc_boundary_flagged() {
     // Build case with cc_warning non-wildcard alternatives
     let mut code = String::from("f :: Int -> String\nf x = case x of\n");
-    for i in 0..t().cc_warning {
+    for i in 0..t().function.cc_warning {
         code.push_str(&format!("  {i} -> \"{i}\"\n"));
     }
     code.push_str("  _ -> \"z\"\n");
@@ -133,7 +133,7 @@ fn function_at_cc_boundary_flagged() {
 #[test]
 fn function_below_cc_boundary_not_flagged() {
     let mut code = String::from("f :: Int -> String\nf x = case x of\n");
-    for i in 0..t().cc_warning - 2 {
+    for i in 0..t().function.cc_warning - 2 {
         code.push_str(&format!("  {i} -> \"{i}\"\n"));
     }
     code.push_str("  _ -> \"z\"\n");
@@ -161,7 +161,7 @@ fn large_method_loc_at_least_threshold() {
     code.push_str("  in x\n");
     let debug = pulse_debug_code(&code, "hs");
     let loc = function_metric(&debug, "f", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "got: {loc}");
 }
 
 #[test]
@@ -244,7 +244,7 @@ fn boolean_operators_increment_cc() {
 
 #[test]
 fn output_has_module_prefix() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
@@ -267,7 +267,7 @@ fn hook_unsupported_extension_silent() {
 
 #[test]
 fn analysis_completes_under_500ms() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
@@ -284,7 +284,7 @@ fn analysis_completes_under_500ms() {
 
 #[test]
 fn embedded_block_detected() {
-    let lines = t().embedded_block_loc + 5;
+    let lines = t().function.embedded_block_loc + 5;
     let mut code = String::from("f :: String\nf = \"");
     for i in 0..lines {
         code.push_str(&format!("line {i}\\n\\\n\\"));
@@ -310,12 +310,12 @@ fn case_expression_increments_cc() {
 fn case_expression_cc_value() {
     let debug = run_debug(LANG, "CaseExpression.hs");
     let cc = function_metric(&debug, "dispatch", "cc").unwrap_or(0);
-    assert!(cc > t().cc_warning, "cc should be > cc_warning, got: {cc}");
+    assert!(cc > t().function.cc_warning, "cc should be > cc_warning, got: {cc}");
 }
 
 #[test]
 fn code_duplication_detected() {
-    let loc = t().duplication_min_loc + 2;
+    let loc = t().analysis.duplication_min_loc + 2;
     let mut a_body = String::new();
     let mut b_body = String::new();
     for i in 0..loc {
@@ -358,7 +358,7 @@ fn nested_conditional_chunks_detected() {
 
 #[test]
 fn declarations_above_threshold() {
-    let count = t().max_declarations + 5;
+    let count = t().module.max_declarations + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("data T{i} = T{i}\n"));
@@ -369,11 +369,11 @@ fn declarations_above_threshold() {
 
 #[test]
 fn overall_function_size_below_threshold() {
-    let fn_count = t().large_fn_count - 1;
+    let fn_count = t().module.large_fn_count - 1;
     let mut code = String::new();
     for i in 0..fn_count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
-        for j in 0..(t().large_fn_loc + 5) {
+        for j in 0..(t().module.large_fn_loc + 5) {
             code.push_str(&format!("  x{j} = {j}\n"));
         }
         code.push_str("  x\n\n");
@@ -384,11 +384,11 @@ fn overall_function_size_below_threshold() {
 
 #[test]
 fn overall_function_size_at_threshold() {
-    let fn_count = t().large_fn_count;
+    let fn_count = t().module.large_fn_count;
     let mut code = String::new();
     for i in 0..fn_count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
-        for j in 0..(t().large_fn_loc + 5) {
+        for j in 0..(t().module.large_fn_loc + 5) {
             code.push_str(&format!("  x{j} = {j}\n"));
         }
         code.push_str("  x\n\n");
@@ -399,7 +399,7 @@ fn overall_function_size_at_threshold() {
 
 #[test]
 fn god_class_requires_god_method() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
@@ -422,7 +422,7 @@ fn god_class_triggers_with_god_method() {
         code.push_str(&format!("  x{i} = {i}\n"));
     }
     code.push_str("  x\n\n");
-    let remaining = t().file_function_count;
+    let remaining = t().module.file_function_count;
     for i in 1..=remaining {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
         for j in 0..20 {
@@ -497,7 +497,7 @@ fn production_api_complex_method() {
 fn production_api_process_payment_cc() {
     let debug = run_debug(LANG, "ProductionApiService.hs");
     let cc = function_metric(&debug, "processPayment", "cc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "expected cc >= {}, got: {}", t().cc_warning, cc);
+    assert!(cc >= t().function.cc_warning, "expected cc >= {}, got: {}", t().function.cc_warning, cc);
 }
 
 #[test]

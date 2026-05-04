@@ -1,0 +1,194 @@
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+
+use crate::parse::Language;
+use crate::thresholds::AuditThresholds;
+
+use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
+use super::call_walker::{calls_for_file, LocatedCall};
+use super::class_registry::ClassRegistry;
+use super::definitions::{definitions_for_file, DefinitionRecord};
+use super::finding::{
+    AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence,
+};
+
+pub fn run(
+    typed_files: &[(PathBuf, Language)],
+    _root: &Path,
+    thresholds: &AuditThresholds,
+) -> Vec<AuditFinding> {
+    let mut definitions = Vec::new();
+    let mut calls = Vec::new();
+    for (path, lang) in typed_files {
+        definitions.extend(definitions_for_file(path, *lang));
+        calls.extend(calls_for_file(path, *lang));
+    }
+    let graph = CallGraph::build(definitions.clone(), calls);
+    let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
+    let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
+    let inh = super::inheritance::build_inheritance_graph(&registry);
+    let mut all = Vec::new();
+    all.extend(detect_shotgun_surgery(&graph, thresholds));
+    all.extend(super::detector_divergent_change::detect(&registry, &graph, thresholds));
+    all.extend(super::detector_feature_envy::detect(&definitions, &graph, thresholds));
+    all.extend(super::detector_god_class::detect(&registry, &definitions, &method_idx_lookup, thresholds));
+    all.extend(super::detector_parallel_inheritance::detect(&registry, &inh, thresholds));
+    let file_lang = build_file_lang_lookup(typed_files);
+    all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &file_lang, thresholds));
+    all
+}
+
+fn build_file_lang_lookup(
+    typed_files: &[(PathBuf, Language)],
+) -> impl Fn(&std::path::Path) -> Option<Language> + '_ {
+    move |path: &std::path::Path| -> Option<Language> {
+        typed_files.iter().find(|(p, _)| p == path).map(|(_, l)| *l)
+    }
+}
+
+fn detect_shotgun_surgery(graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
+    let mut findings: Vec<AuditFinding> = Vec::new();
+    for idx in 0..graph.registry.count() {
+        let method_idx = MethodIndex(idx as u32);
+        if let Some(finding) = evaluate_method(graph, method_idx, t) {
+            findings.push(finding);
+        }
+    }
+    findings.sort_by_key(|f| std::cmp::Reverse(ordering_key(f)));
+    if findings.len() > t.named_smells.max_findings_reported {
+        findings.truncate(t.named_smells.max_findings_reported);
+    }
+    findings
+}
+
+fn ordering_key(f: &AuditFinding) -> (u32, u32, String, u32) {
+    let AuditKind::ShotgunSurgery(e) = &f.kind else {
+        return (0, 0, String::new(), 0);
+    };
+    (
+        e.changing_classes,
+        e.changing_methods,
+        format!("{}", e.method_file.display()),
+        e.method_line,
+    )
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MethodMetrics {
+    cc: u32,
+    cm: u32,
+    fanout: u32,
+}
+
+impl MethodMetrics {
+    fn exceeds(self, t: &AuditThresholds) -> bool {
+        self.cc > t.named_smells.shotgun_surgery.changing_classes
+            && self.cm > t.named_smells.shotgun_surgery.changing_methods
+            && self.fanout > t.named_smells.shotgun_surgery.fanout
+    }
+}
+
+fn evaluate_method(graph: &CallGraph, idx: MethodIndex, t: &AuditThresholds) -> Option<AuditFinding> {
+    let method = graph.registry.get(idx)?;
+    let incoming = graph.adjacency.incoming(idx);
+    let outgoing = graph.adjacency.outgoing(idx);
+    let metrics = MethodMetrics {
+        cc: count_changing_classes(graph, incoming),
+        cm: incoming.len() as u32,
+        fanout: count_fanout(outgoing),
+    };
+    if !metrics.exceeds(t) {
+        return None;
+    }
+    let confidence = aggregate_confidence(incoming);
+    let caller_samples = collect_caller_samples(graph, incoming, t);
+    let evidence = ShotgunSurgeryEvidence {
+        method_file: method.file.clone(),
+        method_class: method.class.clone(),
+        method_name: method.name.clone(),
+        method_line: method.line,
+        changing_classes: metrics.cc,
+        changing_methods: metrics.cm,
+        fanout: metrics.fanout,
+        confidence,
+        caller_samples,
+    };
+    Some(AuditFinding {
+        kind: AuditKind::ShotgunSurgery(evidence),
+        representative_snippet: String::new(),
+        support: metrics.cm,
+        file_count: metrics.cc,
+        idf_score: None,
+        action_label: None,
+        locations: Vec::new(),
+    })
+}
+
+fn count_changing_classes(
+    graph: &CallGraph,
+    incoming: &[super::call_graph::CallEdge],
+) -> u32 {
+    distinct_count(incoming, |edge| {
+        graph.registry.get(edge.source).map(caller_bucket)
+    })
+}
+
+fn count_fanout(outgoing: &[super::call_graph::CallEdge]) -> u32 {
+    distinct_count(outgoing, |edge| Some(edge.target.0))
+}
+
+fn distinct_count<T, F>(edges: &[super::call_graph::CallEdge], key: F) -> u32
+where
+    T: std::hash::Hash + Eq,
+    F: Fn(&super::call_graph::CallEdge) -> Option<T>,
+{
+    let mut seen: HashSet<T> = HashSet::new();
+    for edge in edges {
+        if let Some(k) = key(edge) {
+            seen.insert(k);
+        }
+    }
+    seen.len() as u32
+}
+
+fn caller_bucket(caller: &MethodIdentity) -> String {
+    match &caller.class {
+        Some(cls) => format!("{}::{}", caller.file.display(), cls),
+        None => format!("__free::{}", caller.file.display()),
+    }
+}
+
+fn aggregate_confidence(incoming: &[super::call_graph::CallEdge]) -> ImportConfidence {
+    let mut acc: Option<ImportConfidence> = None;
+    for edge in incoming {
+        acc = Some(acc.map_or(edge.confidence, |c| c.min(edge.confidence)));
+    }
+    acc.unwrap_or(ImportConfidence::Medium)
+}
+
+fn collect_caller_samples(
+    graph: &CallGraph,
+    incoming: &[super::call_graph::CallEdge],
+    t: &AuditThresholds,
+) -> Vec<AuditLocation> {
+    let mut samples: Vec<AuditLocation> = Vec::new();
+    for edge in incoming.iter().take(t.named_smells.max_caller_samples_per_finding) {
+        if let Some(caller) = graph.registry.get(edge.source) {
+            samples.push(AuditLocation {
+                file: caller.file.clone(),
+                line: caller.line,
+            });
+        }
+    }
+    samples
+}
+
+#[allow(dead_code)]
+pub fn run_from_inputs(
+    definitions: Vec<DefinitionRecord>,
+    calls: Vec<LocatedCall>,
+    thresholds: &AuditThresholds,
+) -> Vec<AuditFinding> {
+    let graph = CallGraph::build(definitions, calls);
+    detect_shotgun_surgery(&graph, thresholds)
+}

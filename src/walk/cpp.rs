@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
@@ -111,6 +111,9 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
         metrics.class_name = Some(class_name.clone());
         metrics.is_constructor = method_name == class_name;
         collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+
+        collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+
         functions.push(metrics);
     }
 }
@@ -154,7 +157,9 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         typed_param_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "raw_string_literal", "concatenated_string"]),
     })

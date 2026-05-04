@@ -54,8 +54,8 @@ fn consider(node: Node, ctx: &WalkCtx, out: &mut Vec<SubtreeRecord>) {
     }
     let depth = subtree_depth(node);
     let named_count = count_named(node);
-    if (depth as usize) < ctx.thresholds.subtree_min_depth
-        || (named_count as usize) < ctx.thresholds.subtree_min_nodes
+    if (depth as usize) < ctx.thresholds.pattern_mining.subtree_min_depth
+        || (named_count as usize) < ctx.thresholds.pattern_mining.subtree_min_nodes
     {
         return;
     }

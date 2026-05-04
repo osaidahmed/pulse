@@ -61,7 +61,7 @@ fn martin_findings(
         .filter_map(|node| martin_finding_for(graph, node, profile_lookup, thresholds))
         .collect();
     interesting.sort_by(sort_martin);
-    interesting.truncate(thresholds.max_martin_findings_reported);
+    interesting.truncate(thresholds.package_metrics.max_martin_findings_reported);
     interesting
 }
 
@@ -97,9 +97,9 @@ fn cycle_findings(
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let mut sccs = find_cycles(graph, thresholds.martin_cycle_min_size);
+    let mut sccs = find_cycles(graph, thresholds.package_metrics.martin_cycle_min_size);
     sccs.sort_by(|a, b| b.members.len().cmp(&a.members.len()));
-    sccs.truncate(thresholds.max_cycle_findings_reported);
+    sccs.truncate(thresholds.package_metrics.max_cycle_findings_reported);
     sccs.into_iter()
         .map(|scc| cycle_finding(graph, scc, profile_lookup))
         .collect()

@@ -1,0 +1,158 @@
+use std::path::{Path, PathBuf};
+
+use tree_sitter::Node;
+
+use crate::parse::{self, Language};
+
+use super::call_graph::MethodIdentity;
+use super::calls::{self, RawCall};
+
+#[derive(Debug, Clone)]
+pub struct LocatedCall {
+    pub call: RawCall,
+    pub caller: Option<MethodIdentity>,
+    pub file: PathBuf,
+}
+
+const FUNCTION_KINDS: &[&str] = &[
+    "function_definition",
+    "function_declaration",
+    "function_item",
+    "method_declaration",
+    "method_definition",
+    "constructor_declaration",
+    "function",
+    "method",
+    "fn_decl",
+    "func_decl",
+    "func_definition",
+    "lambda_expression",
+];
+
+const CLASS_KINDS: &[&str] = &[
+    "class_definition",
+    "class_declaration",
+    "impl_item",
+    "interface_declaration",
+    "trait_item",
+    "object_declaration",
+    "struct_item",
+    "enum_item",
+    "type_definition",
+];
+
+pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {
+    let Ok(source) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let Some(tree) = parse::parse_only(&source, lang) else {
+        return Vec::new();
+    };
+    let ctx = CallCtx {
+        source: &source,
+        lang,
+        path,
+    };
+    let mut out = Vec::new();
+    let mut stack: Vec<EnclosingFrame> = Vec::new();
+    visit(tree.root_node(), &ctx, &mut stack, &mut out);
+    out
+}
+
+struct CallCtx<'a> {
+    source: &'a str,
+    lang: Language,
+    path: &'a Path,
+}
+
+#[derive(Debug, Clone)]
+struct EnclosingFrame {
+    class: Option<String>,
+    method: Option<MethodIdentity>,
+}
+
+fn visit(
+    node: Node,
+    ctx: &CallCtx,
+    stack: &mut Vec<EnclosingFrame>,
+    out: &mut Vec<LocatedCall>,
+) {
+    let pushed_class = maybe_push_class(node, ctx.source, stack);
+    let pushed_method = maybe_push_method(node, ctx.source, ctx.path, stack);
+    collect_calls_at(node, ctx, stack, out);
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        visit(child, ctx, stack, out);
+    }
+    if pushed_method {
+        stack.pop();
+    }
+    if pushed_class {
+        stack.pop();
+    }
+}
+
+fn collect_calls_at(
+    node: Node,
+    ctx: &CallCtx,
+    stack: &[EnclosingFrame],
+    out: &mut Vec<LocatedCall>,
+) {
+    let raw_calls = single_node_calls(node, ctx.source, ctx.lang);
+    let caller = stack.iter().rev().find_map(|f| f.method.clone());
+    for raw in raw_calls {
+        out.push(LocatedCall {
+            call: raw,
+            caller: caller.clone(),
+            file: ctx.path.to_path_buf(),
+        });
+    }
+}
+
+fn single_node_calls(node: Node, source: &str, lang: Language) -> Vec<RawCall> {
+    let dispatchers = calls::dispatchers_for_lang(lang);
+    if dispatchers.is_empty() {
+        return Vec::new();
+    }
+    calls::match_single(node, source, dispatchers).into_iter().collect()
+}
+
+fn maybe_push_class(node: Node, source: &str, stack: &mut Vec<EnclosingFrame>) -> bool {
+    if !CLASS_KINDS.contains(&node.kind()) {
+        return false;
+    }
+    let class_name = identifier_in(node, source);
+    stack.push(EnclosingFrame { class: class_name, method: None });
+    true
+}
+
+fn maybe_push_method(
+    node: Node,
+    source: &str,
+    path: &Path,
+    stack: &mut Vec<EnclosingFrame>,
+) -> bool {
+    if !FUNCTION_KINDS.contains(&node.kind()) {
+        return false;
+    }
+    let name = identifier_in(node, source).unwrap_or_else(|| "<anonymous>".to_string());
+    let class = stack.iter().rev().find_map(|f| f.class.clone());
+    let identity = MethodIdentity {
+        file: path.to_path_buf(),
+        class,
+        name,
+        line: node.start_position().row as u32 + 1,
+    };
+    stack.push(EnclosingFrame { class: None, method: Some(identity) });
+    true
+}
+
+fn identifier_in(node: Node, source: &str) -> Option<String> {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if matches!(child.kind(), "identifier" | "type_identifier" | "name" | "field_identifier" | "property_identifier") {
+            return Some(source[child.byte_range()].to_string());
+        }
+    }
+    None
+}

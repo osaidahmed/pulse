@@ -26,8 +26,8 @@ fn minimal_threshold_override() {
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
-    assert_eq!(resolved.arg_max, 10);
-    assert_eq!(resolved.cc_warning, t().cc_warning);
+    assert_eq!(resolved.function.arg_max, 10);
+    assert_eq!(resolved.function.cc_warning, t().function.cc_warning);
 }
 
 #[test]
@@ -59,8 +59,8 @@ fn language_override_parses() {
     .unwrap();
     let go_thresholds = config::resolve_thresholds(Some(&cfg), Language::Go);
     let py_thresholds = config::resolve_thresholds(Some(&cfg), Language::Python);
-    assert_eq!(go_thresholds.arg_max, 12);
-    assert_eq!(py_thresholds.arg_max, 8);
+    assert_eq!(go_thresholds.function.arg_max, 12);
+    assert_eq!(py_thresholds.function.arg_max, 8);
 }
 
 #[test]
@@ -81,9 +81,9 @@ fn full_config_parses() {
     )
     .unwrap();
     let java = config::resolve_thresholds(Some(&cfg), Language::Java);
-    assert_eq!(java.cc_warning, 12);
-    assert_eq!(java.fn_loc_warning, 100);
-    assert_eq!(java.arg_max, 8);
+    assert_eq!(java.function.cc_warning, 12);
+    assert_eq!(java.function.fn_loc_warning, 100);
+    assert_eq!(java.function.arg_max, 8);
 }
 
 #[test]
@@ -116,11 +116,11 @@ fn override_specific_fields_rest_default() {
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Rust);
-    assert_eq!(resolved.cc_warning, 15);
-    assert_eq!(resolved.file_loc_warning, 600);
-    assert_eq!(resolved.cc_alert, t().cc_alert);
-    assert_eq!(resolved.fn_loc_warning, t().fn_loc_warning);
-    assert_eq!(resolved.arg_max, t().arg_max);
+    assert_eq!(resolved.function.cc_warning, 15);
+    assert_eq!(resolved.module.file_loc_warning, 600);
+    assert_eq!(resolved.function.cc_alert, t().function.cc_alert);
+    assert_eq!(resolved.function.fn_loc_warning, t().function.fn_loc_warning);
+    assert_eq!(resolved.function.arg_max, t().function.arg_max);
 }
 
 #[test]
@@ -137,8 +137,8 @@ fn language_override_further_overrides_base() {
     )
     .unwrap();
     let go = config::resolve_thresholds(Some(&cfg), Language::Go);
-    assert_eq!(go.arg_max, 12);
-    assert_eq!(go.cc_warning, 12);
+    assert_eq!(go.function.arg_max, 12);
+    assert_eq!(go.function.cc_warning, 12);
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn language_not_in_config_uses_base() {
     )
     .unwrap();
     let rust = config::resolve_thresholds(Some(&cfg), Language::Rust);
-    assert_eq!(rust.arg_max, 8);
+    assert_eq!(rust.function.arg_max, 8);
 }
 
 #[test]
@@ -172,10 +172,10 @@ fn multiple_language_sections_independent() {
     .unwrap();
     let go = config::resolve_thresholds(Some(&cfg), Language::Go);
     let java = config::resolve_thresholds(Some(&cfg), Language::Java);
-    assert_eq!(go.arg_max, 7);
-    assert_eq!(go.fn_loc_warning, t().fn_loc_warning);
-    assert_eq!(java.arg_max, 10);
-    assert_eq!(java.fn_loc_warning, 120);
+    assert_eq!(go.function.arg_max, 7);
+    assert_eq!(go.function.fn_loc_warning, t().function.fn_loc_warning);
+    assert_eq!(java.function.arg_max, 10);
+    assert_eq!(java.function.fn_loc_warning, 120);
 }
 
 #[test]
@@ -191,7 +191,7 @@ fn resolve_base_thresholds_ignores_language() {
     )
     .unwrap();
     let base = config::resolve_base_thresholds(Some(&cfg));
-    assert_eq!(base.arg_max, 8);
+    assert_eq!(base.function.arg_max, 8);
 }
 
 // ── Disabled smells ──
@@ -311,7 +311,7 @@ fn closer_config_shadows_outer() {
 
     let cfg = config::load_config(&file).unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Rust);
-    assert_eq!(resolved.arg_max, 20);
+    assert_eq!(resolved.function.arg_max, 20);
 }
 
 // ── Integration: config affects analysis ──

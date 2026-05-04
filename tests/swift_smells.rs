@@ -590,7 +590,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "buildReport", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc >= t().function.fn_loc_warning, got: {loc}");
 }
 
 // ===========================================================================

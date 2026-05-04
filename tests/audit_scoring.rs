@@ -34,7 +34,7 @@ fn apply_idf_passes_through_when_no_clusters() {
 #[test]
 fn apply_idf_suppresses_cluster_above_threshold() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.5;
+    th.pattern_mining.idiom_suppression_threshold = 0.5;
     let cluster_60pct = cluster(7, 6, 6, "x");
     let result = apply_idf(vec![cluster_60pct], 10, &th);
     assert!(result.is_empty(), "60% file presence should be suppressed");
@@ -43,7 +43,7 @@ fn apply_idf_suppresses_cluster_above_threshold() {
 #[test]
 fn apply_idf_keeps_cluster_below_threshold() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.5;
+    th.pattern_mining.idiom_suppression_threshold = 0.5;
     let cluster_30pct = cluster(7, 3, 3, "x");
     let result = apply_idf(vec![cluster_30pct], 10, &th);
     assert_eq!(result.len(), 1);
@@ -52,7 +52,7 @@ fn apply_idf_keeps_cluster_below_threshold() {
 #[test]
 fn apply_idf_at_exactly_threshold_kept() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.5;
+    th.pattern_mining.idiom_suppression_threshold = 0.5;
     let cluster_at_50 = cluster(7, 5, 5, "x");
     let result = apply_idf(vec![cluster_at_50], 10, &th);
     assert_eq!(result.len(), 1, "at threshold (50%) should be kept; suppression is strict >");
@@ -61,7 +61,7 @@ fn apply_idf_at_exactly_threshold_kept() {
 #[test]
 fn apply_idf_just_above_threshold_suppressed() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.5;
+    th.pattern_mining.idiom_suppression_threshold = 0.5;
     let cluster_at_60 = cluster(7, 6, 6, "x");
     let result = apply_idf(vec![cluster_at_60], 10, &th);
     assert!(result.is_empty());
@@ -105,7 +105,7 @@ fn apply_idf_preserves_snippet() {
 #[test]
 fn apply_idf_with_threshold_zero_keeps_only_unique() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.0;
+    th.pattern_mining.idiom_suppression_threshold = 0.0;
     let result = apply_idf(vec![cluster(7, 3, 3, "x")], 10, &th);
     assert!(result.is_empty(), "threshold 0 means anything in >0% is suppressed");
 }
@@ -113,7 +113,7 @@ fn apply_idf_with_threshold_zero_keeps_only_unique() {
 #[test]
 fn apply_idf_with_threshold_one_keeps_all() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let result = apply_idf(vec![cluster(7, 10, 10, "x")], 10, &th);
     assert_eq!(result.len(), 1, "threshold 1.0 means even 100% is kept (suppression is strict >)");
 }
@@ -160,8 +160,8 @@ fn apply_idf_is_deterministic() {
 #[test]
 fn apply_idf_truncates_to_max_findings_reported() {
     let mut th = t().audit;
-    th.max_findings_reported = 3;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 3;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs: Vec<RawCluster> = (0..10).map(|i| cluster(i, 5, 1, "x")).collect();
     let result = apply_idf(cs, 100, &th);
     assert_eq!(result.len(), 3);
@@ -177,7 +177,7 @@ fn apply_idf_handles_thousand_clusters_no_panic() {
 fn apply_idf_handles_cluster_at_total_files_zero_idf() {
     let result = apply_idf(vec![cluster(7, 10, 10, "x")], 10, &{
         let mut th = t().audit;
-        th.idiom_suppression_threshold = 1.0;
+        th.pattern_mining.idiom_suppression_threshold = 1.0;
         th
     });
     assert_eq!(result.len(), 1);

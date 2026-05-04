@@ -77,7 +77,7 @@ fn stress_apply_idf_handles_one_thousand_clusters() {
         })
         .collect();
     let result = apply_idf(clusters, 100, &t().audit);
-    assert_eq!(result.len(), t().audit.max_findings_reported);
+    assert_eq!(result.len(), t().audit.pattern_mining.max_findings_reported);
 }
 
 #[test]
@@ -272,7 +272,7 @@ fn stress_freqt_mine_handles_uniform_fingerprints() {
 #[test]
 fn stress_freqt_mine_handles_all_unique_fingerprints() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let records: Vec<SubtreeRecord> = (0..5000)
         .map(|i| fab_record(i, "a.py", i as u32, "x"))
         .collect();
@@ -283,8 +283,8 @@ fn stress_freqt_mine_handles_all_unique_fingerprints() {
 #[test]
 fn stress_walker_with_subtree_min_depth_one() {
     let mut th = t().audit;
-    th.subtree_min_depth = 1;
-    th.subtree_min_nodes = 1;
+    th.pattern_mining.subtree_min_depth = 1;
+    th.pattern_mining.subtree_min_nodes = 1;
     let src = "x = 1\n";
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let records = extract_subtrees(&tree, src, Language::Python, Path::new("t.py"), &th);
@@ -294,7 +294,7 @@ fn stress_walker_with_subtree_min_depth_one() {
 #[test]
 fn stress_walker_with_max_depth_threshold_yields_nothing() {
     let mut th = t().audit;
-    th.subtree_min_depth = usize::MAX;
+    th.pattern_mining.subtree_min_depth = usize::MAX;
     let src = "def f():\n    return 1\n";
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let records = extract_subtrees(&tree, src, Language::Python, Path::new("t.py"), &th);
@@ -304,8 +304,8 @@ fn stress_walker_with_max_depth_threshold_yields_nothing() {
 #[test]
 fn stress_apply_idf_handles_max_findings_one() {
     let mut th = t().audit;
-    th.max_findings_reported = 1;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 1;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let clusters: Vec<RawCluster> = (0..100).map(|i| RawCluster {
         fingerprint: i,
         support: 10,
@@ -398,7 +398,7 @@ fn stress_audit_e2e_pulse_self_no_panic() {
 #[test]
 fn stress_freqt_mine_handles_max_support_threshold() {
     let mut th = t().audit;
-    th.freqt_min_support = usize::MAX;
+    th.pattern_mining.freqt_min_support = usize::MAX;
     let records: Vec<SubtreeRecord> = (0..10).map(|_| fab_record(7, "a.py", 1, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert!(clusters.is_empty());
@@ -453,7 +453,7 @@ fn stress_audit_walks_directory_tree_eight_levels_deep() {
 #[test]
 fn stress_freqt_mine_thousand_distinct_minor_clusters() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let mut records = Vec::new();
     for i in 0..1000 {
         for j in 0..5 {
@@ -467,8 +467,8 @@ fn stress_freqt_mine_thousand_distinct_minor_clusters() {
 #[test]
 fn stress_apply_idf_thousand_clusters_with_truncation() {
     let mut th = t().audit;
-    th.max_findings_reported = 50;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 50;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let clusters: Vec<RawCluster> = (0..1000).map(|i| RawCluster {
         fingerprint: i,
         support: 10,

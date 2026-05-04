@@ -1,3 +1,5 @@
+#![allow(clippy::assigning_clones)]
+
 mod analytics;
 mod audit;
 mod baselines;
@@ -85,29 +87,23 @@ fn dispatch_subcommand(d: cli::Dispatch) {
 
 fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
-    if !root.exists() {
-        eprintln!("audit: root path does not exist: {}", root.display());
-        process::exit(1);
-    }
-    if !root.is_dir() {
-        eprintln!("audit: root path is not a directory: {}", root.display());
-        process::exit(1);
-    }
-    if let Some(layer) = args.layer {
-        if !matches!(layer, 3 | 5) {
-            eprintln!("audit: --layer must be 3 or 5");
-            process::exit(1);
-        }
-    }
-    let cfg = config::load_config(&root);
-    let thresholds = config::resolve_base_thresholds(cfg.as_ref());
+    validate_audit_root(&root);
+    let cfg_with_root = config::load_config_with_root(&root);
+    let (cfg_ref, ignore_base) = match &cfg_with_root {
+        Some((c, base)) => (Some(c), base.clone()),
+        None => (None, root.clone()),
+    };
+    let thresholds = config::resolve_base_thresholds(cfg_ref);
+    let ignore_patterns: &[String] = cfg_ref.map_or(&[][..], |c| &c.ignore.paths);
+    let matcher = config::IgnoreMatcher::from_patterns(ignore_patterns);
+    let filter = audit::IgnoreFilter::new(&matcher, &ignore_base);
     let opts = audit::AuditOpts {
         root: root.clone(),
-        layer: args.layer,
+        pass: args.pass,
         json: args.json,
         include_tests,
     };
-    let findings = audit::run(&opts, &thresholds.audit);
+    let findings = audit::run_with_filter(&opts, &thresholds.audit, &filter);
     let rendered = if args.json {
         audit::output::format_findings_json(&findings, Some(&root))
     } else {
@@ -116,10 +112,18 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     if !rendered.is_empty() {
         print!("{rendered}");
     }
-    if findings.is_empty() {
-        process::exit(0);
+    process::exit(i32::from(!findings.is_empty()));
+}
+
+fn validate_audit_root(root: &Path) {
+    if !root.exists() {
+        eprintln!("audit: root path does not exist: {}", root.display());
+        process::exit(1);
     }
-    process::exit(1);
+    if !root.is_dir() {
+        eprintln!("audit: root path is not a directory: {}", root.display());
+        process::exit(1);
+    }
 }
 
 fn run_debug(file_path: &str) {
@@ -212,25 +216,25 @@ fn run_budget(file_path: &str) {
 
     let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let fn_count = metrics.functions.len() as u32;
-    let fn_room = t.file_function_count.saturating_sub(fn_count);
-    let loc_room = t.file_loc_warning.saturating_sub(metrics.module.total_loc);
-    let cc_room = t.file_total_cc.saturating_sub(metrics.module.sum_cc);
+    let fn_room = t.module.file_function_count.saturating_sub(fn_count);
+    let loc_room = t.module.file_loc_warning.saturating_sub(metrics.module.total_loc);
+    let cc_room = t.module.file_total_cc.saturating_sub(metrics.module.sum_cc);
 
     eprintln!("budget: {file_path}");
-    eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.file_function_count);
-    eprintln!("  LOC:       {}/{} (room: {loc_room})", metrics.module.total_loc, t.file_loc_warning);
-    eprintln!("  total cc:  {}/{} (room: {cc_room})", metrics.module.sum_cc, t.file_total_cc);
-    eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
+    eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.module.file_function_count);
+    eprintln!("  LOC:       {}/{} (room: {loc_room})", metrics.module.total_loc, t.module.file_loc_warning);
+    eprintln!("  total cc:  {}/{} (room: {cc_room})", metrics.module.sum_cc, t.module.file_total_cc);
+    eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max);
 }
 
 fn run_budget_new() {
     let cfg = config::load_config(Path::new("."));
     let t = config::resolve_base_thresholds(cfg.as_ref());
     eprintln!("budget: new file thresholds");
-    eprintln!("  max functions: {}", t.file_function_count);
-    eprintln!("  max LOC:       {}", t.file_loc_warning);
-    eprintln!("  max total cc:  {}", t.file_total_cc);
-    eprintln!("  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}", t.cc_warning, t.cogc_warning, t.fn_loc_warning, t.arg_max);
+    eprintln!("  max functions: {}", t.module.file_function_count);
+    eprintln!("  max LOC:       {}", t.module.file_loc_warning);
+    eprintln!("  max total cc:  {}", t.module.file_total_cc);
+    eprintln!("  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}", t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max);
 }
 
 fn run_check_all(include_tests: bool) {
@@ -325,9 +329,9 @@ fn run_hook(h: hook::HookInput) {
     let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let budget = format!(
         "[budget] fn={}/{} loc={}/{} cc={}/{}",
-        result.fn_count, t.file_function_count,
-        result.total_loc, t.file_loc_warning,
-        result.sum_cc, t.file_total_cc,
+        result.fn_count, t.module.file_function_count,
+        result.total_loc, t.module.file_loc_warning,
+        result.sum_cc, t.module.file_total_cc,
     );
     let conflict = detect_constraint_conflict(&findings, result.fn_count, &t);
     let reason = match conflict {
@@ -346,7 +350,7 @@ fn detect_constraint_conflict(
     fn_count: u32,
     t: &thresholds::Thresholds,
 ) -> Option<&'static str> {
-    let fn_tight = fn_count + 2 >= t.file_function_count;
+    let fn_tight = fn_count + 2 >= t.module.file_function_count;
     let has_cc_finding = findings.iter().any(|f| matches!(
         f.smell,
         smells::Smell::ComplexMethod | smells::Smell::GodMethod

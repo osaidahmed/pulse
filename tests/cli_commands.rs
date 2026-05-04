@@ -231,7 +231,7 @@ fn large_struct_detected_in_rust() {
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
     assert!(stdout.contains("Large Struct"), "should detect large struct, got: {stdout}");
     assert!(stdout.contains("15 fields"), "should show field count");
-    assert!(stdout.contains(&format!("threshold: {}", t().max_struct_fields)), "should show threshold");
+    assert!(stdout.contains(&format!("threshold: {}", t().module.max_struct_fields)), "should show threshold");
 }
 
 #[test]
@@ -256,7 +256,7 @@ fn short_vars_detected_in_python() {
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
     assert!(stdout.contains("Short Variable Names"), "should detect short vars, got: {stdout}");
-    assert!(stdout.contains(&format!("threshold: {}", t().short_var_max_count)), "should show threshold");
+    assert!(stdout.contains(&format!("threshold: {}", t().analysis.short_var_max_count)), "should show threshold");
 }
 
 #[test]
@@ -266,7 +266,7 @@ fn short_vars_exempt_loop_counters() {
     let mut code = String::from("def func():\n");
     // Only exempt vars: i, j, k, _
     for c in ['i', 'j', 'k'] { code.push_str(&format!("    {c} = 1\n")); }
-    for line in 0..t().short_var_min_fn_loc as usize { code.push_str(&format!("    var_{line} = {line}\n")); }
+    for line in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    var_{line} = {line}\n")); }
     code.push_str("    return 0\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
@@ -296,7 +296,7 @@ fn stringly_typed_detected_in_rust() {
     std::fs::write(&p, code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
     assert!(stdout.contains("Stringly-Typed Switch"), "should detect string match, got: {stdout}");
-    assert!(stdout.contains(&format!("threshold: {}", t().max_string_match_arms)), "should show threshold");
+    assert!(stdout.contains(&format!("threshold: {}", t().analysis.max_string_match_arms)), "should show threshold");
 }
 
 #[test]
@@ -333,7 +333,7 @@ fn threshold_values_shown_in_excess_args() {
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains(&format!("threshold: {}", t().arg_max)), "excess args should show threshold, got: {stdout}");
+    assert!(stdout.contains(&format!("threshold: {}", t().function.arg_max)), "excess args should show threshold, got: {stdout}");
 }
 
 #[test]

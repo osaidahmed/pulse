@@ -28,7 +28,7 @@ fn complex_method_detected() {
 fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.rs");
     let cc = function_metric(&debug, "process_order", "cc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "cc should be >= t().cc_warning, got: {cc}");
+    assert!(cc >= t().function.cc_warning, "cc should be >= t().function.cc_warning, got: {cc}");
 }
 
 #[test]
@@ -219,7 +219,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc should be >= 50, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc should be >= 50, got: {loc}");
 }
 
 // ===========================================================================
@@ -246,8 +246,8 @@ fn god_method_has_high_cc_and_loc() {
     let stderr = String::from_utf8(out.stderr).unwrap();
     let cc = function_metric(&stderr, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&stderr, "process_data_pipeline", "loc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "cc >= t().cc_warning, got: {cc}");
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
+    assert!(cc >= t().function.cc_warning, "cc >= t().function.cc_warning, got: {cc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc >= t().function.fn_loc_warning, got: {loc}");
 }
 
 #[test]
@@ -632,8 +632,8 @@ fn nested_conditional_chunks_bump_count() {
     // If bumps metric exists, verify it; cc should also be high enough
     let cc = function_metric(&out, "validate_and_process", "cc").unwrap_or(0);
     assert!(
-        bumps.unwrap_or(0) >= 2 || cc >= t().cc_warning,
-        "should have >= 2 bumps or cc >= t().cc_warning, got bumps: {bumps:?}, cc: {cc}"
+        bumps.unwrap_or(0) >= 2 || cc >= t().function.cc_warning,
+        "should have >= 2 bumps or cc >= t().function.cc_warning, got bumps: {bumps:?}, cc: {cc}"
     );
 }
 

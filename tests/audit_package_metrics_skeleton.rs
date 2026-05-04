@@ -143,7 +143,7 @@ fn distance_finding_suppressed_for_main_sequence_modules() {
 #[test]
 fn martin_findings_are_truncated_to_max_reported() {
     let mut th = t().audit;
-    th.max_martin_findings_reported = 2;
+    th.package_metrics.max_martin_findings_reported = 2;
     let mut edges: Vec<InputEdge> = Vec::new();
     for i in 0..10 {
         edges.push(rust_edge(&format!("dep_{i}.rs"), "core.rs"));
@@ -159,7 +159,7 @@ fn martin_findings_are_truncated_to_max_reported() {
 #[test]
 fn cycle_findings_are_truncated_to_max_reported() {
     let mut th = t().audit;
-    th.max_cycle_findings_reported = 1;
+    th.package_metrics.max_cycle_findings_reported = 1;
     let edges = [
         rust_edge("a.rs", "b.rs"),
         rust_edge("b.rs", "a.rs"),

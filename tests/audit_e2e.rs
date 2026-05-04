@@ -18,14 +18,14 @@ fn pulse_audit(args: &[&str]) -> (String, String, i32) {
 
 fn audit_in_dir(scenario: &str) -> (String, String, i32) {
     let dir = copy_scenario_to_tempdir(scenario, "python");
-    pulse_audit(&["--layer", "3", "--root", dir.path().to_str().unwrap()])
+    pulse_audit(&["--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()])
 }
 
 fn audit_in_dir_json(scenario: &str) -> (String, String, i32) {
     let dir = copy_scenario_to_tempdir(scenario, "python");
     pulse_audit(&[
-        "--layer",
-        "3",
+        "--pass",
+        "pattern-mining",
         "--root",
         dir.path().to_str().unwrap(),
         "--json",
@@ -152,18 +152,24 @@ fn audit_json_each_finding_has_kind_and_locations() {
 }
 
 #[test]
-fn audit_layer_3_explicit_works() {
+fn audit_pass_pattern_mining_explicit_works() {
     let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
-    let (_stdout, _stderr, code) = pulse_audit(&["--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    let (_stdout, _stderr, code) = pulse_audit(&["--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 1);
 }
 
 #[test]
-fn audit_layer_99_invalid_exits_one() {
+fn audit_pass_invalid_value_exits_two() {
     let p = scenario_path("shotgun_media_type", "python");
-    let (_stdout, stderr, code) = pulse_audit(&["--layer", "99", "--root", p.to_str().unwrap()]);
-    assert_eq!(code, 1);
-    assert!(stderr.contains("--layer must be 3"));
+    let (_stdout, _stderr, code) = pulse_audit(&["--pass", "garbage", "--root", p.to_str().unwrap()]);
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn audit_legacy_layer_flag_no_longer_recognized() {
+    let p = scenario_path("shotgun_media_type", "python");
+    let (_stdout, _stderr, code) = pulse_audit(&["--layer", "3", "--root", p.to_str().unwrap()]);
+    assert_eq!(code, 2);
 }
 
 #[test]
@@ -267,9 +273,9 @@ fn audit_default_has_no_decision_block_json() {
 }
 
 #[test]
-fn audit_combined_json_layer_root_works() {
+fn audit_combined_json_pass_root_works() {
     let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
-    let (stdout, _, code) = pulse_audit(&["--json", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
+    let (stdout, _, code) = pulse_audit(&["--json", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 1);
     let _: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid json");
 }

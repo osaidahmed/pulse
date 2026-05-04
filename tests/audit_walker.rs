@@ -69,7 +69,7 @@ fn walker_handles_syntax_error_without_panic() {
 fn walker_records_named_node_count_above_threshold() {
     let src = "def f(x):\n    if x == 1:\n        return x\n    return 0\n";
     let records = extract_from_source(src);
-    let min_nodes = t().audit.subtree_min_nodes as u32;
+    let min_nodes = t().audit.pattern_mining.subtree_min_nodes as u32;
     assert!(records.iter().all(|r| r.named_node_count >= min_nodes));
 }
 
@@ -77,7 +77,7 @@ fn walker_records_named_node_count_above_threshold() {
 fn walker_records_depth_above_threshold() {
     let src = "def f(x):\n    if x == 1:\n        return x\n    return 0\n";
     let records = extract_from_source(src);
-    let min_depth = t().audit.subtree_min_depth as u32;
+    let min_depth = t().audit.pattern_mining.subtree_min_depth as u32;
     assert!(records.iter().all(|r| r.depth >= min_depth));
 }
 
@@ -114,7 +114,7 @@ fn walker_floor_filters_smaller_than_min_nodes() {
 fn walker_floor_filters_smaller_than_min_depth() {
     let src = "x = a + b\n";
     let records = extract_from_source(src);
-    let min_depth = t().audit.subtree_min_depth;
+    let min_depth = t().audit.pattern_mining.subtree_min_depth;
     for r in &records {
         assert!(r.depth as usize >= min_depth);
     }
@@ -236,17 +236,17 @@ fn shotgun_media_type_walker_yields_media_type_subtrees() {
 
 #[test]
 fn audit_thresholds_default_freqt_min_support_is_five() {
-    assert_eq!(t().audit.freqt_min_support, 5);
+    assert_eq!(t().audit.pattern_mining.freqt_min_support, 5);
 }
 
 #[test]
 fn audit_thresholds_default_subtree_min_depth_is_three() {
-    assert_eq!(t().audit.subtree_min_depth, 3);
+    assert_eq!(t().audit.pattern_mining.subtree_min_depth, 3);
 }
 
 #[test]
 fn audit_thresholds_default_subtree_min_nodes_is_five() {
-    assert_eq!(t().audit.subtree_min_nodes, 5);
+    assert_eq!(t().audit.pattern_mining.subtree_min_nodes, 5);
 }
 
 #[test]

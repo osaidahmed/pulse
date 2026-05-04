@@ -37,7 +37,7 @@ fn complex_method_cc_at_least_9() {
     let debug = run_debug(LANG, "complex_method.py");
     let cc = function_metric(&debug, "process_order", "cc");
     assert!(cc.is_some(), "should compute cc for process_order");
-    assert!(cc.unwrap() >= t().cc_warning, "cc should be >= t().cc_warning, got: {}", cc.unwrap());
+    assert!(cc.unwrap() >= t().function.cc_warning, "cc should be >= t().function.cc_warning, got: {}", cc.unwrap());
 }
 
 // ===========================================================================
@@ -63,7 +63,7 @@ fn large_method_loc_exceeds_threshold() {
     code.push_str("    return x_0\n");
     let debug = pulse_debug_code(&code, "py");
     let loc = function_metric(&debug, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc should exceed threshold, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc should exceed threshold, got: {loc}");
 }
 
 // ===========================================================================
@@ -85,8 +85,8 @@ fn god_method_has_high_cc_and_loc() {
     let debug = run_debug(LANG, "brain_method.py");
     let cc = function_metric(&debug, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&debug, "process_data_pipeline", "loc").unwrap_or(0);
-    assert!(cc >= t().cc_warning, "god method cc should be >= t().cc_warning, got: {cc}");
-    assert!(loc >= t().fn_loc_warning, "god method loc should be >= 50, got: {loc}");
+    assert!(cc >= t().function.cc_warning, "god method cc should be >= t().function.cc_warning, got: {cc}");
+    assert!(loc >= t().function.fn_loc_warning, "god method loc should be >= 50, got: {loc}");
 }
 
 #[test]

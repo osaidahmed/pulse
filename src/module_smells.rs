@@ -19,10 +19,10 @@ pub fn detect_module_smells(
 
 fn detect_large_structs(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     findings.extend(m.struct_fields.iter().filter_map(|(name, count)| {
-        (*count > t.max_struct_fields).then_some(Finding {
+        (*count > t.module.max_struct_fields).then_some(Finding {
             smell: Smell::LargeStruct,
             location: Location::Module,
-            detail: format!("{name}: {count} fields (threshold: {})", t.max_struct_fields),
+            detail: format!("{name}: {count} fields (threshold: {})", t.module.max_struct_fields),
         })
     }));
 }
@@ -33,17 +33,17 @@ fn detect_size_smells(
     has_god_method: bool,
     findings: &mut Vec<Finding>,
 ) {
-    if m.total_loc > t.file_loc_warning {
-        let sev = if m.total_loc > t.file_loc_alert { "alert" } else { "warning" };
-        emit_module(Smell::FileTooLarge, format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.file_loc_warning), findings);
+    if m.total_loc > t.module.file_loc_warning {
+        let sev = if m.total_loc > t.module.file_loc_alert { "alert" } else { "warning" };
+        emit_module(Smell::FileTooLarge, format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.module.file_loc_warning), findings);
     }
-    emit_module_if(m.total_functions > t.file_function_count,
-        Smell::TooManyFunctions, || format!("{} functions (threshold: {})", m.total_functions, t.file_function_count), findings);
-    emit_module_if(m.sum_cc > t.file_total_cc,
-        Smell::OverallCodeComplexity, || format!("total cc={} (threshold: {})", m.sum_cc, t.file_total_cc), findings);
+    emit_module_if(m.total_functions > t.module.file_function_count,
+        Smell::TooManyFunctions, || format!("{} functions (threshold: {})", m.total_functions, t.module.file_function_count), findings);
+    emit_module_if(m.sum_cc > t.module.file_total_cc,
+        Smell::OverallCodeComplexity, || format!("total cc={} (threshold: {})", m.sum_cc, t.module.file_total_cc), findings);
     check_god_class(m, t, has_god_method, findings);
-    emit_module_if(m.declaration_count > t.max_declarations,
-        Smell::ExcessiveDeclarations, || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.max_declarations), findings);
+    emit_module_if(m.declaration_count > t.module.max_declarations,
+        Smell::ExcessiveDeclarations, || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.module.max_declarations), findings);
 }
 
 fn emit_module(smell: Smell, detail: String, findings: &mut Vec<Finding>) {
@@ -68,7 +68,7 @@ fn check_god_class(
     findings: &mut Vec<Finding>,
 ) {
     let is_god_class =
-        m.total_loc > t.file_loc_warning && m.total_functions > t.file_function_count && has_god_method;
+        m.total_loc > t.module.file_loc_warning && m.total_functions > t.module.file_function_count && has_god_method;
     if is_god_class {
         findings.push(Finding {
             smell: Smell::GodClass,
@@ -106,19 +106,19 @@ pub fn detect_overall_function_size(
     t: &Thresholds,
     findings: &mut Vec<Finding>,
 ) {
-    let large_count = functions.iter().filter(|f| f.loc >= t.large_fn_loc).count() as u32;
-    if large_count < t.large_fn_count {
+    let large_count = functions.iter().filter(|f| f.loc >= t.module.large_fn_loc).count() as u32;
+    if large_count < t.module.large_fn_count {
         return;
     }
     let names: Vec<String> = functions
         .iter()
-        .filter(|f| f.loc >= t.large_fn_loc)
+        .filter(|f| f.loc >= t.module.large_fn_loc)
         .map(|f| format!("{} ({}L)", f.name, f.loc))
         .collect();
     findings.push(Finding {
         smell: Smell::OverallFunctionSize,
         location: Location::Module,
-        detail: format!("{} large functions (>{} LOC, threshold: {}+ functions): {}", large_count, t.large_fn_loc, t.large_fn_count, names.join(", ")),
+        detail: format!("{} large functions (>{} LOC, threshold: {}+ functions): {}", large_count, t.module.large_fn_loc, t.module.large_fn_count, names.join(", ")),
     });
 }
 
@@ -127,7 +127,7 @@ pub fn detect_overall_function_size(
 pub fn detect_lcom4(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     for (class_name, methods) in &group_methods_by_class(functions) {
         let components = compute_lcom4(methods);
-        if components >= t.lcom4_warning {
+        if components >= t.analysis.lcom4_warning {
             findings.push(Finding {
                 smell: Smell::LowCohesion,
                 location: Location::Module,

@@ -5,6 +5,7 @@ use crate::thresholds::AuditThresholds;
 
 use super::finding::{
     AuditFinding, AuditKind, CycleMembership, ImportConfidence, MartinMetrics, MartinTier,
+    ShotgunSurgeryEvidence,
 };
 
 pub fn format_findings(
@@ -34,18 +35,38 @@ struct ListLayout<'a> {
 }
 
 fn render_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) {
+    if dispatch_known_variants_human(out, f, root, t) {
+        return;
+    }
+    render_pattern_human(out, f, root, t);
+}
+
+fn dispatch_known_variants_human(
+    out: &mut String,
+    f: &AuditFinding,
+    root: Option<&Path>,
+    t: &AuditThresholds,
+) -> bool {
     if let AuditKind::DistanceFromMainSequence(m) = &f.kind {
         write_martin(out, m, root);
-        return;
+        return true;
     }
     if let AuditKind::ImportCycle(c) = &f.kind {
         write_cycle(out, c, root, t);
-        return;
+        return true;
     }
     if let AuditKind::ZeroEdgeProject { module_count } = &f.kind {
         write_zero_edge(out, *module_count);
-        return;
+        return true;
     }
+    if let AuditKind::ShotgunSurgery(e) = &f.kind {
+        write_shotgun(out, e, root, t);
+        return true;
+    }
+    super::output_named_smells::dispatch_human(out, &f.kind, root, confidence_str, display_path)
+}
+
+fn render_pattern_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) {
     let _ = writeln!(
         out,
         "audit: cross-file pattern in {} files ({} occurrences)",
@@ -68,19 +89,32 @@ fn render_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &Aud
 }
 
 fn render_json(f: &AuditFinding, root: Option<&Path>) -> serde_json::Value {
-    if let AuditKind::DistanceFromMainSequence(m) = &f.kind {
-        return martin_json(m, root);
+    if let Some(v) = dispatch_known_variants_json(f, root) {
+        return v;
     }
-    if let AuditKind::ImportCycle(c) = &f.kind {
-        return cycle_json(c, root);
-    }
-    if let AuditKind::ZeroEdgeProject { module_count } = &f.kind {
-        return zero_edge_json(*module_count);
+    if let Some(v) = super::output_named_smells::dispatch_json(&f.kind, root, confidence_str, display_path) {
+        return v;
     }
     let AuditKind::UncategorizedPattern { fingerprint } = &f.kind else {
         unreachable!()
     };
     pattern_json(f, *fingerprint, root)
+}
+
+fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json::Value> {
+    if let AuditKind::DistanceFromMainSequence(m) = &f.kind {
+        return Some(martin_json(m, root));
+    }
+    if let AuditKind::ImportCycle(c) = &f.kind {
+        return Some(cycle_json(c, root));
+    }
+    if let AuditKind::ZeroEdgeProject { module_count } = &f.kind {
+        return Some(zero_edge_json(*module_count));
+    }
+    if let AuditKind::ShotgunSurgery(e) = &f.kind {
+        return Some(shotgun_json(e, root));
+    }
+    None
 }
 
 fn write_martin(out: &mut String, m: &MartinMetrics, root: Option<&Path>) {
@@ -135,6 +169,59 @@ fn write_zero_edge(out: &mut String, module_count: u32) {
         "  hint: confirm --root points at the project's source tree."
     );
     let _ = writeln!(out);
+}
+
+fn write_shotgun(
+    out: &mut String,
+    e: &ShotgunSurgeryEvidence,
+    root: Option<&Path>,
+    t: &AuditThresholds,
+) {
+    let label = e.method_class.as_deref().map_or_else(
+        || e.method_name.clone(),
+        |c| format!("{c}.{}", e.method_name),
+    );
+    let _ = writeln!(out, "audit: shotgun surgery — {label}");
+    let _ = writeln!(
+        out,
+        "  defined at:    {}:{}",
+        display_path(&e.method_file, root),
+        e.method_line
+    );
+    let _ = writeln!(out, "  CC:            {}", e.changing_classes);
+    let _ = writeln!(out, "  CM:            {}", e.changing_methods);
+    let _ = writeln!(out, "  fanout:        {}", e.fanout);
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    let layout = ListLayout {
+        prefix_first: "  callers:       ",
+        prefix_rest: "                 ",
+        cap: t.named_smells.max_caller_samples_per_finding,
+    };
+    write_capped_list(out, &layout, e.caller_samples.len(), |i| {
+        let loc = &e.caller_samples[i];
+        format!("{}:{}", display_path(&loc.file, root), loc.line)
+    });
+    let _ = writeln!(out);
+}
+
+fn shotgun_json(e: &ShotgunSurgeryEvidence, root: Option<&Path>) -> serde_json::Value {
+    let callers: Vec<serde_json::Value> = e
+        .caller_samples
+        .iter()
+        .map(|loc| serde_json::json!({"file": display_path(&loc.file, root), "line": loc.line}))
+        .collect();
+    serde_json::json!({
+        "kind": "ShotgunSurgery",
+        "method_file": display_path(&e.method_file, root),
+        "method_class": e.method_class,
+        "method_name": e.method_name,
+        "method_line": e.method_line,
+        "changing_classes": e.changing_classes,
+        "changing_methods": e.changing_methods,
+        "fanout": e.fanout,
+        "confidence": confidence_str(e.confidence),
+        "callers": callers,
+    })
 }
 
 fn write_capped_list<F>(out: &mut String, layout: &ListLayout, total: usize, render: F)

@@ -37,7 +37,7 @@ fn materialize(
     thresholds: &AuditThresholds,
 ) -> Option<RawCluster> {
     let support = indices.len() as u32;
-    if (support as usize) < thresholds.freqt_min_support {
+    if (support as usize) < thresholds.pattern_mining.freqt_min_support {
         return None;
     }
     let mut files: std::collections::BTreeSet<PathBuf> = std::collections::BTreeSet::new();

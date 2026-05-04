@@ -163,57 +163,43 @@ fn audit_root_zero_byte_filename() {
 }
 
 #[test]
-fn audit_layer_negative_value_rejected_by_clap() {
-    let (_, stderr, code) = pulse_audit(&["--layer", "-1"]);
-    assert_ne!(code, 0);
-    assert!(!stderr.contains("audit:"));
-}
-
-#[test]
-fn audit_layer_zero_rejected_by_us() {
-    let dir = tempfile::tempdir().unwrap();
-    let (_, stderr, code) = pulse_audit(&["--layer", "0", "--root", dir.path().to_str().unwrap()]);
-    assert_eq!(code, 1);
-    assert!(stderr.contains("layer must be 3"));
-}
-
-#[test]
-fn audit_layer_one_rejected_by_us() {
-    let dir = tempfile::tempdir().unwrap();
-    let (_, _, code) = pulse_audit(&["--layer", "1", "--root", dir.path().to_str().unwrap()]);
-    assert_eq!(code, 1);
-}
-
-#[test]
-fn audit_layer_two_rejected_by_us() {
-    let dir = tempfile::tempdir().unwrap();
-    let (_, _, code) = pulse_audit(&["--layer", "2", "--root", dir.path().to_str().unwrap()]);
-    assert_eq!(code, 1);
-}
-
-#[test]
-fn audit_layer_max_u8_rejected_by_us() {
-    let dir = tempfile::tempdir().unwrap();
-    let (_, _, code) = pulse_audit(&["--layer", "255", "--root", dir.path().to_str().unwrap()]);
-    assert_eq!(code, 1);
-}
-
-#[test]
-fn audit_layer_overflow_rejected_by_clap() {
-    let (_, stderr, code) = pulse_audit(&["--layer", "300"]);
-    assert_ne!(code, 0);
-    assert!(!stderr.contains("audit:"));
-}
-
-#[test]
-fn audit_layer_with_decimal_rejected_by_clap() {
-    let (_, _, code) = pulse_audit(&["--layer", "3.5"]);
+fn audit_legacy_layer_flag_unknown() {
+    let (_, _, code) = pulse_audit(&["--layer", "3"]);
     assert_ne!(code, 0);
 }
 
 #[test]
-fn audit_layer_with_string_rejected_by_clap() {
-    let (_, _, code) = pulse_audit(&["--layer", "three"]);
+fn audit_pass_invalid_value_rejected_by_clap() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, code) = pulse_audit(&["--pass", "garbage", "--root", dir.path().to_str().unwrap()]);
+    assert_ne!(code, 0);
+}
+
+#[test]
+fn audit_pass_empty_value_rejected_by_clap() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, code) = pulse_audit(&["--pass", "", "--root", dir.path().to_str().unwrap()]);
+    assert_ne!(code, 0);
+}
+
+#[test]
+fn audit_pass_numeric_value_rejected_by_clap() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, code) = pulse_audit(&["--pass", "3", "--root", dir.path().to_str().unwrap()]);
+    assert_ne!(code, 0);
+}
+
+#[test]
+fn audit_pass_underscore_form_rejected_by_clap() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, code) = pulse_audit(&["--pass", "pattern_mining", "--root", dir.path().to_str().unwrap()]);
+    assert_ne!(code, 0);
+}
+
+#[test]
+fn audit_pass_camel_case_form_rejected_by_clap() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, _, code) = pulse_audit(&["--pass", "PatternMining", "--root", dir.path().to_str().unwrap()]);
     assert_ne!(code, 0);
 }
 
@@ -230,8 +216,8 @@ fn audit_double_dash_root_with_no_value_rejected() {
 }
 
 #[test]
-fn audit_double_dash_layer_with_no_value_rejected() {
-    let (_, _, code) = pulse_audit(&["--layer"]);
+fn audit_double_dash_pass_with_no_value_rejected() {
+    let (_, _, code) = pulse_audit(&["--pass"]);
     assert_ne!(code, 0);
 }
 
@@ -244,7 +230,7 @@ fn audit_extra_positional_arg_rejected() {
 
 #[test]
 fn freqt_mine_with_negative_min_support_not_possible() {
-    let _: usize = t().audit.freqt_min_support;
+    let _: usize = t().audit.pattern_mining.freqt_min_support;
 }
 
 #[test]
@@ -265,7 +251,7 @@ fn freqt_mine_does_not_panic_on_record_with_huge_line_number() {
         snippet: "x".to_string(),
     };
     let mut th = t().audit;
-    th.freqt_min_support = 1;
+    th.pattern_mining.freqt_min_support = 1;
     let _ = freqt_mine(&[r], &th);
 }
 
@@ -397,7 +383,7 @@ fn freqt_mine_with_zero_min_support_includes_all_clusters() {
     use pulse::audit::walker::SubtreeRecord;
     use std::path::PathBuf;
     let mut th = t().audit;
-    th.freqt_min_support = 0;
+    th.pattern_mining.freqt_min_support = 0;
     let records: Vec<SubtreeRecord> = (0..5).map(|i| SubtreeRecord {
         fingerprint: i,
         file: PathBuf::from("a.py"),
@@ -415,7 +401,7 @@ fn apply_idf_threshold_negative_treated_as_zero() {
     use pulse::audit::discovery::RawCluster;
     use std::path::PathBuf;
     let mut th = t().audit;
-    th.idiom_suppression_threshold = -1.0;
+    th.pattern_mining.idiom_suppression_threshold = -1.0;
     let cluster = RawCluster {
         fingerprint: 7,
         support: 3,
@@ -592,8 +578,8 @@ fn audit_handles_non_utf8_file_contents_gracefully() {
 #[test]
 fn walker_returns_empty_when_threshold_exceeds_input_capacity() {
     let mut th = t().audit;
-    th.subtree_min_nodes = 100_000;
-    th.subtree_min_depth = 100_000;
+    th.pattern_mining.subtree_min_nodes = 100_000;
+    th.pattern_mining.subtree_min_depth = 100_000;
     let src = "def f():\n    return 1\n";
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let records = extract_subtrees(&tree, src, Language::Python, Path::new("t.py"), &th);

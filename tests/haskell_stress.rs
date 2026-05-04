@@ -58,13 +58,13 @@ fn cc_nested_if_in_case() {
 #[test]
 fn cc_case_many_alternatives() {
     let mut code = String::from("f :: Int -> String\nf x = case x of\n");
-    for i in 0..t().cc_warning {
+    for i in 0..t().function.cc_warning {
         code.push_str(&format!("  {i} -> \"{i}\"\n"));
     }
     code.push_str("  _ -> \"z\"\n");
     let out = debug(&code);
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
-    assert!(cc > t().cc_warning, "expected cc > {}, got: {}", t().cc_warning, cc);
+    assert!(cc > t().function.cc_warning, "expected cc > {}, got: {}", t().function.cc_warning, cc);
 }
 
 #[test]
@@ -170,7 +170,7 @@ fn nesting_case_counts_depth() {
 fn nesting_deep_exceeds_threshold() {
     let out = debug("f :: Int -> Int -> Int -> String\nf x y z = case x of\n  0 -> \"a\"\n  _ -> if y > 0 then case z of\n    0 -> \"b\"\n    _ -> if True then case x of\n      1 -> \"c\"\n      _ -> \"d\" else \"e\" else \"f\"\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(n > t().nesting_depth, "expected nesting > {}, got: {}", t().nesting_depth, n);
+    assert!(n > t().function.nesting_depth, "expected nesting > {}, got: {}", t().function.nesting_depth, n);
 }
 
 #[test]
@@ -255,7 +255,7 @@ fn primitive_obsession_complex_types_not_flagged() {
 
 #[test]
 fn duplication_detected() {
-    let loc = t().duplication_min_loc + 2;
+    let loc = t().analysis.duplication_min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -267,7 +267,7 @@ fn duplication_detected() {
 
 #[test]
 fn duplication_test_suppressed() {
-    let loc = t().duplication_min_loc + 2;
+    let loc = t().analysis.duplication_min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -279,7 +279,7 @@ fn duplication_test_suppressed() {
 
 #[test]
 fn duplication_mixed_test_and_prod_flagged() {
-    let loc = t().duplication_min_loc + 2;
+    let loc = t().analysis.duplication_min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -291,7 +291,7 @@ fn duplication_mixed_test_and_prod_flagged() {
 
 #[test]
 fn duplication_two_is_minimum() {
-    let loc = t().duplication_min_loc + 2;
+    let loc = t().analysis.duplication_min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -305,7 +305,7 @@ fn duplication_two_is_minimum() {
 
 #[test]
 fn assertion_block_at_threshold() {
-    let count = t().consecutive_asserts_max;
+    let count = t().analysis.consecutive_asserts_max;
     let mut code = String::from("f :: IO ()\nf = do\n");
     for i in 0..count {
         code.push_str(&format!("  assert ({i} > 0)\n"));
@@ -318,7 +318,7 @@ fn assertion_block_at_threshold() {
 fn assertion_block_above_threshold() {
     // Haskell do-block statements are exp > apply, which may not match
     // the assertion counter pattern directly. Verify no false positive.
-    let count = t().consecutive_asserts_max + 5;
+    let count = t().analysis.consecutive_asserts_max + 5;
     let mut code = String::from("f :: IO ()\nf = do\n");
     for i in 0..count {
         code.push_str(&format!("  putStrLn (show {i})\n"));
@@ -330,7 +330,7 @@ fn assertion_block_above_threshold() {
 
 #[test]
 fn assertion_block_interrupted_resets() {
-    let half = t().consecutive_asserts_max - 2;
+    let half = t().analysis.consecutive_asserts_max - 2;
     let mut code = String::from("f :: IO ()\nf = do\n");
     for i in 0..half {
         code.push_str(&format!("  assert ({i} > 0)\n"));
@@ -347,11 +347,11 @@ fn assertion_block_interrupted_resets() {
 
 #[test]
 fn overall_function_size_below_threshold() {
-    let fn_count = t().large_fn_count - 1;
+    let fn_count = t().module.large_fn_count - 1;
     let mut code = String::new();
     for i in 0..fn_count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
-        for j in 0..(t().large_fn_loc + 5) {
+        for j in 0..(t().module.large_fn_loc + 5) {
             code.push_str(&format!("  x{j} = {j}\n"));
         }
         code.push_str("  x\n\n");
@@ -362,11 +362,11 @@ fn overall_function_size_below_threshold() {
 
 #[test]
 fn overall_function_size_at_threshold() {
-    let fn_count = t().large_fn_count;
+    let fn_count = t().module.large_fn_count;
     let mut code = String::new();
     for i in 0..fn_count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
-        for j in 0..(t().large_fn_loc + 5) {
+        for j in 0..(t().module.large_fn_loc + 5) {
             code.push_str(&format!("  x{j} = {j}\n"));
         }
         code.push_str("  x\n\n");
@@ -379,7 +379,7 @@ fn overall_function_size_at_threshold() {
 
 #[test]
 fn declarations_below_threshold() {
-    let count = t().max_declarations / 2;
+    let count = t().module.max_declarations / 2;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("data T{i} = T{i}\n"));
@@ -390,7 +390,7 @@ fn declarations_below_threshold() {
 
 #[test]
 fn declarations_above_threshold() {
-    let count = t().max_declarations + 5;
+    let count = t().module.max_declarations + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("data T{i} = T{i}\n"));
@@ -409,7 +409,7 @@ fn small_string_not_flagged() {
 
 #[test]
 fn multiline_string_flagged() {
-    let lines = t().embedded_block_loc + 5;
+    let lines = t().function.embedded_block_loc + 5;
     let mut code = String::from("f :: String\nf = \"");
     for i in 0..lines {
         code.push_str(&format!("line {i}\\n\\\n\\"));
@@ -454,7 +454,7 @@ fn shallow_global_not_flagged() {
 
 #[test]
 fn output_has_module_prefix() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
@@ -465,7 +465,7 @@ fn output_has_module_prefix() {
 
 #[test]
 fn god_class_requires_god_method_stress() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
@@ -488,7 +488,7 @@ fn god_class_triggers_with_god_method_stress() {
         code.push_str(&format!("  x{i} = {i}\n"));
     }
     code.push_str("  x\n\n");
-    let remaining = t().file_function_count;
+    let remaining = t().module.file_function_count;
     for i in 1..=remaining {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x =\n"));
         for j in 0..20 {
@@ -504,7 +504,7 @@ fn god_class_triggers_with_god_method_stress() {
 
 #[test]
 fn multiple_smells_same_function() {
-    let arg_count = t().arg_max + 1;
+    let arg_count = t().function.arg_max + 1;
     let params: Vec<String> = (0..arg_count).map(|i| format!("a{i}")).collect();
     let types: Vec<&str> = (0..arg_count).map(|_| "String").collect();
     let sig = format!("f :: {} -> String\n", types.join(" -> "));
@@ -521,13 +521,13 @@ fn multiple_smells_same_function() {
 
 #[test]
 fn function_can_have_excess_and_embedded() {
-    let arg_count = t().arg_max + 1;
+    let arg_count = t().function.arg_max + 1;
     let params: Vec<String> = (0..arg_count).map(|i| format!("a{i}")).collect();
     let types: Vec<&str> = (0..arg_count).map(|_| "String").collect();
     let sig = format!("f :: {} -> String\n", types.join(" -> "));
     let head = format!("f {} = \"", params.join(" "));
     let mut code = sig + &head;
-    let lines = t().embedded_block_loc + 5;
+    let lines = t().function.embedded_block_loc + 5;
     for i in 0..lines {
         code.push_str(&format!("line {i}\\n\\\n\\"));
     }
@@ -541,7 +541,7 @@ fn function_can_have_excess_and_embedded() {
 
 #[test]
 fn output_starts_with_pulse() {
-    let count = t().file_function_count + 5;
+    let count = t().module.file_function_count + 5;
     let mut code = String::new();
     for i in 0..count {
         code.push_str(&format!("f{i} :: Int -> Int\nf{i} x = x\n"));
@@ -553,7 +553,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_line_numbers() {
     let mut code = String::from("f :: Int -> String\nf x = case x of\n");
-    for i in 0..t().cc_warning {
+    for i in 0..t().function.cc_warning {
         code.push_str(&format!("  {i} -> \"{i}\"\n"));
     }
     code.push_str("  _ -> \"z\"\n");
@@ -564,7 +564,7 @@ fn output_has_line_numbers() {
 #[test]
 fn issue_count_matches() {
     let mut code = String::from("f :: Int -> String\nf x = case x of\n");
-    for i in 0..t().cc_warning {
+    for i in 0..t().function.cc_warning {
         code.push_str(&format!("  {i} -> \"{i}\"\n"));
     }
     code.push_str("  _ -> \"z\"\n");
@@ -810,7 +810,7 @@ fn deeply_nested_case_guards() {
 
 #[test]
 fn excess_args_above_threshold() {
-    let count = t().arg_max + 1;
+    let count = t().function.arg_max + 1;
     let params: Vec<String> = (0..count).map(|i| format!("a{i}")).collect();
     let types: Vec<&str> = (0..count).map(|_| "Int").collect();
     let code = format!("f :: {} -> Int\nf {} = 0\n", types.join(" -> "), params.join(" "));
@@ -820,7 +820,7 @@ fn excess_args_above_threshold() {
 
 #[test]
 fn args_at_threshold_not_flagged() {
-    let count = t().arg_max;
+    let count = t().function.arg_max;
     let params: Vec<String> = (0..count).map(|i| format!("a{i}")).collect();
     let types: Vec<&str> = (0..count).map(|_| "Int").collect();
     let code = format!("f :: {} -> Int\nf {} = 0\n", types.join(" -> "), params.join(" "));

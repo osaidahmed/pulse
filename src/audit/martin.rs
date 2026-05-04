@@ -24,10 +24,10 @@ pub fn distance(abstractness: f64, instability: f64) -> f64 {
 }
 
 pub fn classify(distance: f64, thresholds: &AuditThresholds) -> MartinTier {
-    if distance >= thresholds.martin_distance_alert {
+    if distance >= thresholds.package_metrics.martin_distance_alert {
         return MartinTier::Alert;
     }
-    if distance >= thresholds.martin_distance_warning {
+    if distance >= thresholds.package_metrics.martin_distance_warning {
         return MartinTier::Warning;
     }
     MartinTier::Healthy

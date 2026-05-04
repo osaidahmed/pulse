@@ -116,7 +116,9 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         typed_param_count,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"]),
     })

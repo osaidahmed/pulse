@@ -557,7 +557,7 @@ fn large_method_loc_verification() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= threshold, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc >= threshold, got: {loc}");
 }
 
 #[test]

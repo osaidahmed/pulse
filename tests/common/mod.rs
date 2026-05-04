@@ -10,11 +10,11 @@ pub fn t() -> Thresholds {
 }
 
 pub fn fn_padding() -> usize {
-    t().fn_loc_warning as usize + 20
+    t().function.fn_loc_warning as usize + 20
 }
 
 pub fn file_padding() -> usize {
-    t().file_loc_warning as usize + 100
+    t().module.file_loc_warning as usize + 100
 }
 
 pub fn fixtures_dir(lang: &str) -> PathBuf {
@@ -98,43 +98,43 @@ pub fn function_metric(debug_output: &str, func_name: &str, metric: &str) -> Opt
 // ── Threshold-derived generation helpers ──
 
 pub fn cc_branches() -> usize {
-    t().cc_warning as usize + 1
+    t().function.cc_warning as usize + 1
 }
 
 pub fn declarations_above() -> usize {
-    t().max_declarations as usize + 5
+    t().module.max_declarations as usize + 5
 }
 
 pub fn functions_above() -> usize {
-    t().file_function_count as usize + 1
+    t().module.file_function_count as usize + 1
 }
 
 pub fn struct_fields_at() -> usize {
-    t().max_struct_fields as usize
+    t().module.max_struct_fields as usize
 }
 
 pub fn struct_fields_above() -> usize {
-    t().max_struct_fields as usize + 3
+    t().module.max_struct_fields as usize + 3
 }
 
 pub fn asserts_at() -> usize {
-    t().consecutive_asserts_max as usize
+    t().analysis.consecutive_asserts_max as usize
 }
 
 pub fn asserts_above() -> usize {
-    t().consecutive_asserts_max as usize + 5
+    t().analysis.consecutive_asserts_max as usize + 5
 }
 
 pub fn large_fn_lines() -> usize {
-    t().large_fn_loc as usize + 15
+    t().module.large_fn_loc as usize + 15
 }
 
 pub fn embedded_lines_above() -> usize {
-    t().embedded_block_loc as usize + 5
+    t().function.embedded_block_loc as usize + 5
 }
 
 pub fn args_above() -> usize {
-    t().arg_max as usize + 1
+    t().function.arg_max as usize + 1
 }
 
 #[macro_export]

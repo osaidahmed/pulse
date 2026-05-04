@@ -160,7 +160,7 @@ fn shotgun_scenarios_expect_at_least_one_finding() {
 fn shotgun_media_type_thresholds_within_default_min_support() {
     let exp = expected_for("shotgun_media_type");
     let f = &exp.findings[0];
-    let default_min_support = t().audit.freqt_min_support as u32;
+    let default_min_support = t().audit.pattern_mining.freqt_min_support as u32;
     assert!(f.support_min >= default_min_support,
         "support_min {} should clear default min_support {}", f.support_min, default_min_support);
 }
@@ -236,27 +236,27 @@ fn clean_medium_has_at_least_eight_files() {
 
 #[test]
 fn audit_thresholds_default_freqt_min_support_is_five() {
-    assert_eq!(t().audit.freqt_min_support, 5);
+    assert_eq!(t().audit.pattern_mining.freqt_min_support, 5);
 }
 
 #[test]
 fn audit_thresholds_default_subtree_min_depth_is_three() {
-    assert_eq!(t().audit.subtree_min_depth, 3);
+    assert_eq!(t().audit.pattern_mining.subtree_min_depth, 3);
 }
 
 #[test]
 fn audit_thresholds_default_subtree_min_nodes_is_five() {
-    assert_eq!(t().audit.subtree_min_nodes, 5);
+    assert_eq!(t().audit.pattern_mining.subtree_min_nodes, 5);
 }
 
 #[test]
 fn audit_thresholds_default_idiom_threshold_is_half() {
-    assert!((t().audit.idiom_suppression_threshold - 0.5).abs() < f64::EPSILON);
+    assert!((t().audit.pattern_mining.idiom_suppression_threshold - 0.5).abs() < f64::EPSILON);
 }
 
 #[test]
 fn audit_thresholds_default_max_findings_is_fifty() {
-    assert_eq!(t().audit.max_findings_reported, 50);
+    assert_eq!(t().audit.pattern_mining.max_findings_reported, 50);
 }
 
 #[test]

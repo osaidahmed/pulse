@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
@@ -88,10 +88,18 @@ fn try_add_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>
     }
 }
 
+fn extract_parent_class_csharp(class_node: Node, source: &str) -> Option<String> {
+    let base_list = find_child_by_kind(class_node, "base_list")?;
+    let id = find_child_by_kind(base_list, "identifier")
+        .or_else(|| find_child_by_kind(base_list, "qualified_name"))?;
+    Some(node_text(id, source).to_string())
+}
+
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let class_name = find_child_by_kind(class_node, "identifier")
         .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
+    let parent_class = extract_parent_class_csharp(class_node, source);
 
     let Some(body) = find_child_by_kind(class_node, "declaration_list") else {
         return;
@@ -107,7 +115,11 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 let method_name = metrics.name.clone();
                 metrics.name = format!("{class_name}.{method_name}");
                 metrics.class_name = Some(class_name.clone());
+                metrics.parent_class = parent_class.clone();
                 collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+
+                collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+
                 functions.push(metrics);
             }
             "constructor_declaration" => {
@@ -117,6 +129,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 metrics.name = format!("{class_name}.{class_name}");
                 metrics.is_constructor = true;
                 metrics.class_name = Some(class_name.clone());
+                metrics.parent_class = parent_class.clone();
                 functions.push(metrics);
             }
             "class_declaration" | "struct_declaration" | "interface_declaration" => {
@@ -189,7 +202,9 @@ fn analyze_callable(
         typed_param_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["variable_declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "switch_section", &["string_literal", "verbatim_string_literal", "interpolated_string_expression"]),
     })

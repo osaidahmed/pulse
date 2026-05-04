@@ -99,7 +99,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     let (arg_count, primitive_type_count, typed_param_count) =
         count_parameters_from_node(node, source);
-    let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, field_accesses: Vec::new(), class_name: None };
+    let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, field_accesses: Vec::new(),
+ class_name: None };
     build_metrics(node, source, info)
 }
 
@@ -179,7 +180,9 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         typed_param_count: info.typed_param_count,
         empty_catch_count: 0,
         field_accesses: info.field_accesses,
+        foreign_field_accesses: Vec::new(),
         class_name: info.class_name,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["short_var_declaration", "var_declaration"]),
         string_match_arms: count_string_match_arms(body, "expression_switch_statement", "expression_case", &["interpreted_string_literal", "raw_string_literal"]),
     })

@@ -318,7 +318,7 @@ fn god_method_detected() {
 #[test]
 fn overall_function_size_triggered() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{j} = {j};\n"));
@@ -638,7 +638,7 @@ fn assertion_block_above_threshold() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..(t().large_fn_count as usize - 1) {
+    for i in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{j} = {j};\n"));
@@ -1008,7 +1008,7 @@ fn regular_function_reports_excess_not_constructor() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("fn lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    let x{j} = {j};\n"));

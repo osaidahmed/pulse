@@ -626,7 +626,7 @@ fn assertion_block_above_threshold() {
 fn overall_function_size_not_triggered_by_two_large_functions() {
     // threshold is 3 large functions, having 2 should not trigger
     let mut code = String::new();
-    for i in 0..(t().large_fn_count as usize - 1) {
+    for i in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("def large_fn_{i}():\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    x_{j} = {j}\n"));
@@ -640,7 +640,7 @@ fn overall_function_size_not_triggered_by_two_large_functions() {
 #[test]
 fn overall_function_size_triggered_by_three_large_functions() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("def large_fn_{i}():\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    x_{j} = {j}\n"));

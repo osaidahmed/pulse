@@ -130,7 +130,7 @@ fn audit_run_excludes_tests_by_default() {
 
     let opts = AuditOpts {
         root: dir.path().to_path_buf(),
-        layer: None,
+        pass: None,
         json: false,
         include_tests: false,
     };
@@ -165,7 +165,7 @@ fn audit_run_with_include_tests_picks_up_test_files() {
 
     let opts_default = AuditOpts {
         root: dir.path().to_path_buf(),
-        layer: None,
+        pass: None,
         json: false,
         include_tests: false,
     };
@@ -177,7 +177,7 @@ fn audit_run_with_include_tests_picks_up_test_files() {
 
     let opts_with = AuditOpts {
         root: dir.path().to_path_buf(),
-        layer: None,
+        pass: None,
         json: false,
         include_tests: true,
     };

@@ -102,7 +102,10 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "call")),
         primitive_type_count: 0, typed_param_count: 0,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(), class_name: None,
+        field_accesses: Vec::new(),
+ foreign_field_accesses: Vec::new(),
+ class_name: None,
+ parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["binary_operator"])),
         string_match_arms: 0,
     })

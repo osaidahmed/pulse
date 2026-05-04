@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, node_text, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState, track_embedded_block,
@@ -78,9 +78,8 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 }
 
 fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let type_name = find_child_by_kind(impl_node, "type_identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let type_name = extract_impl_type_name(impl_node, source);
+    let parent_class = extract_trait_for_impl(impl_node, source);
 
     let Some(body) = find_child_by_kind(impl_node, "declaration_list") else {
         return;
@@ -98,12 +97,30 @@ fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<Funct
         metrics.name = format!("{type_name}.{method_name}");
         metrics.is_constructor = method_name == "new";
         metrics.class_name = Some(type_name.clone());
+        metrics.parent_class = parent_class.clone();
         collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+
+        collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+
         if has_self_param(child) && metrics.arg_count > 0 {
             metrics.arg_count -= 1;
         }
         functions.push(metrics);
     }
+}
+
+fn extract_trait_for_impl(impl_node: Node, source: &str) -> Option<String> {
+    let trait_node = impl_node.child_by_field_name("trait")?;
+    Some(node_text(trait_node, source).to_string())
+}
+
+fn extract_impl_type_name(impl_node: Node, source: &str) -> String {
+    if let Some(type_node) = impl_node.child_by_field_name("type") {
+        return node_text(type_node, source).to_string();
+    }
+    find_child_by_kind(impl_node, "type_identifier")
+        .map(|n| node_text(n, source).to_string())
+        .unwrap_or_default()
 }
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
@@ -146,7 +163,9 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         typed_param_count,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["let_declaration"]),
         string_match_arms: count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"]),
     })

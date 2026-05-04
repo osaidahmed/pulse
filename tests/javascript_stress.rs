@@ -289,7 +289,7 @@ fn god_class_requires_god_method() {
 #[test]
 fn overall_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..(t().large_fn_count as usize - 1) {
+    for i in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("function lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{j} = {j};\n"));
@@ -303,7 +303,7 @@ fn overall_size_below_threshold() {
 #[test]
 fn overall_size_above_threshold() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("function lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{j} = {j};\n"));
@@ -855,7 +855,7 @@ fn arrow_function_with_excess_args_flagged() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("function lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    const x{j} = {j};\n"));

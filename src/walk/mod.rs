@@ -26,7 +26,8 @@ pub mod zig;
 
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
 pub use fingerprint::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for,
+    compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_consecutive_asserts,
 };
 pub use shared::is_catch_body_empty;
@@ -126,7 +127,9 @@ pub struct FunctionMetrics {
     pub typed_param_count: u32,
     pub empty_catch_count: u32,
     pub field_accesses: Vec<String>,
+    pub foreign_field_accesses: Vec<(String, String)>,
     pub class_name: Option<String>,
+    pub parent_class: Option<String>,
     pub short_var_count: u32,
     pub string_match_arms: u32,
 }

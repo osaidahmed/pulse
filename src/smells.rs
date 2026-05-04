@@ -206,10 +206,10 @@ fn detect_complexity_smells(
     findings: &mut Vec<Finding>,
     has_god_method: &mut bool,
 ) {
-    let cc_complex = f.cc >= t.cc_warning;
-    let cogc_complex = f.cognitive_complexity >= t.cogc_warning;
+    let cc_complex = f.cc >= t.function.cc_warning;
+    let cogc_complex = f.cognitive_complexity >= t.function.cogc_warning;
     let is_complex = cc_complex || cogc_complex;
-    let is_large = f.loc >= t.fn_loc_warning;
+    let is_large = f.loc >= t.function.fn_loc_warning;
 
     if is_complex && is_large {
         *has_god_method = true;
@@ -234,24 +234,24 @@ fn complexity_detail(
 ) -> String {
     match (cc_complex, cogc_complex) {
         (true, true) => {
-            let sev = if f.cc > t.cc_alert || f.cognitive_complexity > t.cogc_alert {
+            let sev = if f.cc > t.function.cc_alert || f.cognitive_complexity > t.function.cogc_alert {
                 "alert"
             } else {
                 "warning"
             };
-            format!("cc={}, cogc={} [{}] (cc threshold: {}, cogc threshold: {})", f.cc, f.cognitive_complexity, sev, t.cc_warning, t.cogc_warning)
+            format!("cc={}, cogc={} [{}] (cc threshold: {}, cogc threshold: {})", f.cc, f.cognitive_complexity, sev, t.function.cc_warning, t.function.cogc_warning)
         }
         (false, true) => {
-            let sev = if f.cognitive_complexity > t.cogc_alert {
+            let sev = if f.cognitive_complexity > t.function.cogc_alert {
                 "alert"
             } else {
                 "warning"
             };
-            format!("cogc={} [{}] (threshold: {})", f.cognitive_complexity, sev, t.cogc_warning)
+            format!("cogc={} [{}] (threshold: {})", f.cognitive_complexity, sev, t.function.cogc_warning)
         }
         _ => {
-            let sev = if f.cc > t.cc_alert { "alert" } else { "warning" };
-            format!("cc={} [{}] (threshold: {})", f.cc, sev, t.cc_warning)
+            let sev = if f.cc > t.function.cc_alert { "alert" } else { "warning" };
+            format!("cc={} [{}] (threshold: {})", f.cc, sev, t.function.cc_warning)
         }
     }
 }
@@ -282,45 +282,45 @@ fn check_large_method(
     if !is_large {
         return;
     }
-    let severity = if f.loc > t.fn_loc_alert { "alert" } else { "warning" };
+    let severity = if f.loc > t.function.fn_loc_alert { "alert" } else { "warning" };
     findings.push(Finding {
         smell: Smell::LargeMethod,
         location: func_loc(f),
-        detail: format!("{} lines [{}] (threshold: {})", f.loc, severity, t.fn_loc_warning),
+        detail: format!("{} lines [{}] (threshold: {})", f.loc, severity, t.function.fn_loc_warning),
     });
 }
 
 fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    if f.bump_count >= t.bump_count {
+    if f.bump_count >= t.function.bump_count {
         findings.push(Finding {
             smell: Smell::NestedConditionalChunks,
             location: func_loc(f),
-            detail: format!("{} nested conditional chunks (threshold: {})", f.bump_count, t.bump_count),
+            detail: format!("{} nested conditional chunks (threshold: {})", f.bump_count, t.function.bump_count),
         });
     }
 
-    if f.max_nesting >= t.nesting_depth {
+    if f.max_nesting >= t.function.nesting_depth {
         findings.push(Finding {
             smell: Smell::DeepNestedComplexity,
             location: func_loc(f),
-            detail: format!("depth={} (threshold: {})", f.max_nesting, t.nesting_depth),
+            detail: format!("depth={} (threshold: {})", f.max_nesting, t.function.nesting_depth),
         });
     }
 
-    if f.compound_condition_count > t.compound_conditions {
+    if f.compound_condition_count > t.function.compound_conditions {
         findings.push(Finding {
             smell: Smell::ComplexConditional,
             location: func_loc(f),
-            detail: format!("{} complex conditions (threshold: {})", f.compound_condition_count, t.compound_conditions),
+            detail: format!("{} complex conditions (threshold: {})", f.compound_condition_count, t.function.compound_conditions),
         });
     }
 }
 
 fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
     let threshold = if f.is_constructor {
-        t.constructor_arg_max
+        t.function.constructor_arg_max
     } else {
-        t.arg_max
+        t.function.arg_max
     };
     if f.arg_count <= threshold {
         return;
@@ -338,11 +338,11 @@ fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Ve
 }
 
 fn detect_embedded_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    if f.max_embedded_block_loc > t.embedded_block_loc {
+    if f.max_embedded_block_loc > t.function.embedded_block_loc {
         findings.push(Finding {
             smell: Smell::LargeEmbeddedBlock,
             location: func_loc(f),
-            detail: format!("{} lines of embedded content (threshold: {})", f.max_embedded_block_loc, t.embedded_block_loc),
+            detail: format!("{} lines of embedded content (threshold: {})", f.max_embedded_block_loc, t.function.embedded_block_loc),
         });
     }
 }
@@ -371,11 +371,11 @@ fn detect_primitive_obsession(
 }
 
 fn has_high_primitive_ratio(f: &FunctionMetrics, t: &Thresholds) -> bool {
-    if f.typed_param_count < t.primitive_min_typed_params || f.primitive_type_count == 0 {
+    if f.typed_param_count < t.analysis.primitive_min_typed_params || f.primitive_type_count == 0 {
         return false;
     }
     let ratio = f.primitive_type_count as f32 / f.typed_param_count as f32;
-    ratio >= t.primitive_ratio_threshold
+    ratio >= t.analysis.primitive_ratio_threshold
 }
 
 fn detect_batch_thresholds(
@@ -383,8 +383,8 @@ fn detect_batch_thresholds(
     t: &Thresholds,
     findings: &mut Vec<Finding>,
 ) {
-    let assert_threshold = t.consecutive_asserts_max;
-    let string_threshold = t.max_string_match_arms;
+    let assert_threshold = t.analysis.consecutive_asserts_max;
+    let string_threshold = t.analysis.max_string_match_arms;
     for f in functions {
         if f.consecutive_asserts > assert_threshold {
             findings.push(Finding {
@@ -418,13 +418,13 @@ fn detect_empty_error_handlers(functions: &[FunctionMetrics], findings: &mut Vec
 }
 
 fn detect_short_variable_names(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    let dominated = f.loc < t.short_var_min_fn_loc || f.short_var_count <= t.short_var_max_count;
+    let dominated = f.loc < t.analysis.short_var_min_fn_loc || f.short_var_count <= t.analysis.short_var_max_count;
     if dominated { return; }
     findings.push(Finding {
         smell: Smell::ShortVariableNames,
         location: func_loc(f),
         detail: format!("{} single-char variables in {} LOC function (threshold: {})",
-            f.short_var_count, f.loc, t.short_var_max_count),
+            f.short_var_count, f.loc, t.analysis.short_var_max_count),
     });
 }
 

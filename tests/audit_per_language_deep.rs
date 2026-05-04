@@ -351,8 +351,8 @@ fn fingerprint_distinct_haskell_and_ml_style_pattern() {
 #[test]
 fn each_language_floor_threshold_zero_yields_records() {
     let mut th = t().audit;
-    th.subtree_min_depth = 0;
-    th.subtree_min_nodes = 0;
+    th.pattern_mining.subtree_min_depth = 0;
+    th.pattern_mining.subtree_min_nodes = 0;
     let cases = [
         (Language::Python, "x = 1\n"),
         (Language::JavaScript, "let x = 1;\n"),

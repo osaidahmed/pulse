@@ -17,13 +17,13 @@ pub fn apply_idf(
         .map(|c| build_finding(c, total_files))
         .collect();
     findings.sort_by(order_findings);
-    findings.truncate(thresholds.max_findings_reported);
+    findings.truncate(thresholds.pattern_mining.max_findings_reported);
     findings
 }
 
 fn is_idiom(cluster: &RawCluster, total_files: usize, thresholds: &AuditThresholds) -> bool {
     let ratio = f64::from(cluster.file_count) / total_files as f64;
-    ratio > thresholds.idiom_suppression_threshold
+    ratio > thresholds.pattern_mining.idiom_suppression_threshold
 }
 
 fn build_finding(cluster: RawCluster, total_files: usize) -> AuditFinding {

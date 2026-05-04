@@ -30,14 +30,14 @@ fn scoring_idf_six_percent_below_threshold_kept() {
 fn scoring_idf_with_one_total_file_handled() {
     let c = cluster(7, 1, 1, "x");
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     assert_eq!(apply_idf(vec![c], 1, &th).len(), 1);
 }
 
 #[test]
 fn scoring_idf_threshold_just_above_zero_filters_almost_all() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.001;
+    th.pattern_mining.idiom_suppression_threshold = 0.001;
     let c = cluster(7, 2, 2, "x");
     assert!(apply_idf(vec![c], 100, &th).is_empty());
 }
@@ -75,8 +75,8 @@ fn scoring_idf_score_distinct_for_distinct_file_counts() {
 #[test]
 fn scoring_findings_truncate_to_max_findings_reported() {
     let mut th = t().audit;
-    th.max_findings_reported = 5;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 5;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs: Vec<RawCluster> = (0..20).map(|i| cluster(i, 5, 2, "x")).collect();
     assert_eq!(apply_idf(cs, 100, &th).len(), 5);
 }
@@ -84,8 +84,8 @@ fn scoring_findings_truncate_to_max_findings_reported() {
 #[test]
 fn scoring_findings_truncate_at_zero_returns_empty() {
     let mut th = t().audit;
-    th.max_findings_reported = 0;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs: Vec<RawCluster> = (0..10).map(|i| cluster(i, 5, 2, "x")).collect();
     assert!(apply_idf(cs, 100, &th).is_empty());
 }
@@ -93,8 +93,8 @@ fn scoring_findings_truncate_at_zero_returns_empty() {
 #[test]
 fn scoring_findings_truncate_at_one_yields_top_finding() {
     let mut th = t().audit;
-    th.max_findings_reported = 1;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 1;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs = vec![cluster(1, 3, 1, "low"), cluster(2, 7, 1, "high"), cluster(3, 5, 1, "mid")];
     let r = apply_idf(cs, 100, &th);
     assert_eq!(r[0].support, 7);
@@ -136,7 +136,7 @@ fn scoring_tertiary_tiebreak_by_fingerprint() {
 #[test]
 fn scoring_handles_threshold_one_keeps_all_clusters() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs: Vec<RawCluster> = (0..10).map(|i| cluster(i, 5, 5, "x")).collect();
     let r = apply_idf(cs, 5, &th);
     assert_eq!(r.len(), 10);
@@ -145,7 +145,7 @@ fn scoring_handles_threshold_one_keeps_all_clusters() {
 #[test]
 fn scoring_handles_threshold_above_one_keeps_all() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 2.0;
+    th.pattern_mining.idiom_suppression_threshold = 2.0;
     let c = cluster(7, 5, 5, "x");
     assert_eq!(apply_idf(vec![c], 5, &th).len(), 1);
 }
@@ -153,7 +153,7 @@ fn scoring_handles_threshold_above_one_keeps_all() {
 #[test]
 fn scoring_idf_log_returns_zero_when_file_count_equals_total() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let c = cluster(7, 50, 50, "x");
     let r = apply_idf(vec![c], 50, &th);
     assert!(r[0].idf_score.unwrap().abs() < 1e-9);
@@ -169,7 +169,7 @@ fn scoring_action_label_remains_none_after_scoring() {
 #[test]
 fn scoring_locations_count_unchanged_through_scoring() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let c = cluster(7, 7, 7, "x");
     let r = apply_idf(vec![c], 100, &th);
     assert_eq!(r[0].locations.len(), 7);
@@ -194,16 +194,16 @@ fn scoring_does_not_mutate_input_cluster_locations() {
 #[test]
 fn scoring_handles_thousands_of_clusters_under_threshold() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cs: Vec<RawCluster> = (0..1000).map(|i| cluster(i, 5, 1, "x")).collect();
     let r = apply_idf(cs, 1000, &th);
-    assert_eq!(r.len(), th.max_findings_reported);
+    assert_eq!(r.len(), th.pattern_mining.max_findings_reported);
 }
 
 #[test]
 fn scoring_finds_highest_support_first_among_thousands() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let mut cs: Vec<RawCluster> = (0..100).map(|i| cluster(i, 5, 1, "x")).collect();
     cs.push(cluster(999, 999, 1, "winner"));
     let r = apply_idf(cs, 100, &th);
@@ -228,7 +228,7 @@ fn scoring_idf_same_for_same_ratio_different_scales() {
 #[test]
 fn scoring_max_findings_one_with_zero_clusters_returns_empty() {
     let mut th = t().audit;
-    th.max_findings_reported = 1;
+    th.pattern_mining.max_findings_reported = 1;
     assert!(apply_idf(vec![], 100, &th).is_empty());
 }
 
@@ -261,7 +261,7 @@ fn scoring_thresholds_independence_across_calls() {
     let mut th = t().audit;
     let c1 = cluster(7, 5, 5, "x");
     let r1 = apply_idf(vec![c1], 10, &th);
-    th.idiom_suppression_threshold = 0.3;
+    th.pattern_mining.idiom_suppression_threshold = 0.3;
     let c2 = cluster(7, 5, 5, "x");
     let r2 = apply_idf(vec![c2], 10, &th);
     assert_eq!(r1.len(), 1);
@@ -282,7 +282,7 @@ fn scoring_finding_struct_consistent_after_idf() {
 #[test]
 fn scoring_total_files_smaller_than_file_count_handled() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 3.0;
+    th.pattern_mining.idiom_suppression_threshold = 3.0;
     let c = cluster(7, 5, 100, "x");
     let r = apply_idf(vec![c], 50, &th);
     assert_eq!(r.len(), 1, "ratio 100/50=2.0 below threshold 3.0");
@@ -291,7 +291,7 @@ fn scoring_total_files_smaller_than_file_count_handled() {
 #[test]
 fn scoring_keeps_cluster_with_idiom_threshold_just_above_actual() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.6;
+    th.pattern_mining.idiom_suppression_threshold = 0.6;
     let c = cluster(7, 5, 5, "x");
     let r = apply_idf(vec![c], 10, &th);
     assert_eq!(r.len(), 1);
@@ -300,7 +300,7 @@ fn scoring_keeps_cluster_with_idiom_threshold_just_above_actual() {
 #[test]
 fn scoring_suppresses_when_threshold_below_actual_ratio() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.4;
+    th.pattern_mining.idiom_suppression_threshold = 0.4;
     let c = cluster(7, 5, 5, "x");
     let r = apply_idf(vec![c], 10, &th);
     assert!(r.is_empty());

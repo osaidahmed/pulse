@@ -303,9 +303,9 @@ fn overall_function_size_at_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("overall.d");
     let mut code = String::new();
-    for f in 0..=t().large_fn_count {
+    for f in 0..=t().module.large_fn_count {
         code.push_str(&format!("int func{f}() {{\n"));
-        for i in 0..t().large_fn_loc + 5 {
+        for i in 0..t().module.large_fn_loc + 5 {
             code.push_str(&format!("    int x{i} = {i};\n"));
         }
         code.push_str("    return 0;\n}\n\n");

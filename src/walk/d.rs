@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
@@ -120,6 +120,9 @@ fn apply_class_ctx(m: &mut FunctionMetrics, node: Node, source: &str, class: Opt
     m.name = format!("{cn}.{method}");
     m.class_name = Some(cn.to_string());
     collect_field_accesses_for(node, source, SELF_NAMES, &mut m.field_accesses);
+
+    collect_foreign_field_accesses_for(node, source, SELF_NAMES, &mut m.foreign_field_accesses);
+
 }
 
 fn build_fn(node: Node, source: &str, name: String, pi: ParamInfo) -> Option<FunctionMetrics> {
@@ -149,7 +152,10 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: pi.primitives, typed_param_count: pi.typed,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(), class_name: None,
+        field_accesses: Vec::new(),
+ foreign_field_accesses: Vec::new(),
+ class_name: None,
+ parent_class: None,
         short_var_count: 0, string_match_arms: 0,
     }
 }

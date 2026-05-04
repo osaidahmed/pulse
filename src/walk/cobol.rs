@@ -166,7 +166,9 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
         consecutive_asserts: 0, assert_hash: 0,
         primitive_type_count: 0, typed_param_count: 0,
         empty_catch_count: 0, field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: section.map(String::from),
+        parent_class: None,
         short_var_count: short_vars, string_match_arms: bw.match_arms,
     });
 }

@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block,
     FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
@@ -108,6 +108,9 @@ fn add_method(node: Node, source: &str, type_name: &str, fns: &mut Vec<FunctionM
     m.is_constructor = method_name == "__construct";
     if !m.is_constructor {
         collect_field_accesses_for(node, source, SELF_NAMES, &mut m.field_accesses);
+
+        collect_foreign_field_accesses_for(node, source, SELF_NAMES, &mut m.foreign_field_accesses);
+
     }
     fns.push(m);
 }
@@ -157,7 +160,10 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count, typed_param_count,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(), class_name: None,
+        field_accesses: Vec::new(),
+ foreign_field_accesses: Vec::new(),
+ class_name: None,
+ parent_class: None,
         short_var_count: count_short_variables(body, source, &["assignment_expression", "augmented_assignment_expression"]),
         string_match_arms: count_string_match_arms(body, "match_expression", "match_conditional_expression", &["string", "encapsed_string"]),
     })

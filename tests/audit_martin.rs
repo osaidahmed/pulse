@@ -109,8 +109,8 @@ fn distance_is_at_most_one() {
 #[test]
 fn classify_below_warning_is_healthy() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.7;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_warning = 0.7;
+    th.package_metrics.martin_distance_alert = 0.85;
     assert_eq!(classify(0.5, &th), MartinTier::Healthy);
     assert_eq!(classify(0.69, &th), MartinTier::Healthy);
 }
@@ -118,16 +118,16 @@ fn classify_below_warning_is_healthy() {
 #[test]
 fn classify_at_warning_threshold_is_warning() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.7;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_warning = 0.7;
+    th.package_metrics.martin_distance_alert = 0.85;
     assert_eq!(classify(0.7, &th), MartinTier::Warning);
 }
 
 #[test]
 fn classify_at_alert_threshold_is_alert() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.7;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_warning = 0.7;
+    th.package_metrics.martin_distance_alert = 0.85;
     assert_eq!(classify(0.85, &th), MartinTier::Alert);
     assert_eq!(classify(0.95, &th), MartinTier::Alert);
 }
@@ -208,7 +208,7 @@ fn compute_classifies_pure_abstract_isolated_as_main_sequence() {
 #[test]
 fn compute_classifies_concrete_zero_couplings_as_alert() {
     let mut th = t().audit;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_alert = 0.85;
     let g = build(&[edge("a.rs", "b.rs"), edge("c.rs", "d.rs")]);
     let isolated = g.registry.lookup(&p("d.rs")).unwrap();
     let m = compute(&g, isolated, pure_concrete(), ImportConfidence::High, &th);
@@ -229,8 +229,8 @@ fn compute_is_deterministic_across_calls() {
 #[test]
 fn compute_uses_thresholds_from_argument_not_default() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.99;
-    th.martin_distance_alert = 0.999;
+    th.package_metrics.martin_distance_warning = 0.99;
+    th.package_metrics.martin_distance_alert = 0.999;
     let g = build(&[edge("a.rs", "b.rs"), edge("c.rs", "d.rs")]);
     let d = g.registry.lookup(&p("d.rs")).unwrap();
     let m = compute(&g, d, pure_concrete(), ImportConfidence::High, &th);
@@ -240,16 +240,16 @@ fn compute_uses_thresholds_from_argument_not_default() {
 #[test]
 fn classify_strict_inequality_at_warning_minus_epsilon_is_healthy() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.7;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_warning = 0.7;
+    th.package_metrics.martin_distance_alert = 0.85;
     assert_eq!(classify(0.6999999, &th), MartinTier::Healthy);
 }
 
 #[test]
 fn classify_strict_inequality_at_alert_minus_epsilon_is_warning() {
     let mut th = t().audit;
-    th.martin_distance_warning = 0.7;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_warning = 0.7;
+    th.package_metrics.martin_distance_alert = 0.85;
     assert_eq!(classify(0.8499999, &th), MartinTier::Warning);
 }
 
@@ -298,7 +298,7 @@ fn compute_for_concrete_unstable_classifies_main_sequence() {
 #[test]
 fn compute_for_concrete_stable_module_classifies_alert() {
     let mut th = t().audit;
-    th.martin_distance_alert = 0.85;
+    th.package_metrics.martin_distance_alert = 0.85;
     let mut edges: Vec<InputEdge> = Vec::new();
     for i in 0..5 {
         edges.push(edge(&format!("dep{i}.rs"), "rigid_core.rs"));

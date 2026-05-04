@@ -163,10 +163,10 @@ fn setup_threshold_reference_matches_defaults() {
 
     let md = read_claude_md(dir.path());
     let t = pulse::thresholds::Thresholds::default();
-    assert!(md.contains(&format!("cc>={} warning", t.cc_warning)));
-    assert!(md.contains(&format!("args>{}", t.arg_max)));
-    assert!(md.contains(&format!("functions>{}", t.file_function_count)));
-    assert!(md.contains(&format!("struct_fields>{}", t.max_struct_fields)));
+    assert!(md.contains(&format!("cc>={} warning", t.function.cc_warning)));
+    assert!(md.contains(&format!("args>{}", t.function.arg_max)));
+    assert!(md.contains(&format!("functions>{}", t.module.file_function_count)));
+    assert!(md.contains(&format!("struct_fields>{}", t.module.max_struct_fields)));
 }
 
 // ── Settings is valid JSON ──

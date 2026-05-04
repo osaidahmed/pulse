@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
@@ -79,6 +79,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
     let class_name = find_child_by_kind(class_node, "identifier")
         .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
+    let parent_class = extract_parent_class_java(class_node, source);
 
     let Some(body) = find_child_by_kind(class_node, "class_body") else {
         return;
@@ -94,7 +95,11 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 let method_name = metrics.name.clone();
                 metrics.name = format!("{class_name}.{method_name}");
                 metrics.class_name = Some(class_name.clone());
+                metrics.parent_class = parent_class.clone();
                 collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+
+                collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+
                 functions.push(metrics);
             }
             "constructor_declaration" => {
@@ -104,12 +109,19 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 metrics.name = format!("{class_name}.{class_name}");
                 metrics.is_constructor = true;
                 metrics.class_name = Some(class_name.clone());
+                metrics.parent_class = parent_class.clone();
                 functions.push(metrics);
             }
             "class_declaration" => collect_class_methods(child, source, functions),
             _ => {}
         }
     }
+}
+
+fn extract_parent_class_java(class_node: Node, source: &str) -> Option<String> {
+    let superclass = find_child_by_kind(class_node, "superclass")?;
+    let id = find_child_by_kind(superclass, "type_identifier")?;
+    Some(node_text(id, source).to_string())
 }
 
 struct CallableConfig {
@@ -175,7 +187,9 @@ fn analyze_callable(
         typed_param_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["local_variable_declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_expression", "switch_block_statement_group", &["string_literal"]),
     })

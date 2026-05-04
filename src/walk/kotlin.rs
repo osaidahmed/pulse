@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
@@ -120,6 +120,9 @@ fn emit_method(child: Node, source: &str, cls: &str, fns: &mut Vec<FunctionMetri
     if let Some(mut m) = analyze_callable(child, source, &format!("{cls}.{id}")) {
         m.class_name = Some(cls.to_string());
         collect_field_accesses_for(child, source, SELF_NAMES, &mut m.field_accesses);
+
+        collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut m.foreign_field_accesses);
+
         fns.push(m);
     }
 }
@@ -181,7 +184,9 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
         name: format!("{cls}.{cls}"), start_line: sl, end_line: el,
         loc: el.saturating_sub(sl) + 1, cc: 1, arg_count: cnt, is_constructor: true,
         primitive_type_count: prim, typed_param_count: typed,
+        foreign_field_accesses: Vec::new(),
         class_name: Some(cls.to_string()),
+        parent_class: None,
         cognitive_complexity: 0, max_nesting: 0, bump_count: 0,
         compound_condition_count: 0, max_embedded_block_loc: 0,
         structural_hash: 0, skeleton_hash: 0, consecutive_asserts: 0,
@@ -245,7 +250,9 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         assert_hash: compute_assert_fingerprint(body, "call_expression"),
         primitive_type_count: 0, typed_param_count: 0,
         empty_catch_count: s.empty_catch_count, field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
         string_match_arms: count_string_match_arms(
             body, "when_expression", "when_entry", &["string_literal"],

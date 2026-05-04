@@ -1,7 +1,7 @@
 use tree_sitter::{Node, Tree};
 
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
@@ -91,6 +91,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
     let class_name = find_child_by_kind(class_node, "identifier")
         .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
+    let parent_class = extract_parent_class_python(class_node, source);
 
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
@@ -107,12 +108,22 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
         metrics.name = format!("{class_name}.{method_name}");
         metrics.is_constructor = method_name == "__init__";
         metrics.class_name = Some(class_name.clone());
+        metrics.parent_class = parent_class.clone();
         collect_field_accesses_for(fn_node, source, SELF_NAMES, &mut metrics.field_accesses);
+
+        collect_foreign_field_accesses_for(fn_node, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+
         if metrics.arg_count > 0 {
             metrics.arg_count -= 1;
         }
         functions.push(metrics);
     }
+}
+
+fn extract_parent_class_python(class_node: Node, source: &str) -> Option<String> {
+    let bases = find_child_by_kind(class_node, "argument_list")?;
+    let first_id = find_child_by_kind(bases, "identifier")?;
+    Some(node_text(first_id, source).to_string())
 }
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
@@ -154,7 +165,9 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         typed_param_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["assignment", "augmented_assignment"]),
         string_match_arms: count_string_match_arms(body, "match_statement", "case_clause", &["string"]),
     })

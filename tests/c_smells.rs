@@ -189,7 +189,7 @@ fn large_method_loc_at_least_65() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc should be >= 50, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc should be >= 50, got: {loc}");
 }
 
 // ===========================================================================
@@ -238,7 +238,7 @@ fn god_method_has_high_cc_and_loc() {
     let cc = function_metric(&stderr, "process_data_pipeline", "cc").unwrap_or(0);
     let loc = function_metric(&stderr, "process_data_pipeline", "loc").unwrap_or(0);
     assert!(cc >= 9, "cc >= 9, got: {cc}");
-    assert!(loc >= t().fn_loc_warning, "loc >= t().fn_loc_warning, got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "loc >= t().function.fn_loc_warning, got: {loc}");
 }
 
 #[test]

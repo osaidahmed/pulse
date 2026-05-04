@@ -521,7 +521,7 @@ fn stop_detects_excessive_declarations_regression() {
     let path = env.file_path("grow_decl.py");
 
     // Python counts class_definition as declarations. Start below threshold
-    let below = t().max_declarations as usize / 2;
+    let below = t().module.max_declarations as usize / 2;
     let mut code = String::new();
     for i in 0..below {
         code.push_str(&format!("class C_{i}:\n    pass\n\n"));

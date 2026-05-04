@@ -997,7 +997,7 @@ fn god_class_triggers_with_god_method() {
 #[test]
 fn overall_function_size_below_threshold_stress() {
     let mut code = String::from("class T {\n");
-    for i in 0..(t().large_fn_count as usize - 1) {
+    for i in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("  void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    int x{j} = {j}\n"));
@@ -1012,7 +1012,7 @@ fn overall_function_size_below_threshold_stress() {
 #[test]
 fn overall_function_size_at_threshold_stress() {
     let mut code = String::from("class T {\n");
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("  void lg{i}() {{\n"));
         for j in 0..large_fn_lines() {
             code.push_str(&format!("    int x{j} = {j}\n"));

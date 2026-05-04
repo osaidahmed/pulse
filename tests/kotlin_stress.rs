@@ -379,7 +379,7 @@ fn assertion_block_interrupted_resets() {
 #[test]
 fn overall_function_size_below_threshold() {
     let mut code = String::new();
-    for i in 0..(t().large_fn_count as usize - 1) {
+    for i in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("fun f{i}(): Int {{\n"));
         for j in 0..45 {
             code.push_str(&format!("    val x{j} = {j}\n"));
@@ -393,7 +393,7 @@ fn overall_function_size_below_threshold() {
 #[test]
 fn overall_function_size_at_threshold() {
     let mut code = String::new();
-    for i in 0..t().large_fn_count as usize {
+    for i in 0..t().module.large_fn_count as usize {
         code.push_str(&format!("fun f{i}(): Int {{\n"));
         for j in 0..45 {
             code.push_str(&format!("    val x{j} = {j}\n"));

@@ -1,8 +1,22 @@
 #![allow(dead_code)]
 
+pub mod abstractness;
+pub mod call_graph;
+pub mod call_method_dotted;
+pub mod call_path_qualified;
+pub mod call_walker;
+pub mod calls;
+pub mod class_registry;
 pub mod cycles;
+pub mod definitions;
+pub mod detector_divergent_change;
+pub mod detector_feature_envy;
+pub mod detector_god_class;
+pub mod detector_parallel_inheritance;
+pub mod detector_refused_bequest;
 pub mod discovery;
 pub mod finding;
+pub mod inheritance;
 pub mod graph;
 pub mod import_call_form;
 pub mod import_command_form;
@@ -14,13 +28,16 @@ pub mod import_python;
 pub mod imports;
 pub mod lang_kinds;
 pub mod martin;
+pub mod named_smells;
 pub mod output;
+pub mod output_named_smells;
 pub mod package_metrics;
 pub mod scoring;
 pub mod walker;
 
 use std::path::{Path, PathBuf};
 
+use crate::config::IgnoreMatcher;
 use crate::parse::{self, Language};
 use crate::test_detection;
 use crate::thresholds::AuditThresholds;
@@ -31,15 +48,40 @@ use walker::SubtreeRecord;
 
 pub struct AuditOpts {
     pub root: PathBuf,
-    pub layer: Option<u8>,
+    pub pass: Option<PassChoice>,
     pub json: bool,
     pub include_tests: bool,
+}
+
+pub struct IgnoreFilter<'a> {
+    matcher: &'a IgnoreMatcher,
+    base: &'a Path,
+}
+
+impl<'a> IgnoreFilter<'a> {
+    pub fn new(matcher: &'a IgnoreMatcher, base: &'a Path) -> Self {
+        Self { matcher, base }
+    }
+
+    pub fn matches(&self, path: &Path) -> bool {
+        self.matcher.matches_file(self.base, path)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuditPass {
     PatternMining,
     PackageMetrics,
+    NamedSmells,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+pub enum PassChoice {
+    PatternMining,
+    PackageMetrics,
+    NamedSmells,
+    All,
 }
 
 const SKIP_DIRS: &[&str] = &[
@@ -52,8 +94,18 @@ const SKIP_DIRS: &[&str] = &[
 ];
 
 pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let typed_files = walk_typed_source_files(&opts.root, opts.include_tests);
-    let passes = active_passes(opts.layer);
+    let empty = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&empty, &opts.root);
+    run_with_filter(opts, thresholds, &filter)
+}
+
+pub fn run_with_filter(
+    opts: &AuditOpts,
+    thresholds: &AuditThresholds,
+    filter: &IgnoreFilter,
+) -> Vec<AuditFinding> {
+    let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let passes = active_passes(opts.pass);
     let mut findings: Vec<AuditFinding> = Vec::new();
     if passes.contains(&AuditPass::PatternMining) {
         findings.extend(run_pattern_mining(&typed_files, thresholds));
@@ -61,14 +113,22 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
     if passes.contains(&AuditPass::PackageMetrics) {
         findings.extend(run_package_metrics(&typed_files, &opts.root, thresholds));
     }
+    if passes.contains(&AuditPass::NamedSmells) {
+        findings.extend(named_smells::run(&typed_files, &opts.root, thresholds));
+    }
     findings
 }
 
-pub fn active_passes(layer: Option<u8>) -> Vec<AuditPass> {
-    match layer {
-        Some(3) => vec![AuditPass::PatternMining],
-        Some(5) => vec![AuditPass::PackageMetrics],
-        _ => vec![AuditPass::PatternMining, AuditPass::PackageMetrics],
+pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {
+    match pass {
+        Some(PassChoice::PatternMining) => vec![AuditPass::PatternMining],
+        Some(PassChoice::PackageMetrics) => vec![AuditPass::PackageMetrics],
+        Some(PassChoice::NamedSmells) => vec![AuditPass::NamedSmells],
+        Some(PassChoice::All) | None => vec![
+            AuditPass::PatternMining,
+            AuditPass::PackageMetrics,
+            AuditPass::NamedSmells,
+        ],
     }
 }
 
@@ -170,11 +230,15 @@ fn profile_for_path(
 ) -> ModuleProfile {
     let lang = lang_by_path.get(path).copied();
     let import_confidence = lang.map_or(finding::ImportConfidence::BestEffort, imports::confidence_for);
-    ModuleProfile {
-        abstractness: martin::AbstractnessRecord {
+    let abstractness = lang.map_or_else(
+        || martin::AbstractnessRecord {
             abstractness: 0.0,
             confidence: finding::ImportConfidence::NaAbstraction,
         },
+        |l| abstractness::abstractness_for_file(path, l),
+    );
+    ModuleProfile {
+        abstractness,
         import_confidence,
     }
 }
@@ -201,29 +265,52 @@ pub fn extract_subtrees_for_dir(
 }
 
 pub fn walk_typed_source_files(root: &Path, include_tests: bool) -> Vec<(PathBuf, Language)> {
+    let empty = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&empty, root);
+    walk_typed_source_files_filtered(root, include_tests, &filter)
+}
+
+pub fn walk_typed_source_files_filtered(
+    root: &Path,
+    include_tests: bool,
+    filter: &IgnoreFilter,
+) -> Vec<(PathBuf, Language)> {
     if !root.exists() {
         return Vec::new();
     }
     let mut files = Vec::new();
-    walk_typed_dir(root, include_tests, &mut files);
+    walk_typed_dir(root, include_tests, filter, &mut files);
     files.sort_by(|a, b| a.0.cmp(&b.0));
     files
 }
 
-fn walk_typed_dir(dir: &Path, include_tests: bool, files: &mut Vec<(PathBuf, Language)>) {
+fn walk_typed_dir(
+    dir: &Path,
+    include_tests: bool,
+    filter: &IgnoreFilter,
+    files: &mut Vec<(PathBuf, Language)>,
+) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
-        descend_or_collect(entry.path(), include_tests, files);
+        descend_or_collect(entry.path(), include_tests, filter, files);
     }
 }
 
-fn descend_or_collect(path: PathBuf, include_tests: bool, files: &mut Vec<(PathBuf, Language)>) {
+fn descend_or_collect(
+    path: PathBuf,
+    include_tests: bool,
+    filter: &IgnoreFilter,
+    files: &mut Vec<(PathBuf, Language)>,
+) {
+    if filter.matches(&path) {
+        return;
+    }
     if path.is_dir() {
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         if name.starts_with('.') || SKIP_DIRS.contains(&name) {
             return;
         }
-        walk_typed_dir(&path, include_tests, files);
+        walk_typed_dir(&path, include_tests, filter, files);
         return;
     }
     if !include_tests && test_detection::is_test_file(&path.to_string_lossy()) {

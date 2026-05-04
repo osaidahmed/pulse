@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 
+use crate::audit::PassChoice;
+
 #[derive(Parser, Debug)]
 #[command(name = "pulse", version, disable_help_subcommand = true)]
 pub struct Cli {
@@ -35,8 +37,8 @@ pub struct AuditArgs {
     #[arg(long)]
     pub json: bool,
 
-    #[arg(long)]
-    pub layer: Option<u8>,
+    #[arg(long, value_enum)]
+    pub pass: Option<PassChoice>,
 
     #[arg(long)]
     pub root: Option<String>,

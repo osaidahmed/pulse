@@ -80,7 +80,7 @@ fn fingerprint_stable_under_extra_blank_lines_for_each_language() {
 #[test]
 fn walker_respects_min_depth_for_each_language() {
     let mut th = t().audit;
-    th.subtree_min_depth = 100;
+    th.pattern_mining.subtree_min_depth = 100;
     for (lang, _ext, src) in LANGS {
         let tree = parse::parse_only(src, *lang).unwrap();
         let path = Path::new("test");
@@ -92,7 +92,7 @@ fn walker_respects_min_depth_for_each_language() {
 #[test]
 fn walker_respects_min_nodes_for_each_language() {
     let mut th = t().audit;
-    th.subtree_min_nodes = 100_000;
+    th.pattern_mining.subtree_min_nodes = 100_000;
     for (lang, _ext, src) in LANGS {
         let tree = parse::parse_only(src, *lang).unwrap();
         let path = Path::new("test");
@@ -179,7 +179,7 @@ fn each_language_snippet_at_most_eighty_chars() {
 fn each_language_records_above_min_depth_threshold() {
     for (lang, _ext, src) in LANGS {
         let records = extract(*lang, src);
-        let min_depth = t().audit.subtree_min_depth as u32;
+        let min_depth = t().audit.pattern_mining.subtree_min_depth as u32;
         for r in records {
             assert!(r.depth >= min_depth, "{lang:?} depth {} below threshold {}", r.depth, min_depth);
         }
@@ -190,7 +190,7 @@ fn each_language_records_above_min_depth_threshold() {
 fn each_language_records_above_min_nodes_threshold() {
     for (lang, _ext, src) in LANGS {
         let records = extract(*lang, src);
-        let min = t().audit.subtree_min_nodes as u32;
+        let min = t().audit.pattern_mining.subtree_min_nodes as u32;
         for r in records {
             assert!(r.named_node_count >= min, "{lang:?}");
         }

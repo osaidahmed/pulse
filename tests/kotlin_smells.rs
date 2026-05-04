@@ -165,7 +165,7 @@ fn large_method_loc_at_least_65() {
     code.push_str("        return 0\n    }\n}\n");
     let debug = pulse_debug_code(&code, "kt");
     let loc = function_metric(&debug, "big", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "got: {loc}");
+    assert!(loc >= t().function.fn_loc_warning, "got: {loc}");
 }
 
 #[test]

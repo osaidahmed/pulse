@@ -1,0 +1,7 @@
+scenario: shotgun_surgery_calls
+language: python
+findings:
+  - kind: ShotgunSurgery
+    representative_substr: handle
+    must_include_files:
+      - target.py

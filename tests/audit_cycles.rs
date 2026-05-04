@@ -27,7 +27,7 @@ fn build(edges: &[InputEdge]) -> ImportGraph {
 }
 
 fn cycles(graph: &ImportGraph) -> Vec<Scc> {
-    find_cycles(graph, t().audit.martin_cycle_min_size)
+    find_cycles(graph, t().audit.package_metrics.martin_cycle_min_size)
 }
 
 #[test]

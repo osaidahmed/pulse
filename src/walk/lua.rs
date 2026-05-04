@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::count_short_variables;
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
@@ -122,6 +122,9 @@ fn analyze_named_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         m.class_name = Some(table.to_string());
         if name_node.kind() == "method_index_expression" {
             collect_field_accesses_for(node, source, &["self"], &mut m.field_accesses);
+
+            collect_foreign_field_accesses_for(node, source, &["self"], &mut m.foreign_field_accesses);
+
             m.field_accesses.sort();
             m.field_accesses.dedup();
         }
@@ -195,7 +198,9 @@ fn build_metrics(node: Node, source: &str, info: FnInfo) -> Option<FunctionMetri
         typed_param_count: 0,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment_statement", "variable_declaration"])),
         string_match_arms: 0,
     })

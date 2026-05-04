@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
@@ -91,6 +91,9 @@ fn collect_class_methods(class_node: Node, source: &str, out: &mut Vec<FunctionM
         m.class_name = Some(class_name.clone());
         m.is_constructor = name == "init" || name.starts_with("initW");
         collect_field_accesses_for(method, source, SELF_NAMES, &mut m.field_accesses);
+
+        collect_foreign_field_accesses_for(method, source, SELF_NAMES, &mut m.foreign_field_accesses);
+
         out.push(m);
     }
 }
@@ -136,7 +139,9 @@ fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Opti
         typed_param_count: p.typed,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"]),
     })

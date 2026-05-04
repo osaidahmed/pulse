@@ -122,7 +122,10 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         consecutive_asserts: ca, assert_hash: ah,
         primitive_type_count: 0, typed_param_count: 0,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(), class_name: None,
+        field_accesses: Vec::new(),
+ foreign_field_accesses: Vec::new(),
+ class_name: None,
+ parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment", "operator_assignment"])),
         string_match_arms: body.map_or(0, |b| count_string_match_arms(b, "case", "when", &["string"])),
     })

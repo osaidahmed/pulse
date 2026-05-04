@@ -3,7 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
@@ -131,6 +131,9 @@ fn emit_method(child: Node, source: &str, cls: &str, fns: &mut Vec<FunctionMetri
     m.name = format!("{cls}.{method_name}");
     m.class_name = Some(cls.to_string());
     collect_field_accesses_for(child, source, SELF_NAMES, &mut m.field_accesses);
+
+    collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut m.foreign_field_accesses);
+
     fns.push(m);
 }
 
@@ -177,7 +180,9 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
         typed_param_count: typed,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["local_variable_declaration"]),
         string_match_arms: count_string_match_arms(
             body,

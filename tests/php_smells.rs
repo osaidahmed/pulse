@@ -181,7 +181,7 @@ fn large_method_loc_at_least_threshold() {
         .expect("failed to run");
     let stderr = String::from_utf8(out.stderr).unwrap();
     let loc = function_metric(&stderr, "build_report", "loc").unwrap_or(0);
-    assert!(loc >= t().fn_loc_warning, "loc >= {}, got: {}", t().fn_loc_warning, loc);
+    assert!(loc >= t().function.fn_loc_warning, "loc >= {}, got: {}", t().function.fn_loc_warning, loc);
 }
 
 // ===========================================================================
@@ -199,7 +199,7 @@ fn deep_nesting_detected() {
 fn deep_nesting_depth_at_least_4() {
     let debug = run_debug(LANG, "deep_nesting.php");
     let depth = function_metric(&debug, "deeply_nested", "nesting").unwrap();
-    assert!(depth >= t().nesting_depth, "depth={depth}");
+    assert!(depth >= t().function.nesting_depth, "depth={depth}");
 }
 
 #[test]

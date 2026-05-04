@@ -30,7 +30,7 @@ fn ext_python(src: &str) -> Vec<SubtreeRecord> {
 #[test]
 fn edge_cluster_threshold_exact_boundary_5_kept() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let recs: Vec<_> = (0..5).map(|i| rec(7, &format!("f{i}.py"), 1, "x")).collect();
     assert_eq!(freqt_mine(&recs, &th).len(), 1);
 }
@@ -38,7 +38,7 @@ fn edge_cluster_threshold_exact_boundary_5_kept() {
 #[test]
 fn edge_cluster_threshold_just_below_4_dropped() {
     let mut th = t().audit;
-    th.freqt_min_support = 5;
+    th.pattern_mining.freqt_min_support = 5;
     let recs: Vec<_> = (0..4).map(|i| rec(7, &format!("f{i}.py"), 1, "x")).collect();
     assert!(freqt_mine(&recs, &th).is_empty());
 }
@@ -66,7 +66,7 @@ fn edge_idiom_threshold_just_above_50_suppressed() {
 #[test]
 fn edge_idiom_threshold_one_percent_only() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 0.01;
+    th.pattern_mining.idiom_suppression_threshold = 0.01;
     let cluster = RawCluster {
         fingerprint: 7, support: 2, file_count: 2,
         representative_snippet: "x".to_string(), locations: vec![],
@@ -78,8 +78,8 @@ fn edge_idiom_threshold_one_percent_only() {
 #[test]
 fn edge_max_findings_zero_returns_empty() {
     let mut th = t().audit;
-    th.max_findings_reported = 0;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.max_findings_reported = 0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
         fingerprint: 7, support: 5, file_count: 5,
         representative_snippet: "x".to_string(), locations: vec![],
@@ -109,8 +109,8 @@ fn edge_max_locations_zero_renders_only_more_marker() {
 #[test]
 fn edge_subtree_min_depth_one_accepts_minimal_trees() {
     let mut th = t().audit;
-    th.subtree_min_depth = 1;
-    th.subtree_min_nodes = 1;
+    th.pattern_mining.subtree_min_depth = 1;
+    th.pattern_mining.subtree_min_nodes = 1;
     let src = "x = 1\n";
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let r = extract_subtrees(&tree, src, Language::Python, Path::new("t.py"), &th);
@@ -120,8 +120,8 @@ fn edge_subtree_min_depth_one_accepts_minimal_trees() {
 #[test]
 fn edge_thresholds_strict_less_than_subtree_min_depth() {
     let mut th = t().audit;
-    th.subtree_min_depth = 3;
-    th.subtree_min_nodes = 3;
+    th.pattern_mining.subtree_min_depth = 3;
+    th.pattern_mining.subtree_min_nodes = 3;
     let src = "x = 1 + 2\n";
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let _ = extract_subtrees(&tree, src, Language::Python, Path::new("t.py"), &th);
@@ -130,7 +130,7 @@ fn edge_thresholds_strict_less_than_subtree_min_depth() {
 #[test]
 fn edge_one_record_below_min_support_dropped() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let recs = vec![rec(7, "a.py", 1, "x")];
     assert!(freqt_mine(&recs, &th).is_empty());
 }
@@ -138,7 +138,7 @@ fn edge_one_record_below_min_support_dropped() {
 #[test]
 fn edge_one_record_at_min_support_one_surfaced() {
     let mut th = t().audit;
-    th.freqt_min_support = 1;
+    th.pattern_mining.freqt_min_support = 1;
     let recs = vec![rec(7, "a.py", 1, "x")];
     assert_eq!(freqt_mine(&recs, &th).len(), 1);
 }
@@ -151,7 +151,7 @@ fn edge_zero_records_returns_empty_vec() {
 #[test]
 fn edge_locations_already_sorted_preserved() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let recs = vec![
         rec(7, "a.py", 1, "x"),
         rec(7, "b.py", 2, "x"),
@@ -167,7 +167,7 @@ fn edge_locations_already_sorted_preserved() {
 #[test]
 fn edge_apply_idf_with_zero_locations_kept_finding_renders() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
         fingerprint: 7, support: 5, file_count: 1,
         representative_snippet: "x".to_string(), locations: vec![],
@@ -194,7 +194,7 @@ fn edge_apply_idf_score_for_unique_pattern_is_log_n() {
 #[test]
 fn edge_apply_idf_score_for_universal_pattern_is_zero() {
     let mut th = t().audit;
-    th.idiom_suppression_threshold = 1.0;
+    th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
         fingerprint: 7, support: 100, file_count: 100,
         representative_snippet: "x".to_string(), locations: vec![],
@@ -687,7 +687,7 @@ fn edge_walker_record_count_increases_with_branching() {
 #[test]
 fn edge_freqt_mine_distinguishes_single_char_snippet_difference() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let recs = vec![rec(7, "a.py", 1, "x"), rec(8, "b.py", 1, "y")];
     let clusters = freqt_mine(&recs, &th);
     assert!(clusters.is_empty(), "different fingerprints with one record each");
@@ -696,7 +696,7 @@ fn edge_freqt_mine_distinguishes_single_char_snippet_difference() {
 #[test]
 fn edge_freqt_mine_picks_longest_among_equal_length_snippets() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let recs = vec![
         rec(7, "a.py", 1, "abc"),
         rec(7, "b.py", 1, "abcd"),
@@ -709,7 +709,7 @@ fn edge_freqt_mine_picks_longest_among_equal_length_snippets() {
 #[test]
 fn edge_freqt_mine_handles_locations_with_same_path_different_lines() {
     let mut th = t().audit;
-    th.freqt_min_support = 3;
+    th.pattern_mining.freqt_min_support = 3;
     let recs = vec![
         rec(7, "a.py", 1, "x"),
         rec(7, "a.py", 5, "x"),
@@ -739,7 +739,7 @@ fn edge_apply_idf_reorders_when_input_unsorted() {
 #[test]
 fn edge_freqt_mine_two_equal_fingerprint_groups_handled_separately() {
     let mut th = t().audit;
-    th.freqt_min_support = 2;
+    th.pattern_mining.freqt_min_support = 2;
     let recs = vec![
         rec(7, "a.py", 1, "x"), rec(7, "b.py", 1, "x"),
         rec(8, "c.py", 1, "y"), rec(8, "d.py", 1, "y"),

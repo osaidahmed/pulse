@@ -12,7 +12,7 @@ pub fn detect_code_duplication(
     let eligible: Vec<usize> = functions
         .iter()
         .enumerate()
-        .filter(|(_, f)| f.loc >= t.duplication_min_loc)
+        .filter(|(_, f)| f.loc >= t.analysis.duplication_min_loc)
         .map(|(i, _)| i)
         .collect();
 
@@ -42,7 +42,7 @@ fn detect_similar_clones(
     let skeleton_eligible: Vec<usize> = functions
         .iter()
         .enumerate()
-        .filter(|(_, f)| f.loc >= t.skeleton_duplication_min_loc)
+        .filter(|(_, f)| f.loc >= t.analysis.skeleton_duplication_min_loc)
         .map(|(i, _)| i)
         .collect();
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
@@ -100,7 +100,7 @@ fn emit_duplication_findings(
     label: &str,
 ) {
     let duplicated = groups.values().filter(|indices| {
-        indices.len() >= t.duplication_min_group as usize
+        indices.len() >= t.analysis.duplication_min_group as usize
             && !indices.iter().all(|&i| is_test_function(&functions[i].name))
     });
 

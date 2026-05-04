@@ -150,10 +150,10 @@ fn threshold_reference() -> String {
          compound_conditions>{} (strict >) | file_loc>={} | \
          functions>{} | total_cc>{} | struct_fields>{} | \
          string_match_arms>{}",
-        t.cc_warning, t.cc_alert, t.cogc_warning, t.cogc_alert,
-        t.fn_loc_warning, t.fn_loc_alert, t.nesting_depth, t.arg_max,
-        t.compound_conditions, t.file_loc_warning,
-        t.file_function_count, t.file_total_cc, t.max_struct_fields,
-        t.max_string_match_arms
+        t.function.cc_warning, t.function.cc_alert, t.function.cogc_warning, t.function.cogc_alert,
+        t.function.fn_loc_warning, t.function.fn_loc_alert, t.function.nesting_depth, t.function.arg_max,
+        t.function.compound_conditions, t.module.file_loc_warning,
+        t.module.file_function_count, t.module.file_total_cc, t.module.max_struct_fields,
+        t.analysis.max_string_match_arms
     )
 }

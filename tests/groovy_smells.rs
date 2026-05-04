@@ -299,9 +299,9 @@ fn overall_function_size_at_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("overall.groovy");
     let mut code = String::from("class T {\n");
-    for f in 0..=t().large_fn_count {
+    for f in 0..=t().module.large_fn_count {
         code.push_str(&format!("  int func{f}() {{\n"));
-        for i in 0..t().large_fn_loc + 5 {
+        for i in 0..t().module.large_fn_loc + 5 {
             code.push_str(&format!("    int x{i} = {i}\n"));
         }
         code.push_str("    return 0\n  }\n\n");
@@ -320,7 +320,7 @@ fn overall_function_size_below_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("overall.groovy");
     let mut code = String::from("class T {\n");
-    for f in 0..(t().large_fn_count as usize - 1) {
+    for f in 0..(t().module.large_fn_count as usize - 1) {
         code.push_str(&format!("  int func{f}() {{\n"));
         for i in 0..large_fn_lines() {
             code.push_str(&format!("    int x{i} = {i}\n"));

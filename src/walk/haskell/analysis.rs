@@ -124,7 +124,9 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         typed_param_count: typed,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
         class_name: None,
+        parent_class: None,
         short_var_count: count_short_variables(body, source, &["bind"]),
         string_match_arms: count_string_match_arms(body, "case", "alternative", &["string"]),
     }
