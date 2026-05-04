@@ -49,6 +49,7 @@ fn evaluate_class(
         file_count: method_count,
         idf_score: None,
         action_label: None,
+        pattern_category: None,
         locations: Vec::new(),
     })
 }

@@ -63,6 +63,29 @@ pub struct PatternMiningThresholds {
     pub subtree_min_nodes: usize,
     pub idiom_suppression_threshold: f64,
     pub max_findings_reported: usize,
+    pub vendor: VendorThresholds,
+    pub complexity: ComplexityFloorThresholds,
+    pub g2_significance_threshold: f64,
+    pub mdl: MdlThresholds,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VendorThresholds {
+    pub zscore_cutoff: f64,
+    pub min_features_failed: u32,
+    pub min_size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ComplexityFloorThresholds {
+    pub distinct_kind_floor: u32,
+    pub branching_factor_floor: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MdlThresholds {
+    pub compression_floor_bits: f64,
+    pub max_iterations: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -176,7 +199,33 @@ impl PatternMiningThresholds {
         subtree_min_depth: 3,
         subtree_min_nodes: 5,
         idiom_suppression_threshold: 0.5,
-        max_findings_reported: 50,
+        max_findings_reported: 25,
+        vendor: VendorThresholds::DEFAULTS,
+        complexity: ComplexityFloorThresholds::DEFAULTS,
+        g2_significance_threshold: 10.83,
+        mdl: MdlThresholds::DEFAULTS,
+    };
+}
+
+impl VendorThresholds {
+    pub const DEFAULTS: Self = Self {
+        zscore_cutoff: 3.0,
+        min_features_failed: 2,
+        min_size_bytes: 200,
+    };
+}
+
+impl ComplexityFloorThresholds {
+    pub const DEFAULTS: Self = Self {
+        distinct_kind_floor: 2,
+        branching_factor_floor: 0.5,
+    };
+}
+
+impl MdlThresholds {
+    pub const DEFAULTS: Self = Self {
+        compression_floor_bits: 0.0,
+        max_iterations: 1000,
     };
 }
 
@@ -253,7 +302,7 @@ impl AuditThresholds {
         pattern_mining: PatternMiningThresholds::DEFAULTS,
         package_metrics: PackageMetricsThresholds::DEFAULTS,
         named_smells: NamedSmellThresholds::DEFAULTS,
-        max_locations_per_finding: 20,
+        max_locations_per_finding: 10,
     };
 }
 

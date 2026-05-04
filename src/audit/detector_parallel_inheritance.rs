@@ -100,6 +100,7 @@ fn pair_finding(
         file_count: 0,
         idf_score: None,
         action_label: None,
+        pattern_category: None,
         locations: Vec::new(),
     })
 }

@@ -72,6 +72,7 @@ fn evaluate_method(
         file_count: atfd,
         idf_score: None,
         action_label: None,
+        pattern_category: None,
         locations: Vec::new(),
     })
 }

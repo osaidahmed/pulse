@@ -120,6 +120,7 @@ fn evaluate_method(graph: &CallGraph, idx: MethodIndex, t: &AuditThresholds) -> 
         file_count: metrics.cc,
         idf_score: None,
         action_label: None,
+        pattern_category: None,
         locations: Vec::new(),
     })
 }

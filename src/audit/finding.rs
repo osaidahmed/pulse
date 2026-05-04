@@ -139,6 +139,48 @@ impl ImportConfidence {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum PatternCategory {
+    PrimitiveObsession = 0,
+    ChainedDictAccess = 1,
+    EnumValueAccess = 2,
+    AttributeChain = 3,
+    LiteralRepetition = 4,
+    MethodCall = 5,
+    Comparison = 6,
+    Assignment = 7,
+    DictLiteral = 8,
+    ListLiteral = 9,
+    Other = 10,
+    FrameworkConvention = 11,
+}
+
+const PATTERN_HEADERS: [&str; 12] = [
+    "PRIMITIVE OBSESSION",
+    "CHAINED DICT ACCESS",
+    "ENUM VALUE ACCESS",
+    "ATTRIBUTE CHAIN",
+    "LITERAL REPETITION",
+    "METHOD CALL",
+    "COMPARISON",
+    "ASSIGNMENT",
+    "DICT LITERAL",
+    "LIST LITERAL",
+    "OTHER STRUCTURAL RECURRENCE",
+    "FRAMEWORK CONVENTION (likely not actionable)",
+];
+
+impl PatternCategory {
+    pub fn header(self) -> &'static str {
+        PATTERN_HEADERS[self as usize]
+    }
+
+    pub fn order(self) -> u8 {
+        self as u8
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AuditFinding {
     pub kind: AuditKind,
@@ -148,4 +190,5 @@ pub struct AuditFinding {
     pub idf_score: Option<f64>,
     pub action_label: Option<&'static str>,
     pub locations: Vec<AuditLocation>,
+    pub pattern_category: Option<PatternCategory>,
 }

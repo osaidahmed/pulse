@@ -6,8 +6,12 @@ pub mod call_method_dotted;
 pub mod call_path_qualified;
 pub mod call_walker;
 pub mod calls;
+pub mod categorize;
 pub mod class_registry;
+pub mod complexity_floor;
+pub mod corpus_stats;
 pub mod cycles;
+pub mod expression_filter;
 pub mod definitions;
 pub mod detector_divergent_change;
 pub mod detector_feature_envy;
@@ -30,9 +34,14 @@ pub mod lang_kinds;
 pub mod martin;
 pub mod named_smells;
 pub mod output;
+pub mod output_grouped;
+pub mod output_helpers;
 pub mod output_named_smells;
+pub mod output_package_metrics;
 pub mod package_metrics;
+pub mod record_extraction;
 pub mod scoring;
+pub mod vendor_filter;
 pub mod walker;
 
 use std::path::{Path, PathBuf};
@@ -136,10 +145,20 @@ fn run_pattern_mining(
     typed_files: &[(PathBuf, Language)],
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let total_files = typed_files.len();
-    let records = extract_records_from_typed_files(typed_files, thresholds);
-    let clusters = discovery::freqt_mine(&records, thresholds);
-    scoring::apply_idf(clusters, total_files, thresholds)
+    let bundle = record_extraction::corpus_bundle(typed_files, thresholds);
+    let stats = corpus_stats::aggregate_corpus(bundle.features);
+    let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
+    let filtered: Vec<_> = bundle.subtrees.into_iter().filter(|r| !flagged.contains(&r.file)).collect();
+    let clusters = discovery::closed_mine(&filtered, thresholds);
+    let shapes = complexity_floor::shape_index(&filtered);
+    let trimmed = complexity_floor::filter_clusters(clusters, &shapes, thresholds.pattern_mining.complexity);
+    let expression_only = expression_filter::keep_expression_clusters(trimmed, &bundle.kinds_by_fp);
+    scoring::build_findings(
+        expression_only,
+        &shapes,
+        &bundle.kinds_by_fp,
+        thresholds.pattern_mining.max_findings_reported,
+    )
 }
 
 const MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS: usize = 5;
@@ -243,25 +262,12 @@ fn profile_for_path(
     }
 }
 
-#[allow(dead_code)]
-pub fn run_package_metrics_from_edges(
-    edges: &[InputEdge],
-    profile_lookup: impl Fn(&Path) -> ModuleProfile,
-    thresholds: &AuditThresholds,
-) -> Vec<AuditFinding> {
-    package_metrics::run_from_edges(edges, profile_lookup, thresholds)
-}
-
 pub fn extract_subtrees_for_dir(
     root: &Path,
     lang: Language,
     thresholds: &AuditThresholds,
 ) -> Vec<SubtreeRecord> {
-    let typed: Vec<(PathBuf, Language)> = walk_typed_source_files(root, true)
-        .into_iter()
-        .filter(|(_, l)| *l == lang)
-        .collect();
-    extract_records_from_typed_files(&typed, thresholds)
+    record_extraction::for_dir(root, lang, thresholds)
 }
 
 pub fn walk_typed_source_files(root: &Path, include_tests: bool) -> Vec<(PathBuf, Language)> {
@@ -321,25 +327,3 @@ fn descend_or_collect(
     }
 }
 
-fn extract_records_from_typed_files(
-    typed: &[(PathBuf, Language)],
-    thresholds: &AuditThresholds,
-) -> Vec<SubtreeRecord> {
-    let mut out = Vec::new();
-    for (path, lang) in typed {
-        if let Some(records) = extract_records_for_file(path, *lang, thresholds) {
-            out.extend(records);
-        }
-    }
-    out
-}
-
-fn extract_records_for_file(
-    path: &Path,
-    lang: Language,
-    thresholds: &AuditThresholds,
-) -> Option<Vec<SubtreeRecord>> {
-    let source = std::fs::read_to_string(path).ok()?;
-    let tree = parse::parse_only(&source, lang)?;
-    Some(walker::extract_subtrees(&tree, &source, lang, path, thresholds))
-}
