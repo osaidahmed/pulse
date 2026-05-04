@@ -51,7 +51,7 @@ pub enum Dispatch {
     CheckAll { include_tests: bool },
     Debug(String),
     Budget(Option<String>),
-    Audit(AuditArgs),
+    Audit { args: AuditArgs, include_tests: bool },
     UsageError,
 }
 
@@ -82,7 +82,7 @@ fn dispatch_from_clap(cli: Cli) -> Dispatch {
         Some(SubCmd::Check { file }) => fileful_dispatch(file, cli.all, Dispatch::Check, || Dispatch::CheckAll { include_tests: cli.include_tests }),
         Some(SubCmd::Debug { file }) => Dispatch::Debug(file),
         Some(SubCmd::Budget { file, new }) => fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None)),
-        Some(SubCmd::Audit(args)) => Dispatch::Audit(args),
+        Some(SubCmd::Audit(args)) => Dispatch::Audit { args, include_tests: cli.include_tests },
         None if cli.all => Dispatch::CheckAll { include_tests: cli.include_tests },
         None => Dispatch::UsageError,
     }

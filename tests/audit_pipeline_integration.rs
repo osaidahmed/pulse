@@ -11,7 +11,7 @@ use std::path::PathBuf;
 fn t() -> Thresholds { Thresholds::default() }
 
 fn run_pipeline(root: &std::path::Path) -> Vec<pulse::audit::finding::AuditFinding> {
-    let opts = AuditOpts { root: root.to_path_buf(), layer: None, json: false };
+    let opts = AuditOpts { root: root.to_path_buf(), layer: Some(3), json: false, include_tests: true };
     pulse::audit::run(&opts, &t().audit)
 }
 
@@ -73,7 +73,7 @@ fn pipeline_total_files_includes_all_walked_files() {
     for i in 0..3 {
         std::fs::write(dir.path().join(format!("a{i}.py")), "x = 1\n").unwrap();
     }
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 3);
 }
 
@@ -201,9 +201,13 @@ fn pipeline_findings_contain_unique_fingerprints() {
     write_python_files(dir.path(), 5, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     write_decoys(dir.path(), 6);
     let findings = run_pipeline(dir.path());
-    let fps: std::collections::HashSet<u64> = findings.iter().map(|f| match f.kind {
-        pulse::audit::finding::AuditKind::UncategorizedPattern { fingerprint } => fingerprint,
-    }).collect();
+    let fps: std::collections::HashSet<u64> = findings
+        .iter()
+        .filter_map(|f| match f.kind {
+            pulse::audit::finding::AuditKind::UncategorizedPattern { fingerprint } => Some(fingerprint),
+            _ => None,
+        })
+        .collect();
     assert_eq!(fps.len(), findings.len());
 }
 
@@ -261,7 +265,7 @@ fn pipeline_findings_all_pass_idf_threshold() {
     write_python_files(dir.path(), 5, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     write_decoys(dir.path(), 6);
     let findings = run_pipeline(dir.path());
-    let total_files = walk_typed_source_files(dir.path()).len();
+    let total_files = walk_typed_source_files(dir.path(), true).len();
     for f in &findings {
         let ratio = f64::from(f.file_count) / total_files as f64;
         assert!(ratio <= t().audit.idiom_suppression_threshold);
@@ -298,7 +302,7 @@ fn pipeline_handles_walker_extraction_then_mining_then_scoring() {
     let dir = tempfile::tempdir().unwrap();
     write_python_files(dir.path(), 5, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     write_decoys(dir.path(), 6);
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     let _ = typed.len();
     let findings = run_pipeline(dir.path());
     let _ = findings;
@@ -501,7 +505,7 @@ fn pipeline_extract_subtrees_for_dir_returns_vec() {
 fn pipeline_walk_typed_source_files_returns_path_lang_pairs() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.py"), "x = 1\n").unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     for (path, lang) in &typed {
         assert!(path.extension().is_some());
         let _ = lang;
@@ -509,15 +513,25 @@ fn pipeline_walk_typed_source_files_returns_path_lang_pairs() {
 }
 
 #[test]
-fn pipeline_audit_run_with_layer_some_3_works_same_as_default() {
+fn pipeline_default_layer_includes_pattern_findings() {
     let dir = tempfile::tempdir().unwrap();
     write_python_files(dir.path(), 5, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     write_decoys(dir.path(), 6);
-    let opts1 = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false };
-    let opts2 = AuditOpts { root: dir.path().to_path_buf(), layer: Some(3), json: false };
-    let r1 = pulse::audit::run(&opts1, &t().audit);
-    let r2 = pulse::audit::run(&opts2, &t().audit);
-    assert_eq!(r1.len(), r2.len());
+    let layer3_only = AuditOpts {
+        root: dir.path().to_path_buf(),
+        layer: Some(3),
+        json: false,
+        include_tests: true,
+    };
+    let default_layer = AuditOpts {
+        root: dir.path().to_path_buf(),
+        layer: None,
+        json: false,
+        include_tests: true,
+    };
+    let only_three = pulse::audit::run(&layer3_only, &t().audit);
+    let combined = pulse::audit::run(&default_layer, &t().audit);
+    assert!(combined.len() >= only_three.len(), "default must include all Layer-3 findings");
 }
 
 #[test]
@@ -532,7 +546,7 @@ fn pipeline_handles_audit_with_lang_kind_filter_no_op() {
 #[test]
 fn pipeline_handles_audit_with_audit_thresholds_default() {
     let dir = tempfile::tempdir().unwrap();
-    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false, include_tests: true };
     let _ = pulse::audit::run(&opts, &t().audit);
 }
 
@@ -543,7 +557,7 @@ fn pipeline_handles_audit_with_custom_freqt_threshold() {
     write_decoys(dir.path(), 5);
     let mut th = t().audit;
     th.freqt_min_support = 3;
-    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false, include_tests: true };
     let _ = pulse::audit::run(&opts, &th);
 }
 
@@ -553,7 +567,7 @@ fn pipeline_handles_audit_with_custom_idiom_threshold() {
     write_python_files(dir.path(), 8, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     let mut th = t().audit;
     th.idiom_suppression_threshold = 0.95;
-    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), layer: None, json: false, include_tests: true };
     let findings = pulse::audit::run(&opts, &th);
     let _ = findings;
 }
@@ -573,7 +587,7 @@ fn pipeline_total_files_count_matches_walked_files_in_idf_calculation() {
     let dir = tempfile::tempdir().unwrap();
     write_python_files(dir.path(), 4, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     write_decoys(dir.path(), 6);
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 10);
     let findings = run_pipeline(dir.path());
     let _ = findings;
@@ -583,6 +597,6 @@ fn pipeline_total_files_count_matches_walked_files_in_idf_calculation() {
 fn pipeline_full_run_against_dir_with_only_test_files_walks_them() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("test_a.py"), "def f(x):\n    if x == 1:\n        return x\n    return 0\n").unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 1);
 }

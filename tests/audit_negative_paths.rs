@@ -131,21 +131,21 @@ fn extract_subtrees_for_dir_returns_empty_for_dir_root_outside_filesystem() {
 #[test]
 fn walk_typed_source_files_returns_empty_for_nonexistent() {
     let p = Path::new("/__nope__/__nope__");
-    let typed = walk_typed_source_files(p);
+    let typed = walk_typed_source_files(p, true);
     assert!(typed.is_empty());
 }
 
 #[test]
 fn walk_typed_source_files_returns_empty_for_file_path() {
     let f = tempfile::NamedTempFile::new().unwrap();
-    let typed = walk_typed_source_files(f.path());
+    let typed = walk_typed_source_files(f.path(), true);
     assert!(typed.is_empty());
 }
 
 #[test]
 fn audit_handles_directory_we_cannot_read() {
     let dir = tempfile::tempdir().unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert!(typed.is_empty());
 }
 
@@ -159,7 +159,7 @@ fn audit_root_relative_path_to_nonexistent_exits_one() {
 fn audit_root_zero_byte_filename() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join(".py"), "x = 1\n").unwrap();
-    let _ = walk_typed_source_files(dir.path());
+    let _ = walk_typed_source_files(dir.path(), true);
 }
 
 #[test]
@@ -369,14 +369,14 @@ fn walker_handles_vertical_tab() {
 fn audit_does_not_follow_symlinks_into_skipped_dirs() {
     let dir = tempfile::tempdir().unwrap();
     let _ = std::fs::write(dir.path().join("a.py"), "x = 1\n");
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 1);
 }
 
 #[test]
 fn audit_handles_circular_dirent_recursion_safely() {
     let dir = tempfile::tempdir().unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert!(typed.is_empty());
 }
 
@@ -433,7 +433,7 @@ fn audit_dir_with_only_unsupported_extensions_silent_zero() {
     for ext in ["xml", "yaml", "toml", "ini", "txt"] {
         std::fs::write(dir.path().join(format!("a.{ext}")), "data").unwrap();
     }
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert!(typed.is_empty());
 }
 
@@ -441,7 +441,7 @@ fn audit_dir_with_only_unsupported_extensions_silent_zero() {
 fn audit_handles_empty_filename_gracefully() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("x.py"), "x = 1\n").unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 1);
 }
 
@@ -449,7 +449,7 @@ fn audit_handles_empty_filename_gracefully() {
 fn audit_handles_files_with_dot_in_middle_of_name() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.b.c.py"), "x = 1\n").unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 1);
 }
 
@@ -457,7 +457,7 @@ fn audit_handles_files_with_dot_in_middle_of_name() {
 fn audit_handles_uppercase_file_extensions() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.PY"), "x = 1\n").unwrap();
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     let _ = typed.len();
 }
 
@@ -586,7 +586,7 @@ fn audit_handles_non_utf8_file_contents_gracefully() {
     let dir = tempfile::tempdir().unwrap();
     let bytes = vec![0x80, 0x81, 0x82, 0x83];
     std::fs::write(dir.path().join("bad.py"), bytes).unwrap();
-    let _ = walk_typed_source_files(dir.path());
+    let _ = walk_typed_source_files(dir.path(), true);
 }
 
 #[test]

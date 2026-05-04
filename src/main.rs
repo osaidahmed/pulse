@@ -78,12 +78,12 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        cli::Dispatch::Audit(args) => run_audit_cmd(args),
+        cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
         _ => unreachable!(),
     }
 }
 
-fn run_audit_cmd(args: cli::AuditArgs) {
+fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
     if !root.exists() {
         eprintln!("audit: root path does not exist: {}", root.display());
@@ -94,8 +94,8 @@ fn run_audit_cmd(args: cli::AuditArgs) {
         process::exit(1);
     }
     if let Some(layer) = args.layer {
-        if layer != 3 {
-            eprintln!("audit: --layer must be 3 (only Layer 3 implemented)");
+        if !matches!(layer, 3 | 5) {
+            eprintln!("audit: --layer must be 3 or 5");
             process::exit(1);
         }
     }
@@ -105,6 +105,7 @@ fn run_audit_cmd(args: cli::AuditArgs) {
         root: root.clone(),
         layer: args.layer,
         json: args.json,
+        include_tests,
     };
     let findings = audit::run(&opts, &thresholds.audit);
     let rendered = if args.json {

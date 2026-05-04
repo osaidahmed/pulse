@@ -89,7 +89,7 @@ fn stress_audit_directory_with_one_hundred_files() {
             "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
         ).unwrap();
     }
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 100);
 }
 
@@ -243,7 +243,7 @@ fn stress_audit_handles_directory_with_500_small_files() {
         std::fs::write(dir.path().join(format!("f{i}.py")), "x = 1\n").unwrap();
     }
     let start = std::time::Instant::now();
-    let _ = walk_typed_source_files(dir.path());
+    let _ = walk_typed_source_files(dir.path(), true);
     assert!(start.elapsed().as_secs() < 10);
 }
 
@@ -446,7 +446,7 @@ fn stress_audit_walks_directory_tree_eight_levels_deep() {
         std::fs::create_dir(&path).unwrap();
         std::fs::write(path.join("f.py"), "x = 1\n").unwrap();
     }
-    let typed = walk_typed_source_files(dir.path());
+    let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 8, "should find one file per level");
 }
 

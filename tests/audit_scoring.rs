@@ -19,9 +19,10 @@ fn cluster(fp: u64, support: u32, file_count: u32, snippet: &str) -> RawCluster 
 }
 
 fn fingerprint_of(f: &pulse::audit::finding::AuditFinding) -> u64 {
-    match f.kind {
-        AuditKind::UncategorizedPattern { fingerprint } => fingerprint,
-    }
+    let AuditKind::UncategorizedPattern { fingerprint } = f.kind else {
+        return 0;
+    };
+    fingerprint
 }
 
 #[test]

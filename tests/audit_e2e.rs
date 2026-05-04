@@ -17,13 +17,19 @@ fn pulse_audit(args: &[&str]) -> (String, String, i32) {
 }
 
 fn audit_in_dir(scenario: &str) -> (String, String, i32) {
-    let p = scenario_path(scenario, "python");
-    pulse_audit(&["--root", p.to_str().unwrap()])
+    let dir = copy_scenario_to_tempdir(scenario, "python");
+    pulse_audit(&["--layer", "3", "--root", dir.path().to_str().unwrap()])
 }
 
 fn audit_in_dir_json(scenario: &str) -> (String, String, i32) {
-    let p = scenario_path(scenario, "python");
-    pulse_audit(&["--root", p.to_str().unwrap(), "--json"])
+    let dir = copy_scenario_to_tempdir(scenario, "python");
+    pulse_audit(&[
+        "--layer",
+        "3",
+        "--root",
+        dir.path().to_str().unwrap(),
+        "--json",
+    ])
 }
 
 #[test]
@@ -147,8 +153,8 @@ fn audit_json_each_finding_has_kind_and_locations() {
 
 #[test]
 fn audit_layer_3_explicit_works() {
-    let p = scenario_path("shotgun_media_type", "python");
-    let (_stdout, _stderr, code) = pulse_audit(&["--layer", "3", "--root", p.to_str().unwrap()]);
+    let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
+    let (_stdout, _stderr, code) = pulse_audit(&["--layer", "3", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 1);
 }
 
@@ -262,8 +268,8 @@ fn audit_default_has_no_decision_block_json() {
 
 #[test]
 fn audit_combined_json_layer_root_works() {
-    let p = scenario_path("shotgun_media_type", "python");
-    let (stdout, _, code) = pulse_audit(&["--json", "--layer", "3", "--root", p.to_str().unwrap()]);
+    let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
+    let (stdout, _, code) = pulse_audit(&["--json", "--layer", "3", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 1);
     let _: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid json");
 }
@@ -284,22 +290,22 @@ fn audit_does_not_create_baseline_dir() {
 
 #[test]
 fn audit_human_format_includes_audit_prefix() {
-    let p = scenario_path("shotgun_media_type", "python");
-    let (stdout, _, _) = pulse_audit(&["--root", p.to_str().unwrap()]);
+    let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
+    let (stdout, _, _) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(stdout.starts_with("audit:") || stdout.contains("\naudit:"));
 }
 
 #[test]
 fn audit_human_format_shows_locations_block() {
-    let p = scenario_path("shotgun_media_type", "python");
-    let (stdout, _, _) = pulse_audit(&["--root", p.to_str().unwrap()]);
+    let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
+    let (stdout, _, _) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(stdout.contains("locations:"));
 }
 
 #[test]
 fn audit_human_format_renders_representative_label() {
-    let p = scenario_path("shotgun_media_type", "python");
-    let (stdout, _, _) = pulse_audit(&["--root", p.to_str().unwrap()]);
+    let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
+    let (stdout, _, _) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(stdout.contains("representative:"));
 }
 

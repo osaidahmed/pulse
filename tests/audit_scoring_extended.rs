@@ -67,8 +67,8 @@ fn scoring_idf_score_distinct_for_distinct_file_counts() {
     let c2 = cluster(2, 5, 5, "y");
     let r = apply_idf(vec![c1, c2], 100, &t().audit);
     assert_eq!(r.len(), 2);
-    let s1 = r.iter().find(|f| match f.kind { AuditKind::UncategorizedPattern { fingerprint } => fingerprint == 1 }).unwrap();
-    let s2 = r.iter().find(|f| match f.kind { AuditKind::UncategorizedPattern { fingerprint } => fingerprint == 2 }).unwrap();
+    let s1 = r.iter().find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 1)).unwrap();
+    let s2 = r.iter().find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 2)).unwrap();
     assert!(s1.idf_score.unwrap() > s2.idf_score.unwrap());
 }
 
@@ -123,7 +123,13 @@ fn scoring_secondary_tiebreak_by_file_count() {
 fn scoring_tertiary_tiebreak_by_fingerprint() {
     let cs = vec![cluster(99, 5, 3, "a"), cluster(11, 5, 3, "b"), cluster(50, 5, 3, "c")];
     let r = apply_idf(cs, 100, &t().audit);
-    let fps: Vec<u64> = r.iter().map(|f| match f.kind { AuditKind::UncategorizedPattern { fingerprint } => fingerprint }).collect();
+    let fps: Vec<u64> = r
+        .iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::UncategorizedPattern { fingerprint } => Some(fingerprint),
+            _ => None,
+        })
+        .collect();
     assert_eq!(fps, vec![11, 50, 99]);
 }
 

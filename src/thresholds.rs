@@ -63,6 +63,12 @@ pub struct AuditThresholds {
     pub idiom_suppression_threshold: f64,
     pub max_findings_reported: usize,
     pub max_locations_per_finding: usize,
+    pub martin_distance_warning: f64,
+    pub martin_distance_alert: f64,
+    pub include_tests_in_graph: bool,
+    pub martin_cycle_min_size: u32,
+    pub max_cycle_findings_reported: usize,
+    pub max_martin_findings_reported: usize,
 }
 
 impl AuditThresholds {
@@ -73,6 +79,12 @@ impl AuditThresholds {
         idiom_suppression_threshold: 0.5,
         max_findings_reported: 50,
         max_locations_per_finding: 20,
+        martin_distance_warning: 0.7,
+        martin_distance_alert: 0.85,
+        include_tests_in_graph: false,
+        martin_cycle_min_size: 2,
+        max_cycle_findings_reported: 50,
+        max_martin_findings_reported: 100,
     };
 }
 

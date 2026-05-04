@@ -59,7 +59,8 @@ fn order_findings(a: &AuditFinding, b: &AuditFinding) -> std::cmp::Ordering {
 }
 
 fn fingerprint_of(f: &AuditFinding) -> u64 {
-    match f.kind {
-        AuditKind::UncategorizedPattern { fingerprint } => fingerprint,
-    }
+    let AuditKind::UncategorizedPattern { fingerprint } = f.kind else {
+        return 0;
+    };
+    fingerprint
 }
