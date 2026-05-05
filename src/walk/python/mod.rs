@@ -1,3 +1,5 @@
+mod booleans;
+
 use tree_sitter::{Node, Tree};
 
 use super::{
@@ -9,6 +11,7 @@ use super::{
 
 use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, GlobalMetricsConfig};
+use booleans::{count_boolean_operators, count_cogc_boolean_sequences, has_boolean_child};
 
 const COMMENT_PREFIXES: &[&str] = &["#"];
 const SELF_NAMES: &[&str] = &["self", "cls"];
@@ -57,30 +60,14 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
 fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "function_definition" | "decorated_definition" => {
-                try_add_function(child, source, functions);
-            }
-            "class_definition" => collect_class_methods(child, source, functions),
-            _ => {}
-        }
-    }
-}
-
-fn try_add_function(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let Some(fn_node) = unwrap_decorated(node) else {
-        return;
-    };
-    if let Some(m) = analyze_function(fn_node, source) {
-        functions.push(m);
-    }
-}
-
-fn unwrap_decorated(node: Node) -> Option<Node> {
-    if node.kind() == "decorated_definition" {
-        find_child_by_kind(node, "function_definition")
-    } else {
-        Some(node)
+        let kind = child.kind();
+        if kind == "class_definition" { collect_class_methods(child, source, functions); continue; }
+        if kind != "function_definition" && kind != "decorated_definition" { continue; }
+        let target = if kind == "decorated_definition" {
+            find_child_by_kind(child, "function_definition")
+        } else { Some(child) };
+        let Some(t) = target else { continue; };
+        if let Some(m) = analyze_function(t, source) { functions.push(m); }
     }
 }
 
@@ -98,8 +85,11 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
         if child.kind() != "function_definition" && child.kind() != "decorated_definition" {
             continue;
         }
-        let Some(fn_node) = unwrap_decorated(child) else {
-            continue;
+        let fn_node = if child.kind() == "decorated_definition" {
+            let Some(f) = find_child_by_kind(child, "function_definition") else { continue; };
+            f
+        } else {
+            child
         };
         let Some(mut metrics) = analyze_function(fn_node, source) else {
             continue;
@@ -182,21 +172,34 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement"], handle_if),
+    (&["for_statement", "while_statement", "with_statement"], handle_loop),
+    (&["except_clause"], handle_except),
+    (&["else_clause", "try_statement"], walk_children),
+    (&["conditional_expression", "assert_statement"], handle_expression_dispatch),
+];
+
+const STRING_KINDS: &[&str] = &["string", "concatenated_string"];
+
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    match child.kind() {
-        "if_statement" => handle_if(child, source, depth, s),
-        "for_statement" | "while_statement" | "with_statement" => {
-            handle_loop(child, source, depth, s);
-        }
-        "except_clause" => handle_except(child, source, depth, s),
-        "else_clause" | "try_statement" => walk_children(child, source, depth, s),
-        "conditional_expression" | "assert_statement" => handle_expression(child, s),
-        "string" | "concatenated_string" => track_embedded_block(&mut s.max_embedded_block_loc, child),
-        _ => walk_body(child, source, depth, s),
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
+        return;
     }
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
+        }
+    }
+    walk_body(child, source, depth, s);
 }
 
-fn handle_expression(child: Node, s: &mut WalkState) {
+fn handle_expression_dispatch(child: Node, _source: &str, _depth: u32, s: &mut WalkState) {
     if child.kind() == "conditional_expression" {
         s.cc += 1;
         s.track_cogc_branch();
@@ -231,7 +234,8 @@ fn handle_except(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
+    let kids: Vec<Node> = node.children(&mut cursor).collect();
+    for child in kids {
         match child.kind() {
             "block" => walk_nested_block(child, source, depth, s),
             "elif_clause" => handle_elif(child, source, depth, s),
@@ -280,69 +284,6 @@ fn handle_except_in_children(child: Node, source: &str, depth: u32, s: &mut Walk
     s.cogc_nesting += 1;
     shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
     s.cogc_nesting = saved;
-}
-
-fn count_boolean_operators(node: Node, cc: &mut u32) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "boolean_operator" | "not_operator" => {
-                *cc += 1;
-                count_boolean_operators(child, cc);
-            }
-            "block" | "function_definition" | "class_definition" => {}
-            _ => count_boolean_operators(child, cc),
-        }
-    }
-}
-
-fn count_cogc_boolean_sequences(node: Node, cogc: &mut u32) {
-    let mut last_op: Option<String> = None;
-    collect_boolean_ops_python(node, cogc, &mut last_op);
-}
-
-fn collect_boolean_ops_python(node: Node, cogc: &mut u32, last_op: &mut Option<String>) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "boolean_operator" => {
-                track_python_operator(child, cogc, last_op);
-                collect_boolean_ops_python(child, cogc, last_op);
-            }
-            "block" | "function_definition" | "class_definition" => {}
-            _ => collect_boolean_ops_python(child, cogc, last_op),
-        }
-    }
-}
-
-fn track_python_operator(boolean_op: Node, cogc: &mut u32, last_op: &mut Option<String>) {
-    let Some(op_node) = find_operator_keyword(boolean_op) else {
-        return;
-    };
-    let op = op_node.kind().to_string();
-    if last_op.as_deref() == Some(&op) {
-        return;
-    }
-    *cogc += 1;
-    *last_op = Some(op);
-}
-
-fn find_operator_keyword(boolean_op: Node) -> Option<Node> {
-    let mut cursor = boolean_op.walk();
-    // cursor must outlive the iterator — binding extends the borrow
-    let result = boolean_op
-        .children(&mut cursor)
-        .find(|c| c.kind() == "and" || c.kind() == "or" || c.kind() == "not");
-    result
-}
-
-fn has_boolean_child(node: Node) -> bool {
-    let mut cursor = node.walk();
-    // cursor must outlive the iterator — binding extends the borrow
-    let result = node
-        .children(&mut cursor)
-        .any(|c| c.kind() == "boolean_operator");
-    result
 }
 
 fn check_condition_complexity(node: Node, source: &str, count: &mut u32) {

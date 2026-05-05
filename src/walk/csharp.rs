@@ -1,7 +1,10 @@
 use tree_sitter::{Node, Tree};
 
 use super::counters::{count_short_variables, count_string_match_arms};
-use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
+use super::shared::{
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, ElseBranchCfg, ElseHandlers,
+    GlobalMetricsConfig,
+};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
@@ -67,39 +70,32 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
         match child.kind() {
             "class_declaration" | "struct_declaration" | "interface_declaration"
             | "record_declaration" => collect_class_methods(child, source, functions),
-            "namespace_declaration" => collect_namespace_functions(child, source, functions),
-            "method_declaration" | "local_function_statement" => {
-                try_add_method(child, source, functions);
-            }
+            "namespace_declaration" => recurse_namespace(child, source, functions),
+            "method_declaration" | "local_function_statement" => push_method(child, source, functions),
             _ => collect_functions(child, source, functions),
         }
     }
 }
 
-fn collect_namespace_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    if let Some(body) = find_child_by_kind(node, "declaration_list") {
-        collect_functions(body, source, functions);
-    }
+fn recurse_namespace(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    let Some(body) = find_child_by_kind(node, "declaration_list") else { return; };
+    collect_functions(body, source, functions);
 }
 
-fn try_add_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    if let Some(metrics) = analyze_method(node, source) {
-        functions.push(metrics);
-    }
-}
-
-fn extract_parent_class_csharp(class_node: Node, source: &str) -> Option<String> {
-    let base_list = find_child_by_kind(class_node, "base_list")?;
-    let id = find_child_by_kind(base_list, "identifier")
-        .or_else(|| find_child_by_kind(base_list, "qualified_name"))?;
-    Some(node_text(id, source).to_string())
+fn push_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    let Some(m) = analyze_callable(node, source, &METHOD_CFG) else { return; };
+    functions.push(m);
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let class_name = find_child_by_kind(class_node, "identifier")
         .map(|n| node_text(n, source).to_string())
         .unwrap_or_default();
-    let parent_class = extract_parent_class_csharp(class_node, source);
+    let parent_class = find_child_by_kind(class_node, "base_list")
+        .and_then(|bl| {
+            find_child_by_kind(bl, "identifier").or_else(|| find_child_by_kind(bl, "qualified_name"))
+        })
+        .map(|id| node_text(id, source).to_string());
 
     let Some(body) = find_child_by_kind(class_node, "declaration_list") else {
         return;
@@ -109,7 +105,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
     for child in body.children(&mut cursor) {
         match child.kind() {
             "method_declaration" => {
-                let Some(mut metrics) = analyze_method(child, source) else {
+                let Some(mut metrics) = analyze_callable(child, source, &METHOD_CFG) else {
                     continue;
                 };
                 let method_name = metrics.name.clone();
@@ -123,7 +119,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 functions.push(metrics);
             }
             "constructor_declaration" => {
-                let Some(mut metrics) = analyze_constructor(child, source) else {
+                let Some(mut metrics) = analyze_callable(child, source, &CTOR_CFG) else {
                     continue;
                 };
                 metrics.name = format!("{class_name}.{class_name}");
@@ -146,16 +142,6 @@ struct CallableConfig {
 }
 const METHOD_CFG: CallableConfig = CallableConfig { body_kind: "block", fallback_name: "<anonymous>" };
 const CTOR_CFG: CallableConfig = CallableConfig { body_kind: "constructor_body", fallback_name: "<constructor>" };
-
-fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
-    analyze_callable(node, source, &METHOD_CFG)
-}
-
-fn analyze_constructor(node: Node, source: &str) -> Option<FunctionMetrics> {
-    let mut m = analyze_callable(node, source, &CTOR_CFG)?;
-    m.is_constructor = true;
-    Some(m)
-}
 
 fn analyze_callable(
     node: Node,
@@ -219,36 +205,37 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement"], handle_if),
+    (&["for_statement", "foreach_statement", "while_statement", "do_statement"], handle_loop),
+    (&["switch_statement"], handle_switch),
+    (&["switch_section"], handle_switch_section),
+    (&["catch_clause"], handle_catch),
+    (&["try_statement"], walk_children),
+];
+
+const STRING_KINDS: &[&str] = &[
+    "string_literal", "raw_string_literal", "verbatim_string_literal",
+    "interpolated_string_expression",
+];
+
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    match child.kind() {
-        "if_statement" => handle_if(child, source, depth, s),
-        "for_statement" | "foreach_statement" | "while_statement" | "do_statement" => {
-            handle_loop(child, source, depth, s);
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
+        return;
+    }
+    if kind == "lambda_expression" { return; }
+    if kind == "conditional_expression" { s.cc += 1; s.track_cogc_branch(); return; }
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
         }
-        "switch_statement" | "switch_section" => handle_switch_or_section(child, source, depth, s),
-        "catch_clause" | "try_statement" => handle_exception(child, source, depth, s),
-        "conditional_expression" => handle_ternary(s),
-        "string_literal" | "raw_string_literal" | "verbatim_string_literal"
-        | "interpolated_string_expression" => track_embedded_block(&mut s.max_embedded_block_loc, child),
-        "lambda_expression" => {}
-        _ => walk_body(child, source, depth, s),
     }
-}
-
-fn handle_switch_or_section(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if child.kind() == "switch_statement" {
-        handle_switch(child, source, depth, s);
-    } else {
-        handle_switch_section(child, source, depth, s);
-    }
-}
-
-fn handle_exception(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if child.kind() == "catch_clause" {
-        handle_catch(child, source, depth, s);
-    } else {
-        walk_children(child, source, depth, s);
-    }
+    walk_body(child, source, depth, s);
 }
 
 fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -289,11 +276,6 @@ fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
         s.empty_catch_count += 1;
     }
     walk_children(child, source, depth, s);
-}
-
-fn handle_ternary(s: &mut WalkState) {
-    s.cc += 1;
-    s.track_cogc_branch();
 }
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -346,28 +328,22 @@ fn handle_elif(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     walk_children(child, source, depth, s);
 }
 
+const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
+    block_kind: "block",
+    if_kind: "if_statement",
+    cond_kinds: COND_KINDS,
+    bool_ops: BOOL_OPS,
+    bool_stops: BOOL_STOPS,
+};
+
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
+    cfg: &ELSE_CFG,
+    walk_body,
+    walk_children,
+};
+
 fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "block" => {
-                s.track_cogc_flat();
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_body(child, source, depth, s);
-                s.cogc_nesting = saved;
-            }
-            "if_statement" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
-                count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity_text(child, source, &mut s.compound_condition_count, COND_KINDS);
-                walk_children(child, source, depth, s);
-            }
-            _ => {}
-        }
-    }
+    shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
 }
 
 fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {

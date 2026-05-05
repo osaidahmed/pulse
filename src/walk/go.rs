@@ -65,23 +65,12 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
 fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "function_declaration" => try_add_function(child, source, functions),
-            "method_declaration" => try_add_method(child, source, functions),
-            _ => {}
-        }
-    }
-}
-
-fn try_add_function(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    if let Some(metrics) = analyze_function(node, source) {
-        functions.push(metrics);
-    }
-}
-
-fn try_add_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    if let Some(metrics) = analyze_method(node, source) {
-        functions.push(metrics);
+        let analyzed = match child.kind() {
+            "function_declaration" => analyze_function(child, source),
+            "method_declaration" => analyze_method(child, source),
+            _ => None,
+        };
+        if let Some(m) = analyzed { functions.push(m); }
     }
 }
 
@@ -105,7 +94,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
 }
 
 fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
-    let param_lists = collect_param_lists(node);
+    let mut pl_cursor = node.walk();
+    let param_lists: Vec<Node> = node.children(&mut pl_cursor).filter(|c| c.kind() == "parameter_list").collect();
 
     let receiver_type = param_lists
         .first()
@@ -127,8 +117,9 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
 
     let self_names: Vec<&str> = param_lists
         .first()
-        .and_then(|r| extract_receiver_name(*r, source))
-        .map(|n| vec![n])
+        .and_then(|r| find_child_by_kind(*r, "parameter_declaration"))
+        .and_then(|p| find_child_by_kind(p, "identifier"))
+        .map(|id| vec![node_text(id, source)])
         .unwrap_or_default();
     let mut field_accesses = Vec::new();
     if !self_names.is_empty() {
@@ -137,17 +128,6 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
 
     let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, field_accesses, class_name: receiver_type };
     build_metrics(node, source, info)
-}
-
-fn collect_param_lists(node: Node) -> Vec<Node> {
-    let mut lists = Vec::new();
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "parameter_list" {
-            lists.push(child);
-        }
-    }
-    lists
 }
 
 fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<FunctionMetrics> {
@@ -202,61 +182,71 @@ fn extract_receiver_type(receiver_list: Node, source: &str) -> Option<String> {
     None
 }
 
-fn extract_receiver_name<'a>(receiver_list: Node<'a>, source: &'a str) -> Option<&'a str> {
-    let param = find_child_by_kind(receiver_list, "parameter_declaration")?;
-    let id = find_child_by_kind(param, "identifier")?;
-    Some(node_text(id, source))
-}
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement"], handle_if),
+    (&["for_statement"], handle_for),
+    (&["expression_switch_statement", "type_switch_statement", "select_statement"], handle_switch),
+    (&["go_statement", "defer_statement"], walk_body),
+];
+
+const STRING_KINDS: &[&str] = &["interpreted_string_literal", "raw_string_literal"];
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     s.reset_bump();
-
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "if_statement" => {
-                s.track_if(depth);
-                s.track_cogc_branch();
-                count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
-                count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity_text(child, source, &mut s.compound_condition_count, COND_KINDS);
-                walk_if_children(child, source, depth + 1, s);
-            }
-            "for_statement" => {
-                s.track_loop(depth);
-                s.track_cogc_branch();
-                walk_for_body(child, source, depth + 1, s);
-            }
-            "expression_switch_statement"
-            | "type_switch_statement"
-            | "select_statement" => {
-                s.track_nesting(depth);
-                s.track_cogc_branch();
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_switch_cases(child, source, depth + 1, s);
-                s.cogc_nesting = saved;
-            }
-            "go_statement" | "defer_statement" => {
-                walk_body(child, source, depth, s);
-            }
-            "func_literal" => {}
-            "interpreted_string_literal" | "raw_string_literal" => track_embedded_block(&mut s.max_embedded_block_loc, child),
-            _ => walk_body(child, source, depth, s),
-        }
+        dispatch_body_child(child, source, depth, s);
     }
 }
 
-fn walk_for_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "block" {
-            let saved = s.cogc_nesting;
-            s.cogc_nesting += 1;
-            walk_body(child, source, depth, s);
-            s.cogc_nesting = saved;
+fn dispatch_body_child(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
+        return;
+    }
+    if kind == "func_literal" { return; }
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
         }
     }
+    walk_body(child, source, depth, s);
+}
+
+fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_if(depth);
+    s.track_cogc_branch();
+    count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
+    count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
+    shared::check_condition_complexity_text(child, source, &mut s.compound_condition_count, COND_KINDS);
+    walk_if_children(child, source, depth + 1, s);
+}
+
+fn handle_for(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_loop(depth);
+    s.track_cogc_branch();
+    walk_for_body(child, source, depth + 1, s);
+}
+
+fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    let saved = s.cogc_nesting;
+    s.cogc_nesting += 1;
+    walk_switch_cases(child, source, depth + 1, s);
+    s.cogc_nesting = saved;
+}
+
+fn walk_for_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    let Some(block) = find_child_by_kind(node, "block") else { return; };
+    let saved = s.cogc_nesting;
+    s.cogc_nesting += 1;
+    walk_body(block, source, depth, s);
+    s.cogc_nesting = saved;
 }
 
 fn walk_if_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -304,24 +294,22 @@ fn walk_if_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn walk_switch_cases(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "expression_case" | "type_case" | "communication_case" => {
-                s.cc += 1;
-                walk_case_body(child, source, depth, s);
-            }
-            "default_case" => {
-                walk_case_body(child, source, depth, s);
-            }
-            _ => {}
+    node.children(&mut cursor).for_each(|child| match child.kind() {
+        "expression_case" | "type_case" | "communication_case" => {
+            s.cc += 1;
+            walk_case_body(child, source, depth, s);
         }
-    }
+        "default_case" => {
+            walk_case_body(child, source, depth, s);
+        }
+        _ => {}
+    });
 }
 
 fn walk_case_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        // Walk all statement children inside the case
+    let mut child_opt = node.child(0);
+    while let Some(child) = child_opt {
+        child_opt = child.next_sibling();
         match child.kind() {
             "expression_case" | "type_case" | "communication_case" | "default_case" | ":"
             | "case" | "default" => {}
@@ -342,7 +330,8 @@ fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
     params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| {
         let (n, is_prim) = match child.kind() {
             "parameter_declaration" => {
-                let names = count_param_names(child);
+                let mut name_cursor = child.walk();
+                let names = child.children(&mut name_cursor).filter(|c| c.kind() == "identifier").count() as u32;
                 (if names == 0 { 1 } else { names }, has_primitive_type(child, source))
             }
             "variadic_parameter_declaration" => (1, has_primitive_type(child, source)),
@@ -351,17 +340,6 @@ fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
         let p = if is_prim { n } else { 0 };
         (cnt + n, prim + p, typed + n)
     })
-}
-
-fn count_param_names(param: Node) -> u32 {
-    let mut count: u32 = 0;
-    let mut cursor = param.walk();
-    for child in param.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            count += 1;
-        }
-    }
-    count
 }
 
 fn has_primitive_type(param: Node, source: &str) -> bool {
@@ -397,20 +375,11 @@ fn count_declarations(root: Node) -> u32 {
 }
 
 fn count_type_specs(type_decl: Node) -> u32 {
-    let mut count: u32 = 0;
     let mut cursor = type_decl.walk();
-    for spec in type_decl.children(&mut cursor) {
-        if spec.kind() != "type_spec" {
-            continue;
-        }
-        if is_struct_or_interface(spec) {
-            count += 1;
-        }
-    }
-    count
-}
-
-fn is_struct_or_interface(spec: Node) -> bool {
-    find_child_by_kind(spec, "struct_type").is_some()
-        || find_child_by_kind(spec, "interface_type").is_some()
+    type_decl
+        .children(&mut cursor)
+        .filter(|s| s.kind() == "type_spec"
+            && (find_child_by_kind(*s, "struct_type").is_some()
+                || find_child_by_kind(*s, "interface_type").is_some()))
+        .count() as u32
 }

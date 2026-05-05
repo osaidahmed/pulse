@@ -66,7 +66,7 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
         match child.kind() {
             "class_declaration" => collect_class_methods(child, source, functions),
             "method_declaration" => {
-                if let Some(metrics) = analyze_method(child, source) {
+                if let Some(metrics) = analyze_callable(child, source, &METHOD_CONFIG) {
                     functions.push(metrics);
                 }
             }
@@ -89,7 +89,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
     for child in body.children(&mut cursor) {
         match child.kind() {
             "method_declaration" => {
-                let Some(mut metrics) = analyze_method(child, source) else {
+                let Some(mut metrics) = analyze_callable(child, source, &METHOD_CONFIG) else {
                     continue;
                 };
                 let method_name = metrics.name.clone();
@@ -103,7 +103,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
                 functions.push(metrics);
             }
             "constructor_declaration" => {
-                let Some(mut metrics) = analyze_constructor(child, source) else {
+                let Some(mut metrics) = analyze_callable(child, source, &CTOR_CONFIG) else {
                     continue;
                 };
                 metrics.name = format!("{class_name}.{class_name}");
@@ -131,16 +131,6 @@ struct CallableConfig {
 
 const METHOD_CONFIG: CallableConfig = CallableConfig { body_kind: "block", fallback_name: "<anonymous>" };
 const CTOR_CONFIG: CallableConfig = CallableConfig { body_kind: "constructor_body", fallback_name: "<constructor>" };
-
-fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
-    analyze_callable(node, source, &METHOD_CONFIG)
-}
-
-fn analyze_constructor(node: Node, source: &str) -> Option<FunctionMetrics> {
-    let mut m = analyze_callable(node, source, &CTOR_CONFIG)?;
-    m.is_constructor = true;
-    Some(m)
-}
 
 fn analyze_callable(
     node: Node,
@@ -204,26 +194,39 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement"], handle_if),
+    (&["for_statement", "enhanced_for_statement", "while_statement", "do_statement"], handle_loop),
+    (&["switch_expression"], handle_switch),
+    (&["switch_block_statement_group"], handle_switch_case),
+    (&["catch_clause"], handle_catch),
+    (&["try_statement", "try_with_resources_statement"], walk_children),
+    (&["ternary_expression", "conditional_expression"], handle_ternary),
+];
+
+const STRING_KINDS: &[&str] = &["string_literal", "text_block"];
+
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    match child.kind() {
-        "if_statement" => handle_if(child, source, depth, s),
-        "for_statement" | "enhanced_for_statement" | "while_statement" | "do_statement" => {
-            handle_loop(child, source, depth, s);
-        }
-        "switch_expression" => handle_switch(child, source, depth, s),
-        "switch_block_statement_group" => handle_switch_case(child, source, depth, s),
-        "catch_clause" => handle_catch(child, source, depth, s),
-        "try_statement" | "try_with_resources_statement" => {
-            walk_children(child, source, depth, s);
-        }
-        "ternary_expression" | "conditional_expression" => {
-            s.cc += 1;
-            s.track_cogc_branch();
-        }
-        "string_literal" | "text_block" => track_embedded_block(&mut s.max_embedded_block_loc, child),
-        "lambda_expression" => {}
-        _ => walk_body(child, source, depth, s),
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
+        return;
     }
+    if kind == "lambda_expression" { return; }
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
+        }
+    }
+    walk_body(child, source, depth, s);
+}
+
+fn handle_ternary(_child: Node, _source: &str, _depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
 }
 
 fn handle_if(child: Node, source: &str, depth: u32, s: &mut WalkState) {

@@ -216,46 +216,58 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement"], handle_if),
+    (&["for_statement", "while_statement", "do_statement"], handle_loop),
+    (&["switch_statement"], handle_switch),
+    (&["case_statement"], handle_case),
+    (&["try_statement"], descend),
+    (&["catch_clause"], handle_catch),
+    (&["conditional_expression"], handle_ternary),
+];
+
+const STRING_KINDS: &[&str] = &["string_literal", "concatenated_string"];
+
 fn dispatch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if dispatch_control(child, source, depth, s) {
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    match child.kind() {
-        "string_literal" | "concatenated_string" => {
-            track_embedded_block(&mut s.max_embedded_block_loc, child);
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
         }
-        _ => walk_body(child, source, depth, s),
     }
+    walk_body(child, source, depth, s);
 }
 
-fn dispatch_control(node: Node, source: &str, depth: u32, s: &mut WalkState) -> bool {
-    let kind = node.kind();
-    match kind {
-        "if_statement" => handle_if(node, source, depth, s),
-        "for_statement" | "while_statement" | "do_statement" | "switch_statement" => {
-            if kind == "switch_statement" { s.track_nesting(depth); } else { s.track_loop(depth); }
-            s.track_cogc_branch();
-            descend(node, source, depth + 1, s);
-        }
-        "case_statement" => handle_case(node, source, depth, s),
-        "try_statement" => descend(node, source, depth, s),
-        "catch_clause" => handle_catch(node, source, depth, s),
-        "conditional_expression" => { s.cc += 1; s.track_cogc_branch(); }
-        _ => return false,
-    }
-    true
+fn handle_loop(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_loop(depth);
+    s.track_cogc_branch();
+    descend(node, source, depth + 1, s);
 }
 
-fn track_if_condition(node: Node, source: &str, s: &mut WalkState) {
-    count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
-    count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
+fn handle_switch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    descend(node, source, depth + 1, s);
+}
+
+fn handle_ternary(_node: Node, _source: &str, _depth: u32, s: &mut WalkState) {
+    s.cc += 1;
+    s.track_cogc_branch();
 }
 
 fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.track_if(depth);
     s.track_cogc_branch();
-    track_if_condition(node, source, s);
+    count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
+    count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
+    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
     descend(node, source, depth + 1, s);
 }
 
@@ -275,19 +287,15 @@ fn handle_catch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     descend(node, source, depth, s);
 }
 
-fn walk_compound(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let saved = s.cogc_nesting;
-    s.cogc_nesting += 1;
-    walk_body(node, source, depth, s);
-    s.cogc_nesting = saved;
-}
-
 fn descend(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         let kind = child.kind();
         if kind == "compound_statement" {
-            walk_compound(child, source, depth, s);
+            let saved = s.cogc_nesting;
+            s.cogc_nesting += 1;
+            walk_body(child, source, depth, s);
+            s.cogc_nesting = saved;
         } else if kind == "else_clause" {
             descend_else(child, source, depth, s);
         } else if kind == "catch_clause" {
@@ -300,11 +308,16 @@ fn descend_else(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     if let Some(inner_if) = find_child_by_kind(node, "if_statement") {
         s.cc += 1;
         s.track_cogc_branch();
-        track_if_condition(inner_if, source, s);
+        count_boolean_ops(inner_if, &mut s.cc, BOOL_OPS, BOOL_STOPS);
+        count_cogc_sequences(inner_if, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
+        shared::check_condition_complexity_text(inner_if, source, &mut s.compound_condition_count, COND_KINDS);
         descend(inner_if, source, depth, s);
     } else if let Some(body) = find_child_by_kind(node, "compound_statement") {
         s.track_cogc_flat();
-        walk_compound(body, source, depth, s);
+        let saved = s.cogc_nesting;
+        s.cogc_nesting += 1;
+        walk_body(body, source, depth, s);
+        s.cogc_nesting = saved;
     }
 }
 

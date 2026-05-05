@@ -3,51 +3,38 @@ use pulse::parse;
 use pulse::smells;
 use pulse::thresholds::Thresholds;
 
-fn generate_python(num_functions: usize) -> String {
-    let mut code = String::new();
-    for i in 0..num_functions {
-        code.push_str(&format!("def fn_{i}(a, b, c, d, e, f):\n"));
-        for j in 0..10 {
-            code.push_str(&format!("    if a == {j}:\n"));
-            code.push_str(&format!("        for x in range({j}):\n"));
-            code.push_str(&format!("            if b == {j}:\n"));
-            code.push_str("                pass\n");
-        }
-        code.push_str("    return a\n\n");
-    }
-    code
+#[derive(Clone, Copy)]
+enum BenchLang {
+    Python,
+    TypeScript,
+    Rust,
 }
 
-fn generate_typescript(num_functions: usize) -> String {
+fn generate_code(lang: BenchLang, num_functions: usize) -> String {
+    let (header, body, footer) = match lang {
+        BenchLang::Python => (
+            "def fn_{I}(a, b, c, d, e, f):\n",
+            "    if a == {J}:\n        for x in range({J}):\n            if b == {J}:\n                pass\n",
+            "    return a\n\n",
+        ),
+        BenchLang::TypeScript => (
+            "function fn_{I}(a: number, b: number, c: number): number {\n",
+            "    if (a === {J}) {\n        for (let x = 0; x < {J}; x++) {\n            if (b === {J}) {}\n        }\n    }\n",
+            "    return a;\n}\n\n",
+        ),
+        BenchLang::Rust => (
+            "fn fn_{I}(a: i32, b: i32, c: i32) -> i32 {\n",
+            "    if a == {J} {\n        for x in 0..{J} {\n            if b == {J} {}\n        }\n    }\n",
+            "    a\n}\n\n",
+        ),
+    };
     let mut code = String::new();
     for i in 0..num_functions {
-        code.push_str(&format!(
-            "function fn_{i}(a: number, b: number, c: number): number {{\n"
-        ));
+        code.push_str(&header.replace("{I}", &i.to_string()));
         for j in 0..10 {
-            code.push_str(&format!("    if (a === {j}) {{\n"));
-            code.push_str(&format!("        for (let x = 0; x < {j}; x++) {{\n"));
-            code.push_str(&format!("            if (b === {j}) {{}}\n"));
-            code.push_str("        }\n");
-            code.push_str("    }\n");
+            code.push_str(&body.replace("{J}", &j.to_string()));
         }
-        code.push_str("    return a;\n}\n\n");
-    }
-    code
-}
-
-fn generate_rust_code(num_functions: usize) -> String {
-    let mut code = String::new();
-    for i in 0..num_functions {
-        code.push_str(&format!("fn fn_{i}(a: i32, b: i32, c: i32) -> i32 {{\n"));
-        for j in 0..10 {
-            code.push_str(&format!("    if a == {j} {{\n"));
-            code.push_str(&format!("        for x in 0..{j} {{\n"));
-            code.push_str(&format!("            if b == {j} {{}}\n"));
-            code.push_str("        }\n");
-            code.push_str("    }\n");
-        }
-        code.push_str("    a\n}\n\n");
+        code.push_str(footer);
     }
     code
 }
@@ -57,7 +44,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("full_pipeline");
 
     for &num_fns in &[10, 30, 100, 300] {
-        let code = generate_python(num_fns);
+        let code = generate_code(BenchLang::Python, num_fns);
         let lines = code.lines().count();
         group.bench_with_input(
             BenchmarkId::new("python", format!("{num_fns}fn_{lines}loc")),
@@ -74,7 +61,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
     }
 
     for &num_fns in &[10, 30, 100, 300] {
-        let code = generate_typescript(num_fns);
+        let code = generate_code(BenchLang::TypeScript, num_fns);
         let lines = code.lines().count();
         group.bench_with_input(
             BenchmarkId::new("typescript", format!("{num_fns}fn_{lines}loc")),
@@ -92,7 +79,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
     }
 
     for &num_fns in &[10, 30, 100, 300] {
-        let code = generate_rust_code(num_fns);
+        let code = generate_code(BenchLang::Rust, num_fns);
         let lines = code.lines().count();
         group.bench_with_input(
             BenchmarkId::new("rust", format!("{num_fns}fn_{lines}loc")),
@@ -115,7 +102,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
 fn bench_parse_vs_analysis(c: &mut Criterion) {
     let mut group = c.benchmark_group("parse_vs_analysis");
 
-    let code = generate_python(100);
+    let code = generate_code(BenchLang::Python, 100);
 
     group.bench_function("parse_only_100fn", |b| {
         b.iter(|| {
@@ -148,7 +135,7 @@ fn bench_scaling(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_python");
 
     for &num_fns in &[1, 5, 10, 50, 100, 200, 500] {
-        let code = generate_python(num_fns);
+        let code = generate_code(BenchLang::Python, num_fns);
         let lines = code.lines().count();
         group.bench_with_input(
             BenchmarkId::new("loc", lines),

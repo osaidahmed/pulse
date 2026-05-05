@@ -243,8 +243,9 @@ fn handle_switch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_cases(block: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = block.walk();
-    for child in block.children(&mut cursor) {
+    let mut child_opt = block.child(0);
+    while let Some(child) = child_opt {
+        child_opt = child.next_sibling();
         if child.kind() != "case_statement" { continue; }
         if find_child_by_kind(child, "default").is_none() { s.cc += 1; }
         let mut ic = child.walk();
@@ -258,7 +259,8 @@ fn walk_cases(block: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn walk_try(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
+    let kids: Vec<Node> = node.children(&mut cursor).collect();
+    for child in kids {
         let kind = child.kind();
         if kind == "catch_statement" { handle_catch(child, source, depth, s); continue; }
         let block = match kind {
@@ -312,17 +314,15 @@ fn is_primitive_param(param: Node, source: &str) -> bool {
 
 fn count_decls(node: Node, source: &str, dc: &mut u32, sf: &mut Vec<(String, u32)>) {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "class_declaration" | "struct_declaration" => {
-                *dc += 1;
-                count_type_fields(child, source, sf);
-            }
-            "interface_declaration" | "enum_declaration" => *dc += 1,
-            "module_def" => count_decls(child, source, dc, sf),
-            _ => {}
+    node.children(&mut cursor).for_each(|child| match child.kind() {
+        "class_declaration" | "struct_declaration" => {
+            *dc += 1;
+            count_type_fields(child, source, sf);
         }
-    }
+        "interface_declaration" | "enum_declaration" => *dc += 1,
+        "module_def" => count_decls(child, source, dc, sf),
+        _ => {}
+    });
 }
 
 fn count_type_fields(type_node: Node, source: &str, sf: &mut Vec<(String, u32)>) {

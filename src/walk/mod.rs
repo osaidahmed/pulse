@@ -105,34 +105,39 @@ pub fn track_embedded_block(max: &mut u32, node: Node) {
     update_max(max, lines);
 }
 
-#[derive(Debug, Clone)]
-pub struct FunctionMetrics {
-    pub name: String,
-    pub start_line: u32,
-    pub end_line: u32,
-    pub loc: u32,
-    pub cc: u32,
-    pub cognitive_complexity: u32,
-    pub max_nesting: u32,
-    pub bump_count: u32,
-    pub arg_count: u32,
-    pub compound_condition_count: u32,
-    pub is_constructor: bool,
-    pub max_embedded_block_loc: u32,
-    pub structural_hash: u64,
-    pub skeleton_hash: u64,
-    pub consecutive_asserts: u32,
-    pub assert_hash: u64,
-    pub primitive_type_count: u32,
-    pub typed_param_count: u32,
-    pub empty_catch_count: u32,
-    pub field_accesses: Vec<String>,
-    pub foreign_field_accesses: Vec<(String, String)>,
-    pub class_name: Option<String>,
-    pub parent_class: Option<String>,
-    pub short_var_count: u32,
-    pub string_match_arms: u32,
+mod metrics {
+    #[derive(Debug, Clone)]
+    pub struct FunctionMetrics {
+        pub name: String,
+        pub start_line: u32,
+        pub end_line: u32,
+        pub loc: u32,
+        pub cc: u32,
+        pub cognitive_complexity: u32,
+        pub max_nesting: u32,
+        pub bump_count: u32,
+        pub arg_count: u32,
+        pub compound_condition_count: u32,
+        pub is_constructor: bool,
+        pub max_embedded_block_loc: u32,
+        pub structural_hash: u64,
+        pub skeleton_hash: u64,
+        pub consecutive_asserts: u32,
+        pub assert_hash: u64,
+        pub primitive_type_count: u32,
+        pub typed_param_count: u32,
+        pub empty_catch_count: u32,
+        pub field_accesses: Vec<String>,
+        pub foreign_field_accesses: Vec<(String, String)>,
+        pub class_name: Option<String>,
+        pub parent_class: Option<String>,
+        pub short_var_count: u32,
+        pub string_match_arms: u32,
+    }
 }
+
+pub use metrics::FunctionMetrics;
+
 
 #[derive(Debug, Clone)]
 pub struct ModuleMetrics {

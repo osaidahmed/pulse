@@ -122,6 +122,92 @@ pub fn walk_block_children(
     }
 }
 
+pub type WalkFn = fn(Node, &str, u32, &mut super::WalkState);
+
+pub struct BranchKinds {
+    pub blocks: &'static [&'static str],
+    pub else_clause: &'static str,
+    pub catch_clause: Option<&'static str>,
+    pub finally_clause: Option<&'static str>,
+    pub catch_body_kind: &'static str,
+}
+
+pub struct BranchHandlers {
+    pub kinds: &'static BranchKinds,
+    pub walk_body: WalkFn,
+    pub walk_else: WalkFn,
+}
+
+pub struct ElseBranchCfg {
+    pub block_kind: &'static str,
+    pub if_kind: &'static str,
+    pub cond_kinds: &'static [&'static str],
+    pub bool_ops: &'static [&'static str],
+    pub bool_stops: &'static [&'static str],
+}
+
+pub struct ElseHandlers {
+    pub cfg: &'static ElseBranchCfg,
+    pub walk_body: WalkFn,
+    pub walk_children: WalkFn,
+}
+
+pub fn walk_branches(node: Node, ctx: &mut BlockWalkCtx, h: &BranchHandlers) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        let kind = child.kind();
+        if h.kinds.blocks.contains(&kind) {
+            push_nested(child, ctx, h.walk_body);
+        } else if kind == h.kinds.else_clause {
+            (h.walk_else)(child, ctx.source, ctx.depth, ctx.state);
+        } else if h.kinds.catch_clause == Some(kind) {
+            handle_catch_block(child, ctx, h.kinds.catch_body_kind, h.walk_body);
+        } else if h.kinds.finally_clause == Some(kind) {
+            walk_block_children(child, ctx, h.kinds.catch_body_kind, h.walk_body);
+        }
+    }
+}
+
+pub fn walk_else_branch(node: Node, ctx: &mut BlockWalkCtx, h: &ElseHandlers) {
+    let block_kind = h.cfg.block_kind;
+    let if_kind = h.cfg.if_kind;
+    let mut cursor = node.walk();
+    let kids: Vec<Node> = node.children(&mut cursor).collect();
+    for child in kids {
+        if child.kind() == block_kind {
+            ctx.state.track_cogc_flat();
+            push_nested(child, ctx, h.walk_body);
+        } else if child.kind() == if_kind {
+            apply_else_if(child, ctx, h);
+        }
+    }
+}
+
+fn apply_else_if(child: Node, ctx: &mut BlockWalkCtx, h: &ElseHandlers) {
+    ctx.state.cc += 1;
+    ctx.state.track_cogc_branch();
+    count_boolean_ops(child, &mut ctx.state.cc, h.cfg.bool_ops, h.cfg.bool_stops);
+    count_cogc_sequences(child, &mut ctx.state.cogc, h.cfg.bool_ops, h.cfg.bool_stops);
+    check_condition_complexity_text(child, ctx.source, &mut ctx.state.compound_condition_count, h.cfg.cond_kinds);
+    (h.walk_children)(child, ctx.source, ctx.depth, ctx.state);
+}
+
+fn push_nested(child: Node, ctx: &mut BlockWalkCtx, walk_body_fn: WalkFn) {
+    let saved = ctx.state.cogc_nesting;
+    ctx.state.cogc_nesting += 1;
+    walk_body_fn(child, ctx.source, ctx.depth, ctx.state);
+    ctx.state.cogc_nesting = saved;
+}
+
+fn handle_catch_block(child: Node, ctx: &mut BlockWalkCtx, body_kind: &str, walk_body_fn: WalkFn) {
+    ctx.state.cc += 1;
+    ctx.state.track_cogc_branch();
+    if is_catch_body_empty(child, body_kind, None) {
+        ctx.state.empty_catch_count += 1;
+    }
+    walk_block_children(child, ctx, body_kind, walk_body_fn);
+}
+
 pub fn is_catch_body_empty(catch_node: Node, body_kind: &str, pass_kind: Option<&str>) -> bool {
     let Some(body) = find_child_by_kind(catch_node, body_kind) else {
         return true;

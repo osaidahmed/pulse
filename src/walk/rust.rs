@@ -1,7 +1,10 @@
 use tree_sitter::{Node, Tree};
 
 use super::counters::{count_short_variables, count_string_match_arms};
-use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
+use super::shared::{
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
+    ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
+};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
@@ -227,44 +230,40 @@ fn walk_match_arms(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+const BRANCH_KINDS: BranchKinds = BranchKinds {
+    blocks: &["block"],
+    else_clause: "else_clause",
+    catch_clause: None,
+    finally_clause: None,
+    catch_body_kind: "block",
+};
+
+const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
+    block_kind: "block",
+    if_kind: "if_expression",
+    cond_kinds: COND_KINDS,
+    bool_ops: BOOL_OPS,
+    bool_stops: BOOL_STOPS,
+};
+
+const BRANCH_HANDLERS: BranchHandlers = BranchHandlers {
+    kinds: &BRANCH_KINDS,
+    walk_body,
+    walk_else: walk_else_clause,
+};
+
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
+    cfg: &ELSE_CFG,
+    walk_body,
+    walk_children,
+};
+
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "block" => {
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_body(child, source, depth, s);
-                s.cogc_nesting = saved;
-            }
-            "else_clause" => walk_else_clause(child, source, depth, s),
-            _ => {}
-        }
-    }
+    shared::walk_branches(node, &mut BlockWalkCtx { source, depth, state: s }, &BRANCH_HANDLERS);
 }
 
 fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "block" => {
-                s.track_cogc_flat();
-                let saved = s.cogc_nesting;
-                s.cogc_nesting += 1;
-                walk_body(child, source, depth, s);
-                s.cogc_nesting = saved;
-            }
-            "if_expression" => {
-                s.cc += 1;
-                s.track_cogc_branch();
-                count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
-                count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity_text(child, source, &mut s.compound_condition_count, COND_KINDS);
-                walk_children(child, source, depth, s);
-            }
-            _ => {}
-        }
-    }
+    shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
 }
 
 fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {

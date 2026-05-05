@@ -196,21 +196,32 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
+type NodeHandler = fn(Node, &str, u32, &mut WalkState);
+
+const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
+    (&["if_statement", "guard_statement"], handle_conditional),
+    (&["for_statement", "while_statement", "repeat_while_statement"], handle_loop),
+    (&["switch_statement"], handle_switch),
+    (&["do_statement"], handle_do),
+];
+
+const STRING_KINDS: &[&str] = &["line_string_literal", "multi_line_string_literal", "raw_string_literal"];
+
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    match child.kind() {
-        "if_statement" | "guard_statement" => handle_conditional(child, source, depth, s),
-        "for_statement" | "while_statement" | "repeat_while_statement" => {
-            handle_loop(child, source, depth, s);
-        }
-        "switch_statement" => handle_switch(child, source, depth, s),
-        "do_statement" => handle_do(child, source, depth, s),
-        "ternary_expression" => { s.cc += 1; s.track_cogc_branch(); }
-        "lambda_literal" => {}
-        "line_string_literal" | "multi_line_string_literal" | "raw_string_literal" => {
-            track_embedded_block(&mut s.max_embedded_block_loc, child);
-        }
-        _ => walk_body(child, source, depth, s),
+    let kind = child.kind();
+    if STRING_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, child);
+        return;
     }
+    if kind == "lambda_literal" { return; }
+    if kind == "ternary_expression" { s.cc += 1; s.track_cogc_branch(); return; }
+    for (kinds, handler) in NODE_HANDLERS {
+        if kinds.contains(&kind) {
+            handler(child, source, depth, s);
+            return;
+        }
+    }
+    walk_body(child, source, depth, s);
 }
 
 fn handle_conditional(child: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -265,9 +276,9 @@ fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn handle_do(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = child.walk();
-    let children: Vec<_> = child.children(&mut cursor).collect();
-    for dc in children {
+    let mut dc_opt = child.child(0);
+    while let Some(dc) = dc_opt {
+        dc_opt = dc.next_sibling();
         match dc.kind() {
             "statements" => walk_body(dc, source, depth, s),
             "catch_block" => walk_catch(dc, source, depth, s),

@@ -47,7 +47,7 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>) {
     for child in node.children(&mut cursor) {
         match child.kind() {
             "method" => {
-                if let Some(m) = build_metrics(child, source, extract_name(child, source)) {
+                if let Some(m) = build_metrics(child, source) {
                     fns.push(m);
                 }
             }
@@ -71,8 +71,8 @@ fn collect_type_body(type_node: Node, source: &str, fns: &mut Vec<FunctionMetric
             continue;
         }
         if !matches!(child.kind(), "method" | "singleton_method") { continue; }
-        let raw = extract_name(child, source);
-        let Some(mut m) = build_metrics(child, source, raw.clone()) else { continue };
+        let Some(mut m) = build_metrics(child, source) else { continue };
+        let raw = m.name.clone();
         m.name = format!("{type_name}.{raw}");
         m.class_name = Some(type_name.clone());
         m.is_constructor = raw == "initialize";
@@ -85,21 +85,22 @@ fn collect_type_body(type_node: Node, source: &str, fns: &mut Vec<FunctionMetric
     }
 }
 
-fn extract_name(node: Node, source: &str) -> String {
+#[allow(clippy::unnecessary_wraps)]
+fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
+    let mut name_opt: Option<String> = None;
     if node.kind() == "singleton_method" {
         let mut cursor = node.walk();
         for c in node.children(&mut cursor) {
             if c.kind() == "identifier" && c.prev_sibling().map(|s| s.kind()) == Some(".") {
-                return node_text(c, source).to_string();
+                name_opt = Some(node_text(c, source).to_string());
+                break;
             }
         }
     }
-    find_child_by_kind(node, "identifier")
-        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string())
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetrics> {
+    let name = name_opt.unwrap_or_else(|| {
+        find_child_by_kind(node, "identifier")
+            .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string())
+    });
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
     let body = find_child_by_kind(node, "body_statement");
@@ -109,12 +110,19 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
     let sk = body.map_or(0, compute_skeleton_hash);
     let ca = body.map_or(0, |b| count_consecutive_asserts(b, "call"));
     let ah = body.map_or(0, |b| compute_assert_fingerprint(b, "call"));
+    let arg_count = find_child_by_kind(node, "method_parameters").map_or(0, |params| {
+        let mut cursor = params.walk();
+        params.children(&mut cursor).filter(|c| matches!(c.kind(),
+            "identifier" | "optional_parameter" | "splat_parameter" | "hash_splat_parameter"
+            | "keyword_parameter" | "optional_keyword_parameter" | "block_parameter"
+        )).count() as u32
+    });
     Some(FunctionMetrics {
         name, start_line, end_line,
         loc: end_line.saturating_sub(start_line) + 1,
         cc: s.cc, cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting, bump_count: s.bump_count,
-        arg_count: count_parameters(node),
+        arg_count,
         compound_condition_count: s.compound_condition_count,
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
@@ -129,15 +137,6 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment", "operator_assignment"])),
         string_match_arms: body.map_or(0, |b| count_string_match_arms(b, "case", "when", &["string"])),
     })
-}
-
-fn count_parameters(func: Node) -> u32 {
-    let Some(params) = find_child_by_kind(func, "method_parameters") else { return 0 };
-    let mut cursor = params.walk();
-    params.children(&mut cursor).filter(|c| matches!(c.kind(),
-        "identifier" | "optional_parameter" | "splat_parameter" | "hash_splat_parameter"
-        | "keyword_parameter" | "optional_keyword_parameter" | "block_parameter"
-    )).count() as u32
 }
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -162,6 +161,24 @@ fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         handle_rescue(node, source, depth, s);
     } else {
         handle_expression(node, k, source, depth, s);
+    }
+}
+
+fn handle_expression(node: Node, kind: &str, source: &str, depth: u32, s: &mut WalkState) {
+    match kind {
+        "conditional" => { s.cc += 1; s.track_cogc_branch(); walk_body(node, source, depth, s); }
+        "binary" => {
+            let mut c = node.child(0);
+            while let Some(child) = c {
+                c = child.next_sibling();
+                if !matches!(child.kind(), "&&" | "||" | "and" | "or") {
+                    dispatch(child, source, depth, s);
+                }
+            }
+        }
+        "do_block" | "block" => { let sv = s.cogc_nesting; walk_body(node, source, depth, s); s.cogc_nesting = sv; }
+        "string" | "heredoc_body" => track_embedded_block(&mut s.max_embedded_block_loc, node),
+        _ => walk_body(node, source, depth, s),
     }
 }
 
@@ -224,9 +241,9 @@ fn handle_case(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_begin_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let n = node.child_count();
-    for i in 0..n {
-        let child = node.child(i).unwrap();
+    let mut cursor = node.walk();
+    let kids: Vec<Node> = node.children(&mut cursor).collect();
+    for child in kids {
         match child.kind() {
             "rescue" => handle_rescue(child, source, depth, s),
             "ensure" | "else" => walk_body(child, source, depth, s),
@@ -268,28 +285,10 @@ fn is_rescue_empty(node: Node) -> bool {
     true
 }
 
-fn handle_expression(node: Node, kind: &str, source: &str, depth: u32, s: &mut WalkState) {
-    match kind {
-        "conditional" => { s.cc += 1; s.track_cogc_branch(); walk_body(node, source, depth, s); }
-        "binary" => {
-            let mut c = node.child(0);
-            while let Some(child) = c {
-                c = child.next_sibling();
-                if !matches!(child.kind(), "&&" | "||" | "and" | "or") {
-                    dispatch(child, source, depth, s);
-                }
-            }
-        }
-        "do_block" | "block" => { let sv = s.cogc_nesting; walk_body(node, source, depth, s); s.cogc_nesting = sv; }
-        "string" | "heredoc_body" => track_embedded_block(&mut s.max_embedded_block_loc, node),
-        _ => walk_body(node, source, depth, s),
-    }
-}
 
 fn count_boolean_ops(node: Node, cc: &mut u32) {
-    let n = node.child_count();
-    for i in 0..n {
-        let child = node.child(i).unwrap();
+    let mut cursor = node.walk();
+    node.children(&mut cursor).for_each(|child| {
         let k = child.kind();
         if k == "binary" && !bool_op_category(child).is_empty() {
             *cc += 1;
@@ -297,13 +296,13 @@ fn count_boolean_ops(node: Node, cc: &mut u32) {
         } else if !BOOL_STOPS.contains(&k) {
             count_boolean_ops(child, cc);
         }
-    }
+    });
 }
 
 fn walk_cogc(node: Node, cogc: &mut u32, last: &mut Option<String>) {
-    let mut c = node.child(0);
-    while let Some(child) = c {
-        c = child.next_sibling();
+    let n = node.child_count();
+    for i in 0..n {
+        let child = node.child(i).unwrap();
         let k = child.kind();
         if BOOL_STOPS.contains(&k) { continue; }
         if k != "binary" { walk_cogc(child, cogc, last); continue; }
@@ -341,26 +340,23 @@ fn collect_field_accesses(node: Node, source: &str, fields: &mut Vec<String>) {
     let mut cursor = node.walk();
     while let Some(current) = stack.pop() {
         for child in current.children(&mut cursor) {
-            push_ruby_self_ref(child, source, fields);
+            visit_self_ref(child, source, fields);
             stack.push(child);
         }
     }
 }
 
-fn push_ruby_self_ref(node: Node, source: &str, fields: &mut Vec<String>) {
-    let kind = node.kind();
+fn visit_self_ref(child: Node, source: &str, fields: &mut Vec<String>) {
+    let kind = child.kind();
     if kind == "instance_variable" {
-        if let Some(f) = node_text(node, source).strip_prefix('@') {
+        if let Some(f) = node_text(child, source).strip_prefix('@') {
             fields.push(f.to_string());
         }
         return;
     }
-    if kind != "call" {
-        return;
-    }
-    let Some(receiver) = node.child_by_field_name("receiver") else { return; };
+    if kind != "call" { return; }
+    let Some(receiver) = child.child_by_field_name("receiver") else { return; };
     if receiver.kind() != "self" { return; }
-    if let Some(method) = node.child_by_field_name("method") {
-        fields.push(node_text(method, source).to_string());
-    }
+    let Some(method) = child.child_by_field_name("method") else { return; };
+    fields.push(node_text(method, source).to_string());
 }
