@@ -1,6 +1,6 @@
 use pulse::audit::finding::AuditKind;
 use pulse::audit::{self, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::IgnoreMatcher;
+use pulse::config::{AuditSuppression, IgnoreMatcher};
 
 use crate::audit_common::{scenario_path, t};
 
@@ -11,7 +11,8 @@ fn run_audit_named_smells(scenario: &str, lang: &str) -> Vec<pulse::audit::findi
         root: dir.clone(),
         pass: Some(PassChoice::NamedSmells),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let filter = IgnoreFilter::new(&matcher, &dir);
     audit::run_with_filter(&opts, &t().audit, &filter)

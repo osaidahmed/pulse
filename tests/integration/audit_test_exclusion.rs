@@ -1,4 +1,5 @@
 use pulse::audit::{walk_typed_source_files, AuditOpts};
+use pulse::config::AuditSuppression;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 use std::fs;
@@ -132,7 +133,8 @@ fn audit_run_excludes_tests_by_default() {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: false,
+        include_tests: false, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings = pulse::audit::run(&opts, &Thresholds::default().audit);
 
@@ -167,7 +169,8 @@ fn audit_run_with_include_tests_picks_up_test_files() {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: false,
+        include_tests: false, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings_default = pulse::audit::run(&opts_default, &Thresholds::default().audit);
     assert!(
@@ -179,7 +182,8 @@ fn audit_run_with_include_tests_picks_up_test_files() {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings_with = pulse::audit::run(&opts_with, &Thresholds::default().audit);
     assert!(

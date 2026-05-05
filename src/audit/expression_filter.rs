@@ -29,6 +29,5 @@ fn is_expression_level(fp: u64, kinds_by_fp: &KindIndex) -> bool {
             | PatternCategory::Assignment
             | PatternCategory::DictLiteral
             | PatternCategory::ListLiteral
-            | PatternCategory::FrameworkConvention
     )
 }

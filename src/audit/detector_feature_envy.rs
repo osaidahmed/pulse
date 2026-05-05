@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::thresholds::AuditThresholds;
 
@@ -23,8 +23,17 @@ pub fn detect(
         }
         let _ = i;
     }
-    findings.sort_by_key(|f| std::cmp::Reverse(envy_atfd(f)));
+    findings.sort_by_key(|f| (envied_unresolved(f), std::cmp::Reverse(envy_atfd(f))));
     findings
+}
+
+fn envied_unresolved(f: &AuditFinding) -> u8 {
+    if let AuditKind::FeatureEnvy(e) = &f.kind {
+        if e.envied_class.is_none() {
+            return 1;
+        }
+    }
+    0
 }
 
 fn method_index_for(graph: &CallGraph, identity: &MethodIdentity) -> Option<MethodIndex> {
@@ -101,13 +110,13 @@ fn count_intra_and_foreign(
 }
 
 fn dominant_envied_class(foreign: &[(String, String)]) -> Option<String> {
-    let mut counts: HashMap<&str, u32> = HashMap::new();
+    let mut counts: BTreeMap<&str, u32> = BTreeMap::new();
     for (recv, _) in foreign {
         *counts.entry(recv.as_str()).or_insert(0) += 1;
     }
     counts
         .into_iter()
-        .max_by_key(|(_, n)| *n)
+        .max_by_key(|(k, n)| (*n, std::cmp::Reverse(*k)))
         .map(|(k, _)| k.to_string())
 }
 

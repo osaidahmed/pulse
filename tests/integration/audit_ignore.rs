@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use pulse::audit::{self, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::IgnoreMatcher;
+use pulse::config::{AuditSuppression, IgnoreMatcher};
 
 use crate::audit_common::t;
 
@@ -202,7 +202,8 @@ fn audit_run_with_filter_excludes_findings_from_ignored_paths() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
     assert!(findings.is_empty(), "expected empty findings, got {} findings", findings.len());
@@ -216,7 +217,8 @@ fn audit_run_without_filter_emits_findings() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings = audit::run(&opts, &t().audit);
     assert!(!findings.is_empty(), "shotgun fixture should produce findings without filter");
@@ -233,7 +235,8 @@ fn ignore_works_with_pattern_mining_layer() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
     assert!(findings.is_empty());
@@ -255,7 +258,8 @@ fn ignore_works_with_package_metrics_layer() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PackageMetrics),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
     assert!(findings.is_empty());

@@ -1,7 +1,5 @@
 use super::finding::PatternCategory;
 
-const FRAMEWORK_RECEIVER_HINTS: &[&str] = &["migrations", "django", "models"];
-
 type RootMatcher = fn(&str) -> bool;
 type Predicate = fn(&[Box<str>]) -> bool;
 
@@ -33,8 +31,8 @@ const RULES: &[Rule] = &[
     },
     Rule {
         matches_root: matches_call_root,
-        predicate: has_framework_hint,
-        primary: PatternCategory::FrameworkConvention,
+        predicate: always,
+        primary: PatternCategory::MethodCall,
         fallback: PatternCategory::MethodCall,
     },
     Rule {
@@ -121,8 +119,4 @@ fn has_chained_subscripts(kinds: &[Box<str>]) -> bool {
 
 fn has_value_field(kinds: &[Box<str>]) -> bool {
     kinds.iter().any(|k| matches!(k.as_ref(), "value" | "Value"))
-}
-
-fn has_framework_hint(kinds: &[Box<str>]) -> bool {
-    kinds.iter().any(|k| FRAMEWORK_RECEIVER_HINTS.contains(&k.as_ref()))
 }

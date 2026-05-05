@@ -54,11 +54,68 @@ fn detect_shotgun_surgery(graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFi
             findings.push(finding);
         }
     }
+    let folded = fold_name_collisions(findings);
+    let mut findings = folded;
     findings.sort_by_key(|f| std::cmp::Reverse(ordering_key(f)));
     if findings.len() > t.named_smells.max_findings_reported {
         findings.truncate(t.named_smells.max_findings_reported);
     }
     findings
+}
+
+type CollisionKey = (String, Vec<(String, u32)>);
+
+fn fold_name_collisions(findings: Vec<AuditFinding>) -> Vec<AuditFinding> {
+    let mut groups: std::collections::HashMap<CollisionKey, Vec<AuditFinding>> =
+        std::collections::HashMap::new();
+    let mut order: Vec<CollisionKey> = Vec::new();
+    for f in findings {
+        let key = collision_key(&f);
+        if !groups.contains_key(&key) {
+            order.push(key.clone());
+        }
+        groups.entry(key).or_default().push(f);
+    }
+    let mut out: Vec<AuditFinding> = Vec::with_capacity(order.len());
+    for key in order {
+        let mut group = groups.remove(&key).expect("group present");
+        if group.len() == 1 {
+            out.push(group.remove(0));
+        } else {
+            out.push(merge_collision_group(group));
+        }
+    }
+    out
+}
+
+fn collision_key(f: &AuditFinding) -> CollisionKey {
+    let AuditKind::ShotgunSurgery(e) = &f.kind else {
+        return (String::new(), Vec::new());
+    };
+    let mut callers: Vec<(String, u32)> = e
+        .caller_samples
+        .iter()
+        .map(|c| (c.file.display().to_string(), c.line))
+        .collect();
+    callers.sort();
+    callers.dedup();
+    (e.method_name.clone(), callers)
+}
+
+fn merge_collision_group(mut group: Vec<AuditFinding>) -> AuditFinding {
+    let mut head = group.remove(0);
+    let AuditKind::ShotgunSurgery(ref mut head_e) = head.kind else {
+        return head;
+    };
+    head_e.name_collision_count = (group.len() as u32) + 1;
+    for sibling in group {
+        let AuditKind::ShotgunSurgery(e) = sibling.kind else { continue };
+        head_e.additional_definitions.push(AuditLocation {
+            file: e.method_file,
+            line: e.method_line,
+        });
+    }
+    head
 }
 
 fn ordering_key(f: &AuditFinding) -> (u32, u32, String, u32) {
@@ -112,6 +169,8 @@ fn evaluate_method(graph: &CallGraph, idx: MethodIndex, t: &AuditThresholds) -> 
         fanout: metrics.fanout,
         confidence,
         caller_samples,
+        name_collision_count: 0,
+        additional_definitions: Vec::new(),
     };
     Some(AuditFinding {
         kind: AuditKind::ShotgunSurgery(evidence),

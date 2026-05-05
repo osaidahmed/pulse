@@ -21,6 +21,8 @@ fn shotgun_finding() -> AuditFinding {
             fanout: 7,
             confidence: ImportConfidence::Medium,
             caller_samples: Vec::new(),
+            name_collision_count: 0,
+            additional_definitions: Vec::new(),
         }),
         representative_snippet: String::new(),
         support: 0,

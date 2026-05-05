@@ -8,14 +8,14 @@ use super::finding::{AuditFinding, AuditKind, PatternCategory};
 
 pub type RenderPatternFn = fn(&mut String, &AuditFinding, Option<&Path>, &AuditThresholds);
 
-pub fn split(findings: &[AuditFinding]) -> (Vec<&AuditFinding>, Vec<&AuditFinding>) {
+pub fn split<'a>(findings: &[&'a AuditFinding]) -> (Vec<&'a AuditFinding>, Vec<&'a AuditFinding>) {
     let mut patterns = Vec::new();
     let mut others = Vec::new();
     for f in findings {
         if matches!(f.kind, AuditKind::UncategorizedPattern { .. }) {
-            patterns.push(f);
+            patterns.push(*f);
         } else {
-            others.push(f);
+            others.push(*f);
         }
     }
     (patterns, others)

@@ -6,7 +6,13 @@ use crate::thresholds::AuditThresholds;
 use super::finding::{CycleMembership, MartinMetrics, MartinTier};
 use super::output_helpers::{confidence_str, display_path, write_capped_list, ListLayout};
 
-pub fn write_martin(out: &mut String, m: &MartinMetrics, root: Option<&Path>) {
+fn write_action_row(out: &mut String, action: &str) {
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+}
+
+pub fn write_martin(out: &mut String, m: &MartinMetrics, root: Option<&Path>, action: &'static str) {
     let tier = tier_str(m.tier);
     let _ = writeln!(out, "audit: distance from main sequence");
     let _ = writeln!(out, "  module:        {}", display_path(&m.module, root));
@@ -17,10 +23,17 @@ pub fn write_martin(out: &mut String, m: &MartinMetrics, root: Option<&Path>) {
     let _ = writeln!(out, "  distance:      {:.3}", m.distance);
     let _ = writeln!(out, "  tier:          {tier}");
     let _ = writeln!(out, "  confidence:    {}", confidence_str(m.confidence));
+    write_action_row(out, action);
     let _ = writeln!(out);
 }
 
-pub fn write_cycle(out: &mut String, c: &CycleMembership, root: Option<&Path>, t: &AuditThresholds) {
+pub fn write_cycle(
+    out: &mut String,
+    c: &CycleMembership,
+    root: Option<&Path>,
+    t: &AuditThresholds,
+    action: &'static str,
+) {
     let _ = writeln!(out, "audit: import cycle (size {})", c.members.len());
     let members_layout = ListLayout {
         prefix_first: "  members:       ",
@@ -40,10 +53,11 @@ pub fn write_cycle(out: &mut String, c: &CycleMembership, root: Option<&Path>, t
         format!("{} -> {}", display_path(src, root), display_path(dst, root))
     });
     let _ = writeln!(out, "  confidence:    {}", confidence_str(c.confidence));
+    write_action_row(out, action);
     let _ = writeln!(out);
 }
 
-pub fn write_zero_edge(out: &mut String, module_count: u32) {
+pub fn write_zero_edge(out: &mut String, module_count: u32, action: &'static str) {
     let _ = writeln!(
         out,
         "audit: no import edges resolved across {module_count} modules"
@@ -53,6 +67,7 @@ pub fn write_zero_edge(out: &mut String, module_count: u32) {
         out,
         "  hint: confirm --root points at the project's source tree."
     );
+    write_action_row(out, action);
     let _ = writeln!(out);
 }
 

@@ -4,6 +4,7 @@ use pulse::audit::walker::{ShapeMetrics, SubtreeRecord};
 use pulse::audit::{extract_subtrees_for_dir, walk_typed_source_files};
 use pulse::audit::output::{format_findings, format_findings_json};
 use pulse::audit::{AuditOpts, PassChoice};
+use pulse::config::AuditSuppression;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 use std::path::PathBuf;
@@ -11,7 +12,7 @@ use std::path::PathBuf;
 fn t() -> Thresholds { Thresholds::default() }
 
 fn run_pipeline(root: &std::path::Path) -> Vec<pulse::audit::finding::AuditFinding> {
-    let opts = AuditOpts { root: root.to_path_buf(), pass: Some(PassChoice::PatternMining), json: false, include_tests: true };
+    let opts = AuditOpts { root: root.to_path_buf(), pass: Some(PassChoice::PatternMining), json: false, include_tests: true, show_noise: false, suppression: AuditSuppression::new() };
     pulse::audit::run(&opts, &t().audit)
 }
 
@@ -525,13 +526,15 @@ fn pipeline_default_layer_includes_pattern_findings() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let default_layer = AuditOpts {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: true,
+        include_tests: true, show_noise: false,
+        suppression: AuditSuppression::new(),
     };
     let only_three = pulse::audit::run(&layer3_only, &t().audit);
     let combined = pulse::audit::run(&default_layer, &t().audit);
@@ -550,7 +553,7 @@ fn pipeline_handles_audit_with_lang_kind_filter_no_op() {
 #[test]
 fn pipeline_handles_audit_with_audit_thresholds_default() {
     let dir = tempfile::tempdir().unwrap();
-    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true, show_noise: false, suppression: AuditSuppression::new() };
     let _ = pulse::audit::run(&opts, &t().audit);
 }
 
@@ -561,7 +564,7 @@ fn pipeline_handles_audit_with_custom_freqt_threshold() {
     write_decoys(dir.path(), 5);
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true, show_noise: false, suppression: AuditSuppression::new() };
     let _ = pulse::audit::run(&opts, &th);
 }
 
@@ -571,7 +574,7 @@ fn pipeline_handles_audit_with_custom_idiom_threshold() {
     write_python_files(dir.path(), 8, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
     let mut th = t().audit;
     th.pattern_mining.idiom_suppression_threshold = 0.95;
-    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true };
+    let opts = AuditOpts { root: dir.path().to_path_buf(), pass: None, json: false, include_tests: true, show_noise: false, suppression: AuditSuppression::new() };
     let findings = pulse::audit::run(&opts, &th);
     let _ = findings;
 }

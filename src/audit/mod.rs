@@ -38,6 +38,7 @@ pub mod output_grouped;
 pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
+pub mod output_sections;
 pub mod package_metrics;
 pub mod record_extraction;
 pub mod scoring;
@@ -46,11 +47,11 @@ pub mod walker;
 
 use std::path::{Path, PathBuf};
 
-use crate::config::IgnoreMatcher;
+use crate::config::{AuditSuppression, IgnoreMatcher};
 use crate::parse::{self, Language};
 use crate::test_detection;
 use crate::thresholds::AuditThresholds;
-use finding::AuditFinding;
+use finding::{action_for_kind, finding_confidence, AuditFinding};
 use graph::InputEdge;
 use package_metrics::ModuleProfile;
 use walker::SubtreeRecord;
@@ -60,6 +61,8 @@ pub struct AuditOpts {
     pub pass: Option<PassChoice>,
     pub json: bool,
     pub include_tests: bool,
+    pub show_noise: bool,
+    pub suppression: AuditSuppression,
 }
 
 pub struct IgnoreFilter<'a> {
@@ -125,7 +128,18 @@ pub fn run_with_filter(
     if passes.contains(&AuditPass::NamedSmells) {
         findings.extend(named_smells::run(&typed_files, &opts.root, thresholds));
     }
+    populate_action_labels(&mut findings);
+    findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
+}
+
+fn populate_action_labels(findings: &mut [AuditFinding]) {
+    for f in findings {
+        if f.action_label.is_some() {
+            continue;
+        }
+        f.action_label = Some(action_for_kind(&f.kind, f.pattern_category));
+    }
 }
 
 pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {

@@ -2,12 +2,15 @@ use clap::{Parser, Subcommand};
 
 use crate::audit::PassChoice;
 
+/// Pulse — fast code smell detector and refactoring auditor.
 #[derive(Parser, Debug)]
 #[command(name = "pulse", version, disable_help_subcommand = true)]
 pub struct Cli {
+    /// Run analysis on every supported file in the project.
     #[arg(long = "all", short = 'a', global = true)]
     pub all: bool,
 
+    /// Include test files in analysis (default: skip).
     #[arg(long = "include-tests", short = 't', global = true)]
     pub include_tests: bool,
 
@@ -17,31 +20,44 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum SubCmd {
+    /// Install pulse hooks into ~/.claude.
     Setup,
+    /// Analyze a single file (or use -a for whole project).
     Check {
         file: Option<String>,
     },
+    /// Dump raw per-function metrics for a file.
     Debug {
         file: String,
     },
+    /// Report threshold budgets for a file or for new files.
     Budget {
         file: Option<String>,
+        /// Show ceilings that apply to a NEW file rather than an existing one.
         #[arg(long)]
         new: bool,
     },
+    /// Cross-file refactoring analysis (manual invocation, never automated).
     Audit(AuditArgs),
 }
 
 #[derive(clap::Args, Debug)]
 pub struct AuditArgs {
+    /// Emit findings as JSON (envelope with summary + findings array).
     #[arg(long)]
     pub json: bool,
 
+    /// Run a single analysis pass (default: all passes).
     #[arg(long, value_enum)]
     pub pass: Option<PassChoice>,
 
+    /// Project root directory (defaults to current directory).
     #[arg(long)]
     pub root: Option<String>,
+
+    /// Surface framework-convention and uncategorized findings (hidden by default).
+    #[arg(long = "show-noise")]
+    pub show_noise: bool,
 }
 
 pub enum Dispatch {

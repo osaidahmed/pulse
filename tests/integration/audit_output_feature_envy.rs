@@ -71,11 +71,12 @@ fn human_shows_envied_class_when_present() {
 }
 
 #[test]
-fn human_omits_envied_class_when_none() {
+fn human_marks_envied_class_unresolved_when_none() {
     let mut e = sample(ImportConfidence::Medium);
     e.envied_class = None;
     let out = format_findings(&[finding_with(e)], None, &t().audit);
-    assert!(!out.contains("envied class:"));
+    assert!(out.contains("envied class:"));
+    assert!(out.contains("(unresolved)"));
 }
 
 #[test]

@@ -506,3 +506,59 @@ fn same_class_name_in_different_files_counts_as_distinct_callers() {
         e.changing_classes
     );
 }
+
+#[test]
+fn name_collision_fold_merges_identical_caller_sets() {
+    let providers = ["ProviderA", "ProviderB", "ProviderC"];
+    let mut defs: Vec<DefinitionRecord> = Vec::new();
+    for p in providers {
+        defs.push(def(&format!("{}.py", p.to_lowercase()), Some(p), "search", 1));
+    }
+    for i in 0..12 {
+        defs.push(def(
+            &format!("caller_{i}.py"),
+            Some(&format!("Caller{i}")),
+            &format!("use_search_{i}"),
+            10,
+        ));
+    }
+    for i in 0..7 {
+        defs.push(def(&format!("dep_{i}.py"), Some(&format!("Dep{i}")), &format!("dep_{i}"), 5));
+    }
+    let mut calls: Vec<LocatedCall> = Vec::new();
+    for i in 0..12 {
+        calls.push(call(
+            &format!("caller_{i}.py"),
+            Some(&format!("Caller{i}")),
+            &format!("use_search_{i}"),
+            10,
+            "search",
+            None,
+        ));
+    }
+    for p in providers {
+        for i in 0..7 {
+            calls.push(call(
+                &format!("{}.py", p.to_lowercase()),
+                Some(p),
+                "search",
+                1,
+                &format!("dep_{i}"),
+                Some(&format!("Dep{i}")),
+            ));
+        }
+    }
+    let findings = run_from_inputs(defs, calls, &t().audit);
+    let shotgun: Vec<_> = findings
+        .iter()
+        .filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_)))
+        .collect();
+    assert_eq!(
+        shotgun.len(),
+        1,
+        "three same-name definitions with identical callers should fold into one finding"
+    );
+    let e = shotgun_evidence(shotgun[0]);
+    assert_eq!(e.name_collision_count, 3, "fold marker should record 3 definitions");
+    assert_eq!(e.additional_definitions.len(), 2, "two sibling definitions retained");
+}

@@ -97,17 +97,31 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     let ignore_patterns: &[String] = cfg_ref.map_or(&[][..], |c| &c.ignore.paths);
     let matcher = config::IgnoreMatcher::from_patterns(ignore_patterns);
     let filter = audit::IgnoreFilter::new(&matcher, &ignore_base);
+    let suppression = config::AuditSuppression::from_config(cfg_ref.map(|c| &c.audit));
     let opts = audit::AuditOpts {
         root: root.clone(),
         pass: args.pass,
         json: args.json,
         include_tests,
+        show_noise: args.show_noise,
+        suppression,
     };
     let findings = audit::run_with_filter(&opts, &thresholds.audit, &filter);
     let rendered = if args.json {
-        audit::output::format_findings_json(&findings, Some(&root))
+        audit::output::format_findings_json_filtered(
+            &findings,
+            Some(&root),
+            opts.show_noise,
+            &opts.suppression,
+        )
     } else {
-        audit::output::format_findings(&findings, Some(&root), &thresholds.audit)
+        audit::output::format_findings_filtered(
+            &findings,
+            Some(&root),
+            &thresholds.audit,
+            opts.show_noise,
+            &opts.suppression,
+        )
     };
     if !rendered.is_empty() {
         print!("{rendered}");

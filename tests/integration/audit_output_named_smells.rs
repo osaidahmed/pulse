@@ -38,6 +38,8 @@ fn sample_evidence(callers: usize, confidence: ImportConfidence) -> ShotgunSurge
         fanout: 7,
         confidence,
         caller_samples: samples,
+        name_collision_count: 0,
+        additional_definitions: Vec::new(),
     }
 }
 

@@ -69,6 +69,7 @@ mod audit_common;
 #[path = "integration/audit_scoring_extended.rs"] mod audit_scoring_extended;
 #[path = "integration/audit_seeded_fingerprint.rs"] mod audit_seeded_fingerprint;
 #[path = "integration/audit_shotgun_surgery.rs"] mod audit_shotgun_surgery;
+#[path = "integration/audit_suppression.rs"] mod audit_suppression;
 #[path = "integration/audit_stress.rs"] mod audit_stress;
 #[path = "integration/audit_test_exclusion.rs"] mod audit_test_exclusion;
 #[path = "integration/audit_threshold_martin.rs"] mod audit_threshold_martin;

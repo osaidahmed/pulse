@@ -125,8 +125,8 @@ fn audit_json_flag_emits_valid_json() {
     let (stdout, _stderr, code) = audit_in_dir_json("shotgun_media_type");
     assert_eq!(code, 1);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid json");
-    assert!(parsed.is_array());
-    assert!(!parsed.as_array().unwrap().is_empty());
+    let findings = parsed.get("findings").and_then(serde_json::Value::as_array).expect("findings array");
+    assert!(!findings.is_empty());
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn audit_json_clean_emits_empty_array() {
 fn audit_json_each_finding_has_kind_and_locations() {
     let (stdout, _stderr, _code) = audit_in_dir_json("shotgun_media_type");
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed.as_array().unwrap();
+    let arr = parsed.get("findings").and_then(serde_json::Value::as_array).expect("findings array");
     for f in arr {
         assert!(f.get("kind").is_some());
         assert!(f.get("locations").is_some());
@@ -354,7 +354,7 @@ fn audit_pulse_self_json_output_parses() {
     let src = manifest.join("src");
     let (stdout, _, _) = pulse_audit(&["--json", "--root", src.to_str().unwrap()]);
     let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid json");
-    assert!(parsed.is_array());
+    assert!(parsed.is_array() || parsed.get("findings").is_some());
 }
 
 #[test]
