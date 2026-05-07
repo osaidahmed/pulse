@@ -5,3 +5,4 @@
 .claude/
 CLAUDE.md
 .codegraph
+scripts/remote.sh

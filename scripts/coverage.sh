@@ -4,6 +4,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+if [ -n "${REMOTE_RUN:-}" ] && [ -x "$ROOT_DIR/scripts/remote.sh" ]; then
+  exec "$ROOT_DIR/scripts/remote.sh" "./scripts/$(basename "$0")" "$@"
+fi
+
 # ── usage ──────────────────────────────────────────────────────────
 usage() {
   cat <<EOF
