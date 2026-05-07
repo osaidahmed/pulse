@@ -115,14 +115,21 @@ fn fingerprint_cursor(cursor: &mut tree_sitter::TreeCursor, hasher: &mut impl Ha
 
     if cursor.goto_first_child() {
         0xFE_u8.hash(hasher);
-        loop {
-            fingerprint_cursor(cursor, hasher);
-            if !cursor.goto_next_sibling() {
-                break;
-            }
-        }
+        fingerprint_siblings(cursor, hasher);
         cursor.goto_parent();
         0xFD_u8.hash(hasher);
+    }
+}
+
+fn fingerprint_siblings(cursor: &mut tree_sitter::TreeCursor, hasher: &mut impl Hasher) {
+    const MAX_SIBLINGS: usize = 1 << 20;
+    let mut sibs: usize = 0;
+    loop {
+        fingerprint_cursor(cursor, hasher);
+        sibs += 1;
+        if sibs >= MAX_SIBLINGS || !cursor.goto_next_sibling() {
+            break;
+        }
     }
 }
 

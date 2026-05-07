@@ -184,14 +184,16 @@ impl BodyWalker<'_, '_> {
     fn walk_range(&mut self, start: usize, end: usize, depth: u32) {
         let mut i = start;
         self.s.reset_bump();
-        while i < end {
+        let cap = self.nodes.len().saturating_add(1);
+        let mut steps: usize = 0;
+        while i < end && steps < cap {
             let prev = i;
-            i = self.dispatch(i, depth);
-            // Reset bump tracking between top-level blocks so separate
-            // nested chunks each count as a bump
+            let next = self.dispatch(i, depth);
+            i = if next > prev { next } else { prev + 1 };
             if depth == 0 && i > prev {
                 self.s.reset_bump();
             }
+            steps += 1;
         }
     }
 
@@ -212,12 +214,17 @@ impl BodyWalker<'_, '_> {
         let saved = self.s.cogc_nesting;
         self.s.cogc_nesting += 1;
         let mut i = start;
-        while i < self.nodes.len() {
+        let cap = self.nodes.len().saturating_add(1);
+        let mut steps: usize = 0;
+        while i < self.nodes.len() && steps < cap {
             if self.nodes[i].kind() == end_marker {
                 self.s.cogc_nesting = saved;
                 return i + 1;
             }
-            i = self.dispatch(i, depth);
+            let prev = i;
+            let next = self.dispatch(i, depth);
+            i = if next > prev { next } else { prev + 1 };
+            steps += 1;
         }
         self.s.cogc_nesting = saved;
         i
@@ -231,7 +238,9 @@ impl BodyWalker<'_, '_> {
         self.s.cogc_nesting += 1;
 
         let mut i = start + 1;
-        while i < self.nodes.len() {
+        let cap = self.nodes.len().saturating_add(1);
+        let mut steps: usize = 0;
+        while i < self.nodes.len() && steps < cap {
             match self.nodes[i].kind() {
                 "else_if_header" => {
                     self.s.cc += 1;
@@ -241,8 +250,13 @@ impl BodyWalker<'_, '_> {
                 }
                 "else_header" => { self.s.track_cogc_flat(); i += 1; }
                 "END_IF" => { self.s.cogc_nesting = saved; return i + 1; }
-                _ => { i = self.dispatch(i, depth + 1); }
+                _ => {
+                    let prev = i;
+                    let next = self.dispatch(i, depth + 1);
+                    i = if next > prev { next } else { prev + 1 };
+                }
             }
+            steps += 1;
         }
         self.s.cogc_nesting = saved;
         i
@@ -255,13 +269,20 @@ impl BodyWalker<'_, '_> {
         self.s.cogc_nesting += 1;
 
         let mut i = start + 1;
-        while i < self.nodes.len() {
+        let cap = self.nodes.len().saturating_add(1);
+        let mut steps: usize = 0;
+        while i < self.nodes.len() && steps < cap {
             match self.nodes[i].kind() {
                 "when" => { self.s.cc += 1; self.match_arms += 1; i += 1; }
                 "when_other" => { self.s.track_cogc_flat(); i += 1; }
                 "END_EVALUATE" => { self.s.cogc_nesting = saved; return i + 1; }
-                _ => { i = self.dispatch(i, depth + 1); }
+                _ => {
+                    let prev = i;
+                    let next = self.dispatch(i, depth + 1);
+                    i = if next > prev { next } else { prev + 1 };
+                }
             }
+            steps += 1;
         }
         self.s.cogc_nesting = saved;
         i

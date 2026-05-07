@@ -531,3 +531,35 @@ fn analysis_completes_under_500ms() {
         elapsed.as_millis()
     );
 }
+
+#[test]
+fn empty_except_detected_python() {
+    let out = pulse_check_code(
+        "def f():\n    try:\n        x = 1\n    except Exception:\n        pass\n",
+        "py",
+    );
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
+}
+
+#[test]
+fn finally_body_branching_contributes_to_cc_python() {
+    let debug = pulse_debug_code(
+        concat!(
+            "def f(ok, alt):\n",
+            "    try:\n",
+            "        x = 1\n",
+            "    except Exception:\n",
+            "        pass\n",
+            "    finally:\n",
+            "        if ok:\n",
+            "            print(1)\n",
+            "        elif alt:\n",
+            "            print(2)\n",
+            "        else:\n",
+            "            print(3)\n",
+        ),
+        "py",
+    );
+    let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
+    assert!(cc >= 3, "finally if/elif/else must bump cc, got cc={cc}");
+}

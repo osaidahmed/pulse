@@ -733,3 +733,22 @@ fn primitive_obsession_mixed_not_flagged_smells() {
     );
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
+
+#[test]
+fn empty_catch_detected_java() {
+    let out = pulse_check_code(
+        "class T { void f() { try { int x = 1; } catch (Exception e) { } } }\n",
+        "java",
+    );
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
+}
+
+#[test]
+fn finally_body_branching_contributes_to_cc_java() {
+    let debug = pulse_debug_code(
+        "class T { void f(boolean ok, boolean alt) { try { int x = 1; } catch (Exception e) { } finally { if (ok) { System.out.println(1); } else if (alt) { System.out.println(2); } else { System.out.println(3); } } } }\n",
+        "java",
+    );
+    let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
+    assert!(cc >= 3, "finally if/else if/else must bump cc, got cc={cc}");
+}

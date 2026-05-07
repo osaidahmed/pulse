@@ -206,3 +206,126 @@ fn short_similar_functions_not_flagged_as_similar() {
     // These would have matched under the old set hash, but not under multiset + LOC floor
     assert!(!out.contains("similar structure"), "short functions should not trigger similar match, got: {out}");
 }
+
+fn parse_functions(code: &str, ext: &str) -> Vec<pulse::walk::FunctionMetrics> {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(format!("hash_test.{ext}"));
+    std::fs::write(&path, code).unwrap();
+    let lang = pulse::parse::detect_language(&path).expect("language");
+    let source = std::fs::read_to_string(&path).unwrap();
+    let metrics = pulse::parse::parse_and_walk(&source, lang).expect("parse");
+    metrics.functions
+}
+
+fn find_fn<'a>(fns: &'a [pulse::walk::FunctionMetrics], name: &str) -> &'a pulse::walk::FunctionMetrics {
+    fns.iter()
+        .find(|f| f.name == name)
+        .unwrap_or_else(|| panic!("expected function {name}, got {:?}", fns.iter().map(|f| &f.name).collect::<Vec<_>>()))
+}
+
+#[test]
+fn skeleton_hash_differs_for_different_shapes() {
+    let code = concat!(
+        "def if_chain(a, b, c):\n",
+        "    if a:\n",
+        "        return 1\n",
+        "    elif b:\n",
+        "        return 2\n",
+        "    elif c:\n",
+        "        return 3\n",
+        "    return 0\n",
+        "\n",
+        "def for_loop(items):\n",
+        "    total = 0\n",
+        "    for x in items:\n",
+        "        total = total + x\n",
+        "    return total\n",
+        "\n",
+        "def while_loop(items):\n",
+        "    total = 0\n",
+        "    i = 0\n",
+        "    while i < len(items):\n",
+        "        total = total + items[i]\n",
+        "        i = i + 1\n",
+        "    return total\n",
+    );
+    let fns = parse_functions(code, "py");
+    let if_chain = find_fn(&fns, "if_chain");
+    let for_loop = find_fn(&fns, "for_loop");
+    let while_loop = find_fn(&fns, "while_loop");
+
+    assert_ne!(
+        if_chain.skeleton_hash, for_loop.skeleton_hash,
+        "if-chain and for-loop should produce distinct skeleton hashes"
+    );
+    assert_ne!(
+        if_chain.skeleton_hash, while_loop.skeleton_hash,
+        "if-chain and while-loop should produce distinct skeleton hashes"
+    );
+    assert_ne!(
+        for_loop.skeleton_hash, while_loop.skeleton_hash,
+        "for-loop and while-loop should produce distinct skeleton hashes"
+    );
+}
+
+#[test]
+fn structural_hash_differs_for_different_shapes() {
+    let code = concat!(
+        "def shape_a(x):\n",
+        "    if x > 0:\n",
+        "        return x + 1\n",
+        "    return 0\n",
+        "\n",
+        "def shape_b(x):\n",
+        "    while x > 0:\n",
+        "        x = x - 1\n",
+        "    return x\n",
+    );
+    let fns = parse_functions(code, "py");
+    let a = find_fn(&fns, "shape_a");
+    let b = find_fn(&fns, "shape_b");
+    assert_ne!(
+        a.structural_hash, b.structural_hash,
+        "if-shape and while-shape should produce distinct structural hashes"
+    );
+}
+
+#[test]
+fn skeleton_hash_nonzero_for_meaningful_input() {
+    let code = concat!(
+        "def real_function(items, threshold):\n",
+        "    selected = []\n",
+        "    for x in items:\n",
+        "        if x > threshold:\n",
+        "            selected.append(x)\n",
+        "    return selected\n",
+    );
+    let fns = parse_functions(code, "py");
+    let f = find_fn(&fns, "real_function");
+    assert_ne!(f.skeleton_hash, 0, "skeleton_hash must be non-zero for meaningful input");
+    assert_ne!(f.structural_hash, 0, "structural_hash must be non-zero for meaningful input");
+}
+
+#[test]
+fn assert_fingerprint_differs_across_distinct_blocks() {
+    let code = concat!(
+        "def test_alpha():\n",
+        "    a = make()\n",
+        "    assert a.name == 'alpha'\n",
+        "    assert a.role == 'admin'\n",
+        "    assert a.score > 0\n",
+        "    assert a.active\n",
+        "\n",
+        "def test_beta():\n",
+        "    b = make()\n",
+        "    assert b.id == 5\n",
+        "    assert b.value < 100\n",
+    );
+    let fns = parse_functions(code, "py");
+    let alpha = find_fn(&fns, "test_alpha");
+    let beta = find_fn(&fns, "test_beta");
+    assert_ne!(
+        alpha.assert_hash, beta.assert_hash,
+        "distinct assert structures should produce distinct assert_hash values"
+    );
+}

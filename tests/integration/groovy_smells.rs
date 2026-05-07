@@ -907,3 +907,13 @@ fn global_conditionals_parsed() {
     let debug = run_debug(LANG, "clean.groovy");
     assert!(debug.contains("functions"), "debug should show module metrics");
 }
+
+#[test]
+fn finally_body_branching_contributes_to_cc_groovy() {
+    let debug = pulse_debug_code(
+        "class T { void f(boolean ok, boolean alt) { try { int x = 1 } catch (Exception e) { } finally { if (ok) { println 1 } else if (alt) { println 2 } else { println 3 } } } }\n",
+        "groovy",
+    );
+    let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
+    assert!(cc >= 3, "finally if/else if/else must bump cc, got cc={cc}");
+}

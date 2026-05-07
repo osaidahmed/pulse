@@ -6,10 +6,41 @@ pub struct Scc {
     pub edges: Vec<(NodeIndex, NodeIndex)>,
 }
 
+#[doc(hidden)]
+#[derive(Debug, Clone, Default)]
+pub struct TarjanDiagnostics {
+    pub iteration_cap_hit: bool,
+    pub max_iters: usize,
+}
+
 pub fn find_cycles(graph: &ImportGraph, min_size: u32) -> Vec<Scc> {
-    let mut state = TarjanState::new(graph);
+    find_cycles_with_max_iters(graph, min_size, default_max_iters(graph)).0
+}
+
+#[doc(hidden)]
+pub fn find_cycles_with_max_iters(
+    graph: &ImportGraph,
+    min_size: u32,
+    max_iters: usize,
+) -> (Vec<Scc>, TarjanDiagnostics) {
+    let mut state = TarjanState::new(graph, max_iters);
     state.run();
-    state.into_components(graph, min_size)
+    let diag = TarjanDiagnostics {
+        iteration_cap_hit: state.iteration_cap_hit,
+        max_iters: state.max_iters,
+    };
+    (state.into_components(graph, min_size), diag)
+}
+
+#[doc(hidden)]
+pub fn default_max_iters(graph: &ImportGraph) -> usize {
+    let n = graph.registry.count();
+    let total_edges: usize = (0..n)
+        .map(|i| graph.adjacency.outgoing(NodeIndex(i as u32)).len())
+        .sum();
+    n.saturating_mul(2)
+        .saturating_add(total_edges)
+        .saturating_add(8)
 }
 
 const NIL: u32 = u32::MAX;
@@ -22,10 +53,12 @@ struct TarjanState<'g> {
     on_stack: Vec<bool>,
     stack: Vec<NodeIndex>,
     components: Vec<Vec<NodeIndex>>,
+    max_iters: usize,
+    iteration_cap_hit: bool,
 }
 
 impl<'g> TarjanState<'g> {
-    fn new(graph: &'g ImportGraph) -> Self {
+    fn new(graph: &'g ImportGraph, max_iters: usize) -> Self {
         let n = graph.registry.count();
         Self {
             graph,
@@ -35,6 +68,8 @@ impl<'g> TarjanState<'g> {
             on_stack: vec![false; n],
             stack: Vec::new(),
             components: Vec::new(),
+            max_iters,
+            iteration_cap_hit: false,
         }
     }
 
@@ -49,8 +84,13 @@ impl<'g> TarjanState<'g> {
 
     fn visit_iterative(&mut self, root: NodeIndex) {
         let mut frame_stack: Vec<Frame> = vec![self.start_frame(root)];
-        while !frame_stack.is_empty() {
+        let mut steps: usize = 0;
+        while !frame_stack.is_empty() && steps < self.max_iters {
             self.advance_top(&mut frame_stack);
+            steps += 1;
+        }
+        if !frame_stack.is_empty() {
+            self.iteration_cap_hit = true;
         }
     }
 

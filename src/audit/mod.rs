@@ -304,6 +304,13 @@ pub fn walk_typed_source_files_filtered(
     files
 }
 
+pub const MAX_FILES: usize = 100_000;
+
+#[doc(hidden)]
+pub fn audit_traversal_cap_hit(file_count: usize) -> bool {
+    file_count >= MAX_FILES
+}
+
 fn walk_typed_dir(
     dir: &Path,
     include_tests: bool,
@@ -312,6 +319,9 @@ fn walk_typed_dir(
 ) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
+        if files.len() >= MAX_FILES {
+            return;
+        }
         descend_or_collect(entry.path(), include_tests, filter, files);
     }
 }

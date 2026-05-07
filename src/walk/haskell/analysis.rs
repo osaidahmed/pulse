@@ -78,7 +78,9 @@ fn split_type_arrows(type_str: &str) -> Vec<&str> {
     let mut start = 0;
     let bytes = type_str.as_bytes();
     let mut i = 0;
-    while i < bytes.len() {
+    let cap = bytes.len().saturating_add(1);
+    let mut steps = 0usize;
+    while i < bytes.len() && steps < cap {
         match bytes[i] {
             b'(' | b'[' => depth += 1,
             b')' | b']' => depth -= 1,
@@ -86,11 +88,13 @@ fn split_type_arrows(type_str: &str) -> Vec<&str> {
                 segments.push(&type_str[start..i]);
                 i += 2;
                 start = i;
+                steps += 1;
                 continue;
             }
             _ => {}
         }
         i += 1;
+        steps += 1;
     }
     if start < type_str.len() {
         segments.push(&type_str[start..]);

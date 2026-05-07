@@ -88,13 +88,13 @@ fn count_non_ctor_methods(
     defs: &[DefinitionRecord],
 ) -> u32 {
     let Some(class) = registry.get(idx) else { return 0 };
-    let mut count = 0;
+    let mut count: u32 = 0;
     for def in defs {
         if def.identity.class.as_deref() == Some(&class.name)
             && def.identity.file == class.file
             && !def.is_constructor
         {
-            count += 1;
+            count = count.saturating_add(1);
         }
     }
     count

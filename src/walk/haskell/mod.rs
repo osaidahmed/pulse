@@ -69,7 +69,9 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, p
     let mut cursor = node.walk();
     let children: Vec<_> = node.children(&mut cursor).collect();
     let mut i = 0;
-    while i < children.len() {
+    let cap = children.len().saturating_add(1);
+    let mut steps = 0usize;
+    while i < children.len() && steps < cap {
         match children[i].kind() {
             "function" => {
                 let group = gather_equation_group(&children, &mut i, source);
@@ -88,18 +90,23 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, p
             _ => {}
         }
         i += 1;
+        steps += 1;
     }
 }
 
 fn gather_equation_group<'a>(children: &[Node<'a>], i: &mut usize, source: &str) -> Vec<Node<'a>> {
     let name = extract_name(children[*i], source);
     let mut group = vec![children[*i]];
-    while *i + 1 < children.len()
+    let cap = children.len().saturating_add(1);
+    let mut steps = 0usize;
+    while steps < cap
+        && *i + 1 < children.len()
         && children[*i + 1].kind() == "function"
         && extract_name(children[*i + 1], source) == name
     {
         *i += 1;
         group.push(children[*i]);
+        steps += 1;
     }
     group
 }

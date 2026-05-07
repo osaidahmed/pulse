@@ -623,3 +623,22 @@ fn analysis_completes_under_500ms() {
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
 }
+
+#[test]
+fn empty_catch_detected_csharp() {
+    let out = pulse_check_code(
+        "class T { void F() { try { int x = 1; } catch (Exception e) { } } }\n",
+        "cs",
+    );
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
+}
+
+#[test]
+fn finally_body_branching_contributes_to_cc_csharp() {
+    let debug = pulse_debug_code(
+        "class T { void F(bool ok, bool alt) { try { int x = 1; } catch (Exception e) { } finally { if (ok) { System.Console.WriteLine(1); } else if (alt) { System.Console.WriteLine(2); } else { System.Console.WriteLine(3); } } } }\n",
+        "cs",
+    );
+    let cc = function_metric(&debug, "F", "cc").unwrap_or(0);
+    assert!(cc >= 3, "finally if/else if/else must bump cc, got cc={cc}");
+}
