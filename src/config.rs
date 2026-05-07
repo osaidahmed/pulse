@@ -311,6 +311,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             max_string_match_arms: a.max_string_match_arms.unwrap_or(ba.max_string_match_arms),
         },
         audit: base.audit,
+        history: base.history,
     }
 }
 

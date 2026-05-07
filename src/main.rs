@@ -6,6 +6,7 @@ mod baselines;
 mod cli;
 mod config;
 mod duplication;
+mod history;
 mod hook;
 mod module_smells;
 mod output;
@@ -64,7 +65,7 @@ fn dispatch_session(d: cli::Dispatch) -> Option<cli::Dispatch> {
         return None;
     }
     if matches!(d, cli::Dispatch::UsageError) {
-        eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | --version");
+        eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version");
         process::exit(1);
     }
     Some(d)
@@ -81,6 +82,9 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
+        cli::Dispatch::History { args, include_tests } => {
+            history::cmd::run(args.root, args.json, args.since, args.max_commits, include_tests);
+        }
         _ => unreachable!(),
     }
 }

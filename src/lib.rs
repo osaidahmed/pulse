@@ -5,6 +5,7 @@ pub mod audit;
 pub mod baselines;
 pub mod config;
 pub mod duplication;
+pub mod history;
 pub mod hook;
 pub mod module_smells;
 pub mod output;

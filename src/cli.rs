@@ -39,6 +39,8 @@ pub enum SubCmd {
     },
     /// Cross-file refactoring analysis (manual invocation, never automated).
     Audit(AuditArgs),
+    /// Mine git history for evolutionary smells (manual invocation, never automated).
+    History(HistoryArgs),
 }
 
 #[derive(clap::Args, Debug)]
@@ -60,6 +62,25 @@ pub struct AuditArgs {
     pub show_noise: bool,
 }
 
+#[derive(clap::Args, Debug)]
+pub struct HistoryArgs {
+    /// Emit findings as JSON (envelope with summary + findings array).
+    #[arg(long)]
+    pub json: bool,
+
+    /// Project root directory (defaults to current directory).
+    #[arg(long)]
+    pub root: Option<String>,
+
+    /// Only consider commits since this git-log expression (e.g. "6 months ago", "2024-01-01").
+    #[arg(long)]
+    pub since: Option<String>,
+
+    /// Cap the number of commits scanned (escape hatch for very large repos).
+    #[arg(long = "max-commits")]
+    pub max_commits: Option<u32>,
+}
+
 pub enum Dispatch {
     Hook,
     Stop,
@@ -70,6 +91,7 @@ pub enum Dispatch {
     Debug(String),
     Budget(Option<String>),
     Audit { args: AuditArgs, include_tests: bool },
+    History { args: HistoryArgs, include_tests: bool },
     UsageError,
 }
 
@@ -86,7 +108,7 @@ pub fn parse() -> Dispatch {
 fn parse_clap() -> Cli {
     Cli::try_parse().unwrap_or_else(|e| {
         if matches!(e.kind(), clap::error::ErrorKind::InvalidSubcommand) {
-            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | --version");
+            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version");
             std::process::exit(1);
         }
         let _ = e.print();
@@ -95,14 +117,23 @@ fn parse_clap() -> Cli {
 }
 
 fn dispatch_from_clap(cli: Cli) -> Dispatch {
+    let all = cli.all;
+    let include_tests = cli.include_tests;
     match cli.command {
-        Some(SubCmd::Setup) => Dispatch::Setup,
-        Some(SubCmd::Check { file }) => fileful_dispatch(file, cli.all, Dispatch::Check, || Dispatch::CheckAll { include_tests: cli.include_tests }),
-        Some(SubCmd::Debug { file }) => Dispatch::Debug(file),
-        Some(SubCmd::Budget { file, new }) => fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None)),
-        Some(SubCmd::Audit(args)) => Dispatch::Audit { args, include_tests: cli.include_tests },
-        None if cli.all => Dispatch::CheckAll { include_tests: cli.include_tests },
+        Some(sub) => dispatch_subcmd(sub, all, include_tests),
+        None if all => Dispatch::CheckAll { include_tests },
         None => Dispatch::UsageError,
+    }
+}
+
+fn dispatch_subcmd(sub: SubCmd, all: bool, include_tests: bool) -> Dispatch {
+    match sub {
+        SubCmd::Setup => Dispatch::Setup,
+        SubCmd::Check { file } => fileful_dispatch(file, all, Dispatch::Check, || Dispatch::CheckAll { include_tests }),
+        SubCmd::Debug { file } => Dispatch::Debug(file),
+        SubCmd::Budget { file, new } => fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None)),
+        SubCmd::Audit(args) => Dispatch::Audit { args, include_tests },
+        SubCmd::History(args) => Dispatch::History { args, include_tests },
     }
 }
 

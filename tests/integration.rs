@@ -5,6 +5,9 @@ mod common;
 #[path = "integration/audit_common.rs"]
 mod audit_common;
 
+#[path = "integration/history_common.rs"]
+mod history_common;
+
 #[path = "integration/analytics_tests.rs"] mod analytics_tests;
 #[path = "integration/audit_abstractness.rs"] mod audit_abstractness;
 #[path = "integration/audit_call_extraction_clean.rs"] mod audit_call_extraction_clean;
@@ -108,6 +111,19 @@ mod audit_common;
 #[path = "integration/groovy_stress.rs"] mod groovy_stress;
 #[path = "integration/haskell_smells.rs"] mod haskell_smells;
 #[path = "integration/haskell_stress.rs"] mod haskell_stress;
+#[path = "integration/history_cli.rs"] mod history_cli;
+#[path = "integration/history_co_change.rs"] mod history_co_change;
+#[path = "integration/history_contributors.rs"] mod history_contributors;
+#[path = "integration/history_e2e_scenarios.rs"] mod history_e2e_scenarios;
+#[path = "integration/history_edge_cases.rs"] mod history_edge_cases;
+#[path = "integration/history_edges.rs"] mod history_edges;
+#[path = "integration/history_finding.rs"] mod history_finding;
+#[path = "integration/history_git.rs"] mod history_git;
+#[path = "integration/history_hotspots.rs"] mod history_hotspots;
+#[path = "integration/history_languages_static_link.rs"] mod history_languages_static_link;
+#[path = "integration/history_negative_paths.rs"] mod history_negative_paths;
+#[path = "integration/history_orchestrator.rs"] mod history_orchestrator;
+#[path = "integration/history_output.rs"] mod history_output;
 #[path = "integration/hook_diff_filtering.rs"] mod hook_diff_filtering;
 #[path = "integration/hook_filtering.rs"] mod hook_filtering;
 #[path = "integration/java_smells.rs"] mod java_smells;

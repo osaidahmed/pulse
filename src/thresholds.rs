@@ -1,9 +1,12 @@
+use crate::history::thresholds::HistoryThresholds;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Thresholds {
     pub function: FunctionThresholds,
     pub module: ModuleThresholds,
     pub analysis: AnalysisThresholds,
     pub audit: AuditThresholds,
+    pub history: HistoryThresholds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -319,6 +322,7 @@ impl Default for Thresholds {
             module: ModuleThresholds::DEFAULTS,
             analysis: AnalysisThresholds::DEFAULTS,
             audit: AuditThresholds::DEFAULTS,
+            history: HistoryThresholds::DEFAULTS,
         }
     }
 }
