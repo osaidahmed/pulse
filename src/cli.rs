@@ -79,6 +79,18 @@ pub struct HistoryArgs {
     /// Cap the number of commits scanned (escape hatch for very large repos).
     #[arg(long = "max-commits")]
     pub max_commits: Option<u32>,
+
+    /// Override the cap on architectural-drift (co-change) findings reported.
+    #[arg(long = "co-change-top")]
+    pub co_change_top: Option<u32>,
+
+    /// Override the cap on hotspot findings reported.
+    #[arg(long = "hotspot-top")]
+    pub hotspot_top: Option<u32>,
+
+    /// Override the cap on knowledge-fragmentation findings reported.
+    #[arg(long = "contributors-top")]
+    pub contributors_top: Option<u32>,
 }
 
 pub enum Dispatch {

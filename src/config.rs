@@ -9,6 +9,11 @@ use crate::parse::Language;
 use crate::smells::{self, Finding, Smell};
 use crate::thresholds::Thresholds;
 
+pub use crate::config_history::{
+    combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides,
+    HistoryConfig,
+};
+
 const CONFIG_FILENAME: &str = ".pulse.toml";
 
 #[derive(Debug, Deserialize, Default)]
@@ -22,6 +27,8 @@ pub struct PulseConfig {
     pub ignore: IgnoreConfig,
     #[serde(default)]
     pub audit: AuditConfig,
+    #[serde(default)]
+    pub history: HistoryConfig,
     #[serde(default)]
     pub languages: std::collections::HashMap<String, ConfigThresholds>,
 }

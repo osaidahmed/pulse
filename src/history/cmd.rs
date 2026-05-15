@@ -6,37 +6,41 @@ use crate::config;
 
 use super::{output, HistoryError, HistoryOpts};
 
-pub fn run(
-    root: Option<String>,
-    json: bool,
-    since: Option<String>,
-    max_commits: Option<u32>,
-    include_tests: bool,
-) {
-    let root = root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
+#[derive(Debug, Default)]
+pub struct RunArgs {
+    pub root: Option<String>,
+    pub json: bool,
+    pub since: Option<String>,
+    pub max_commits: Option<u32>,
+    pub overrides: config::HistoryCliOverrides,
+    pub include_tests: bool,
+}
+
+pub fn run(args: RunArgs) {
+    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
     let cfg_with_root = config::load_config_with_root(&root);
     let (cfg_ref, ignore_base) = match &cfg_with_root {
         Some((c, base)) => (Some(c), base.clone()),
         None => (None, root.clone()),
     };
-    let thresholds = config::resolve_base_thresholds(cfg_ref);
-    let ignore_patterns: &[String] = cfg_ref.map_or(&[][..], |c| &c.ignore.paths);
-    let matcher = config::IgnoreMatcher::from_patterns(ignore_patterns);
+    let history_thresholds = config::resolve_history_thresholds(cfg_ref, args.overrides);
+    let ignore_patterns = config::combined_history_ignore_patterns(cfg_ref);
+    let matcher = config::IgnoreMatcher::from_patterns(&ignore_patterns);
     let filter = audit::IgnoreFilter::new(&matcher, &ignore_base);
     let opts = HistoryOpts {
         root: root.clone(),
-        include_tests,
-        since,
-        max_commits,
+        include_tests: args.include_tests,
+        since: args.since,
+        max_commits: args.max_commits,
     };
-    let findings = match super::run_with_filter(&opts, &thresholds.history, &filter) {
+    let findings = match super::run_with_filter(&opts, &history_thresholds, &filter) {
         Ok(f) => f,
         Err(e) => {
             handle_error(&e);
             return;
         }
     };
-    let rendered = if json {
+    let rendered = if args.json {
         output::format_findings_json(&findings, Some(&root))
     } else {
         output::format_findings(&findings, Some(&root))

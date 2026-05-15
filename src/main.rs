@@ -5,6 +5,7 @@ mod audit;
 mod baselines;
 mod cli;
 mod config;
+mod config_history;
 mod duplication;
 mod history;
 mod hook;
@@ -83,7 +84,18 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
         cli::Dispatch::History { args, include_tests } => {
-            history::cmd::run(args.root, args.json, args.since, args.max_commits, include_tests);
+            history::cmd::run(history::cmd::RunArgs {
+                root: args.root,
+                json: args.json,
+                since: args.since,
+                max_commits: args.max_commits,
+                overrides: config::HistoryCliOverrides {
+                    co_change_top: args.co_change_top,
+                    hotspot_top: args.hotspot_top,
+                    contributors_top: args.contributors_top,
+                },
+                include_tests,
+            });
         }
         _ => unreachable!(),
     }
