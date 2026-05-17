@@ -32,6 +32,12 @@ arg_max = 7
 
 [ignore]
 # skips matching paths entirely
+
+[audit]
+# hides findings from `pulse audit`
+
+[history]
+# tunes `pulse history`
 ```
 
 ## Ignore Paths
@@ -187,3 +193,58 @@ smells = ["primitive_obsession", "short_variable_names"]
 arg_max = 7
 constructor_arg_max = 8
 ```
+
+## Audit Configuration
+
+`pulse audit` is an experimental surface. The `[audit]` table hides findings from its output. It does not change what gets detected.
+
+```toml
+[audit]
+hide_smells = ["feature_envy", "god_class"]
+hide_categories = ["literal_repetition", "method_call"]
+hide_patterns = ["*logger*", "build_*_response"]
+```
+
+`hide_smells` drops named-smell and architecture findings by slug:
+
+```
+distance_from_main_sequence  import_cycle  zero_edge_project
+shotgun_surgery  divergent_change  feature_envy
+god_class  parallel_inheritance  refused_bequest
+```
+
+`hide_categories` drops cross-file pattern findings by category:
+
+```
+primitive_obsession  chained_dict_access  enum_value_access
+attribute_chain  literal_repetition  method_call
+comparison  assignment  dict_literal  list_literal  other
+```
+
+`hide_patterns` drops cross-file pattern findings whose snippet matches a glob. The globs run against the snippet text, not file paths.
+
+`[ignore] paths` applies to audit as well. Matching files are never walked.
+
+## History Configuration
+
+`pulse history` is an experimental surface. It reads the `[history]` table.
+
+```toml
+[history]
+ignore_paths = ["migrations/**", "*.lock"]
+
+[history.co_change]
+max_findings = 20
+
+[history.hotspot]
+max_findings = 10
+
+[history.contributors]
+max_findings = 20
+```
+
+`ignore_paths` adds to `[ignore] paths` for history only, using the same glob syntax.
+
+`max_findings` caps how many findings each pass reports. Defaults are 20 for co-change, 10 for hotspot, 20 for contributors.
+
+The CLI flags `--co-change-top`, `--hotspot-top`, and `--contributors-top` override the matching `max_findings`. `--since`, `--max-commits`, and `--root` have no `.pulse.toml` equivalent.

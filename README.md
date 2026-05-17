@@ -34,7 +34,7 @@ cargo install --path .
 
 ## Platforms
 
-Tested on macOS and Linux. Windows is unverified.
+Tested on macOS, Linux and WSL.
 
 ## How it works
 
@@ -99,11 +99,17 @@ pulse check -a           analyze entire project
 pulse budget <file>      show remaining headroom
 pulse budget --new       show thresholds for a new file
 pulse debug <file>       raw metrics dump
+pulse audit              cross-file analysis (experimental)
+pulse history            git-history mining (experimental)
 pulse --hook             PostToolUse hook (reads JSON stdin)
 pulse --stop             stop hook (regression detection)
 pulse --cleanup          clear baselines
 pulse --version, -V      print version
 ```
+
+## Experimental subcommands
+
+`pulse audit` runs cross-file structural analysis: duplication patterns, god classes, import cycles. `pulse history` mines git history for hotspots and files that keep changing together. I added both because I wanted Pulse to work as a standalone code-smell CLI, not only as an edit hook. Both are rough and produce false positives often enough that you should treat their output as leads to check by hand, not findings to fix. See [docs/configuration.md](docs/configuration.md) for what you can tune and suppress.
 
 ## Citation
 
