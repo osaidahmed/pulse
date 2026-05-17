@@ -41,22 +41,22 @@ fn half_abstract() -> AbstractnessRecord {
 
 #[test]
 fn instability_is_zero_when_only_incoming() {
-    assert_eq!(instability(5, 0), 0.0);
+    assert!(instability(5, 0).abs() < 1e-6);
 }
 
 #[test]
 fn instability_is_one_when_only_outgoing() {
-    assert_eq!(instability(0, 5), 1.0);
+    assert!((instability(0, 5) - 1.0).abs() < 1e-6);
 }
 
 #[test]
 fn instability_is_zero_when_isolated() {
-    assert_eq!(instability(0, 0), 0.0);
+    assert!(instability(0, 0).abs() < 1e-6);
 }
 
 #[test]
 fn instability_is_half_when_symmetric() {
-    assert_eq!(instability(5, 5), 0.5);
+    assert!((instability(5, 5) - 0.5).abs() < 1e-6);
 }
 
 #[test]
@@ -221,9 +221,9 @@ fn compute_is_deterministic_across_calls() {
     let a = g.registry.lookup(&p("a.rs")).unwrap();
     let m1 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit);
     let m2 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit);
-    assert_eq!(m1.instability, m2.instability);
-    assert_eq!(m1.abstractness, m2.abstractness);
-    assert_eq!(m1.distance, m2.distance);
+    assert!((m1.instability - m2.instability).abs() < 1e-6);
+    assert!((m1.abstractness - m2.abstractness).abs() < 1e-6);
+    assert!((m1.distance - m2.distance).abs() < 1e-6);
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn classify_strict_inequality_at_warning_minus_epsilon_is_healthy() {
     let mut th = t().audit;
     th.package_metrics.martin_distance_warning = 0.7;
     th.package_metrics.martin_distance_alert = 0.85;
-    assert_eq!(classify(0.6999999, &th), MartinTier::Healthy);
+    assert_eq!(classify(0.699_999_9, &th), MartinTier::Healthy);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn classify_strict_inequality_at_alert_minus_epsilon_is_warning() {
     let mut th = t().audit;
     th.package_metrics.martin_distance_warning = 0.7;
     th.package_metrics.martin_distance_alert = 0.85;
-    assert_eq!(classify(0.8499999, &th), MartinTier::Warning);
+    assert_eq!(classify(0.849_999_9, &th), MartinTier::Warning);
 }
 
 #[test]
@@ -330,7 +330,7 @@ fn instability_with_max_minus_one_outgoing() {
 
 #[test]
 fn instability_zero_zero_documented_choice() {
-    assert_eq!(instability(0, 0), 0.0);
+    assert!(instability(0, 0).abs() < 1e-6);
 }
 
 #[test]

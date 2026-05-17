@@ -48,7 +48,7 @@ fn build_graph_empty_typed_files_returns_empty_graph() {
 fn build_graph_python_pair_with_import_creates_edge() {
     let (dir, typed) = fixture_python_pair_with_import();
     let graph = build_graph(&typed, dir.path());
-    assert!(graph.adjacency.edges().len() >= 1, "expected at least one edge");
+    assert!(!graph.adjacency.edges().is_empty(), "expected at least one edge");
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn build_graph_python_pair_without_import_no_edges() {
 fn build_graph_rust_pair_with_use_creates_edge() {
     let (dir, typed) = fixture_rust_pair_with_use();
     let graph = build_graph(&typed, dir.path());
-    assert!(graph.adjacency.edges().len() >= 1);
+    assert!(!graph.adjacency.edges().is_empty());
 }
 
 #[test]

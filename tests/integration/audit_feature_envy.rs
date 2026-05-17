@@ -34,6 +34,7 @@ fn def(
     }
 }
 
+#[allow(clippy::similar_names)]
 fn call_to(caller: &DefinitionRecord, callee: &str, hint: Option<&str>) -> LocatedCall {
     LocatedCall {
         call: RawCall {
@@ -73,9 +74,10 @@ fn method_with_high_atfd_and_foreign_ratio_emits_finding() {
     );
     let bar_method1 = def("b.py", Some("Bar"), "do1", 1, vec![]);
     let bar_method2 = def("b.py", Some("Bar"), "do2", 1, vec![]);
-    let mut calls = Vec::new();
-    calls.push(call_to(&envious, "do1", Some("Bar")));
-    calls.push(call_to(&envious, "do2", Some("Bar")));
+    let calls = vec![
+        call_to(&envious, "do1", Some("Bar")),
+        call_to(&envious, "do2", Some("Bar")),
+    ];
     let findings = detect_with(vec![envious, bar_method1, bar_method2], calls, &t().audit);
     assert!(!findings.is_empty(), "expected Feature Envy finding");
     let e = envy_evidence(&findings[0]);
@@ -94,9 +96,10 @@ fn method_with_high_atfd_low_foreign_ratio_no_finding() {
     );
     let intra1 = def("a.py", Some("Foo"), "intra1", 1, vec![]);
     let intra2 = def("a.py", Some("Foo"), "intra2", 1, vec![]);
-    let mut calls = Vec::new();
-    calls.push(call_to(&envious, "intra1", Some("Foo")));
-    calls.push(call_to(&envious, "intra2", Some("Foo")));
+    let calls = vec![
+        call_to(&envious, "intra1", Some("Foo")),
+        call_to(&envious, "intra2", Some("Foo")),
+    ];
     let findings = detect_with(vec![envious, intra1, intra2], calls, &t().audit);
     assert!(findings.is_empty(), "high intra-class ratio suppresses Feature Envy");
 }

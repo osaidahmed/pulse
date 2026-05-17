@@ -197,6 +197,6 @@ fn json_handles_tcc_zero_and_one() {
         e.tcc = value;
         let out = format_findings_json(&[finding_with(e)], None);
         let v: serde_json::Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(v[0]["tcc"].as_f64().unwrap(), value);
+        assert!((v[0]["tcc"].as_f64().unwrap() - value).abs() < 1e-6);
     }
 }

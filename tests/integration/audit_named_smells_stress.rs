@@ -16,6 +16,7 @@ use pulse::parse::Language;
 
 use crate::audit_common::t;
 
+#[allow(clippy::too_many_arguments)]
 fn def_full(
     file: &str,
     class: Option<&str>,
@@ -416,6 +417,7 @@ fn confidence_aggregation_across_mixed_edges() {
 
 #[test]
 fn property_findings_are_sorted_total_order_god_class() {
+    use pulse::audit::finding::AuditKind;
     let mut defs = Vec::new();
     for c in 0..30 {
         let class_name = format!("G{c}");
@@ -439,7 +441,6 @@ fn property_findings_are_sorted_total_order_god_class() {
     let r = ClassRegistry::from_definitions(&defs, &g.registry);
     let lookup = gc::build_method_idx_lookup(&g, &defs);
     let findings = gc::detect(&r, &defs, &lookup, &t().audit);
-    use pulse::audit::finding::AuditKind;
     for w in findings.windows(2) {
         let wmc_a = if let AuditKind::GodClass(e) = &w[0].kind { e.wmc } else { 0 };
         let wmc_b = if let AuditKind::GodClass(e) = &w[1].kind { e.wmc } else { 0 };

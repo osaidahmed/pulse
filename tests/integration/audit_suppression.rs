@@ -47,9 +47,9 @@ fn shotgun_finding(name: &str) -> AuditFinding {
 
 fn cfg(hide_categories: &[&str], hide_smells: &[&str], hide_patterns: &[&str]) -> AuditSuppression {
     let cfg = AuditConfig {
-        hide_categories: hide_categories.iter().map(|s| s.to_string()).collect(),
-        hide_smells: hide_smells.iter().map(|s| s.to_string()).collect(),
-        hide_patterns: hide_patterns.iter().map(|s| s.to_string()).collect(),
+        hide_categories: hide_categories.iter().map(std::string::ToString::to_string).collect(),
+        hide_smells: hide_smells.iter().map(std::string::ToString::to_string).collect(),
+        hide_patterns: hide_patterns.iter().map(std::string::ToString::to_string).collect(),
     };
     AuditSuppression::from_config(Some(&cfg))
 }

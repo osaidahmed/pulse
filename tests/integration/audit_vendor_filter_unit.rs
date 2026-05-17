@@ -93,9 +93,9 @@ fn homogeneous_corpus_flags_nothing() {
 fn structural_cross_entropy_zero_when_either_empty() {
     let empty = KindHistogram::default();
     let nonempty = build_kind_histogram(&[("identifier", 10), ("call", 5)]);
-    assert_eq!(structural_cross_entropy(&empty, &nonempty), 0.0);
-    assert_eq!(structural_cross_entropy(&nonempty, &empty), 0.0);
-    assert_eq!(structural_cross_entropy(&empty, &empty), 0.0);
+    assert!(structural_cross_entropy(&empty, &nonempty).abs() < 1e-6);
+    assert!(structural_cross_entropy(&nonempty, &empty).abs() < 1e-6);
+    assert!(structural_cross_entropy(&empty, &empty).abs() < 1e-6);
 }
 
 #[test]

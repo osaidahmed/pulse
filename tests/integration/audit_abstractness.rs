@@ -33,7 +33,7 @@ fn java_only_classes_yields_zero() {
     let src = "class A {}\nclass B {}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -59,7 +59,7 @@ fn rust_only_structs_yields_zero() {
     let src = "struct A;\nstruct B;\nenum C {}\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn rust_two_traits_no_structs_yields_one() {
     let src = "trait A {}\ntrait B {}\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert_eq!(r.abstractness, 1.0);
+    assert!((r.abstractness - 1.0).abs() < 0.001);
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn typescript_class_only_yields_zero() {
     let src = "class A { foo() {} }\nclass B { bar() {} }\n";
     let (_dir, path) = write_tempfile(src, "ts");
     let r = abstractness_for_file(&path, Language::TypeScript);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn javascript_class_only_yields_zero_besteffort() {
     let src = "class Foo { method() {} }\n";
     let (_dir, path) = write_tempfile(src, "js");
     let r = abstractness_for_file(&path, Language::JavaScript);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::BestEffort);
 }
 
@@ -109,7 +109,7 @@ fn python_class_only_yields_zero_medium() {
     let src = "class Foo:\n    pass\n";
     let (_dir, path) = write_tempfile(src, "py");
     let r = abstractness_for_file(&path, Language::Python);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::Medium);
 }
 
@@ -184,7 +184,7 @@ fn missing_file_returns_naabstraction() {
     let p = PathBuf::from("/nonexistent/path.java");
     let r = abstractness_for_file(&p, Language::Java);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
 }
 
 #[test]
@@ -223,7 +223,7 @@ fn determinism_two_runs_same_file() {
     let (_dir, path) = write_tempfile(src, "rs");
     let r1 = abstractness_for_file(&path, Language::Rust);
     let r2 = abstractness_for_file(&path, Language::Rust);
-    assert_eq!(r1.abstractness, r2.abstractness);
+    assert!((r1.abstractness - r2.abstractness).abs() < 0.001);
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn rust_union_counts_as_concrete() {
     let src = "union U { a: i32, b: f32 }\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert_eq!(r.abstractness, 0.0);
+    assert!(r.abstractness.abs() < 0.001);
 }
 
 #[test]

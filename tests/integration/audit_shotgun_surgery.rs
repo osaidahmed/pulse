@@ -26,6 +26,7 @@ fn def(file: &str, class: Option<&str>, name: &str, line: u32) -> DefinitionReco
     }
 }
 
+#[allow(clippy::similar_names)]
 fn call(
     caller_file: &str,
     caller_class: Option<&str>,
@@ -368,8 +369,14 @@ fn self_receiver_resolves_within_caller_class() {
     for k in 1..15u32 {
         defs.push(def(&format!("c{k}.py"), Some(&format!("Foo{k}")), "helper", 1));
     }
-    let mut calls = Vec::new();
-    calls.push(call("self.py", Some("Foo"), "caller_a", 5, "helper", Some("self")));
+    let calls = vec![call(
+        "self.py",
+        Some("Foo"),
+        "caller_a",
+        5,
+        "helper",
+        Some("self"),
+    )];
     let findings = run_from_inputs(defs, calls, &t().audit);
     let _ = findings;
 }
@@ -383,8 +390,14 @@ fn cls_receiver_resolves_within_caller_class() {
     for k in 1..15u32 {
         defs.push(def(&format!("c{k}.py"), Some(&format!("Other{k}")), "factory", 1));
     }
-    let mut calls = Vec::new();
-    calls.push(call("self.py", Some("Foo"), "caller", 5, "factory", Some("cls")));
+    let calls = vec![call(
+        "self.py",
+        Some("Foo"),
+        "caller",
+        5,
+        "factory",
+        Some("cls"),
+    )];
     let findings = run_from_inputs(defs, calls, &t().audit);
     let _ = findings;
 }

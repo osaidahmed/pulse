@@ -25,7 +25,7 @@ fn write_python_files(dir: &std::path::Path, count: usize, content: &str) {
 fn write_decoys(dir: &std::path::Path, count: usize) {
     for i in 0..count {
         std::fs::write(dir.join(format!("decoy{i}.py")),
-            &format!("CONST_{i} = {i}\n")).unwrap();
+            format!("CONST_{i} = {i}\n")).unwrap();
     }
 }
 
@@ -100,7 +100,7 @@ fn pipeline_extract_subtrees_for_dir_skips_other_languages() {
     std::fs::write(dir.path().join("a.py"), "def f(x):\n    if x:\n        return 1\n    return 0\n").unwrap();
     std::fs::write(dir.path().join("b.rs"), "fn f() {}\n").unwrap();
     let r = extract_subtrees_for_dir(dir.path(), Language::Python, &t().audit);
-    let rs_files: Vec<_> = r.iter().filter(|rec| rec.file.to_str().unwrap_or("").ends_with(".rs")).collect();
+    let rs_files: Vec<_> = r.iter().filter(|rec| rec.file.extension().is_some_and(|e| e == "rs")).collect();
     assert!(rs_files.is_empty());
 }
 
@@ -282,7 +282,7 @@ fn pipeline_handles_directory_with_thousand_files() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..1000 {
         std::fs::write(dir.path().join(format!("f{i}.py")),
-            &format!("CONST_{i} = {i}\n")).unwrap();
+            format!("CONST_{i} = {i}\n")).unwrap();
     }
     let findings = run_pipeline(dir.path());
     let _ = findings;
@@ -367,7 +367,7 @@ fn pipeline_findings_are_within_max_findings_limit() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..200 {
         std::fs::write(dir.path().join(format!("f{i}.py")),
-            &format!("def f{i}(x):\n    if x == {i}:\n        return x\n    return 0\n")).unwrap();
+            format!("def f{i}(x):\n    if x == {i}:\n        return x\n    return 0\n")).unwrap();
     }
     let findings = run_pipeline(dir.path());
     assert!(findings.len() <= t().audit.pattern_mining.max_findings_reported);
@@ -404,11 +404,11 @@ fn pipeline_run_handles_multilanguage_findings_independently() {
     }
     for i in 0..6 {
         std::fs::write(dir.path().join(format!("d{i}.py")),
-            &format!("CONST_{i} = {i}\n")).unwrap();
+            format!("CONST_{i} = {i}\n")).unwrap();
     }
     for i in 0..6 {
         std::fs::write(dir.path().join(format!("e{i}.rs")),
-            &format!("pub const N{i}: i32 = {i};\n")).unwrap();
+            format!("pub const N{i}: i32 = {i};\n")).unwrap();
     }
     let findings = run_pipeline(dir.path());
     let _ = findings;
@@ -481,11 +481,10 @@ fn pipeline_findings_human_format_respects_max_locations() {
     let mut th = t().audit;
     th.max_locations_per_finding = 5;
     let s = format_findings(&findings, Some(dir.path()), &th);
-    if !findings.is_empty() {
-        if findings[0].locations.len() > 5 {
+    if !findings.is_empty()
+        && findings[0].locations.len() > 5 {
             assert!(s.contains(" more)"));
         }
-    }
 }
 
 #[test]
@@ -493,7 +492,7 @@ fn pipeline_handles_audit_with_max_findings_reported_threshold() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..200 {
         std::fs::write(dir.path().join(format!("f{i}.py")),
-            &format!("def fn{i}(x):\n    if x == {i}:\n        return x\n    return 0\n")).unwrap();
+            format!("def fn{i}(x):\n    if x == {i}:\n        return x\n    return 0\n")).unwrap();
     }
     let findings = run_pipeline(dir.path());
     assert!(findings.len() <= t().audit.pattern_mining.max_findings_reported);

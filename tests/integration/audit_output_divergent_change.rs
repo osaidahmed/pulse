@@ -55,9 +55,9 @@ fn human_shows_all_metrics() {
 #[test]
 fn human_shows_metric_values() {
     let out = format_findings(&[finding_with(sample(ImportConfidence::High))], None, &t().audit);
-    assert!(out.contains("9"));
+    assert!(out.contains('9'));
     assert!(out.contains("11"));
-    assert!(out.contains("8"));
+    assert!(out.contains('8'));
 }
 
 #[test]
@@ -103,7 +103,7 @@ fn human_handles_zero_metrics() {
     e.method_count = 0;
     let out = format_findings(&[finding_with(e)], None, &t().audit);
     assert!(out.contains("CC:"));
-    assert!(out.contains("0"));
+    assert!(out.contains('0'));
 }
 
 #[test]

@@ -38,8 +38,8 @@ fn max_martin_findings_reported_default_is_one_hundred() {
 fn audit_thresholds_default_round_trips_via_const() {
     let direct = AuditThresholds::DEFAULTS;
     let via_default = AuditThresholds::default();
-    assert_eq!(direct.package_metrics.martin_distance_warning, via_default.package_metrics.martin_distance_warning);
-    assert_eq!(direct.package_metrics.martin_distance_alert, via_default.package_metrics.martin_distance_alert);
+    assert!((direct.package_metrics.martin_distance_warning - via_default.package_metrics.martin_distance_warning).abs() < 1e-12);
+    assert!((direct.package_metrics.martin_distance_alert - via_default.package_metrics.martin_distance_alert).abs() < 1e-12);
     assert_eq!(direct.package_metrics.martin_cycle_min_size, via_default.package_metrics.martin_cycle_min_size);
     assert_eq!(
         direct.package_metrics.max_cycle_findings_reported,
@@ -64,7 +64,7 @@ fn martin_thresholds_can_be_overridden_locally() {
 fn audit_thresholds_is_copy() {
     let original = t().audit;
     let copy = original;
-    assert_eq!(original.package_metrics.martin_distance_warning, copy.package_metrics.martin_distance_warning);
+    assert!((original.package_metrics.martin_distance_warning - copy.package_metrics.martin_distance_warning).abs() < 1e-12);
 }
 
 #[test]

@@ -341,8 +341,8 @@ fn group_with_all_below_threshold_yields_no_finding() {
 #[test]
 fn skeleton_finding_does_not_duplicate_already_reported_exact() {
     let funcs = vec![
-        fn_with("a", 10, 50, 0xCAFE, 0xDEADBEEF),
-        fn_with("b", 60, 100, 0xCAFE, 0xDEADBEEF),
+        fn_with("a", 10, 50, 0xCAFE, 0xDEAD_BEEF),
+        fn_with("b", 60, 100, 0xCAFE, 0xDEAD_BEEF),
     ];
     let findings = detect(&funcs, &t());
     let dup = findings.iter().filter(|f| f.smell == Smell::CodeDuplication).count();

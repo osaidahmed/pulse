@@ -5,7 +5,6 @@ use pulse::history::git::Commit;
 use pulse::history::hotspots::{rank, revisions_per_file};
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
-use tempfile::TempDir;
 
 fn t() -> Thresholds {
     Thresholds::default()

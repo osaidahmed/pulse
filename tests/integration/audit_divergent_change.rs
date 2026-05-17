@@ -45,6 +45,7 @@ fn divergent_evidence(f: &pulse::audit::finding::AuditFinding) -> &DivergentChan
     e
 }
 
+#[allow(clippy::similar_names)]
 fn build_class_with_callers_and_callees(
     target_class: &str,
     target_file: &str,

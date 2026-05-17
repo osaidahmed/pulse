@@ -145,7 +145,7 @@ fn audit_cli_finds_clusters_in_repeated_typescript_files() {
     for i in 0..6 {
         std::fs::write(
             dir.path().join(format!("decoy{i}.ts")),
-            &format!("export const NAME = \"unique{i}\";\n"),
+            format!("export const NAME = \"unique{i}\";\n"),
         ).unwrap();
     }
     let (stdout, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
@@ -165,7 +165,7 @@ fn audit_cli_finds_clusters_in_repeated_rust_files() {
     for i in 0..6 {
         std::fs::write(
             dir.path().join(format!("decoy{i}.rs")),
-            &format!("pub const NAME{i}: &str = \"unique\";\n"),
+            format!("pub const NAME{i}: &str = \"unique\";\n"),
         ).unwrap();
     }
     let (stdout, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
@@ -185,7 +185,7 @@ fn audit_cli_finds_clusters_in_repeated_go_files() {
     for i in 0..6 {
         std::fs::write(
             dir.path().join(format!("d{i}.go")),
-            &format!("package p\nconst N{i} = \"unique\"\n"),
+            format!("package p\nconst N{i} = \"unique\"\n"),
         ).unwrap();
     }
     let (_, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
@@ -220,8 +220,7 @@ fn audit_cli_handles_each_supported_extension() {
             "c" | "cpp" | "java" | "cs" | "swift" | "kt" | "d" | "groovy" => format!("int a{i} = 1;\n"),
             "go" => format!("package p\nvar a{i} = 1\n"),
             "zig" => format!("const a{i}: i32 = 1;\n"),
-            "rb" | "tcl" | "lua" => format!("a{i} = 1\n"),
-            "hs" => format!("a{i} = 1\n"),
+            "rb" | "tcl" | "lua" | "hs" => format!("a{i} = 1\n"),
             "r" => format!("a{i} <- 1\n"),
             "php" => format!("<?php $a{i} = 1;\n"),
             _ => "x = 1".to_string(),

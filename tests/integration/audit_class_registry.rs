@@ -7,6 +7,7 @@ use pulse::audit::class_registry::{
 };
 use pulse::audit::definitions::DefinitionRecord;
 
+#[allow(clippy::too_many_arguments)]
 fn def_with(
     file: &str,
     class: Option<&str>,
@@ -178,7 +179,7 @@ fn class_tcc_no_shared_fields_yields_zero() {
         (d.field_accesses.clone(), d.is_constructor)
     };
     let tcc = class_tcc(&reg, ClassIndex(0), &fields_for);
-    assert_eq!(tcc, 0.0);
+    assert!(tcc.abs() < 1e-6);
 }
 
 #[test]
@@ -195,7 +196,7 @@ fn class_tcc_excludes_constructors() {
         (d.field_accesses.clone(), d.is_constructor)
     };
     let tcc = class_tcc(&reg, ClassIndex(0), &fields_for);
-    assert_eq!(tcc, 0.0, "constructors excluded; m1/m2 share no fields");
+    assert!(tcc.abs() < 1e-6, "constructors excluded; m1/m2 share no fields");
 }
 
 #[test]
@@ -218,7 +219,7 @@ fn class_tcc_one_method_returns_zero() {
         (d.field_accesses.clone(), d.is_constructor)
     };
     let tcc = class_tcc(&reg, ClassIndex(0), &fields_for);
-    assert_eq!(tcc, 0.0);
+    assert!(tcc.abs() < 1e-6);
 }
 
 #[test]

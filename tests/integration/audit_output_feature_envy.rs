@@ -58,9 +58,9 @@ fn human_shows_atfd_and_call_counts() {
 #[test]
 fn human_shows_metric_values() {
     let out = format_findings(&[finding_with(sample(ImportConfidence::Medium))], None, &t().audit);
-    assert!(out.contains("9"));
-    assert!(out.contains("7"));
-    assert!(out.contains("2"));
+    assert!(out.contains('9'));
+    assert!(out.contains('7'));
+    assert!(out.contains('2'));
 }
 
 #[test]

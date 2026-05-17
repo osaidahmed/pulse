@@ -39,7 +39,7 @@ fn martin_finding(module: &str, ca: u32, ce: u32, i: f64, a: f64, d: f64, tier: 
 
 fn cycle_finding(members: &[&str], confidence: ImportConfidence) -> AuditFinding {
     let mut sorted: Vec<&str> = members.to_vec();
-    sorted.sort();
+    sorted.sort_unstable();
     let member_paths: Vec<PathBuf> = sorted.iter().map(|s| p(s)).collect();
     let edges: Vec<(PathBuf, PathBuf)> = (0..members.len())
         .map(|i| {

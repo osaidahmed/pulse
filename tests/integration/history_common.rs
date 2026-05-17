@@ -20,7 +20,7 @@ pub fn build_repo(commits: &[CommitSpec]) -> TempDir {
         apply_writes(path, spec.writes);
         apply_deletes(path, spec.deletes);
         run_git(path, &["add", "-A"]);
-        let date = format!("{} +0000", BASE_TIMESTAMP + (idx as i64) * 60);
+        let date = format!("{} +0000", BASE_TIMESTAMP + i64::try_from(idx).unwrap() * 60);
         commit_with_identity(path, spec, &date);
     }
     dir
@@ -69,5 +69,5 @@ fn run_git(path: &Path, args: &[&str]) {
         .args(args)
         .status()
         .expect("run git");
-    assert!(status.success(), "git {:?} failed", args);
+    assert!(status.success(), "git {args:?} failed");
 }

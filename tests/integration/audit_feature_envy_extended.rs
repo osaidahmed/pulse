@@ -34,6 +34,7 @@ fn def(
     }
 }
 
+#[allow(clippy::similar_names)]
 fn call_to(caller: &DefinitionRecord, callee: &str, hint: Option<&str>) -> LocatedCall {
     LocatedCall {
         call: RawCall {
@@ -213,14 +214,14 @@ fn sort_by_atfd_descending() {
     for atfd in [6u32, 9, 7, 12] {
         let foreign: Vec<(&str, &str)> = (0..atfd as usize)
             .map(|i| {
-                let name = match i {
+                
+                match i {
                     0 => ("b", "f0"), 1 => ("b", "f1"), 2 => ("b", "f2"),
                     3 => ("b", "f3"), 4 => ("b", "f4"), 5 => ("b", "f5"),
                     6 => ("b", "f6"), 7 => ("b", "f7"), 8 => ("b", "f8"),
                     9 => ("b", "f9"), 10 => ("b", "f10"), 11 => ("b", "f11"),
                     _ => ("b", "fN"),
-                };
-                name
+                }
             })
             .collect();
         let m_name = format!("m_atfd_{atfd}");

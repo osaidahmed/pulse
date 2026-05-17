@@ -74,7 +74,7 @@ fn human_lists_matched_pair_count() {
         &t().audit,
     );
     assert!(out.contains("matched pairs:"));
-    assert!(out.contains("3"));
+    assert!(out.contains('3'));
 }
 
 #[test]
@@ -114,7 +114,7 @@ fn human_handles_empty_pair_list() {
         &t().audit,
     );
     assert!(out.contains("matched pairs:"));
-    assert!(out.contains("0"));
+    assert!(out.contains('0'));
 }
 
 #[test]

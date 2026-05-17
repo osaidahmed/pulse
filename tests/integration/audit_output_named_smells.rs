@@ -70,9 +70,9 @@ fn human_renderer_includes_metrics() {
 fn human_renderer_shows_metric_values() {
     let f = finding_with_evidence(sample_evidence(2, ImportConfidence::High));
     let out = format_findings(&[f], None, &t().audit);
-    assert!(out.contains("6"));
+    assert!(out.contains('6'));
     assert!(out.contains("12"));
-    assert!(out.contains("7"));
+    assert!(out.contains('7'));
 }
 
 #[test]

@@ -104,9 +104,10 @@ fn audit_max_files_cap_predicate_is_consistent() {
 
 #[test]
 fn audit_max_files_cap_is_generous_relative_to_realistic_repos() {
+    let max_files = MAX_FILES;
     assert!(
-        MAX_FILES >= 50_000,
-        "MAX_FILES must accommodate large monorepos, got {MAX_FILES}"
+        max_files >= 50_000,
+        "MAX_FILES must accommodate large monorepos, got {max_files}"
     );
 }
 

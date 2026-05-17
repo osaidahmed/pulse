@@ -31,8 +31,9 @@ fn max_caller_samples_per_finding_default_is_twenty() {
 fn audit_thresholds_struct_remains_copy() {
     fn assert_copy<T: Copy>(_: T) {}
     let a = AuditThresholds::DEFAULTS;
-    let _b = a;
+    let b = a;
     assert_copy(a);
+    assert_copy(b);
 }
 
 #[test]
@@ -49,7 +50,8 @@ fn shotgun_changing_classes_is_strictly_less_than_changing_methods() {
 
 #[test]
 fn fanout_threshold_is_positive() {
-    assert!(AuditThresholds::DEFAULTS.named_smells.shotgun_surgery.fanout > 0);
+    let fanout = AuditThresholds::DEFAULTS.named_smells.shotgun_surgery.fanout;
+    assert!(fanout > 0);
 }
 
 #[test]

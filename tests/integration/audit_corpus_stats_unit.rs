@@ -135,7 +135,7 @@ fn line_length_stats_known_input() {
     let source = "short\nmedium length line\nx\nthe longest line of all here\nmedium two";
     let (max, median) = line_length_stats(source);
     let mut lens: Vec<u32> = source.lines().map(|l| l.chars().count() as u32).collect();
-    lens.sort();
+    lens.sort_unstable();
     assert_eq!(max, *lens.last().unwrap());
     assert_eq!(median, lens[lens.len() / 2]);
 }

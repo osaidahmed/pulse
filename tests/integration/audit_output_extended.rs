@@ -266,7 +266,7 @@ fn output_json_idf_score_zero_renders_correctly() {
     f.idf_score = Some(0.0);
     let s = format_findings_json(&[f], None);
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-    assert_eq!(v[0]["idf_score"].as_f64().unwrap(), 0.0);
+    assert!(v[0]["idf_score"].as_f64().unwrap().abs() < 1e-6);
 }
 
 #[test]
@@ -440,7 +440,7 @@ fn output_idf_score_negative_supported() {
     f.idf_score = Some(-1.0);
     let s = format_findings_json(&[f], None);
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-    assert_eq!(v[0]["idf_score"].as_f64().unwrap(), -1.0);
+    assert!((v[0]["idf_score"].as_f64().unwrap() + 1.0).abs() < 1e-6);
 }
 
 #[test]

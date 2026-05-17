@@ -39,6 +39,7 @@ fn call_to(caller: &DefinitionRecord, callee_name: &str, hint: Option<&str>) -> 
     }
 }
 
+#[allow(clippy::similar_names)]
 fn build_scenario(
     target_class: &str,
     target_file: &str,
@@ -140,9 +141,8 @@ fn fully_intra_class_calls_yield_zero_changing_classes() {
     for m in 0..6 {
         defs.push(def("inner.py", Some("Inner"), &format!("m{m}"), 10 + m));
     }
-    for m in 1..6 {
-        let caller = defs[m].clone();
-        calls.push(call_to(&caller, "m0", Some("Inner")));
+    for caller in &defs[1..6] {
+        calls.push(call_to(caller, "m0", Some("Inner")));
     }
     let findings = detect_with(defs, calls, &t().audit);
     assert!(findings.is_empty());
@@ -392,10 +392,10 @@ fn multiple_classes_same_file_handled_independently() {
 
 #[test]
 fn evidence_confidence_present() {
+    use pulse::audit::finding::ImportConfidence;
     let (defs, calls) = build_scenario("C", "c.py", 6, 7, 7);
     let findings = detect_with(defs, calls, &t().audit);
     assert!(!findings.is_empty());
-    use pulse::audit::finding::ImportConfidence;
     let conf = evidence(&findings[0]).confidence;
     assert!(matches!(
         conf,

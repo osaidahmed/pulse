@@ -129,11 +129,11 @@ fn cobol_no_field_access_returns_empty() {
 
 #[test]
 fn cls_treated_as_intra_in_python_classmethod() {
-    let src = r#"class Foo:
+    let src = r"class Foo:
     @classmethod
     def m(cls):
         return cls.x
-"#;
+";
     let foreign = collect_foreign(src, "py", Language::Python);
     assert!(!foreign.iter().any(|(r, _)| r == "cls"));
 }

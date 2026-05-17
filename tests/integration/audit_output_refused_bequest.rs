@@ -53,8 +53,8 @@ fn human_includes_both_files() {
 fn human_shows_override_count_and_total() {
     let out = format_findings(&[finding_with(sample(ImportConfidence::Medium))], None, &t().audit);
     assert!(out.contains("overrides:"));
-    assert!(out.contains("1"));
-    assert!(out.contains("8"));
+    assert!(out.contains('1'));
+    assert!(out.contains('8'));
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn json_handles_ratio_extremes() {
         let out = format_findings_json(&[finding_with(e)], None);
         let v: serde_json::Value = serde_json::from_str(&out).unwrap();
         assert_eq!(v[0]["override_count"], count);
-        assert_eq!(v[0]["override_ratio"].as_f64().unwrap(), ratio);
+        assert!((v[0]["override_ratio"].as_f64().unwrap() - ratio).abs() < 1e-6);
     }
 }
 

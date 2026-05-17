@@ -58,8 +58,7 @@ fn run_with_relative_root_dot_works() {
         writes: &[("a.py", "x = 1\n")],
         deletes: &[],
     }]);
-    let _cwd = std::env::current_dir().unwrap();
-    let saved = _cwd.clone();
+    let saved = std::env::current_dir().unwrap();
     std::env::set_current_dir(repo.path()).unwrap();
     let result = run(&opts(PathBuf::from(".")), &t().history);
     std::env::set_current_dir(saved).unwrap();
