@@ -7,8 +7,8 @@ authors:
   - family-names: Saidahmed
     given-names: Omar
     affiliation: University of Waterloo
-version: 0.1.0
-date-released: 2026-05-01
+version: 0.2.0
+date-released: 2026-05-17
 license: Apache-2.0
 repository-code: "https://github.com/osaidahmed/pulse"
 url: "https://github.com/osaidahmed/pulse"
