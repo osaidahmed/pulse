@@ -5,7 +5,9 @@ use pulse::audit::cycles::{
 };
 use pulse::audit::graph::{ImportGraph, InputEdge};
 use pulse::audit::{audit_traversal_cap_hit, MAX_FILES};
-use pulse::parse::Language;
+use pulse::parse::{
+    parse_and_walk, parse_and_walk_guarded, Language, MAX_INPUT_LINES, MAX_LINE_BYTES,
+};
 
 fn graph_chain(n: usize) -> ImportGraph {
     let edges: Vec<InputEdge> = (0..n)
@@ -56,6 +58,28 @@ fn tarjan_cap_fires_when_max_iters_is_one() {
     let graph = graph_chain(50);
     let (_, diag) = find_cycles_with_max_iters(&graph, 2, 1);
     assert!(diag.iteration_cap_hit, "cap must fire when max_iters=1");
+}
+
+#[test]
+fn guarded_matches_unguarded_on_normal_input() {
+    let src = "def a():\n    if x:\n        return 1\n    return 0\n";
+    let guarded =
+        parse_and_walk_guarded(src, Language::Python).expect("guarded analyzes normal input");
+    let plain = parse_and_walk(src, Language::Python).expect("plain analyzes normal input");
+    assert_eq!(guarded.functions.len(), plain.functions.len());
+    assert_eq!(guarded.module.sum_cc, plain.module.sum_cc);
+}
+
+#[test]
+fn guarded_rejects_excessive_line_count() {
+    let src = "x = 1\n".repeat(MAX_INPUT_LINES + 1_000);
+    assert!(parse_and_walk_guarded(&src, Language::Python).is_none());
+}
+
+#[test]
+fn guarded_rejects_excessive_line_length() {
+    let src = format!("x = \"{}\"\n", "a".repeat(MAX_LINE_BYTES + 1_000));
+    assert!(parse_and_walk_guarded(&src, Language::Python).is_none());
 }
 
 #[test]

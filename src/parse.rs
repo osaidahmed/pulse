@@ -123,3 +123,31 @@ pub fn walk_only(tree: &tree_sitter::Tree, source: &str, lang: Language) -> File
 pub fn parse_and_walk(source: &str, lang: Language) -> Option<FileMetrics> {
     parse_only(source, lang).map(|tree| walk_only(&tree, source, lang))
 }
+
+pub const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
+pub const MAX_INPUT_LINES: usize = 50_000;
+pub const MAX_LINE_BYTES: usize = 200_000;
+const ANALYZE_STACK_BYTES: usize = 32 * 1024 * 1024;
+
+fn exceeds_size_caps(source: &str) -> bool {
+    source.len() > MAX_INPUT_BYTES
+        || memchr::memchr_iter(b'\n', source.as_bytes()).count() > MAX_INPUT_LINES
+        || source.split('\n').any(|line| line.len() > MAX_LINE_BYTES)
+}
+
+pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
+    if exceeds_size_caps(source) {
+        return None;
+    }
+    std::thread::scope(|scope| {
+        let handle = std::thread::Builder::new()
+            .stack_size(ANALYZE_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    parse_and_walk(source, lang)
+                }))
+            })
+            .ok()?;
+        handle.join().ok().and_then(Result::ok).flatten()
+    })
+}

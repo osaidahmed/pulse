@@ -39,7 +39,7 @@ pub fn analyze_source(
     lang: Language,
     cfg: Option<&config::PulseConfig>,
 ) -> Option<AnalysisResultFull> {
-    let metrics = parse::parse_and_walk(source, lang)?;
+    let metrics = parse::parse_and_walk_guarded(source, lang)?;
     let thresholds = config::resolve_thresholds(cfg, lang);
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);
