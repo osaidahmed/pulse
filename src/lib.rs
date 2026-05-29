@@ -1,6 +1,7 @@
 #![allow(clippy::assigning_clones)]
 
 pub mod analytics;
+pub mod analyze;
 pub mod audit;
 pub mod baselines;
 pub mod config;

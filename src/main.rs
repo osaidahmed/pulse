@@ -1,6 +1,7 @@
 #![allow(clippy::assigning_clones)]
 
 mod analytics;
+mod analyze;
 mod audit;
 mod baselines;
 mod cli;
@@ -9,6 +10,7 @@ mod config_history;
 mod duplication;
 mod history;
 mod hook;
+mod hook_run;
 mod module_smells;
 mod output;
 mod parse;
@@ -18,22 +20,10 @@ mod test_detection;
 mod thresholds;
 mod walk;
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process;
 
-use smells::{Finding, Location};
-
-const CHECKPOINT_INTERVAL: u32 = 5;
-const CHECKPOINT_INTERVAL_NEW: u32 = 2;
-
-const SKIP_DIRS: &[&str] = &[
-    "node_modules",
-    "target",
-    "vendor",
-    "build",
-    "dist",
-];
+const SKIP_DIRS: &[&str] = &["node_modules", "target", "vendor", "build", "dist"];
 
 fn read_session_id_from_stdin() -> Option<String> {
     let mut input = String::new();
@@ -43,7 +33,9 @@ fn read_session_id_from_stdin() -> Option<String> {
 }
 
 fn main() {
-    let Some(d) = dispatch_session(cli::parse()) else { return; };
+    let Some(d) = dispatch_session(cli::parse()) else {
+        return;
+    };
     dispatch_subcommand(d);
 }
 
@@ -51,18 +43,18 @@ fn dispatch_session(d: cli::Dispatch) -> Option<cli::Dispatch> {
     if matches!(d, cli::Dispatch::Hook) {
         if let Some(input) = hook::parse_hook_input() {
             baselines::init_session_dir(input.session_id.as_deref());
-            run_hook(input);
+            hook_run::run_hook(input);
         }
         return None;
     }
     if matches!(d, cli::Dispatch::Stop) {
         baselines::init_session_dir(read_session_id_from_stdin().as_deref());
-        run_stop();
+        hook_run::run_stop();
         return None;
     }
     if matches!(d, cli::Dispatch::Cleanup) {
         baselines::init_session_dir(read_session_id_from_stdin().as_deref());
-        run_cleanup();
+        hook_run::run_cleanup();
         return None;
     }
     if matches!(d, cli::Dispatch::UsageError) {
@@ -82,8 +74,14 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
-        cli::Dispatch::History { args, include_tests } => {
+        cli::Dispatch::Audit {
+            args,
+            include_tests,
+        } => run_audit_cmd(args, include_tests),
+        cli::Dispatch::History {
+            args,
+            include_tests,
+        } => {
             history::cmd::run(history::cmd::RunArgs {
                 root: args.root,
                 json: args.json,
@@ -102,7 +100,10 @@ fn dispatch_subcommand(d: cli::Dispatch) {
 }
 
 fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
-    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
+    let root = args
+        .root
+        .as_deref()
+        .map_or_else(|| PathBuf::from("."), PathBuf::from);
     validate_audit_root(&root);
     let cfg_with_root = config::load_config_with_root(&root);
     let (cfg_ref, ignore_base) = match &cfg_with_root {
@@ -159,7 +160,10 @@ fn validate_audit_root(root: &Path) {
 fn run_debug(file_path: &str) {
     let path = Path::new(file_path);
     let cfg = config::load_config(path);
-    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
+    if cfg
+        .as_ref()
+        .is_some_and(|c| config::is_ignored_for_file(c, path))
+    {
         eprintln!("debug: {file_path} — ignored by .pulse.toml");
         return;
     }
@@ -168,7 +172,10 @@ fn run_debug(file_path: &str) {
     let metrics = parse::parse_and_walk(&source, lang).expect("parse failed");
     eprintln!(
         "Module: {} LOC, {} functions, sum_cc={} declarations={}",
-        metrics.module.total_loc, metrics.module.total_functions, metrics.module.sum_cc, metrics.module.declaration_count
+        metrics.module.total_loc,
+        metrics.module.total_functions,
+        metrics.module.sum_cc,
+        metrics.module.declaration_count
     );
     for f in &metrics.functions {
         eprintln!(
@@ -181,42 +188,9 @@ fn run_debug(file_path: &str) {
     }
 }
 
-struct AnalysisResult {
-    findings: Vec<Finding>,
-    filename: String,
-    fn_count: u32,
-    total_loc: u32,
-    sum_cc: u32,
-}
-
-fn analyze_file(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<AnalysisResult> {
-    let path = Path::new(file_path);
-    if !path.exists() {
-        return None;
-    }
-    if cfg.is_some_and(|c| config::is_ignored_for_file(c, path)) {
-        return None;
-    }
-    let lang = parse::detect_language(path)?;
-    let source = std::fs::read_to_string(path).ok()?;
-    let metrics = parse::parse_and_walk(&source, lang)?;
-    let t = config::resolve_thresholds(cfg, lang);
-    let disabled = config::resolve_disabled(cfg);
-    let mut findings = smells::detect(&metrics, &source, &t);
-    config::filter_disabled(&mut findings, &disabled);
-    let filename = path.file_name()?.to_string_lossy().into_owned();
-    Some(AnalysisResult {
-        findings,
-        filename,
-        fn_count: metrics.functions.len() as u32,
-        total_loc: metrics.module.total_loc,
-        sum_cc: metrics.module.sum_cc,
-    })
-}
-
 fn run_check(file_path: &str) {
     let cfg = config::load_config(Path::new(file_path));
-    let Some(result) = analyze_file(file_path, cfg.as_ref()) else {
+    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref()) else {
         process::exit(0);
     };
     if result.findings.is_empty() {
@@ -229,7 +203,10 @@ fn run_budget(file_path: &str) {
     let path = Path::new(file_path);
     let cfg = config::load_config(path);
 
-    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
+    if cfg
+        .as_ref()
+        .is_some_and(|c| config::is_ignored_for_file(c, path))
+    {
         eprintln!("budget: {file_path} — ignored by .pulse.toml");
         return;
     }
@@ -238,7 +215,9 @@ fn run_budget(file_path: &str) {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
-    let Some(metrics) = std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang))
+    let Some(metrics) = std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| parse::parse_and_walk(&s, lang))
     else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
@@ -247,14 +226,32 @@ fn run_budget(file_path: &str) {
     let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let fn_count = metrics.functions.len() as u32;
     let fn_room = t.module.file_function_count.saturating_sub(fn_count);
-    let loc_room = t.module.file_loc_warning.saturating_sub(metrics.module.total_loc);
+    let loc_room = t
+        .module
+        .file_loc_warning
+        .saturating_sub(metrics.module.total_loc);
     let cc_room = t.module.file_total_cc.saturating_sub(metrics.module.sum_cc);
 
     eprintln!("budget: {file_path}");
-    eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.module.file_function_count);
-    eprintln!("  LOC:       {}/{} (room: {loc_room})", metrics.module.total_loc, t.module.file_loc_warning);
-    eprintln!("  total cc:  {}/{} (room: {cc_room})", metrics.module.sum_cc, t.module.file_total_cc);
-    eprintln!("  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}", t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max);
+    eprintln!(
+        "  functions: {fn_count}/{} (room: {fn_room})",
+        t.module.file_function_count
+    );
+    eprintln!(
+        "  LOC:       {}/{} (room: {loc_room})",
+        metrics.module.total_loc, t.module.file_loc_warning
+    );
+    eprintln!(
+        "  total cc:  {}/{} (room: {cc_room})",
+        metrics.module.sum_cc, t.module.file_total_cc
+    );
+    eprintln!(
+        "  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}",
+        t.function.cc_warning,
+        t.function.cogc_warning,
+        t.function.fn_loc_warning,
+        t.function.arg_max
+    );
 }
 
 fn run_budget_new() {
@@ -264,20 +261,34 @@ fn run_budget_new() {
     eprintln!("  max functions: {}", t.module.file_function_count);
     eprintln!("  max LOC:       {}", t.module.file_loc_warning);
     eprintln!("  max total cc:  {}", t.module.file_total_cc);
-    eprintln!("  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}", t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max);
+    eprintln!(
+        "  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}",
+        t.function.cc_warning,
+        t.function.cogc_warning,
+        t.function.fn_loc_warning,
+        t.function.arg_max
+    );
 }
 
 fn run_check_all(include_tests: bool) {
     let (cfg, root) = config::load_config_with_root(Path::new("."))
         .map_or((None, None), |(c, r)| (Some(c), Some(r)));
-    let matcher = cfg.as_ref().map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
+    let matcher = cfg
+        .as_ref()
+        .map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
-        if should_skip_walk_entry(&entry, &path_str, include_tests, matcher.as_ref(), root.as_deref()) {
+        if should_skip_walk_entry(
+            &entry,
+            &path_str,
+            include_tests,
+            matcher.as_ref(),
+            root.as_deref(),
+        ) {
             continue;
         }
-        if let Some(result) = analyze_file(&path_str, cfg.as_ref()) {
+        if let Some(result) = analyze::analyze_file(&path_str, cfg.as_ref()) {
             if !result.findings.is_empty() {
                 total += result.findings.len();
                 print!("{}", output::format(&result.findings, &result.filename));
@@ -299,7 +310,9 @@ fn should_skip_walk_entry(
     if !include_tests && test_detection::is_test_file(path_str) {
         return true;
     }
-    matcher.zip(root).is_some_and(|(m, r)| m.matches_file(r, entry))
+    matcher
+        .zip(root)
+        .is_some_and(|(m, r)| m.matches_file(r, entry))
 }
 
 fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
@@ -321,151 +334,4 @@ fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
     }
     files.sort();
     files
-}
-
-fn run_hook(h: hook::HookInput) {
-    if std::env::var("PULSE_DISABLE").is_ok() || test_detection::is_test_file(&h.file_path) {
-        return;
-    }
-    let cfg = config::load_config(Path::new(&h.file_path));
-    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, Path::new(&h.file_path))) {
-        return;
-    }
-    analytics::save_session_id(&h);
-    baselines::cache_baseline(&h, cfg.as_ref());
-    let Some(result) = analyze_file(&h.file_path, cfg.as_ref()) else {
-        process::exit(0);
-    };
-
-    let edit_count = baselines::increment_edit_count(&h.file_path);
-    let func_baseline = baselines::load_function_baseline(&h.file_path);
-
-    let (module_findings, func_findings): (Vec<_>, Vec<_>) = result.findings
-        .into_iter()
-        .partition(|f| matches!(f.location, Location::Module));
-
-    let mut findings: Vec<Finding> = hook::filter_by_edit_range(func_findings, h.edit_range)
-        .into_iter()
-        .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
-        .collect();
-
-    collect_module_findings(&h.file_path, edit_count, module_findings, &mut findings, cfg.as_ref());
-
-    if findings.is_empty() {
-        process::exit(0);
-    }
-    analytics::log_findings(&h, &findings, &result.filename);
-    let lang = parse::detect_language(Path::new(&h.file_path)).unwrap_or(parse::Language::Python);
-    let t = config::resolve_thresholds(cfg.as_ref(), lang);
-    let budget = format!(
-        "[budget] fn={}/{} loc={}/{} cc={}/{}",
-        result.fn_count, t.module.file_function_count,
-        result.total_loc, t.module.file_loc_warning,
-        result.sum_cc, t.module.file_total_cc,
-    );
-    let conflict = detect_constraint_conflict(&findings, result.fn_count, &t);
-    let reason = match conflict {
-        Some(note) => format!("{}\n{}\n{}", output::format_compact(&findings, &result.filename).trim(), note, budget),
-        None => format!("{}\n{}", output::format_compact(&findings, &result.filename).trim(), budget),
-    };
-    let decision = serde_json::json!({
-        "decision": "block",
-        "reason": reason.trim()
-    });
-    println!("{decision}");
-}
-
-fn detect_constraint_conflict(
-    findings: &[Finding],
-    fn_count: u32,
-    t: &thresholds::Thresholds,
-) -> Option<&'static str> {
-    let fn_tight = fn_count + 2 >= t.module.file_function_count;
-    let has_cc_finding = findings.iter().any(|f| matches!(
-        f.smell,
-        smells::Smell::ComplexMethod | smells::Smell::GodMethod
-    ));
-    if fn_tight && has_cc_finding {
-        return Some("[conflict] fn count and per-function complexity are both constrained — merge only low-cc functions");
-    }
-    None
-}
-
-fn collect_module_findings(
-    file_path: &str,
-    edit_count: u32,
-    module_findings: Vec<Finding>,
-    findings: &mut Vec<Finding>,
-    cfg: Option<&config::PulseConfig>,
-) {
-    if edit_count == 1 {
-        let baseline = baselines::load_baseline(file_path);
-        findings.extend(module_findings.into_iter().filter(|f| {
-            baseline.get(f.smell.as_str()).copied().unwrap_or(0) == 0
-        }));
-    }
-
-    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
-    if edit_count.is_multiple_of(interval) && !test_detection::is_test_file(file_path) {
-        if let Some((_, regressions)) = detect_regressions(file_path, cfg) {
-            findings.extend(regressions);
-        }
-    }
-}
-
-fn run_stop() {
-    let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt"))
-    else {
-        return;
-    };
-
-    let cfg = config::load_config(Path::new("."));
-    let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
-    for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
-        if test_detection::is_test_file(file_path) || baselines::is_fixture_file(file_path) { continue; }
-        if let Some((filename, regressions)) = detect_regressions(file_path, cfg.as_ref()) {
-            all_regressions.push((filename, regressions));
-        }
-    }
-
-    if !all_regressions.is_empty() {
-        let reason = output::format_stop(&all_regressions);
-        let decision = serde_json::json!({
-            "decision": "block",
-            "reason": reason.trim()
-        });
-        println!("{decision}");
-    }
-
-    analytics::resolve(|p| analyze_file(p, cfg.as_ref()).map(|r| (r.findings, r.filename)));
-    let _ = std::fs::remove_dir_all(baselines::baseline_dir());
-}
-
-fn detect_regressions(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<(String, Vec<Finding>)> {
-    let baseline = baselines::load_baseline(file_path);
-    let result = analyze_file(file_path, cfg)?;
-
-    let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
-    for f in result.findings.iter().filter(|f| matches!(f.location, Location::Module)) {
-        *current_counts.entry(f.smell).or_default() += 1;
-    }
-
-    let regressions: Vec<Finding> = result.findings
-        .into_iter()
-        .filter(|f| matches!(f.location, Location::Module))
-        .filter(|f| {
-            let baseline_count = baseline.get(f.smell.as_str()).copied().unwrap_or(0);
-            let current_count = current_counts.get(&f.smell).copied().unwrap_or(0);
-            current_count > baseline_count
-        })
-        .collect();
-
-    if regressions.is_empty() {
-        return None;
-    }
-    Some((result.filename, regressions))
-}
-
-fn run_cleanup() {
-    let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }

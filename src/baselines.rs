@@ -36,15 +36,21 @@ pub fn is_fixture_file(path: &str) -> bool {
     path.replace('\\', "/").contains("/fixtures/")
 }
 
-pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>) {
+pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>, current_source: &str) {
     let dominated = is_fixture_file(&hook.file_path) || baseline_path(&hook.file_path).exists();
-    if dominated { return; }
-    create_baseline_files(hook, cfg);
+    if dominated {
+        return;
+    }
+    create_baseline_files(hook, cfg, current_source);
 }
 
-fn create_baseline_files(hook: &HookInput, cfg: Option<&config::PulseConfig>) {
+fn create_baseline_files(
+    hook: &HookInput,
+    cfg: Option<&config::PulseConfig>,
+    current_source: &str,
+) {
     let bp = baseline_path(&hook.file_path);
-    let (counts, func_findings) = compute_baseline(hook, cfg);
+    let (counts, func_findings) = compute_baseline(hook, cfg, current_source);
     write_baseline(&bp, &counts);
     write_function_baseline(&hook.file_path, &func_findings);
     append_manifest(&hook.file_path);
@@ -90,7 +96,9 @@ pub fn append_manifest(file_path: &str) {
     already.lines().all(|l| l != file_path).then(|| {
         let _ = std::fs::create_dir_all(&dir);
         let _ = std::fs::OpenOptions::new()
-            .create(true).append(true).open(&manifest)
+            .create(true)
+            .append(true)
+            .open(&manifest)
             .map(|mut f| writeln!(f, "{file_path}"));
     });
 }
@@ -114,12 +122,23 @@ pub fn increment_edit_count(file_path: &str) -> u32 {
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(0);
     let next = current + 1;
-    let _ = std::fs::write(&path, next.to_string());
+    let tmp = baseline_dir().join(format!(
+        "{:016x}.edits.tmp.{}",
+        hash_path(file_path),
+        std::process::id()
+    ));
+    if std::fs::write(&tmp, next.to_string()).is_ok() {
+        let _ = std::fs::rename(&tmp, &path);
+    }
     next
 }
 
-fn compute_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>) -> (HashMap<String, usize>, Vec<String>) {
-    let source = match reconstruct_pre_edit(hook) {
+fn compute_baseline(
+    hook: &HookInput,
+    cfg: Option<&config::PulseConfig>,
+    current_source: &str,
+) -> (HashMap<String, usize>, Vec<String>) {
+    let source = match reconstruct_pre_edit(hook, current_source) {
         Some(s) if !s.is_empty() => s,
         _ => return (HashMap::new(), Vec::new()),
     };
@@ -156,19 +175,36 @@ fn write_function_baseline(file_path: &str, keys: &[String]) {
     let _ = std::fs::write(path, keys.join("\n"));
 }
 
-fn reconstruct_pre_edit(hook: &HookInput) -> Option<String> {
-    if let (Some(old_str), Some(new_str)) = (&hook.old_string, &hook.new_string) {
-        let current = std::fs::read_to_string(&hook.file_path).ok()?;
-        return Some(current.replacen(new_str, old_str, 1));
-    }
+fn reconstruct_pre_edit(hook: &HookInput, current_source: &str) -> Option<String> {
+    let (Some(old_str), Some(new_str)) = (&hook.old_string, &hook.new_string) else {
+        return git_show_head(&hook.file_path);
+    };
+    Some(current_source.replacen(new_str, old_str, 1))
+}
 
-    let output = std::process::Command::new("git")
-        .args(["show", &format!("HEAD:{}", &hook.file_path)])
+fn git_show_head(file_path: &str) -> Option<String> {
+    let abs = std::fs::canonicalize(file_path).ok()?;
+    let dir = abs.parent()?;
+    let toplevel = std::process::Command::new("git")
+        .args(["-C", dir.to_str()?, "rev-parse", "--show-toplevel"])
         .output()
         .ok()?;
-    if output.status.success() {
-        return Some(String::from_utf8_lossy(&output.stdout).into_owned());
+    if !toplevel.status.success() {
+        return None;
     }
-
-    None
+    let root = String::from_utf8_lossy(&toplevel.stdout).trim().to_string();
+    let root = std::fs::canonicalize(&root).ok()?;
+    let rel = abs
+        .strip_prefix(&root)
+        .ok()?
+        .to_string_lossy()
+        .replace('\\', "/");
+    let output = std::process::Command::new("git")
+        .args(["-C", root.to_str()?, "show", &format!("HEAD:{rel}")])
+        .output()
+        .ok()?;
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
 }

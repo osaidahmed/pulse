@@ -164,8 +164,16 @@ impl AuditSuppression {
         }
         let patterns = builder.build().unwrap_or_else(|_| GlobSet::empty());
         Self {
-            categories: cfg.hide_categories.iter().map(|s| s.trim().to_string()).collect(),
-            smells: cfg.hide_smells.iter().map(|s| s.trim().to_string()).collect(),
+            categories: cfg
+                .hide_categories
+                .iter()
+                .map(|s| s.trim().to_string())
+                .collect(),
+            smells: cfg
+                .hide_smells
+                .iter()
+                .map(|s| s.trim().to_string())
+                .collect(),
             patterns,
         }
     }
@@ -242,17 +250,23 @@ pub fn is_ignored_for_file(cfg: &PulseConfig, file_path: &Path) -> bool {
     if cfg.ignore.paths.is_empty() {
         return false;
     }
-    let Some(root) = find_config(file_path).and_then(|p| p.parent().map(Path::to_path_buf))
-    else {
+    let Some(root) = find_config(file_path).and_then(|p| p.parent().map(Path::to_path_buf)) else {
         return false;
     };
-    IgnoreMatcher::from_patterns(&cfg.ignore.paths).matches_file(&root, file_path)
+    is_ignored_with_root(cfg, &root, file_path)
+}
+
+pub fn is_ignored_with_root(cfg: &PulseConfig, root: &Path, file_path: &Path) -> bool {
+    IgnoreMatcher::from_patterns(&cfg.ignore.paths).matches_file(root, file_path)
 }
 
 fn relative_path(root: &Path, file: &Path) -> Option<PathBuf> {
     let canon_root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let canon_file = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
-    canon_file.strip_prefix(&canon_root).ok().map(Path::to_path_buf)
+    canon_file
+        .strip_prefix(&canon_root)
+        .ok()
+        .map(Path::to_path_buf)
 }
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -307,11 +321,19 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         analysis: crate::thresholds::AnalysisThresholds {
             duplication_min_loc: a.duplication_min_loc.unwrap_or(ba.duplication_min_loc),
-            skeleton_duplication_min_loc: a.skeleton_duplication_min_loc.unwrap_or(ba.skeleton_duplication_min_loc),
+            skeleton_duplication_min_loc: a
+                .skeleton_duplication_min_loc
+                .unwrap_or(ba.skeleton_duplication_min_loc),
             duplication_min_group: a.duplication_min_group.unwrap_or(ba.duplication_min_group),
-            consecutive_asserts_max: a.consecutive_asserts_max.unwrap_or(ba.consecutive_asserts_max),
-            primitive_ratio_threshold: a.primitive_ratio_threshold.unwrap_or(ba.primitive_ratio_threshold),
-            primitive_min_typed_params: a.primitive_min_typed_params.unwrap_or(ba.primitive_min_typed_params),
+            consecutive_asserts_max: a
+                .consecutive_asserts_max
+                .unwrap_or(ba.consecutive_asserts_max),
+            primitive_ratio_threshold: a
+                .primitive_ratio_threshold
+                .unwrap_or(ba.primitive_ratio_threshold),
+            primitive_min_typed_params: a
+                .primitive_min_typed_params
+                .unwrap_or(ba.primitive_min_typed_params),
             lcom4_warning: a.lcom4_warning.unwrap_or(ba.lcom4_warning),
             short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(ba.short_var_min_fn_loc),
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),
