@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::thresholds::Thresholds;
 
 const HOOKS: &[(&str, Option<&str>, &str)] = &[
-    ("PostToolUse", Some("Edit|Write"), "pulse --hook"),
+    ("PostToolUse", Some("Edit|Write|MultiEdit"), "pulse --hook"),
     ("Stop", Some(".*"), "pulse --stop"),
     ("SessionStart", None, "pulse --cleanup"),
 ];
@@ -62,8 +62,8 @@ fn configure_hooks(dir: &Path) -> bool {
 
 fn ensure_hook_entry(groups: &mut serde_json::Value, matcher: Option<&str>, command: &str) -> bool {
     let arr = groups.as_array_mut().unwrap();
-    if arr.iter().any(|g| has_pulse_command(g, command)) {
-        return false;
+    if let Some(group) = arr.iter_mut().find(|g| has_pulse_command(g, command)) {
+        return migrate_matcher(group, matcher);
     }
     if let Some(group) = arr.iter_mut().find(|g| group_matcher_matches(g, matcher)) {
         if let Some(hooks) = g_hooks_mut(group) {
@@ -72,6 +72,24 @@ fn ensure_hook_entry(groups: &mut serde_json::Value, matcher: Option<&str>, comm
         }
     }
     arr.push(build_group_object(matcher, command));
+    true
+}
+
+fn migrate_matcher(group: &mut serde_json::Value, matcher: Option<&str>) -> bool {
+    if group_matcher_matches(group, matcher) {
+        return false;
+    }
+    let Some(obj) = group.as_object_mut() else {
+        return false;
+    };
+    match matcher {
+        Some(m) => {
+            obj.insert("matcher".into(), serde_json::json!(m));
+        }
+        None => {
+            obj.remove("matcher");
+        }
+    }
     true
 }
 
@@ -89,7 +107,9 @@ fn has_pulse_command(group: &serde_json::Value, command: &str) -> bool {
         .and_then(|h| h.as_array())
         .is_some_and(|hooks| {
             hooks.iter().any(|h| {
-                h.get("command").and_then(|c| c.as_str()).is_some_and(|c| c == command)
+                h.get("command")
+                    .and_then(|c| c.as_str())
+                    .is_some_and(|c| c == command)
             })
         })
 }
@@ -150,10 +170,19 @@ fn threshold_reference() -> String {
          compound_conditions>{} (strict >) | file_loc>={} | \
          functions>{} | total_cc>{} | struct_fields>{} | \
          string_match_arms>{}",
-        t.function.cc_warning, t.function.cc_alert, t.function.cogc_warning, t.function.cogc_alert,
-        t.function.fn_loc_warning, t.function.fn_loc_alert, t.function.nesting_depth, t.function.arg_max,
-        t.function.compound_conditions, t.module.file_loc_warning,
-        t.module.file_function_count, t.module.file_total_cc, t.module.max_struct_fields,
+        t.function.cc_warning,
+        t.function.cc_alert,
+        t.function.cogc_warning,
+        t.function.cogc_alert,
+        t.function.fn_loc_warning,
+        t.function.fn_loc_alert,
+        t.function.nesting_depth,
+        t.function.arg_max,
+        t.function.compound_conditions,
+        t.module.file_loc_warning,
+        t.module.file_function_count,
+        t.module.file_total_cc,
+        t.module.max_struct_fields,
         t.analysis.max_string_match_arms
     )
 }
