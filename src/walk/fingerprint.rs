@@ -1,8 +1,15 @@
 use std::hash::{Hash, Hasher};
 
 use tree_sitter::Node;
+use xxhash_rust::xxh3::Xxh3;
 
 use super::node_text;
+
+pub const FINGERPRINT_VERSION: u64 = 1;
+
+fn fingerprint_hasher() -> Xxh3 {
+    Xxh3::with_seed(FINGERPRINT_VERSION)
+}
 
 pub fn compute_skeleton_hash(body: Node) -> u64 {
     let mut kinds: Vec<&str> = Vec::new();
@@ -13,7 +20,7 @@ pub fn compute_skeleton_hash(body: Node) -> u64 {
     kinds.sort_unstable();
     // No dedup — multiset hash preserves kind COUNTS, not just vocabulary.
     // Two functions must use each statement type the same number of times to match.
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = fingerprint_hasher();
     for kind in &kinds {
         kind.hash(&mut hasher);
     }
@@ -21,7 +28,7 @@ pub fn compute_skeleton_hash(body: Node) -> u64 {
 }
 
 pub fn compute_structural_fingerprint(node: Node) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = fingerprint_hasher();
     let mut cursor = node.walk();
     fingerprint_cursor(&mut cursor, &mut hasher);
     hasher.finish()
@@ -29,13 +36,13 @@ pub fn compute_structural_fingerprint(node: Node) -> u64 {
 
 #[allow(dead_code)]
 pub fn compute_subtree_fingerprint(node: Node) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = fingerprint_hasher();
     fingerprint_subtree_into(node, &mut hasher);
     hasher.finish()
 }
 
 pub fn compute_subtree_fingerprint_seeded(node: Node, seed: u64) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = fingerprint_hasher();
     seed.hash(&mut hasher);
     fingerprint_subtree_into(node, &mut hasher);
     hasher.finish()
@@ -186,7 +193,7 @@ pub fn count_consecutive_asserts(body: Node, assert_kind: &str) -> u32 {
 }
 
 pub fn compute_assert_fingerprint(body: Node, assert_kind: &str) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = fingerprint_hasher();
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
         if !child.is_named() { continue; }
