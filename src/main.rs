@@ -2,6 +2,7 @@
 
 mod analytics;
 mod analyze;
+mod applicability;
 mod audit;
 mod baselines;
 mod cli;
@@ -190,7 +191,8 @@ fn run_debug(file_path: &str) {
 
 fn run_check(file_path: &str) {
     let cfg = config::load_config(Path::new(file_path));
-    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref()) else {
+    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::check())
+    else {
         process::exit(0);
     };
     if result.findings.is_empty() {
@@ -288,7 +290,9 @@ fn run_check_all(include_tests: bool) {
         ) {
             continue;
         }
-        if let Some(result) = analyze::analyze_file(&path_str, cfg.as_ref()) {
+        if let Some(result) =
+            analyze::analyze_file(&path_str, cfg.as_ref(), analyze::ScanOptions::check())
+        {
             if !result.findings.is_empty() {
                 total += result.findings.len();
                 print!("{}", output::format(&result.findings, &result.filename));

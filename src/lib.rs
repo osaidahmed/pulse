@@ -2,6 +2,7 @@
 
 pub mod analytics;
 pub mod analyze;
+pub mod applicability;
 pub mod audit;
 pub mod baselines;
 pub mod config;

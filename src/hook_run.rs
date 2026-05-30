@@ -48,7 +48,9 @@ pub fn run_hook(h: hook::HookInput) {
     };
     let edit_count = baselines::increment_edit_count(&h.file_path);
     let scope = edit_scope_for(&h, edit_count);
-    let Some(analysis) = analyze::analyze_source(&h.file_path, &source, lang, cfg, scope) else {
+    let Some(analysis) =
+        analyze::analyze_source(&h.file_path, &source, lang, cfg, analyze::ScanOptions::hook(scope))
+    else {
         process::exit(0);
     };
 
@@ -167,7 +169,9 @@ pub fn run_stop() {
     let analyze = |p: &str| -> Option<Rc<AnalysisResultFull>> {
         memo.borrow_mut()
             .entry(p.to_string())
-            .or_insert_with(|| analyze::analyze_file(p, cfg.as_ref()).map(Rc::new))
+            .or_insert_with(|| {
+                analyze::analyze_file(p, cfg.as_ref(), analyze::ScanOptions::hook(None)).map(Rc::new)
+            })
             .clone()
     };
 
@@ -205,7 +209,7 @@ fn detect_regressions(
     let baseline = baselines::load_baseline(file_path);
     let owned = match precomputed {
         Some(_) => None,
-        None => Some(analyze::analyze_file(file_path, cfg)?),
+        None => Some(analyze::analyze_file(file_path, cfg, analyze::ScanOptions::hook(None))?),
     };
     let result = precomputed.or(owned.as_ref())?;
     let regressions = analyze::module_regressions(result, &baseline);

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::applicability::{self, Surface};
 use crate::config;
 use crate::parse::{self, Language};
 use crate::smells::{self, Finding, Location};
@@ -12,6 +13,22 @@ pub struct AnalysisResultFull {
     pub filename: String,
     pub metrics: FileMetrics,
     pub thresholds: Thresholds,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ScanOptions {
+    pub edit_byte_range: Option<(usize, usize)>,
+    pub surface: Surface,
+}
+
+impl ScanOptions {
+    pub fn hook(edit_byte_range: Option<(usize, usize)>) -> Self {
+        Self { edit_byte_range, surface: Surface::Hook }
+    }
+
+    pub fn check() -> Self {
+        Self { edit_byte_range: None, surface: Surface::Check }
+    }
 }
 
 impl AnalysisResultFull {
@@ -38,13 +55,14 @@ pub fn analyze_source(
     source: &str,
     lang: Language,
     cfg: Option<&config::PulseConfig>,
-    edit_byte_range: Option<(usize, usize)>,
+    opts: ScanOptions,
 ) -> Option<AnalysisResultFull> {
-    let metrics = parse::parse_and_walk_scoped(source, lang, edit_byte_range)?;
+    let metrics = parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range)?;
     let thresholds = config::resolve_thresholds(cfg, lang);
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);
     config::filter_disabled(&mut findings, &disabled);
+    applicability::filter_by_applicability(&mut findings, opts.surface);
     let filename = Path::new(file_path)
         .file_name()?
         .to_string_lossy()
@@ -60,13 +78,14 @@ pub fn analyze_source(
 pub fn analyze_file(
     file_path: &str,
     cfg: Option<&config::PulseConfig>,
+    opts: ScanOptions,
 ) -> Option<AnalysisResultFull> {
     let path = Path::new(file_path);
     if cfg.is_some_and(|c| config::is_ignored_for_file(c, path)) {
         return None;
     }
     let (lang, source) = read_source_unchecked(file_path)?;
-    analyze_source(file_path, &source, lang, cfg, None)
+    analyze_source(file_path, &source, lang, cfg, opts)
 }
 
 pub fn module_regressions(

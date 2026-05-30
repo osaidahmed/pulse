@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::applicability::{self, Surface};
 use crate::config;
 use crate::hook::HookInput;
 use crate::smells::{Finding, Location};
@@ -152,6 +153,7 @@ fn compute_baseline(
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, &source, &t);
     config::filter_disabled(&mut findings, &disabled);
+    applicability::filter_by_applicability(&mut findings, Surface::Hook);
     let module_counts = count_module_findings(&findings);
     let func_keys: Vec<String> = findings
         .iter()
