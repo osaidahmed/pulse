@@ -190,7 +190,6 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
     for child in node.children(&mut cursor) {
         walk_node(child, source, depth, s);
     }

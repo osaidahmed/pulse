@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use super::{find_child_by_kind, node_text, track_global_nesting};
+use super::{find_child_by_kind, track_global_nesting};
 
 pub fn count_boolean_ops(node: Node, cc: &mut u32, op_kinds: &[&str], stop_kinds: &[&str]) {
     let Some(_guard) = super::DepthGuard::enter() else {
@@ -52,18 +52,19 @@ fn cogc_walk(
     }
 }
 
-pub fn check_condition_complexity_text(
+pub fn check_condition_complexity(
     node: Node,
-    source: &str,
     count: &mut u32,
     cond_kinds: &[&str],
+    op_kinds: &[&str],
+    stop_kinds: &[&str],
 ) {
     let cond = cond_kinds
         .iter()
         .find_map(|kind| find_child_by_kind(node, kind));
     let Some(cond) = cond else { return };
-    let text = node_text(cond, source);
-    let ops = text.matches("&&").count() + text.matches("||").count();
+    let mut ops = 0;
+    count_boolean_ops(cond, &mut ops, op_kinds, stop_kinds);
     if ops >= 2 {
         *count += 1;
     }
@@ -194,7 +195,7 @@ fn apply_else_if(child: Node, ctx: &mut BlockWalkCtx, h: &ElseHandlers) {
     ctx.state.track_cogc_branch();
     count_boolean_ops(child, &mut ctx.state.cc, h.cfg.bool_ops, h.cfg.bool_stops);
     count_cogc_sequences(child, &mut ctx.state.cogc, h.cfg.bool_ops, h.cfg.bool_stops);
-    check_condition_complexity_text(child, ctx.source, &mut ctx.state.compound_condition_count, h.cfg.cond_kinds);
+    check_condition_complexity(child, &mut ctx.state.compound_condition_count, h.cfg.cond_kinds, h.cfg.bool_ops, h.cfg.bool_stops);
     (h.walk_children)(child, ctx.source, ctx.depth, ctx.state);
 }
 

@@ -203,10 +203,7 @@ fn is_primitive_type_node(node: Node, source: &str) -> bool {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
-    for child in node.children(&mut cursor) {
-        dispatch(child, source, depth, s);
-    }
+    node.children(&mut cursor).for_each(|child| dispatch(child, source, depth, s));
 }
 
 fn route_structured(node: Node, source: &str, depth: u32, s: &mut WalkState) -> bool {
@@ -227,16 +224,16 @@ fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     if !SCOPE_BOUNDARY.contains(&kind) { walk_body(node, source, depth, s); }
 }
 
-fn track_condition(node: Node, source: &str, s: &mut WalkState) {
+fn track_condition(node: Node, s: &mut WalkState) {
     count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
     count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
+    shared::check_condition_complexity(node, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
 }
 
 fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.track_if(depth);
     s.track_cogc_branch();
-    track_condition(node, source, s);
+    track_condition(node, s);
     let n = node.child_count();
     for i in 0..n {
         let child = node.child(i).unwrap();
@@ -256,7 +253,7 @@ fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 fn handle_elseif(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.cc += 1;
     s.track_cogc_branch();
-    track_condition(node, source, s);
+    track_condition(node, s);
     let n = node.child_count();
     for i in 0..n {
         let child = node.child(i).unwrap();

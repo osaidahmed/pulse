@@ -162,10 +162,7 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
-    for child in node.children(&mut cursor) {
-        walk_node(child, source, depth, s);
-    }
+    node.children(&mut cursor).for_each(|child| walk_node(child, source, depth, s));
 }
 
 const SKIP_KINDS: &[&str] = &["function_literal", "scope_guard_statement"];
@@ -187,7 +184,7 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.track_if(depth);
     s.track_cogc_branch();
-    track_condition(node, source, s);
+    track_condition(node, s);
     walk_if_scopes(node, source, depth + 1, s);
 }
 
@@ -199,7 +196,7 @@ fn walk_if_scopes(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         if let Some(elif) = find_child_by_kind(child, "if_statement") {
             s.cc += 1;
             s.track_cogc_branch();
-            track_condition(elif, source, s);
+            track_condition(elif, s);
             walk_if_scopes(elif, source, depth, s);
             continue;
         }
@@ -213,10 +210,10 @@ fn walk_if_scopes(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
-fn track_condition(node: Node, source: &str, s: &mut WalkState) {
+fn track_condition(node: Node, s: &mut WalkState) {
     count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
     count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
+    shared::check_condition_complexity(node, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
 }
 
 fn handle_loop(node: Node, source: &str, depth: u32, s: &mut WalkState) {

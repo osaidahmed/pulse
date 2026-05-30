@@ -11,7 +11,6 @@ pub fn walk_function_matches(func_node: Node, source: &str, depth: u32, s: &mut 
 
 pub fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
     for child in node.children(&mut cursor) {
         walk_node(child, source, depth, s);
     }
@@ -104,7 +103,6 @@ fn walk_case_alternatives(node: Node, source: &str, depth: u32, s: &mut WalkStat
         if !is_wildcard_alternative(alt) {
             s.cc += 1;
         }
-        s.reset_bump();
         for_children_of_kind(alt, "match", |m| walk_match(m, source, depth + 1, s));
     });
 }

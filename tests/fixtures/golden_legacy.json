@@ -3955,7 +3955,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -4018,11 +4018,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:1:15",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:1:15",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -5421,7 +5416,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -5464,11 +5459,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:3:17",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:3:17",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -5963,7 +5953,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -6031,11 +6021,6 @@
         "smell": "Low Cohesion",
         "location": "module",
         "detail": "Processor: LCOM4=3 (3 disconnected method groups)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:Processor.DeeplyNested:3:24",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -6967,7 +6952,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -7010,11 +6995,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:3:16",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:3:16",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -7744,7 +7724,7 @@
         "cc": 14,
         "cognitive_complexity": 31,
         "max_nesting": 4,
-        "bump_count": 6,
+        "bump_count": 3,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -7771,7 +7751,7 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:ProcessRecords:3:39",
-        "detail": "6 nested conditional chunks (threshold: 2)"
+        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -7982,7 +7962,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -8045,11 +8025,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:DeeplyNested:3:18",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:DeeplyNested:3:18",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -9097,7 +9072,7 @@
         "cc": 5,
         "cognitive_complexity": 10,
         "max_nesting": 4,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 4,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -9135,11 +9110,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:Validator.deeplyNested:2:12",
         "detail": "depth=4 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:Validator.deeplyNested:2:12",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
         "smell": "Primitive Obsession",
@@ -9528,7 +9498,7 @@
         "cc": 17,
         "cognitive_complexity": 31,
         "max_nesting": 5,
-        "bump_count": 4,
+        "bump_count": 2,
         "arg_count": 7,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -9588,7 +9558,7 @@
         "cc": 5,
         "cognitive_complexity": 10,
         "max_nesting": 4,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -9680,11 +9650,6 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:ApiService.handleApiRequest:2:37",
-        "detail": "4 nested conditional chunks (threshold: 2)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:ApiService.parseQuery:70:80",
         "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
@@ -9702,9 +9667,9 @@
   {
     "path": "groovy/production_service.groovy",
     "module": {
-      "total_loc": 73,
-      "total_functions": 6,
-      "sum_cc": 32,
+      "total_loc": 91,
+      "total_functions": 7,
+      "sum_cc": 39,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 1,
@@ -9739,7 +9704,7 @@
         "cc": 12,
         "cognitive_complexity": 18,
         "max_nesting": 4,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 7,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -9830,6 +9795,26 @@
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
+      },
+      {
+        "name": "OrderService.validateBatch",
+        "start_line": 79,
+        "end_line": 96,
+        "loc": 18,
+        "cc": 7,
+        "cognitive_complexity": 12,
+        "max_nesting": 3,
+        "bump_count": 2,
+        "arg_count": 5,
+        "compound_condition_count": 0,
+        "is_constructor": false,
+        "max_embedded_block_loc": 0,
+        "consecutive_asserts": 0,
+        "primitive_type_count": 5,
+        "typed_param_count": 5,
+        "empty_catch_count": 0,
+        "short_var_count": 0,
+        "string_match_arms": 0
       }
     ],
     "findings": [
@@ -9871,11 +9856,11 @@
       {
         "smell": "Low Cohesion",
         "location": "module",
-        "detail": "OrderService: LCOM4=5 (5 disconnected method groups)"
+        "detail": "OrderService: LCOM4=6 (6 disconnected method groups)"
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:OrderService.processOrder:6:31",
+        "location": "fn:OrderService.validateBatch:79:96",
         "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
@@ -9887,6 +9872,11 @@
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.processOrder:6:31",
         "detail": "7/7 typed params are primitives (100%)"
+      },
+      {
+        "smell": "Primitive Obsession",
+        "location": "fn:OrderService.validateBatch:79:96",
+        "detail": "5/5 typed params are primitives (100%)"
       }
     ]
   },
@@ -11053,7 +11043,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -11121,11 +11111,6 @@
         "smell": "Low Cohesion",
         "location": "module",
         "detail": "DeepNesting: LCOM4=3 (3 disconnected method groups)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:DeepNesting.deeplyNested:4:19",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -11588,7 +11573,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -11651,11 +11636,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:1:16",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:1:16",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -12018,7 +11998,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -12061,11 +12041,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:DeepNesting.deeplyNested:2:17",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:DeepNesting.deeplyNested:2:17",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -12785,7 +12760,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -12828,11 +12803,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:1:15",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:1:15",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -13326,7 +13296,7 @@
         "cc": 18,
         "cognitive_complexity": 44,
         "max_nesting": 4,
-        "bump_count": 4,
+        "bump_count": 2,
         "arg_count": 10,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -13423,16 +13393,16 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:ApiService.handleRequest:28:91",
-        "detail": "4 nested conditional chunks (threshold: 2)"
+        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
   {
     "path": "lua/production_service.lua",
     "module": {
-      "total_loc": 175,
-      "total_functions": 18,
-      "sum_cc": 38,
+      "total_loc": 193,
+      "total_functions": 19,
+      "sum_cc": 45,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 1,
@@ -13567,7 +13537,7 @@
         "cc": 14,
         "cognitive_complexity": 37,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 10,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -13798,6 +13768,26 @@
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
+      },
+      {
+        "name": "validateBatch",
+        "start_line": 200,
+        "end_line": 217,
+        "loc": 18,
+        "cc": 7,
+        "cognitive_complexity": 12,
+        "max_nesting": 3,
+        "bump_count": 2,
+        "arg_count": 1,
+        "compound_condition_count": 0,
+        "is_constructor": false,
+        "max_embedded_block_loc": 1,
+        "consecutive_asserts": 0,
+        "primitive_type_count": 0,
+        "typed_param_count": 0,
+        "empty_catch_count": 0,
+        "short_var_count": 0,
+        "string_match_arms": 0
       }
     ],
     "findings": [
@@ -13838,8 +13828,8 @@
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:OrderService.processOrder:42:95",
-        "detail": "3 nested conditional chunks (threshold: 2)"
+        "location": "fn:validateBatch:200:217",
+        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -14086,7 +14076,7 @@
         "cc": 17,
         "cognitive_complexity": 34,
         "max_nesting": 5,
-        "bump_count": 4,
+        "bump_count": 2,
         "arg_count": 3,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -14133,7 +14123,7 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:OrderProcessor.processOrder:5:47",
-        "detail": "4 nested conditional chunks (threshold: 2)"
+        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -14157,7 +14147,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -14180,11 +14170,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:DeepProcessor.process:5:17",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:DeepProcessor.process:5:17",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -14639,7 +14624,7 @@
         "cc": 23,
         "cognitive_complexity": 56,
         "max_nesting": 7,
-        "bump_count": 7,
+        "bump_count": 2,
         "arg_count": 3,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -14861,7 +14846,7 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:OrderService.processOrder:27:82",
-        "detail": "7 nested conditional chunks (threshold: 2)"
+        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -16046,7 +16031,7 @@
         "cc": 27,
         "cognitive_complexity": 59,
         "max_nesting": 5,
-        "bump_count": 11,
+        "bump_count": 2,
         "arg_count": 3,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -16093,7 +16078,7 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:process_data_pipeline:4:73",
-        "detail": "11 nested conditional chunks (threshold: 2)"
+        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -16481,7 +16466,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -16544,11 +16529,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:4:12",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:4:12",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -17952,9 +17932,9 @@
   {
     "path": "python/production_service.py",
     "module": {
-      "total_loc": 141,
-      "total_functions": 12,
-      "sum_cc": 31,
+      "total_loc": 152,
+      "total_functions": 13,
+      "sum_cc": 38,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 2,
@@ -18109,7 +18089,7 @@
         "cc": 14,
         "cognitive_complexity": 30,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 10,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -18200,6 +18180,26 @@
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
+      },
+      {
+        "name": "validate_batch",
+        "start_line": 166,
+        "end_line": 176,
+        "loc": 11,
+        "cc": 7,
+        "cognitive_complexity": 12,
+        "max_nesting": 3,
+        "bump_count": 2,
+        "arg_count": 1,
+        "compound_condition_count": 0,
+        "is_constructor": false,
+        "max_embedded_block_loc": 1,
+        "consecutive_asserts": 0,
+        "primitive_type_count": 0,
+        "typed_param_count": 0,
+        "empty_catch_count": 0,
+        "short_var_count": 0,
+        "string_match_arms": 0
       }
     ],
     "findings": [
@@ -18240,8 +18240,8 @@
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:OrderProcessor.process_order:58:111",
-        "detail": "3 nested conditional chunks (threshold: 2)"
+        "location": "fn:validate_batch:166:176",
+        "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
         "smell": "Primitive Obsession",
@@ -18584,7 +18584,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -18632,11 +18632,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:1:13",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:1:13",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -19097,7 +19092,7 @@
         "cc": 7,
         "cognitive_complexity": 14,
         "max_nesting": 4,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -19157,11 +19152,6 @@
         "detail": "1 empty catch block"
       },
       {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:parse_query:115:137",
-        "detail": "2 nested conditional chunks (threshold: 2)"
-      },
-      {
         "smell": "Short Variable Names",
         "location": "fn:process_event:5:19",
         "detail": "16 single-char variables in 15 LOC function (threshold: 3)"
@@ -19188,7 +19178,7 @@
         "cc": 14,
         "cognitive_complexity": 33,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 10,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -19248,7 +19238,7 @@
         "cc": 16,
         "cognitive_complexity": 37,
         "max_nesting": 5,
-        "bump_count": 5,
+        "bump_count": 3,
         "arg_count": 3,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -19335,11 +19325,6 @@
       {
         "smell": "Nested Conditional Chunks",
         "location": "fn:process_data_pipeline:133:180",
-        "detail": "5 nested conditional chunks (threshold: 2)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:process_order:48:97",
         "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
@@ -19702,7 +19687,7 @@
         "cc": 5,
         "cognitive_complexity": 10,
         "max_nesting": 4,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -19740,11 +19725,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:1:15",
         "detail": "depth=4 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:1:15",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -21210,7 +21190,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -21253,11 +21233,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:1:13",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:1:13",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -22151,7 +22126,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 5,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -22194,11 +22169,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeply_nested:1:14",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeply_nested:1:14",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -23111,7 +23081,7 @@
         "cc": 7,
         "cognitive_complexity": 21,
         "max_nesting": 6,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 1,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -23174,11 +23144,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:1:16",
         "detail": "depth=6 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:1:16",
-        "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
   },
@@ -23603,9 +23568,9 @@
   {
     "path": "typescript/production_api.ts",
     "module": {
-      "total_loc": 118,
-      "total_functions": 12,
-      "sum_cc": 28,
+      "total_loc": 136,
+      "total_functions": 13,
+      "sum_cc": 35,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 1,
@@ -23640,7 +23605,7 @@
         "cc": 13,
         "cognitive_complexity": 25,
         "max_nesting": 3,
-        "bump_count": 2,
+        "bump_count": 1,
         "arg_count": 8,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -23851,6 +23816,26 @@
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
+      },
+      {
+        "name": "validateBatch",
+        "start_line": 140,
+        "end_line": 157,
+        "loc": 18,
+        "cc": 7,
+        "cognitive_complexity": 12,
+        "max_nesting": 3,
+        "bump_count": 2,
+        "arg_count": 1,
+        "compound_condition_count": 0,
+        "is_constructor": false,
+        "max_embedded_block_loc": 1,
+        "consecutive_asserts": 0,
+        "primitive_type_count": 1,
+        "typed_param_count": 1,
+        "empty_catch_count": 0,
+        "short_var_count": 0,
+        "string_match_arms": 0
       }
     ],
     "findings": [
@@ -23876,7 +23861,7 @@
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:ApiService.handleRequest:31:74",
+        "location": "fn:validateBatch:140:157",
         "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
@@ -24245,7 +24230,7 @@
         "cc": 6,
         "cognitive_complexity": 15,
         "max_nesting": 5,
-        "bump_count": 3,
+        "bump_count": 1,
         "arg_count": 2,
         "compound_condition_count": 0,
         "is_constructor": false,
@@ -24288,11 +24273,6 @@
         "smell": "Deep Nested Complexity",
         "location": "fn:deeplyNested:3:17",
         "detail": "depth=5 (threshold: 4)"
-      },
-      {
-        "smell": "Nested Conditional Chunks",
-        "location": "fn:deeplyNested:3:17",
-        "detail": "3 nested conditional chunks (threshold: 2)"
       }
     ]
   },

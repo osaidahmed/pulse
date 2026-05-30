@@ -78,7 +78,9 @@ impl WalkState {
     pub fn track_if(&mut self, depth: u32) {
         self.cc += 1;
         update_max(&mut self.max_nesting, depth + 1);
-        if depth >= 2 && !self.saw_bump {
+        if depth < 2 {
+            self.saw_bump = false;
+        } else if !self.saw_bump {
             self.bump_count += 1;
             self.saw_bump = true;
         }
@@ -86,15 +88,14 @@ impl WalkState {
 
     pub fn track_loop(&mut self, depth: u32) {
         self.cc += 1;
-        update_max(&mut self.max_nesting, depth + 1);
+        self.track_nesting(depth);
     }
 
     pub fn track_nesting(&mut self, depth: u32) {
         update_max(&mut self.max_nesting, depth + 1);
-    }
-
-    pub fn reset_bump(&mut self) {
-        self.saw_bump = false;
+        if depth < 2 {
+            self.saw_bump = false;
+        }
     }
 }
 

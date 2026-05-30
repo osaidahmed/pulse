@@ -195,3 +195,23 @@ local function formatAdminReport(admins)
     end
     return report
 end
+
+
+local function validateBatch(record)
+    local issues = {}
+    if record.user then
+        if record.user.active then
+            if record.user.banned then
+                table.insert(issues, "banned_user")
+            end
+        end
+    end
+    if record.payment then
+        if record.payment.amount > 0 then
+            if not record.payment.authorized then
+                table.insert(issues, "unauthorized")
+            end
+        end
+    end
+    return issues
+end

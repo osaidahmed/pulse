@@ -210,7 +210,6 @@ fn is_primitive_type(node: Node, source: &str) -> bool {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
     for child in node.children(&mut cursor) {
         dispatch(child, source, depth, s);
     }
@@ -267,7 +266,7 @@ fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.track_cogc_branch();
     count_boolean_ops(node, &mut s.cc, BOOL_OPS, BOOL_STOPS);
     count_cogc_sequences(node, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-    shared::check_condition_complexity_text(node, source, &mut s.compound_condition_count, COND_KINDS);
+    shared::check_condition_complexity(node, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
     descend(node, source, depth + 1, s);
 }
 
@@ -310,7 +309,7 @@ fn descend_else(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         s.track_cogc_branch();
         count_boolean_ops(inner_if, &mut s.cc, BOOL_OPS, BOOL_STOPS);
         count_cogc_sequences(inner_if, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-        shared::check_condition_complexity_text(inner_if, source, &mut s.compound_condition_count, COND_KINDS);
+        shared::check_condition_complexity(inner_if, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
         descend(inner_if, source, depth, s);
     } else if let Some(body) = find_child_by_kind(node, "compound_statement") {
         s.track_cogc_flat();

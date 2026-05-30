@@ -75,4 +75,23 @@ class OrderService {
         if (result < 0) { result = 0 }
         return result * 2
     }
+
+    int validateBatch(int user, int active, int banned, int payment, int amount) {
+        int issues = 0
+        if (user == 1) {
+            if (active == 1) {
+                if (banned == 1) {
+                    issues = issues + 1
+                }
+            }
+        }
+        if (payment == 1) {
+            if (amount > 0) {
+                if (amount < 10) {
+                    issues = issues + 1
+                }
+            }
+        }
+        return issues
+    }
 }

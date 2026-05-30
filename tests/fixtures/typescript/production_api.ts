@@ -135,3 +135,23 @@ function formatAdminReport(admins: any[]): any[] {
     }
     return report;
 }
+
+
+function validateBatch(record: any): string[] {
+    const issues: string[] = [];
+    if (record.user) {
+        if (record.user.active) {
+            if (record.user.banned) {
+                issues.push("banned_user");
+            }
+        }
+    }
+    if (record.payment) {
+        if (record.payment.amount > 0) {
+            if (!record.payment.authorized) {
+                issues.push("unauthorized");
+            }
+        }
+    }
+    return issues;
+}

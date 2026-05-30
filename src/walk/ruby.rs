@@ -141,7 +141,6 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
     for child in node.children(&mut cursor) {
         dispatch(child, source, depth, s);
     }

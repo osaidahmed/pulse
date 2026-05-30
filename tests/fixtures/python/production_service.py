@@ -161,3 +161,16 @@ def format_admin_report(admins):
         entry["display"] = f"{admin.name} ({admin.email})"
         report.append(entry)
     return report
+
+
+def validate_batch(record):
+    issues = []
+    if record.user:
+        if record.user.active:
+            if record.user.banned:
+                issues.append("banned_user")
+    if record.payment:
+        if record.payment.amount > 0:
+            if not record.payment.authorized:
+                issues.append("unauthorized")
+    return issues

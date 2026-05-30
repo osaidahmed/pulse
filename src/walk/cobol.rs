@@ -183,16 +183,12 @@ struct BodyWalker<'a, 'b> {
 impl BodyWalker<'_, '_> {
     fn walk_range(&mut self, start: usize, end: usize, depth: u32) {
         let mut i = start;
-        self.s.reset_bump();
         let cap = self.nodes.len().saturating_add(1);
         let mut steps: usize = 0;
         while i < end && steps < cap {
             let prev = i;
             let next = self.dispatch(i, depth);
             i = if next > prev { next } else { prev + 1 };
-            if depth == 0 && i > prev {
-                self.s.reset_bump();
-            }
             steps += 1;
         }
     }

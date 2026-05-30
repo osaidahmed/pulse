@@ -176,7 +176,6 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
 
     for child in node.children(&mut cursor) {
         walk_node(child, source, depth, s);

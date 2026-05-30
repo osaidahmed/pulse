@@ -187,7 +187,6 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut cursor = node.walk();
-    s.reset_bump();
 
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -196,7 +195,7 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 s.track_cogc_branch();
                 count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
                 count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity_text(child, source, &mut s.compound_condition_count, COND_KINDS);
+                shared::check_condition_complexity(child, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
                 walk_children(child, source, depth + 1, s);
             }
             "for_expression" | "while_expression" | "loop_expression" => {
