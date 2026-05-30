@@ -359,18 +359,36 @@ fn assertion_block_above_threshold() {
 }
 
 #[test]
-fn assertion_block_interrupted_resets() {
+fn assertion_block_tolerates_single_gap() {
     let mut code = String::from("fun f() {\n");
-    for i in 0..8 {
+    let half = asserts_above() / 2;
+    for i in 0..half {
         code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("    val x = 1\n");
-    for i in 0..8 {
+    for i in 0..(asserts_above() - half) {
         code.push_str(&format!("    assert({i} > 0)\n"));
     }
     code.push_str("}\n");
     let out = check(&code);
-    assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
+    assert!(has_smell(&out, "Large Assertion Block"), "single gap should be tolerated, got: {out}");
+}
+
+#[test]
+fn assertion_block_large_gap_resets() {
+    let mut code = String::from("fun f() {\n");
+    let half = asserts_at() - 2;
+    for i in 0..half {
+        code.push_str(&format!("    assert({i} > 0)\n"));
+    }
+    code.push_str("    val x = 1\n");
+    code.push_str("    val y = 2\n");
+    for i in 0..half {
+        code.push_str(&format!("    assert({i} > 0)\n"));
+    }
+    code.push_str("}\n");
+    let out = check(&code);
+    assert!(!has_smell(&out, "Large Assertion Block"), "gap beyond tolerance should reset, got: {out}");
 }
 
 // ── Overall function size ────────────────────────────────────────────

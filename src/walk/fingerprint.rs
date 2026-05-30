@@ -180,20 +180,23 @@ pub fn fingerprint_walk(node: Node, hasher: &mut impl Hasher) {
     fingerprint_cursor(&mut cursor, hasher);
 }
 
+const ASSERT_GAP_TOLERANCE: u32 = 1;
+
 pub fn count_consecutive_asserts(body: Node, assert_kind: &str) -> u32 {
     let mut max_consecutive: u32 = 0;
     let mut current: u32 = 0;
+    let mut gap: u32 = 0;
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
         if !child.is_named() { continue; }
         if child.kind() == assert_kind {
             current += 1;
+            gap = 0;
         } else {
-            current = 0;
+            gap += 1;
+            if gap > ASSERT_GAP_TOLERANCE { current = 0; }
         }
-        if current > max_consecutive {
-            max_consecutive = current;
-        }
+        max_consecutive = max_consecutive.max(current);
     }
     max_consecutive
 }

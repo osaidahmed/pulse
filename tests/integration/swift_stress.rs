@@ -626,7 +626,7 @@ fn assert_count_for_calls() {
 }
 
 #[test]
-fn assert_block_non_consecutive() {
+fn assert_block_single_gap_tolerated() {
     let out = debug(concat!(
         "func f() {\n",
         "    assert(true)\n",
@@ -635,7 +635,21 @@ fn assert_block_non_consecutive() {
         "}\n",
     ));
     let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
-    assert!(asserts <= 1, "non-consecutive should not accumulate, got: {asserts}");
+    assert!(asserts >= 2, "single gap should be tolerated, got: {asserts}");
+}
+
+#[test]
+fn assert_block_large_gap_resets() {
+    let out = debug(concat!(
+        "func f() {\n",
+        "    assert(true)\n",
+        "    let x = 1\n",
+        "    let y = 2\n",
+        "    assert(true)\n",
+        "}\n",
+    ));
+    let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
+    assert!(asserts <= 1, "gap beyond tolerance should reset, got: {asserts}");
 }
 
 #[test]
