@@ -35,7 +35,39 @@ pub fn run(
     all.extend(super::detector_parallel_inheritance::detect(&registry, &inh, thresholds));
     let file_lang = build_file_lang_lookup(typed_files);
     all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &file_lang, thresholds));
+    apply_named_confidence(&mut all, &file_lang);
     all
+}
+
+fn apply_named_confidence(
+    findings: &mut [AuditFinding],
+    file_lang: &impl Fn(&Path) -> Option<Language>,
+) {
+    for finding in findings {
+        set_named_confidence(&mut finding.kind, file_lang);
+    }
+}
+
+fn set_named_confidence(kind: &mut AuditKind, file_lang: &impl Fn(&Path) -> Option<Language>) {
+    use super::confidence::{confidence_for_file, EvidenceQuality};
+    match kind {
+        AuditKind::DivergentChange(e) => {
+            e.confidence = confidence_for_file(file_lang, &e.class_file, EvidenceQuality::NameKeyedUnique);
+        }
+        AuditKind::FeatureEnvy(e) => {
+            e.confidence = confidence_for_file(file_lang, &e.method_file, EvidenceQuality::Heuristic);
+        }
+        AuditKind::GodClass(e) => {
+            e.confidence = confidence_for_file(file_lang, &e.class_file, EvidenceQuality::NameKeyedAmbiguous);
+        }
+        AuditKind::ParallelInheritance(e) => {
+            e.confidence = confidence_for_file(file_lang, &e.root_a.file, EvidenceQuality::Heuristic);
+        }
+        AuditKind::RefusedBequest(e) => {
+            e.confidence = confidence_for_file(file_lang, &e.subclass_file, EvidenceQuality::NameKeyedUnique);
+        }
+        _ => {}
+    }
 }
 
 fn build_file_lang_lookup(

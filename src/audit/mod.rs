@@ -9,6 +9,7 @@ pub mod calls;
 pub mod categorize;
 pub mod class_registry;
 pub mod complexity_floor;
+pub mod confidence;
 pub mod corpus_stats;
 pub mod cycles;
 pub mod expression_filter;
