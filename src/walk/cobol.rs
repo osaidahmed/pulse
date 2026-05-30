@@ -263,7 +263,7 @@ impl BodyWalker<'_, '_> {
     }
 
     fn handle_evaluate(&mut self, start: usize, depth: u32) -> usize {
-        self.s.track_if(depth);
+        self.s.track_nesting(depth);
         self.s.track_cogc_branch();
         let saved = self.s.cogc_nesting;
         self.s.cogc_nesting += 1;

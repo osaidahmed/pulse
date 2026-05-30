@@ -554,7 +554,7 @@ fn evaluate_when_increments_cc() {
         "cob",
     );
     let cc = function_metric(&debug, "CHECK-IT", "cc").unwrap_or(0);
-    assert!(cc >= 4, "EVALUATE+2WHEN=cc>=4, got: {cc}");
+    assert!(cc >= 3, "base+2WHEN; EVALUATE header is not a decision, got: {cc}");
 }
 
 #[test]

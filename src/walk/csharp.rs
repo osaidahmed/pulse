@@ -71,7 +71,11 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
             "class_declaration" | "struct_declaration" | "interface_declaration"
             | "record_declaration" => collect_class_methods(child, source, functions),
             "namespace_declaration" => recurse_namespace(child, source, functions),
-            "method_declaration" | "local_function_statement" => push_method(child, source, functions),
+            "method_declaration" | "local_function_statement" => {
+                if let Some(m) = analyze_callable(child, source, &METHOD_CFG) {
+                    functions.push(m);
+                }
+            }
             _ => collect_functions(child, source, functions),
         }
     }
@@ -80,11 +84,6 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 fn recurse_namespace(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let Some(body) = find_child_by_kind(node, "declaration_list") else { return; };
     collect_functions(body, source, functions);
-}
-
-fn push_method(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let Some(m) = analyze_callable(node, source, &METHOD_CFG) else { return; };
-    functions.push(m);
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
@@ -211,6 +210,7 @@ const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
     (&["if_statement"], handle_if),
     (&["for_statement", "foreach_statement", "while_statement", "do_statement"], handle_loop),
     (&["switch_statement"], handle_switch),
+    (&["switch_expression"], handle_switch_expression),
     (&["switch_section"], handle_switch_section),
     (&["catch_clause"], handle_catch),
     (&["try_statement"], walk_children),
@@ -259,11 +259,24 @@ fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     walk_children(child, source, depth + 1, s);
 }
 
+fn handle_switch_expression(child: Node, source: &str, depth: u32, s: &mut WalkState) {
+    s.track_nesting(depth);
+    s.track_cogc_branch();
+    let mut cursor = child.walk();
+    for arm in child.children(&mut cursor) {
+        if arm.kind() != "switch_expression_arm" {
+            continue;
+        }
+        if find_child_by_kind(arm, "discard").is_none() {
+            s.cc += 1;
+        }
+        walk_body(arm, source, depth + 1, s);
+    }
+}
+
 fn handle_switch_section(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let label_text = find_child_by_kind(child, "switch_label")
-        .map(|l| node_text(l, source))
-        .unwrap_or_default();
-    if !label_text.contains("default") {
+    let is_default = node_text(child, source).trim_start().starts_with("default");
+    if !is_default {
         s.cc += 1;
     }
     walk_body(child, source, depth, s);

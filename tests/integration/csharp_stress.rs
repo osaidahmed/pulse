@@ -413,7 +413,24 @@ fn cc_switch_default_not_counted() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert_eq!(cc, 4, "base + 2 cases + default section, got: {cc}");
+    assert_eq!(cc, 3, "base + 2 cases; default is fallthrough, not a decision point, got: {cc}");
+}
+
+#[test]
+fn cc_counts_switch_expression_arms() {
+    let out = debug(concat!(
+        "public class T {\n",
+        "    static string f(int x) {\n",
+        "        return x switch {\n",
+        "            1 => \"a\",\n",
+        "            2 => \"b\",\n",
+        "            _ => \"?\",\n",
+        "        };\n",
+        "    }\n",
+        "}\n",
+    ));
+    let cc = function_metric(&out, "f", "cc").unwrap();
+    assert_eq!(cc, 3, "base + 2 arms; discard arm is not a decision point, got: {cc}");
 }
 
 // ===========================================================================

@@ -35,7 +35,7 @@ fn cc_counts_evaluate_when() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 4, "EVALUATE+2WHEN, got: {cc}");
+    assert!(cc >= 3, "EVALUATE+2WHEN, got: {cc}");
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn cc_counts_evaluate_multiple_when() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n               WHEN \"B\"\n                   DISPLAY \"B\"\n               WHEN \"C\"\n                   DISPLAY \"C\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "EVALUATE+3WHEN, got: {cc}");
+    assert!(cc >= 4, "EVALUATE+3WHEN, got: {cc}");
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn cc_evaluate_with_nested_if() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   IF WS-A > 0\n                       DISPLAY \"y\"\n                   END-IF\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "EVALUATE+2WHEN+IF, got: {cc}");
+    assert!(cc >= 4, "EVALUATE+2WHEN+IF, got: {cc}");
 }
 
 #[test]
@@ -145,8 +145,7 @@ fn cc_when_other_no_cc() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n               WHEN OTHER\n                   DISPLAY \"other\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    // EVALUATE(+1) + WHEN(+1) = 3 total; WHEN OTHER adds 0
-    assert_eq!(cc, 3, "WHEN OTHER should not add cc, got: {cc}");
+    assert_eq!(cc, 2, "base + 1 WHEN; EVALUATE and WHEN OTHER add no cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -590,7 +589,7 @@ fn evaluate_when_cc() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   DISPLAY \"A\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 3, "EVALUATE+WHEN, got: {cc}");
+    assert!(cc >= 2, "EVALUATE+WHEN, got: {cc}");
 }
 
 #[test]
@@ -745,7 +744,7 @@ fn evaluate_in_if() {
         "           IF WS-A > 0\n               EVALUATE WS-X\n                   WHEN \"A\"\n                       DISPLAY \"A\"\n                   WHEN \"B\"\n                       DISPLAY \"B\"\n               END-EVALUATE\n           END-IF.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 5, "IF+EVALUATE+2WHEN, got: {cc}");
+    assert!(cc >= 4, "IF+EVALUATE+2WHEN, got: {cc}");
 }
 
 #[test]
@@ -769,7 +768,7 @@ fn nested_evaluate_in_evaluate() {
         "           EVALUATE WS-X\n               WHEN \"A\"\n                   EVALUATE WS-A\n                       WHEN 1\n                           DISPLAY \"1\"\n                       WHEN 2\n                           DISPLAY \"2\"\n                   END-EVALUATE\n               WHEN \"B\"\n                   DISPLAY \"B\"\n           END-EVALUATE.\n"
     ));
     let cc = function_metric(&out, "TEST-PARA", "cc").unwrap_or(0);
-    assert!(cc >= 7, "outer(1+2WHEN)+inner(1+2WHEN), got: {cc}");
+    assert!(cc >= 5, "outer 2WHEN + inner 2WHEN + base, got: {cc}");
 }
 
 // ===========================================================================
