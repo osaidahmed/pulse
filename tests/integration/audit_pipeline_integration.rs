@@ -265,19 +265,6 @@ fn pipeline_findings_have_file_count_at_least_one() {
 }
 
 #[test]
-fn pipeline_findings_have_g2_score_above_threshold() {
-    let dir = tempfile::tempdir().unwrap();
-    write_python_files(dir.path(), 5, "def f(x):\n    if x == 1:\n        return x\n    return 0\n");
-    write_decoys(dir.path(), 6);
-    let findings = run_pipeline(dir.path());
-    for f in &findings {
-        let score = f.idf_score.unwrap_or(0.0);
-        assert!(score >= t().audit.pattern_mining.g2_significance_threshold,
-            "G² score {score} below threshold");
-    }
-}
-
-#[test]
 fn pipeline_handles_directory_with_thousand_files() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..1000 {

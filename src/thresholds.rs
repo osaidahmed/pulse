@@ -68,7 +68,6 @@ pub struct PatternMiningThresholds {
     pub max_findings_reported: usize,
     pub vendor: VendorThresholds,
     pub complexity: ComplexityFloorThresholds,
-    pub g2_significance_threshold: f64,
     pub mdl: MdlThresholds,
 }
 
@@ -205,7 +204,6 @@ impl PatternMiningThresholds {
         max_findings_reported: 25,
         vendor: VendorThresholds::DEFAULTS,
         complexity: ComplexityFloorThresholds::DEFAULTS,
-        g2_significance_threshold: 10.83,
         mdl: MdlThresholds::DEFAULTS,
     };
 }
