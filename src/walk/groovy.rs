@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -152,7 +152,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
     let sl = node.start_position().row as u32 + 1;
     let el = node.end_position().row as u32 + 1;
 
-    let (arg_count, prim, typed) = count_parameters(node, source);
+    let (arg_count, prim, typed, max_same) = count_parameters(node, source);
     let body = find_child_by_kind(node, cfg.body_kind)
         .or_else(|| find_child_by_kind(node, "block"))?;
 
@@ -178,6 +178,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: prim,
         typed_param_count: typed,
+        max_same_primitive_count: max_same,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -342,35 +343,44 @@ fn handle_elif(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     walk_children(child, source, depth, s);
 }
 
-fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(node, "formal_parameters") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    params
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params
         .children(&mut cursor)
         .filter(|c| c.kind() == "formal_parameter" || c.kind() == "spread_parameter")
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            let (has_type, is_prim) = classify_param(child, source);
-            (cnt + 1, prim + u32::from(is_prim), typed + u32::from(has_type))
-        })
+    {
+        count += 1;
+        let (has_type, prim_ty) = classify_param(child, source);
+        typed += u32::from(has_type);
+        if let Some(ty) = prim_ty {
+            prims.push(ty);
+        }
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
-fn classify_param(param: Node, source: &str) -> (bool, bool) {
+fn classify_param<'a>(param: Node, source: &'a str) -> (bool, Option<&'a str>) {
     let mut cursor = param.walk();
     for child in param.children(&mut cursor) {
         match child.kind() {
             "integral_type" | "floating_point_type" | "boolean_type" | "void_type" => {
-                return (true, true);
+                return (true, Some(&source[child.byte_range()]));
             }
             "type_identifier" => {
-                return (true, PRIMITIVE_TYPES.contains(&&source[child.byte_range()]));
+                let name = &source[child.byte_range()];
+                return (true, PRIMITIVE_TYPES.contains(&name).then_some(name));
             }
-            "generic_type" | "array_type" | "scoped_type_identifier" => return (true, false),
+            "generic_type" | "array_type" | "scoped_type_identifier" => return (true, None),
             _ => {}
         }
     }
-    (false, false)
+    (false, None)
 }
 
 fn count_declarations(root: Node) -> u32 {

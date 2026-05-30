@@ -196,6 +196,7 @@ fn build_metrics(node: Node, source: &str, info: FnInfo) -> Option<FunctionMetri
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "function_call")),
         primitive_type_count: 0,
         typed_param_count: 0,
+        max_same_primitive_count: 0,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),

@@ -712,7 +712,7 @@ fn god_class_triggers_with_god_method() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = pulse_check_code("void f(int a, float b, double c, char d) {}\n", "c");
+    let out = pulse_check_code("void f(int a, float b, double c, char d, int e) {}\n", "c");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 

@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -39,6 +39,7 @@ struct ParamInfo {
     args: u32,
     primitives: u32,
     typed: u32,
+    max_same: u32,
 }
 
 pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
@@ -77,7 +78,7 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, c
                 let Some(body) = find_child_by_kind(child, "block_statement") else { continue };
                 let mut s = WalkState::new();
                 walk_body(body, source, 0, &mut s);
-                fns.push(finish(format!("unittest_L{line}"), child, &s, body, ParamInfo { args: 0, primitives: 0, typed: 0 }));
+                fns.push(finish(format!("unittest_L{line}"), child, &s, body, ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 }));
             }
             "module_declaration" | "import_declaration"
             | "interface_declaration" | "enum_declaration" => {}
@@ -98,7 +99,7 @@ fn dispatch_member(child: Node, source: &str, kind: &str, fns: &mut Vec<Function
         "constructor" | "destructor" => {
             let Some(cn) = class else { return };
             let is_ctor = kind == "constructor";
-            let pi = if is_ctor { count_params(child, source) } else { ParamInfo { args: 0, primitives: 0, typed: 0 } };
+            let pi = if is_ctor { count_params(child, source) } else { ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 } };
             let name = if is_ctor { format!("{cn}.this") } else { format!("{cn}.~this") };
             let Some(mut m) = build_fn(child, source, name, pi) else { return };
             m.is_constructor = is_ctor;
@@ -151,6 +152,7 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: pi.primitives, typed_param_count: pi.typed,
+        max_same_primitive_count: pi.max_same,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(),
@@ -288,25 +290,38 @@ fn handle_catch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn count_params(node: Node, source: &str) -> ParamInfo {
     let Some(params) = find_child_by_kind(node, "parameters") else {
-        return ParamInfo { args: 0, primitives: 0, typed: 0 };
+        return ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 };
     };
     let mut cursor = params.walk();
-    let (a, p, t) = params.children(&mut cursor)
+    let mut a = 0;
+    let mut t = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params
+        .children(&mut cursor)
         .filter(|c| c.kind() == "parameter" || c.kind() == "variadic_parameter")
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            (cnt + 1, prim + u32::from(is_primitive_param(child, source)), typed + 1)
-        });
-    ParamInfo { args: a, primitives: p, typed: t }
+    {
+        a += 1;
+        t += 1;
+        if let Some(ty) = d_primitive_type(child, source) {
+            prims.push(ty);
+        }
+    }
+    ParamInfo { args: a, primitives: prims.len() as u32, typed: t, max_same: max_same_primitive(&prims) }
 }
 
-fn is_primitive_param(param: Node, source: &str) -> bool {
-    let Some(tn) = find_child_by_kind(param, "type") else { return false };
+fn d_primitive_type<'a>(param: Node, source: &'a str) -> Option<&'a str> {
+    let tn = find_child_by_kind(param, "type")?;
     let mut tc = tn.walk();
     for c in tn.children(&mut tc) {
-        if PRIMITIVE_TYPES.contains(&c.kind()) { return true; }
-        if c.kind() == "identifier" && PRIMITIVE_TYPES.contains(&node_text(c, source)) { return true; }
+        if PRIMITIVE_TYPES.contains(&c.kind()) {
+            return Some(c.kind());
+        }
+        let name = node_text(c, source);
+        if c.kind() == "identifier" && PRIMITIVE_TYPES.contains(&name) {
+            return Some(name);
+        }
     }
-    false
+    None
 }
 
 fn count_decls(node: Node, source: &str, dc: &mut u32, sf: &mut Vec<(String, u32)>) {

@@ -332,7 +332,7 @@ fn code_duplication_detected() {
 #[test]
 fn primitive_obsession_recognizes_kotlin_types() {
     let output = pulse_check_code(
-        "fun f(a: Int, b: Long, c: Double, d: Boolean, e: Char): Int {\n    return 0\n}\n",
+        "fun f(a: Int, b: Long, c: Double, d: Boolean, e: Char, g: Int): Int {\n    return 0\n}\n",
         "kt",
     );
     assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");

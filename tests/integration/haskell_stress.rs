@@ -222,7 +222,7 @@ fn args_wildcard_counted() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("f :: Int -> Float -> Double -> Bool -> Char -> Int\nf a b c d e = 0\n");
+    let out = check("f :: Int -> Float -> Double -> Bool -> Char -> Int -> Int\nf a b c d e = 0\n");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
@@ -240,7 +240,7 @@ fn primitive_obsession_below_min_typed() {
 
 #[test]
 fn primitive_obsession_recognizes_int_word() {
-    let out = check("f :: Int -> Word -> Word8 -> Integer -> Char -> Int\nf a b c d e = 0\n");
+    let out = check("f :: Int -> Word -> Word8 -> Integer -> Char -> Int -> Int\nf a b c d e = 0\n");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 

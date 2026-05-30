@@ -361,10 +361,11 @@ fn detect_primitive_obsession(
             smell: Smell::PrimitiveObsession,
             location: func_loc(f),
             detail: format!(
-                "{}/{} typed params are primitives ({:.0}%)",
+                "{}/{} typed params are primitives ({:.0}%); {} share one primitive type (data clump)",
                 f.primitive_type_count,
                 f.typed_param_count,
-                ratio * 100.0
+                ratio * 100.0,
+                f.max_same_primitive_count
             ),
         });
     }
@@ -372,6 +373,9 @@ fn detect_primitive_obsession(
 
 fn has_high_primitive_ratio(f: &FunctionMetrics, t: &Thresholds) -> bool {
     if f.typed_param_count < t.analysis.primitive_min_typed_params || f.primitive_type_count == 0 {
+        return false;
+    }
+    if f.max_same_primitive_count < t.analysis.primitive_min_same_count {
         return false;
     }
     let ratio = f.primitive_type_count as f32 / f.typed_param_count as f32;

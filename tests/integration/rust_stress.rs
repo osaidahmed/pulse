@@ -132,7 +132,7 @@ fn args_mut_self_excluded() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("fn f(a: i32, b: u64, c: f32, d: bool) {}\n");
+    let out = check("fn f(a: i32, b: u64, c: f32, d: bool, e: i32) {}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
@@ -485,7 +485,7 @@ fn primitive_obsession_below_min_typed() {
 
 #[test]
 fn primitive_obsession_recognizes_usize_isize() {
-    let out = check("fn f(a: usize, b: isize, c: u8, d: i16) {}\n");
+    let out = check("fn f(a: usize, b: isize, c: u8, d: i16, e: usize) {}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

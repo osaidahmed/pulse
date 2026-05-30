@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
     self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, ElseBranchCfg, ElseHandlers,
     GlobalMetricsConfig,
@@ -154,7 +154,8 @@ fn analyze_callable(
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        count_parameters(node, source);
 
     let body = find_child_by_kind(node, cfg.body_kind).or_else(|| find_child_by_kind(node, "block"))?;
 
@@ -185,6 +186,7 @@ fn analyze_callable(
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -358,35 +360,35 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
 }
 
-fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(node, "parameter_list") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "parameter")
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            let p = u32::from(has_primitive_type(child, source));
-            (cnt + 1, prim + p, typed + 1)
-        })
+    let mut count = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor).filter(|c| c.kind() == "parameter") {
+        count += 1;
+        if let Some(ty) = primitive_type_of(child, source) {
+            prims.push(ty);
+        }
+    }
+    (count, prims.len() as u32, count, max_same_primitive(&prims))
 }
 
-fn has_primitive_type(param: Node, source: &str) -> bool {
+fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
     let mut cursor = param.walk();
     for child in param.children(&mut cursor) {
         match child.kind() {
-            "predefined_type" => {
-                return true;
-            }
+            "predefined_type" => return Some(&source[child.byte_range()]),
             "type_identifier" => {
                 let name = &source[child.byte_range()];
-                return PRIMITIVE_TYPES.contains(&name);
+                return PRIMITIVE_TYPES.contains(&name).then_some(name);
             }
             _ => {}
         }
     }
-    false
+    None
 }
 
 fn count_declarations(root: Node) -> u32 {

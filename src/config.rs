@@ -91,6 +91,7 @@ pub struct AnalysisThresholds {
     pub consecutive_asserts_max: Option<u32>,
     pub primitive_ratio_threshold: Option<f32>,
     pub primitive_min_typed_params: Option<u32>,
+    pub primitive_min_same_count: Option<u32>,
     pub lcom4_warning: Option<u32>,
     pub short_var_min_fn_loc: Option<u32>,
     pub short_var_max_count: Option<u32>,
@@ -334,6 +335,9 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             primitive_min_typed_params: a
                 .primitive_min_typed_params
                 .unwrap_or(ba.primitive_min_typed_params),
+            primitive_min_same_count: a
+                .primitive_min_same_count
+                .unwrap_or(ba.primitive_min_same_count),
             lcom4_warning: a.lcom4_warning.unwrap_or(ba.lcom4_warning),
             short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(ba.short_var_min_fn_loc),
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),

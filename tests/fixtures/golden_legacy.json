@@ -3931,7 +3931,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:process_order:1:24",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -4083,7 +4083,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:create_user:1:4",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -5382,7 +5382,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:process_order:1:24",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -5919,7 +5919,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderProcessor.ProcessOrder:3:54",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -6182,12 +6182,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserManager.CreateUser:3:8",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.UserService:25:34",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -6439,12 +6439,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:InvoiceService.CreateInvoice:3:14",
-        "detail": "11/11 typed params are primitives (100%)"
+        "detail": "11/11 typed params are primitives (100%); 8 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:InvoiceService.SendNotification:16:21",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -6680,12 +6680,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderProcessor.ProcessOrder:49:158",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 5 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.UserService:13:22",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -6918,7 +6918,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:processOrder:5:43",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -7091,7 +7091,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:createRecord:3:5",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -7313,7 +7313,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:formatUser:3:5",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -7419,7 +7419,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:handleRequest:5:23",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Stringly-Typed Switch",
@@ -7610,12 +7610,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.processPayment:26:57",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 3 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.this:16:24",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -7928,7 +7928,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ProcessOrder:3:46",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -8166,12 +8166,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:CreateUser:3:5",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:NewUserService:20:29",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -8498,12 +8498,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:CalculateShipping:23:41",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 4 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:RegisterEmployee:5:21",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -8705,12 +8705,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:NewPaymentService:20:31",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.PaymentServiceProcessPayment:33:64",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -9038,7 +9038,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderProcessor.processOrder:2:26",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -9104,7 +9104,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Validator.deeplyNested:2:12",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 4 share one primitive type (data clump)"
       }
     ]
   },
@@ -9211,7 +9211,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:RecordFactory.createRecord:2:4",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -9464,7 +9464,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Config.Config:2:4",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -9645,7 +9645,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ApiService.handleApiRequest:2:37",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 7 share one primitive type (data clump)"
       },
       {
         "smell": "Short Variable Names",
@@ -9856,17 +9856,17 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.processDataPipeline:33:59",
-        "detail": "6/7 typed params are primitives (86%)"
+        "detail": "6/7 typed params are primitives (86%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.processOrder:6:31",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 7 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.validateBatch:79:96",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -10139,7 +10139,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:processOrder:4:21",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 2 share one primitive type (data clump)"
       }
     ]
   },
@@ -10271,7 +10271,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:createUser:4:5",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -11009,7 +11009,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ComplexMethod.processOrder:2:26",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -11211,12 +11211,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ExcessArgs.createUser:2:6",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.UserService:21:29",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -11964,7 +11964,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ComplexMethod.processOrder:2:33",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -12141,12 +12141,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.UserService:18:25",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:createUser:1:12",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -12407,7 +12407,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:AppConfig.AppConfig:1:15",
-        "detail": "13/13 typed params are primitives (100%)"
+        "detail": "13/13 typed params are primitives (100%); 7 share one primitive type (data clump)"
       },
       {
         "smell": "Short Variable Names",
@@ -14509,7 +14509,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Renderer.draw:5:7",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -14937,7 +14937,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:bumpy:3:21",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 4 share one primitive type (data clump)"
       }
     ]
   },
@@ -15159,7 +15159,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:process_order:3:34",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -15210,7 +15210,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:deeply_nested:3:16",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -15322,12 +15322,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Service.__construct:8:15",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:too_many_args:3:5",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -15590,12 +15590,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:create_user:3:5",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 3 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:update_record:7:9",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 2 share one primitive type (data clump)"
       }
     ]
   },
@@ -17624,12 +17624,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:create_invoice:4:24",
-        "detail": "11/11 typed params are primitives (100%)"
+        "detail": "11/11 typed params are primitives (100%); 8 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:send_notification:27:36",
-        "detail": "7/7 typed params are primitives (100%)"
+        "detail": "7/7 typed params are primitives (100%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -18236,7 +18236,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderProcessor.process_order:58:111",
-        "detail": "8/10 typed params are primitives (80%)"
+        "detail": "8/10 typed params are primitives (80%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -20802,12 +20802,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.new:28:37",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:create_user:1:12",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -21141,7 +21141,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:processOrder:1:44",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 7 share one primitive type (data clump)"
       }
     ]
   },
@@ -21339,12 +21339,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Config.init:17:24",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 3 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:createUser:1:3",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 4 share one primitive type (data clump)"
       }
     ]
   },
@@ -21587,7 +21587,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:configure:1:3",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -21754,12 +21754,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.processOrder:6:51",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 2 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:OrderService.validateCustomer:53:65",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       }
     ]
   },
@@ -23290,12 +23290,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.constructor:26:33",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:createUser:1:12",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -23842,12 +23842,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ApiService.constructor:22:29",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:ApiService.handleRequest:31:74",
-        "detail": "8/8 typed params are primitives (100%)"
+        "detail": "8/8 typed params are primitives (100%); 5 share one primitive type (data clump)"
       }
     ]
   },
@@ -24181,7 +24181,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:processOrder:3:35",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 3 share one primitive type (data clump)"
       }
     ]
   },
@@ -24691,12 +24691,12 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:configureNetwork:10:16",
-        "detail": "5/5 typed params are primitives (100%)"
+        "detail": "5/5 typed params are primitives (100%); 3 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:drawRect:3:8",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 4 share one primitive type (data clump)"
       }
     ]
   },
@@ -24912,17 +24912,17 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.init:11:27",
-        "detail": "6/6 typed params are primitives (100%)"
+        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.processPayment:29:69",
-        "detail": "6/7 typed params are primitives (86%)"
+        "detail": "6/7 typed params are primitives (86%); 5 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
         "location": "fn:formatCurrency:82:88",
-        "detail": "4/4 typed params are primitives (100%)"
+        "detail": "4/4 typed params are primitives (100%); 2 share one primitive type (data clump)"
       }
     ]
   },

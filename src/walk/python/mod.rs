@@ -9,7 +9,7 @@ use super::{
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
 };
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, GlobalMetricsConfig};
 use booleans::{count_boolean_operators, count_cogc_boolean_sequences, has_boolean_child};
 
@@ -124,7 +124,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
-    let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        count_parameters(node, source);
 
     let body = find_child_by_kind(node, "block")?;
     let mut s = WalkState::new();
@@ -164,6 +165,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -308,32 +310,37 @@ fn check_condition_complexity(node: Node, source: &str, count: &mut u32) {
     }
 }
 
-fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(func_node, "parameters") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| match child.kind() {
-        "identifier" | "list_splat_pattern" | "dictionary_splat_pattern" | "default_parameter" => {
-            (cnt + 1, prim, typed)
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor) {
+        match child.kind() {
+            "identifier" | "list_splat_pattern" | "dictionary_splat_pattern" | "default_parameter" => {
+                count += 1;
+            }
+            "typed_parameter" | "typed_default_parameter" => {
+                count += 1;
+                typed += 1;
+                if let Some(ty) = primitive_type_of(child, source) {
+                    prims.push(ty);
+                }
+            }
+            _ => {}
         }
-        "typed_parameter" | "typed_default_parameter" => {
-            let p = u32::from(has_primitive_type(child, source));
-            (cnt + 1, prim + p, typed + 1)
-        }
-        _ => (cnt, prim, typed),
-    })
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
-fn has_primitive_type(param_node: Node, source: &str) -> bool {
-    let Some(type_node) = find_child_by_kind(param_node, "type") else {
-        return false;
-    };
-    let Some(id_node) = find_child_by_kind(type_node, "identifier") else {
-        return false;
-    };
+fn primitive_type_of<'a>(param_node: Node, source: &'a str) -> Option<&'a str> {
+    let type_node = find_child_by_kind(param_node, "type")?;
+    let id_node = find_child_by_kind(type_node, "identifier")?;
     let name = &source[id_node.byte_range()];
-    PRIMITIVE_TYPES.contains(&name)
+    PRIMITIVE_TYPES.contains(&name).then_some(name)
 }
 
 fn count_declarations(root: Node) -> u32 {

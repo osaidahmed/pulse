@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -169,12 +169,18 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
         return;
     };
     let mut cursor = params.walk();
-    let (cnt, prim, typed) = params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "class_parameter")
-        .fold((0u32, 0u32, 0u32), |(c, p, t), child| {
-            (c + 1, p + u32::from(has_primitive_type(child, source)), t + 1)
-        });
+    let mut cnt = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor).filter(|c| c.kind() == "class_parameter") {
+        cnt += 1;
+        typed += 1;
+        if let Some(ty) = primitive_type_of(child, source) {
+            prims.push(ty);
+        }
+    }
+    let prim = prims.len() as u32;
+    let max_same = max_same_primitive(&prims);
     if cnt <= 5 {
         return;
     }
@@ -183,7 +189,7 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
     fns.push(FunctionMetrics {
         name: format!("{cls}.{cls}"), start_line: sl, end_line: el,
         loc: el.saturating_sub(sl) + 1, cc: 1, arg_count: cnt, is_constructor: true,
-        primitive_type_count: prim, typed_param_count: typed,
+        primitive_type_count: prim, typed_param_count: typed, max_same_primitive_count: max_same,
         foreign_field_accesses: Vec::new(),
         class_name: Some(cls.to_string()),
         parent_class: None,
@@ -230,6 +236,7 @@ fn analyze_callable(node: Node, source: &str, name: &str) -> Option<FunctionMetr
     m.arg_count = p.0;
     m.primitive_type_count = p.1;
     m.typed_param_count = p.2;
+    m.max_same_primitive_count = p.3;
     Some(m)
 }
 
@@ -248,7 +255,7 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "call_expression"),
         assert_hash: compute_assert_fingerprint(body, "call_expression"),
-        primitive_type_count: 0, typed_param_count: 0,
+        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count, field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
         class_name: None,
@@ -381,27 +388,32 @@ fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     );
 }
 
-fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(node, "function_value_parameters") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "parameter")
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            let has_type = find_child_by_kind(child, "user_type").is_some()
-                || find_child_by_kind(child, "nullable_type").is_some();
-            (cnt + 1, prim + u32::from(has_primitive_type(child, source)), typed + u32::from(has_type))
-        })
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor).filter(|c| c.kind() == "parameter") {
+        count += 1;
+        let has_type = find_child_by_kind(child, "user_type").is_some()
+            || find_child_by_kind(child, "nullable_type").is_some();
+        typed += u32::from(has_type);
+        if let Some(ty) = primitive_type_of(child, source) {
+            prims.push(ty);
+        }
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
-fn has_primitive_type(param: Node, source: &str) -> bool {
+fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
     let ut = find_child_by_kind(param, "user_type").or_else(|| {
         find_child_by_kind(param, "nullable_type").and_then(|n| find_child_by_kind(n, "user_type"))
-    });
-    let Some(ut) = ut else { return false };
-    find_child_by_kind(ut, "identifier")
-        .is_some_and(|id| PRIMITIVE_TYPES.contains(&&source[id.byte_range()]))
+    })?;
+    let id = find_child_by_kind(ut, "identifier")?;
+    let name = &source[id.byte_range()];
+    PRIMITIVE_TYPES.contains(&name).then_some(name)
 }
 

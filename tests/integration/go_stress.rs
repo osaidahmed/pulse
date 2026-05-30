@@ -689,7 +689,7 @@ fn assertion_block_interrupted_resets() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("package main\n\nfunc f(a int, b string, c bool, d float64) {}\n");
+    let out = check("package main\n\nfunc f(a int, b string, c bool, d float64, e int) {}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

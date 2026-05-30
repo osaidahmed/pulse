@@ -4,6 +4,14 @@ use super::{find_child_by_kind, node_text};
 
 const SHORT_VAR_EXEMPT: &[&str] = &["_", "i", "j", "k"];
 
+pub fn max_same_primitive(types: &[&str]) -> u32 {
+    types
+        .iter()
+        .map(|ty| types.iter().filter(|x| *x == ty).count() as u32)
+        .max()
+        .unwrap_or(0)
+}
+
 pub fn count_short_variables(body: Node, source: &str, binding_kinds: &[&str]) -> u32 {
     let mut count: u32 = 0;
     walk_for_short_vars(body, source, binding_kinds, &mut count);

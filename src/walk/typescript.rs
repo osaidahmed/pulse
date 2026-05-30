@@ -8,7 +8,7 @@ use super::{
 };
 const COND_KINDS: &[&str] = &["parenthesized_expression", "binary_expression"];
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
     self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
     ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
@@ -177,10 +177,10 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count) = if has_types {
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = if has_types {
         count_parameters(node, source)
     } else {
-        (count_parameters_untyped(node), 0, 0)
+        (count_parameters_untyped(node), 0, 0, 0)
     };
 
     let body = find_child_by_kind(node, "statement_block")?;
@@ -221,6 +221,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -343,26 +344,30 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
 }
 
-fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(func_node, "formal_parameters") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| match child.kind() {
-        "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
-        | "assignment_pattern" => (cnt + 1, prim, typed),
-        "required_parameter" | "optional_parameter" => {
-            let has_ann = find_child_by_kind(child, "type_annotation");
-            match has_ann {
-                Some(ann) => {
-                    let p = u32::from(is_primitive_type(ann, source));
-                    (cnt + 1, prim + p, typed + 1)
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor) {
+        match child.kind() {
+            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
+            | "assignment_pattern" => count += 1,
+            "required_parameter" | "optional_parameter" => {
+                count += 1;
+                let ann = find_child_by_kind(child, "type_annotation");
+                typed += u32::from(ann.is_some());
+                if let Some(ty) = ann.and_then(|a| ts_primitive_type(a, source)) {
+                    prims.push(ty);
                 }
-                None => (cnt + 1, prim, typed),
             }
+            _ => {}
         }
-        _ => (cnt, prim, typed),
-    })
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
 fn count_parameters_untyped(func_node: Node) -> u32 {
@@ -383,15 +388,15 @@ fn count_parameters_untyped(func_node: Node) -> u32 {
     count
 }
 
-fn is_primitive_type(type_ann: Node, source: &str) -> bool {
+fn ts_primitive_type<'a>(type_ann: Node, source: &'a str) -> Option<&'a str> {
     let mut cursor = type_ann.walk();
     for child in type_ann.children(&mut cursor) {
         if child.kind() == "predefined_type" || child.kind() == "type_identifier" {
             let name = &source[child.byte_range()];
-            return PRIMITIVE_TYPES.contains(&name);
+            return PRIMITIVE_TYPES.contains(&name).then_some(name);
         }
     }
-    false
+    None
 }
 
 fn count_declarations(root: Node) -> u32 {

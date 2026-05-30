@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -140,7 +140,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
-    let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        count_parameters(node, source);
     let body = find_child_by_kind(node, "compound_statement")?;
 
     let mut s = WalkState::new();
@@ -158,7 +159,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
-        primitive_type_count, typed_param_count,
+        primitive_type_count, typed_param_count, max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(),
@@ -169,19 +170,28 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     })
 }
 
-fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
-    let Some(params) = find_child_by_kind(node, "formal_parameters") else { return (0, 0, 0) };
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
+    let Some(params) = find_child_by_kind(node, "formal_parameters") else { return (0, 0, 0, 0) };
     let mut cursor = params.walk();
-    params.children(&mut cursor)
-        .filter(|c| matches!(c.kind(), "simple_parameter" | "variadic_parameter" | "property_promotion_parameter"))
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            let mut pc = child.walk();
-            let type_node = child.children(&mut pc).find(|c| matches!(c.kind(),
-                "primitive_type" | "named_type" | "optional_type" | "union_type" | "intersection_type"
-            ));
-            let (p, t) = type_node.map_or((0, 0), |tn| (u32::from(is_primitive_type_node(tn, source)), 1));
-            (cnt + 1, prim + p, typed + t)
-        })
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor).filter(|c| {
+        matches!(c.kind(), "simple_parameter" | "variadic_parameter" | "property_promotion_parameter")
+    }) {
+        count += 1;
+        let mut pc = child.walk();
+        let type_node = child.children(&mut pc).find(|c| {
+            matches!(c.kind(), "primitive_type" | "named_type" | "optional_type" | "union_type" | "intersection_type")
+        });
+        if let Some(tn) = type_node {
+            typed += 1;
+            if is_primitive_type_node(tn, source) {
+                prims.push(node_text(tn, source));
+            }
+        }
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
 fn is_primitive_type_node(node: Node, source: &str) -> bool {

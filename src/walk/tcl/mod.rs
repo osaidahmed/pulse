@@ -116,7 +116,7 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: sh, skeleton_hash: sk,
         consecutive_asserts: ca, assert_hash: ah,
-        primitive_type_count: 0, typed_param_count: 0,
+        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(),

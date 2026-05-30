@@ -5,7 +5,7 @@ use super::super::{
     compute_skeleton_hash, compute_structural_fingerprint, count_consecutive_asserts,
     find_child_by_kind, node_text, FunctionMetrics, WalkState,
 };
-use super::super::counters::{count_short_variables, count_string_match_arms};
+use super::super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 
 const PRIMITIVE_TYPES: &[&str] = &[
     "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128", "usize", "isize",
@@ -69,7 +69,7 @@ pub fn analyze_test(node: Node, source: &str) -> Option<FunctionMetrics> {
             || "test_unnamed".into(),
             |n| format!("test_{}", node_text(n, source).replace(' ', "_")),
         );
-    let params = ParamCounts { total: 0, primitive: 0, typed: 0 };
+    let params = ParamCounts { total: 0, primitive: 0, typed: 0, max_same: 0 };
     build_metrics(node, source, name, params)
 }
 
@@ -77,6 +77,7 @@ struct ParamCounts {
     total: u32,
     primitive: u32,
     typed: u32,
+    max_same: u32,
 }
 
 fn build_metrics(
@@ -102,6 +103,7 @@ fn build_metrics(
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: params.primitive,
         typed_param_count: params.typed,
+        max_same_primitive_count: params.max_same,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -114,22 +116,24 @@ fn build_metrics(
 
 fn count_parameters(func: Node, source: &str) -> ParamCounts {
     let Some(params) = find_child_by_kind(func, "parameters") else {
-        return ParamCounts { total: 0, primitive: 0, typed: 0 };
+        return ParamCounts { total: 0, primitive: 0, typed: 0, max_same: 0 };
     };
     let mut cursor = params.walk();
-    params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "parameter")
-        .fold(ParamCounts { total: 0, primitive: 0, typed: 0 }, |mut counts, child| {
-            counts.total += 1;
-            counts.typed += 1;
-            if is_primitive_param(child, source) { counts.primitive += 1; }
-            counts
-        })
+    let mut total = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor).filter(|c| c.kind() == "parameter") {
+        total += 1;
+        typed += 1;
+        if let Some(ty) = zig_primitive_type(child, source) {
+            prims.push(ty);
+        }
+    }
+    ParamCounts { total, primitive: prims.len() as u32, typed, max_same: max_same_primitive(&prims) }
 }
 
-fn is_primitive_param(param: Node, source: &str) -> bool {
+fn zig_primitive_type<'a>(param: Node, source: &'a str) -> Option<&'a str> {
     find_child_by_kind(param, "builtin_type")
         .map(|n| node_text(n, source))
-        .is_some_and(|text| PRIMITIVE_TYPES.contains(&text))
+        .filter(|text| PRIMITIVE_TYPES.contains(text))
 }

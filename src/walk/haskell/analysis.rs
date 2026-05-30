@@ -2,7 +2,7 @@ use tree_sitter::Node;
 
 use super::extract_name;
 use super::walk_tree::walk_function_matches;
-use super::super::counters::{count_short_variables, count_string_match_arms};
+use super::super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
     count_consecutive_asserts, find_child_by_kind, node_text, FunctionMetrics, WalkState,
@@ -21,12 +21,13 @@ pub fn analyze_function_group(group: &[Node], source: &str, name: &str) -> Optio
     for &node in group {
         walk_function_matches(node, source, 0, &mut s);
     }
-    let (argc, prim, typed) = count_parameters(first, source, name);
+    let (argc, prim, typed, max_same) = count_parameters(first, source, name);
     let mut m = build_metrics(first, last, first, source, &s);
     m.name = name.to_string();
     m.arg_count = argc;
     m.primitive_type_count = prim;
     m.typed_param_count = typed;
+    m.max_same_primitive_count = max_same;
     Some(m)
 }
 
@@ -39,27 +40,28 @@ pub fn analyze_bind(node: Node, source: &str, name: &str) -> Option<FunctionMetr
     Some(m)
 }
 
-fn count_parameters(func_node: Node, source: &str, name: &str) -> (u32, u32, u32) {
+fn count_parameters(func_node: Node, source: &str, name: &str) -> (u32, u32, u32, u32) {
     let argc = find_child_by_kind(func_node, "patterns").map_or(0, |p| {
         let mut c = p.walk();
         p.children(&mut c).count() as u32
     });
-    let (prim, typed) = typed_from_signature(func_node, source, name);
-    (argc, prim, typed)
+    let (prim, typed, max_same) = typed_from_signature(func_node, source, name);
+    (argc, prim, typed, max_same)
 }
 
-fn typed_from_signature(func_node: Node, source: &str, name: &str) -> (u32, u32) {
+fn typed_from_signature(func_node: Node, source: &str, name: &str) -> (u32, u32, u32) {
     let sig = find_sibling_signature(func_node, source, name);
-    let Some(sig) = sig else { return (0, 0) };
+    let Some(sig) = sig else { return (0, 0, 0) };
     let sig_text = node_text(sig, source);
-    let Some(after) = sig_text.split("::").nth(1) else { return (0, 0) };
+    let Some(after) = sig_text.split("::").nth(1) else { return (0, 0, 0) };
     let segments = split_type_arrows(after);
     if segments.len() <= 1 {
-        return (0, 0);
+        return (0, 0, 0);
     }
     let arg_types = &segments[..segments.len() - 1];
-    let prim = arg_types.iter().filter(|t| PRIMITIVE_TYPES.contains(&t.trim())).count() as u32;
-    (prim, arg_types.len() as u32)
+    let prim_types: Vec<&str> =
+        arg_types.iter().map(|t| t.trim()).filter(|t| PRIMITIVE_TYPES.contains(t)).collect();
+    (prim_types.len() as u32, arg_types.len() as u32, max_same_primitive(&prim_types))
 }
 
 fn find_sibling_signature<'a>(func_node: Node<'a>, source: &str, name: &str) -> Option<Node<'a>> {
@@ -106,7 +108,7 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
     let sl = first.start_position().row as u32 + 1;
     let el = last.end_position().row as u32 + 1;
     let name = extract_name(first, source);
-    let (prim, typed) = typed_from_signature(first, source, &name);
+    let (prim, typed, max_same) = typed_from_signature(first, source, &name);
     FunctionMetrics {
         name: String::new(),
         start_line: sl,
@@ -126,6 +128,7 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         assert_hash: compute_assert_fingerprint(body, "apply"),
         primitive_type_count: prim,
         typed_param_count: typed,
+        max_same_primitive_count: max_same,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),

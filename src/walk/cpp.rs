@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
     self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
     ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
@@ -123,7 +123,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        count_parameters(node, source);
 
     let body = find_child_by_kind(node, "compound_statement")?;
     let mut s = WalkState::new();
@@ -153,6 +154,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         assert_hash,
         primitive_type_count,
         typed_param_count,
+        max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -301,43 +303,55 @@ fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
 }
 
-fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(declarator) = find_child_by_kind(func_node, "function_declarator").or_else(|| {
         find_child_by_kind(func_node, "pointer_declarator")
             .and_then(|p| find_child_by_kind(p, "function_declarator"))
     }) else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let Some(params) = find_child_by_kind(declarator, "parameter_list") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     let mut cursor = params.walk();
-    let totals = params.children(&mut cursor).fold((0u32, 0u32, 0u32), |(cnt, prim, typed), child| match child.kind() {
-        "parameter_declaration" | "optional_parameter_declaration" => {
-            let p = u32::from(has_primitive_type(child, source));
-            (cnt + 1, prim + p, typed + 1)
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor) {
+        match child.kind() {
+            "parameter_declaration" | "optional_parameter_declaration" => {
+                count += 1;
+                typed += 1;
+                if let Some(ty) = primitive_type_of(child, source) {
+                    prims.push(ty);
+                }
+            }
+            "variadic_parameter_declaration" | "variadic_parameter" => count += 1,
+            _ => {}
         }
-        "variadic_parameter_declaration" | "variadic_parameter" => (cnt + 1, prim, typed),
-        _ => (cnt, prim, typed),
-    });
+    }
     let text = node_text(params, source);
-    let is_void = totals.0 == 1 && text.contains("void") && !text.contains("void *") && !text.contains("void*");
-    if is_void { (0, 0, 0) } else { totals }
+    let is_void = count == 1 && text.contains("void") && !text.contains("void *") && !text.contains("void*");
+    if is_void {
+        (0, 0, 0, 0)
+    } else {
+        (count, prims.len() as u32, typed, max_same_primitive(&prims))
+    }
 }
 
-fn has_primitive_type(param: Node, source: &str) -> bool {
+fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
     let mut cursor = param.walk();
     for child in param.children(&mut cursor) {
         match child.kind() {
-            "primitive_type" | "sized_type_specifier" => return true,
+            "primitive_type" | "sized_type_specifier" => return Some(&source[child.byte_range()]),
             "type_identifier" => {
                 let name = &source[child.byte_range()];
-                return PRIMITIVE_TYPES.contains(&name);
+                return PRIMITIVE_TYPES.contains(&name).then_some(name);
             }
             _ => {}
         }
     }
-    false
+    None
 }
 
 fn count_declarations(root: Node) -> u32 {

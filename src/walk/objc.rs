@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
@@ -109,6 +109,7 @@ struct ParamCounts {
     total: u32,
     primitive: u32,
     typed: u32,
+    max_same: u32,
 }
 
 fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Option<FunctionMetrics> {
@@ -137,6 +138,7 @@ fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Opti
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: p.primitive,
         typed_param_count: p.typed,
+        max_same_primitive_count: p.max_same,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
@@ -158,52 +160,65 @@ fn find_c_declarator(node: Node) -> Option<Node> {
 
 fn count_method_parameters(node: Node, source: &str) -> ParamCounts {
     let mut cursor = node.walk();
-    let (total, primitive, typed) = node
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "method_parameter")
-        .fold((0, 0, 0), |(cnt, prim, ty), child| {
-            let is_prim = find_child_by_kind(child, "method_type")
-                .is_some_and(|mt| is_primitive_type(mt, source));
-            (cnt + 1, prim + u32::from(is_prim), ty + 1)
-        });
-    ParamCounts { total, primitive, typed }
+    let mut total = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in node.children(&mut cursor).filter(|c| c.kind() == "method_parameter") {
+        total += 1;
+        typed += 1;
+        if let Some(ty) =
+            find_child_by_kind(child, "method_type").and_then(|mt| objc_primitive_type(mt, source))
+        {
+            prims.push(ty);
+        }
+    }
+    ParamCounts { total, primitive: prims.len() as u32, typed, max_same: max_same_primitive(&prims) }
 }
 
 fn count_c_parameters(func_node: Node, source: &str) -> ParamCounts {
     let Some(params) = find_c_declarator(func_node)
         .and_then(|d| find_child_by_kind(d, "parameter_list"))
     else {
-        return ParamCounts { total: 0, primitive: 0, typed: 0 };
+        return ParamCounts { total: 0, primitive: 0, typed: 0, max_same: 0 };
     };
     let mut cursor = params.walk();
-    let (count, prim, typed) = params.children(&mut cursor).fold(
-        (0u32, 0u32, 0u32),
-        |(cnt, pr, ty), child| match child.kind() {
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor) {
+        match child.kind() {
             "parameter_declaration" => {
-                (cnt + 1, pr + u32::from(is_primitive_type(child, source)), ty + 1)
+                count += 1;
+                typed += 1;
+                if let Some(ty) = objc_primitive_type(child, source) {
+                    prims.push(ty);
+                }
             }
-            "variadic_parameter" => (cnt + 1, pr, ty),
-            _ => (cnt, pr, ty),
-        },
-    );
-    if count == 1 {
-        let text = node_text(params, source);
-        if text.contains("void") && !text.contains("void *") && !text.contains("void*") {
-            return ParamCounts { total: 0, primitive: 0, typed: 0 };
+            "variadic_parameter" => count += 1,
+            _ => {}
         }
     }
-    ParamCounts { total: count, primitive: prim, typed }
+    let collapsed: String = node_text(params, source).split_whitespace().collect();
+    if count == 1 && collapsed.contains("void") && !collapsed.contains('*') {
+        return ParamCounts { total: 0, primitive: 0, typed: 0, max_same: 0 };
+    }
+    ParamCounts { total: count, primitive: prims.len() as u32, typed, max_same: max_same_primitive(&prims) }
 }
 
-fn is_primitive_type(node: Node, source: &str) -> bool {
-    find_child_by_kind(node, "primitive_type").is_some()
-        || find_child_by_kind(node, "sized_type_specifier").is_some()
-        || find_child_by_kind(node, "type_identifier")
-            .is_some_and(|ti| PRIMITIVE_TYPES.contains(&node_text(ti, source)))
-        || find_child_by_kind(node, "typedefed_specifier")
-            .is_some_and(|ts| PRIMITIVE_TYPES.contains(&node_text(ts, source)))
-        || find_child_by_kind(node, "type_name")
-            .is_some_and(|tn| is_primitive_type(tn, source))
+fn objc_primitive_type<'a>(node: Node, source: &'a str) -> Option<&'a str> {
+    if let Some(direct) = find_child_by_kind(node, "primitive_type")
+        .or_else(|| find_child_by_kind(node, "sized_type_specifier"))
+    {
+        return Some(node_text(direct, source));
+    }
+    let named = find_child_by_kind(node, "type_identifier")
+        .or_else(|| find_child_by_kind(node, "typedefed_specifier"))
+        .map(|n| node_text(n, source))
+        .filter(|name| PRIMITIVE_TYPES.contains(name));
+    if let Some(name) = named {
+        return Some(name);
+    }
+    find_child_by_kind(node, "type_name").and_then(|tn| objc_primitive_type(tn, source))
 }
 
 // ─── Body walking ───────────────────────────────────────────────────────

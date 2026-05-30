@@ -504,7 +504,7 @@ fn code_duplication_detected() {
 #[test]
 fn primitive_obsession_recognizes_boolean_char() {
     let out = pulse_check_code(
-        "class T {\n    void f(boolean a, char b, byte c, short d) {}\n}\n",
+        "class T {\n    void f(boolean a, char b, byte c, short d, boolean e) {}\n}\n",
         "java",
     );
     assert!(has_smell(&out, "Primitive Obsession"));

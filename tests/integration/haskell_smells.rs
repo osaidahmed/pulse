@@ -331,7 +331,7 @@ fn code_duplication_detected() {
 #[test]
 fn primitive_obsession_recognizes_haskell_types() {
     let output = pulse_check_code(
-        "f :: Int -> Float -> Double -> Bool -> Char -> Int\nf a b c d e = 0\n",
+        "f :: Int -> Float -> Double -> Bool -> Char -> Int -> Int\nf a b c d e = 0\n",
         "hs",
     );
     assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");

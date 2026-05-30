@@ -217,7 +217,7 @@ fn primitive_obsession_recognizes_bool() {
 
 #[test]
 fn primitive_obsession_recognizes_int_float_bytes() {
-    let out = check("def f(a: int, b: float, c: bytes, d: complex):\n    pass\n");
+    let out = check("def f(a: int, b: float, c: bytes, d: complex, e: int):\n    pass\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

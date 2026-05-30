@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Tree};
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
     self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig,
 };
@@ -137,7 +137,8 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
-    let (arg_count, primitive_type_count, typed_param_count) = count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        count_parameters(node, source);
 
     let body = find_child_by_kind(node, "function_body")?;
     let stmts = find_child_by_kind(body, "statements");
@@ -156,7 +157,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
         skeleton_hash: compute_skeleton_hash(hash_node),
         consecutive_asserts: count_consecutive_asserts(hash_node, "call_expression"),
         assert_hash: compute_assert_fingerprint(hash_node, "call_expression"),
-        primitive_type_count, typed_param_count,
+        primitive_type_count, typed_param_count, max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(),
@@ -167,23 +168,31 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
     })
 }
 
-fn count_parameters(node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .filter(|c| c.kind() == "parameter")
-        .fold((0, 0, 0), |(cnt, prim, typed), child| {
-            let has_type = find_child_by_kind(child, "type_annotation").is_some()
-                || find_child_by_kind(child, "user_type").is_some();
-            if !has_type { return (cnt + 1, prim, typed); }
-            let ut = find_child_by_kind(child, "user_type").or_else(|| {
-                find_child_by_kind(child, "type_annotation")
-                    .and_then(|ta| find_child_by_kind(ta, "user_type"))
-            });
-            let is_prim = ut
-                .and_then(|u| find_child_by_kind(u, "type_identifier"))
-                .is_some_and(|ti| PRIMITIVE_TYPES.contains(&node_text(ti, source)));
-            (cnt + 1, prim + u32::from(is_prim), typed + 1)
-        })
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in node.children(&mut cursor).filter(|c| c.kind() == "parameter") {
+        count += 1;
+        let ut = find_child_by_kind(child, "user_type").or_else(|| {
+            find_child_by_kind(child, "type_annotation")
+                .and_then(|ta| find_child_by_kind(ta, "user_type"))
+        });
+        let has_type = find_child_by_kind(child, "type_annotation").is_some() || ut.is_some();
+        if !has_type {
+            continue;
+        }
+        typed += 1;
+        let prim = ut
+            .and_then(|u| find_child_by_kind(u, "type_identifier"))
+            .map(|ti| node_text(ti, source))
+            .filter(|n| PRIMITIVE_TYPES.contains(n));
+        if let Some(name) = prim {
+            prims.push(name);
+        }
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
 // ─── Body walking ──────────────────────────────────────────────────────

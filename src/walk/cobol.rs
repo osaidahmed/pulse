@@ -164,7 +164,7 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
         is_constructor: false, max_embedded_block_loc: bw.s.max_embedded_block_loc,
         structural_hash: struct_hash, skeleton_hash: skel_hash,
         consecutive_asserts: 0, assert_hash: 0,
-        primitive_type_count: 0, typed_param_count: 0,
+        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: 0, field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
         class_name: section.map(String::from),

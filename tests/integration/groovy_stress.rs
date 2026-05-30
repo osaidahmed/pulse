@@ -837,7 +837,7 @@ fn compound_condition_single_op() {
 
 #[test]
 fn primitive_obsession_recognizes_all_types() {
-    let out = check("class T { void f(long a, float b, double c, int d) {} }\n");
+    let out = check("class T { void f(long a, float b, double c, int d, long e) {} }\n");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 

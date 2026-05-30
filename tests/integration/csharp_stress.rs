@@ -815,7 +815,7 @@ fn assertion_block_interrupted_resets() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("public class T { static void f(int a, string b, bool c, double d) {} }");
+    let out = check("public class T { static void f(int a, string b, bool c, double d, int e) {} }");
     assert!(has_smell(&out, "Primitive Obsession"), "all primitives with 4+ params should fire, got: {out}");
 }
 
@@ -1188,7 +1188,7 @@ fn args_positional() {
 
 #[test]
 fn primitive_obsession_recognizes_float_decimal() {
-    let out = check("public class T { static void f(long a, float b, double c, int d) {} }");
+    let out = check("public class T { static void f(long a, float b, double c, int d, long e) {} }");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 

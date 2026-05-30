@@ -124,7 +124,7 @@ fn args_zero() {
 // Primitive obsession
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("class T {\n    void f(int a, long b, double c, boolean d) {}\n}\n");
+    let out = check("class T {\n    void f(int a, long b, double c, boolean d, int e) {}\n}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 
@@ -394,7 +394,7 @@ fn primitive_obsession_below_min_typed() {
 
 #[test]
 fn primitive_obsession_recognizes_long_float() {
-    let out = check("class T {\n    void f(long a, float b, double c, int d) {}\n}\n");
+    let out = check("class T {\n    void f(long a, float b, double c, int d, long e) {}\n}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

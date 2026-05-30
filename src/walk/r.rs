@@ -100,7 +100,7 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         skeleton_hash: body.map_or(0, compute_skeleton_hash),
         consecutive_asserts: body.map_or(0, |b| count_consecutive_asserts(b, "call")),
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "call")),
-        primitive_type_count: 0, typed_param_count: 0,
+        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(),

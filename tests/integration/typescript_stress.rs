@@ -176,7 +176,7 @@ fn primitive_obsession_below_min_typed() {
 
 #[test]
 fn primitive_obsession_recognizes_number_boolean() {
-    let out = check("function f(a: number, b: boolean, c: bigint, d: void): void {}\n");
+    let out = check("function f(a: number, b: boolean, c: bigint, d: void, e: number): void {}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

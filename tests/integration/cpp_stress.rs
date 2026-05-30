@@ -892,7 +892,7 @@ fn args_template_params() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("void f(int a, float b, double c, char d) {}\n");
+    let out = check("void f(int a, float b, double c, char d, int e) {}\n");
     assert!(has_smell(&out, "Primitive Obsession"));
 }
 

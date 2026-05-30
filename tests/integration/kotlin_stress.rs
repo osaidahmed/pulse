@@ -176,7 +176,7 @@ fn args_typed_params() {
 
 #[test]
 fn primitive_obsession_all_primitives() {
-    let out = check("fun f(a: Int, b: Long, c: Double, d: Boolean, e: Char): Int {\n    return 0\n}\n");
+    let out = check("fun f(a: Int, b: Long, c: Double, d: Boolean, e: Char, g: Int): Int {\n    return 0\n}\n");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 
@@ -194,7 +194,7 @@ fn primitive_obsession_below_min_typed() {
 
 #[test]
 fn primitive_obsession_recognizes_long_float() {
-    let out = check("fun f(a: Long, b: Float, c: Double, d: Short, e: Byte): Int {\n    return 0\n}\n");
+    let out = check("fun f(a: Long, b: Float, c: Double, d: Short, e: Byte, g: Long): Int {\n    return 0\n}\n");
     assert!(has_smell(&out, "Primitive Obsession"), "got: {out}");
 }
 

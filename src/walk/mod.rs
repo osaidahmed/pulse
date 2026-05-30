@@ -133,6 +133,7 @@ mod metrics {
         pub assert_hash: u64,
         pub primitive_type_count: u32,
         pub typed_param_count: u32,
+        pub max_same_primitive_count: u32,
         pub empty_catch_count: u32,
         pub field_accesses: Vec<String>,
         pub foreign_field_accesses: Vec<(String, String)>,

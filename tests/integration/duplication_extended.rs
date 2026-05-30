@@ -32,6 +32,7 @@ fn fn_with(
         assert_hash: 0,
         primitive_type_count: 0,
         typed_param_count: 0,
+        max_same_primitive_count: 0,
         empty_catch_count: 0,
         field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),

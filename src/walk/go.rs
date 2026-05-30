@@ -8,7 +8,7 @@ use super::{
 };
 const COND_KINDS: &[&str] = &["binary_expression", "parenthesized_expression"];
 
-use super::counters::{count_short_variables, count_string_match_arms};
+use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -79,6 +79,7 @@ struct MethodContext {
     arg_count: u32,
     primitive_type_count: u32,
     typed_param_count: u32,
+    max_same_primitive_count: u32,
     field_accesses: Vec<String>,
     foreign_field_accesses: Vec<(String, String)>,
     class_name: Option<String>,
@@ -87,9 +88,9 @@ struct MethodContext {
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let name = find_child_by_kind(node, "identifier")
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
-    let (arg_count, primitive_type_count, typed_param_count) =
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
         count_parameters_from_node(node, source);
-    let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, field_accesses: Vec::new(),
+    let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, max_same_primitive_count, field_accesses: Vec::new(),
  foreign_field_accesses: Vec::new(), class_name: None };
     build_metrics(node, source, info)
 }
@@ -110,10 +111,10 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
         None => method_name,
     };
 
-    let (arg_count, prim, typed) = if param_lists.len() >= 2 {
+    let (arg_count, prim, typed, max_same) = if param_lists.len() >= 2 {
         count_param_children(param_lists[1], source)
     } else {
-        (0, 0, 0)
+        (0, 0, 0, 0)
     };
 
     let self_names: Vec<&str> = param_lists
@@ -129,7 +130,7 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
         collect_foreign_field_accesses_for(node, source, &self_names, &mut foreign_field_accesses);
     }
 
-    let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, field_accesses, foreign_field_accesses, class_name: receiver_type };
+    let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, max_same_primitive_count: max_same, field_accesses, foreign_field_accesses, class_name: receiver_type };
     build_metrics(node, source, info)
 }
 
@@ -161,6 +162,7 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
         primitive_type_count: info.primitive_type_count,
         typed_param_count: info.typed_param_count,
+        max_same_primitive_count: info.max_same_primitive_count,
         empty_catch_count: 0,
         field_accesses: info.field_accesses,
         foreign_field_accesses: info.foreign_field_accesses,
@@ -320,49 +322,48 @@ fn walk_case_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     }
 }
 
-fn count_parameters_from_node(func_node: Node, source: &str) -> (u32, u32, u32) {
+fn count_parameters_from_node(func_node: Node, source: &str) -> (u32, u32, u32, u32) {
     let Some(params) = find_child_by_kind(func_node, "parameter_list") else {
-        return (0, 0, 0);
+        return (0, 0, 0, 0);
     };
     count_param_children(params, source)
 }
 
-fn count_param_children(params: Node, source: &str) -> (u32, u32, u32) {
+fn count_param_children(params: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut cursor = params.walk();
-    params.children(&mut cursor).fold((0, 0, 0), |(cnt, prim, typed), child| {
-        let (n, is_prim) = match child.kind() {
+    let mut count = 0;
+    let mut typed = 0;
+    let mut prims: Vec<&str> = Vec::new();
+    for child in params.children(&mut cursor) {
+        let (n, prim_ty) = match child.kind() {
             "parameter_declaration" => {
                 let mut name_cursor = child.walk();
-                let names = child.children(&mut name_cursor).filter(|c| c.kind() == "identifier").count() as u32;
-                (if names == 0 { 1 } else { names }, has_primitive_type(child, source))
+                let names =
+                    child.children(&mut name_cursor).filter(|c| c.kind() == "identifier").count() as u32;
+                (names.max(1), primitive_type_of(child, source))
             }
-            "variadic_parameter_declaration" => (1, has_primitive_type(child, source)),
-            _ => return (cnt, prim, typed),
+            "variadic_parameter_declaration" => (1, primitive_type_of(child, source)),
+            _ => continue,
         };
-        let p = if is_prim { n } else { 0 };
-        (cnt + n, prim + p, typed + n)
-    })
+        count += n;
+        typed += n;
+        if let Some(ty) = prim_ty {
+            prims.extend(std::iter::repeat_n(ty, n as usize));
+        }
+    }
+    (count, prims.len() as u32, typed, max_same_primitive(&prims))
 }
 
-fn has_primitive_type(param: Node, source: &str) -> bool {
-    // Check for type_identifier directly or inside pointer_type / slice_type
-    if let Some(ti) = find_child_by_kind(param, "type_identifier") {
-        let name = node_text(ti, source);
-        return PRIMITIVE_TYPES.contains(&name);
-    }
-    if let Some(ptr) = find_child_by_kind(param, "pointer_type") {
-        if let Some(ti) = find_child_by_kind(ptr, "type_identifier") {
-            let name = node_text(ti, source);
-            return PRIMITIVE_TYPES.contains(&name);
-        }
-    }
-    if let Some(slice) = find_child_by_kind(param, "slice_type") {
-        if let Some(ti) = find_child_by_kind(slice, "type_identifier") {
-            let name = node_text(ti, source);
-            return PRIMITIVE_TYPES.contains(&name);
-        }
-    }
-    false
+fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
+    let ti = find_child_by_kind(param, "type_identifier")
+        .or_else(|| {
+            find_child_by_kind(param, "pointer_type").and_then(|p| find_child_by_kind(p, "type_identifier"))
+        })
+        .or_else(|| {
+            find_child_by_kind(param, "slice_type").and_then(|s| find_child_by_kind(s, "type_identifier"))
+        })?;
+    let name = node_text(ti, source);
+    PRIMITIVE_TYPES.contains(&name).then_some(name)
 }
 
 fn count_declarations(root: Node) -> u32 {
