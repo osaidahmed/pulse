@@ -52,10 +52,11 @@ fn cc_counts_or_operator() {
 }
 
 #[test]
-fn cc_counts_not_operator() {
-    let out = debug("def f():\n    if not a:\n        pass\n");
-    // base(1) + if(1) + not(1) = 3
-    assert_eq!(function_metric(&out, "f", "cc"), Some(3));
+fn not_operator_excluded_from_cc() {
+    let plain = debug("def f():\n    if a:\n        pass\n");
+    let negated = debug("def f():\n    if not a:\n        pass\n");
+    assert_eq!(function_metric(&plain, "f", "cc"), Some(2));
+    assert_eq!(function_metric(&negated, "f", "cc"), Some(2));
 }
 
 #[test]

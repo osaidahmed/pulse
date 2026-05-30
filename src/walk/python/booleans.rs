@@ -3,7 +3,7 @@ use tree_sitter::Node;
 pub fn count_boolean_operators(node: Node, cc: &mut u32) {
     let mut cursor = node.walk();
     node.children(&mut cursor).for_each(|child| match child.kind() {
-        "boolean_operator" | "not_operator" => {
+        "boolean_operator" => {
             *cc += 1;
             count_boolean_operators(child, cc);
         }
