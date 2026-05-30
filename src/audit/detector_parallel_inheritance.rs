@@ -101,6 +101,8 @@ fn pair_finding(
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     })
 }

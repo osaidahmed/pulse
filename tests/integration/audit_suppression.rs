@@ -16,6 +16,8 @@ fn pattern_finding(snippet: &str, category: PatternCategory) -> AuditFinding {
         idf_score: Some(2.0),
         action_label: Some("wrap repeated literals in a typed object"),
         pattern_category: Some(category),
+        locality_entropy: None,
+        p_value: None,
         locations: vec![AuditLocation { file: PathBuf::from("a.py"), line: 1 }],
     }
 }
@@ -41,6 +43,8 @@ fn shotgun_finding(name: &str) -> AuditFinding {
         idf_score: None,
         action_label: Some("introduce polymorphism or move logic to a single owner"),
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }

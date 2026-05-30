@@ -30,6 +30,8 @@ fn shotgun_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -50,6 +52,8 @@ fn divergent_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -73,6 +77,8 @@ fn feature_envy_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -94,6 +100,8 @@ fn god_class_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -121,6 +129,8 @@ fn parallel_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -143,6 +153,8 @@ fn refused_finding() -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }

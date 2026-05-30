@@ -48,6 +48,8 @@ fn zero_edge_finding(module_count: u32) -> Vec<AuditFinding> {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }]
 }
@@ -90,6 +92,8 @@ fn martin_finding_for(
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![AuditLocation { file: module_path, line: 1 }],
     })
 }
@@ -146,6 +150,8 @@ fn cycle_finding(
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations,
     }
 }

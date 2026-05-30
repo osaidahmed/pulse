@@ -12,6 +12,8 @@ fn finding(fp: u64, support: u32, file_count: u32, snippet: &str, files: &[(&str
         idf_score: Some(1.5),
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: files.iter().map(|(f, l)| AuditLocation { file: PathBuf::from(f), line: *l }).collect(),
     }
 }

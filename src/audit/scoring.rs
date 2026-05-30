@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use crate::thresholds::AuditThresholds;
 
@@ -6,7 +7,15 @@ use super::categorize;
 use super::discovery::RawCluster;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, PatternCategory};
 use super::mdl::{self, CorpusScale};
+use super::swap_significance::{self, IncidenceMatrix, SwapConfig};
 use super::walker::KindIndex;
+
+const SWAP_CONFIG: SwapConfig = SwapConfig {
+    samples: 200,
+    step_multiplier: 5,
+    seed: 0x5EED_5EED_5EED_5EED,
+    max_cols: 256,
+};
 
 pub struct ScoringCtx<'a> {
     pub kinds_by_fp: &'a KindIndex,
@@ -23,7 +32,25 @@ pub fn build_findings(clusters: Vec<RawCluster>, ctx: &ScoringCtx) -> Vec<AuditF
         .collect();
     findings.sort_by(rank_descending);
     findings.truncate(ctx.max_findings);
+    attach_pvalues(&mut findings);
     findings
+}
+
+fn attach_pvalues(findings: &mut [AuditFinding]) {
+    let mut file_idx: HashMap<PathBuf, usize> = HashMap::new();
+    let mut edges: Vec<(usize, usize)> = Vec::new();
+    for (col, finding) in findings.iter().enumerate() {
+        for loc in &finding.locations {
+            let next = file_idx.len();
+            let row = *file_idx.entry(loc.file.clone()).or_insert(next);
+            edges.push((row, col));
+        }
+    }
+    let matrix = IncidenceMatrix::new(file_idx.len(), findings.len(), &edges);
+    let pvalues = swap_significance::p_values(&matrix, SWAP_CONFIG);
+    for (finding, p) in findings.iter_mut().zip(pvalues) {
+        finding.p_value = Some(p);
+    }
 }
 
 fn build_categorized_finding(cluster: RawCluster, ctx: &ScoringCtx) -> Option<AuditFinding> {
@@ -44,6 +71,7 @@ fn finding_from_cluster(
     score: Option<f64>,
     category: PatternCategory,
 ) -> AuditFinding {
+    let locality = mdl::locality_entropy(&mdl::file_counts(&cluster.locations));
     let locations = cluster
         .locations
         .into_iter()
@@ -58,6 +86,8 @@ fn finding_from_cluster(
         action_label: None,
         locations,
         pattern_category: Some(category),
+        locality_entropy: Some(locality),
+        p_value: None,
     }
 }
 

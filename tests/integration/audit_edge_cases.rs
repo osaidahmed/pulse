@@ -100,6 +100,8 @@ fn edge_max_locations_zero_renders_only_more_marker() {
         support: 3, file_count: 3,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![
             AuditLocation { file: PathBuf::from("a.py"), line: 1 },
             AuditLocation { file: PathBuf::from("b.py"), line: 2 },
@@ -225,6 +227,8 @@ fn edge_format_findings_with_action_label_renders_correctly() {
         idf_score: Some(1.0),
         action_label: Some("extract polymorphic dispatch"),
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let s = format_findings(std::slice::from_ref(&f), None, &t().audit);
@@ -241,6 +245,8 @@ fn edge_format_findings_without_action_label_omits_block() {
         idf_score: Some(1.0),
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let s = format_findings(std::slice::from_ref(&f), None, &t().audit);
@@ -255,6 +261,8 @@ fn edge_format_findings_two_findings_separated_by_blank_line() {
         support: 5, file_count: 5,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let f2 = AuditFinding {
@@ -263,6 +271,8 @@ fn edge_format_findings_two_findings_separated_by_blank_line() {
         support: 4, file_count: 4,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let s = format_findings(&[f1, f2], None, &t().audit);
@@ -283,6 +293,8 @@ fn edge_format_findings_json_handles_unicode_in_snippet() {
         support: 5, file_count: 5,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let s = format_findings_json(std::slice::from_ref(&f), None);
@@ -631,6 +643,8 @@ fn edge_format_findings_full_round_trip_human_then_json() {
         support: 99, file_count: 38,
         idf_score: Some(1.5), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![
             AuditLocation { file: PathBuf::from("a.py"), line: 10 },
             AuditLocation { file: PathBuf::from("b.py"), line: 20 },
@@ -651,6 +665,8 @@ fn edge_format_findings_human_renders_correct_bullet_indents() {
         support: 3, file_count: 3,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![
             AuditLocation { file: PathBuf::from("a.py"), line: 1 },
             AuditLocation { file: PathBuf::from("b.py"), line: 2 },
@@ -669,6 +685,8 @@ fn edge_format_findings_json_array_syntax_correct_for_one_finding() {
         support: 3, file_count: 3,
         idf_score: Some(1.0), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![],
     };
     let s = format_findings_json(std::slice::from_ref(&f), None);

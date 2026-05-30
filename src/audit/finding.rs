@@ -214,6 +214,8 @@ pub struct AuditFinding {
     pub action_label: Option<&'static str>,
     pub locations: Vec<AuditLocation>,
     pub pattern_category: Option<PatternCategory>,
+    pub locality_entropy: Option<f64>,
+    pub p_value: Option<f64>,
 }
 
 struct VariantInfo {

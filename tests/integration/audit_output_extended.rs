@@ -12,6 +12,8 @@ fn fab(fp: u64, support: u32, files: u32, snippet: &str, locs: &[(&str, u32)]) -
         support, file_count: files,
         idf_score: Some(1.5), action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: locs.iter().map(|(p, l)| AuditLocation { file: PathBuf::from(*p), line: *l }).collect(),
     }
 }

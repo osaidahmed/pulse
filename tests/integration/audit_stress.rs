@@ -333,6 +333,8 @@ fn stress_apply_idf_handles_max_locations_one() {
         idf_score: Some(1.0),
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: (0..100).map(|i| pulse::audit::finding::AuditLocation {
             file: PathBuf::from(format!("f{i}.py")),
             line: 1,

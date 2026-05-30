@@ -19,6 +19,8 @@ fn wrap(kind: AuditKind) -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
@@ -191,6 +193,8 @@ fn pattern_finding(support: u32) -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: Some(PatternCategory::PrimitiveObsession),
+        locality_entropy: None,
+        p_value: None,
         locations: vec![AuditLocation { file: PathBuf::from("p.py"), line: 1 }],
     }
 }

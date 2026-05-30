@@ -33,6 +33,8 @@ fn martin_finding(module: &str, ca: u32, ce: u32, i: f64, a: f64, d: f64, tier: 
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: vec![AuditLocation { file: p(module), line: 1 }],
     }
 }
@@ -59,6 +61,8 @@ fn cycle_finding(members: &[&str], confidence: ImportConfidence) -> AuditFinding
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: member_paths
             .iter()
             .map(|p| AuditLocation { file: p.clone(), line: 1 })
@@ -75,6 +79,8 @@ fn zero_edge_finding(count: u32) -> AuditFinding {
         idf_score: None,
         action_label: None,
         pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
         locations: Vec::new(),
     }
 }
