@@ -22,7 +22,7 @@ fn output_has_function_line_numbers() {
 
 #[test]
 fn output_has_module_prefix() {
-    let output = run_check(LANG, "production_service.r");
+    let output = run_check(LANG, "code_duplication.r");
     assert!(output.contains("Module:"), "got: {output}");
 }
 
@@ -617,9 +617,9 @@ fn production_service_nested_chunks() {
 }
 
 #[test]
-fn production_service_code_duplication() {
+fn production_service_no_false_duplication() {
     let output = run_check(LANG, "production_service.r");
-    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
+    assert!(!has_smell(&output, "Code Duplication"), "size-disparate functions must not be flagged as duplicates, got: {output}");
 }
 
 #[test]
@@ -667,9 +667,9 @@ fn production_api_empty_handler() {
 }
 
 #[test]
-fn production_api_code_duplication() {
+fn production_api_no_false_duplication() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(has_smell(&output, "Code Duplication"), "got: {output}");
+    assert!(!has_smell(&output, "Code Duplication"), "size-disparate functions must not be flagged as duplicates, got: {output}");
 }
 
 #[test]

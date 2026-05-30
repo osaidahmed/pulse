@@ -4461,11 +4461,6 @@
     ],
     "findings": [
       {
-        "smell": "Code Duplication",
-        "location": "module",
-        "detail": "2 functions with identical structure: DEEPLY-NESTED (L13-26), MODERATELY-NESTED (L27-32)"
-      },
-      {
         "smell": "Complex Method",
         "location": "fn:DEEPLY-NESTED:13:26",
         "detail": "cogc=21 [warning] (threshold: 15)"
@@ -4880,11 +4875,6 @@
         "smell": "Code Duplication",
         "location": "module",
         "detail": "2 functions with identical structure: LOG-ERROR (L84-91), LOG-INFO (L92-99)"
-      },
-      {
-        "smell": "Code Duplication",
-        "location": "module",
-        "detail": "3 functions with identical structure: HANDLE-GET (L34-51), HANDLE-DELETE (L64-69), VALIDATE-INPUT (L70-83)"
       }
     ]
   },
@@ -18619,11 +18609,6 @@
     ],
     "findings": [
       {
-        "smell": "Code Duplication",
-        "location": "module",
-        "detail": "2 functions with identical structure: deeply_nested (L1-13), moderately_nested (L15-21)"
-      },
-      {
         "smell": "Complex Method",
         "location": "fn:deeply_nested:1:13",
         "detail": "cogc=15 [warning] (threshold: 15)"
@@ -19127,11 +19112,6 @@
     ],
     "findings": [
       {
-        "smell": "Code Duplication",
-        "location": "module",
-        "detail": "5 functions with identical structure: process_event (L5-19), route_request (L23-41), handle_api_request (L54-111), parse_query (L115-137), apply_middleware (L141-151)"
-      },
-      {
         "smell": "Complex Method",
         "location": "fn:handle_api_request:54:111",
         "detail": "cc=21, cogc=34 [alert] (cc threshold: 9, cogc threshold: 15)"
@@ -19292,11 +19272,6 @@
       }
     ],
     "findings": [
-      {
-        "smell": "Code Duplication",
-        "location": "module",
-        "detail": "6 functions with identical structure: process_order (L48-97), format_user_report (L101-114), format_admin_report (L116-129), process_data_pipeline (L133-180), validate_schema (L184-197), format_output (L201-213)"
-      },
       {
         "smell": "Complex Method",
         "location": "fn:process_data_pipeline:133:180",

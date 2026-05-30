@@ -11,18 +11,25 @@ fn fingerprint_hasher() -> Xxh3 {
     Xxh3::with_seed(FINGERPRINT_VERSION)
 }
 
-pub fn compute_skeleton_hash(body: Node) -> u64 {
-    let mut kinds: Vec<&str> = Vec::new();
-    let mut cursor = body.walk();
-    for child in body.children(&mut cursor) {
-        kinds.push(child.kind());
+pub fn compute_skeleton_hash(node: Node) -> u64 {
+    let Some(_guard) = super::DepthGuard::enter() else {
+        return 0;
+    };
+    let mut child_hashes: Vec<u64> = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if !child.is_named() {
+            continue;
+        }
+        let mut h = fingerprint_hasher();
+        child.kind().hash(&mut h);
+        compute_skeleton_hash(child).hash(&mut h);
+        child_hashes.push(h.finish());
     }
-    kinds.sort_unstable();
-    // No dedup — multiset hash preserves kind COUNTS, not just vocabulary.
-    // Two functions must use each statement type the same number of times to match.
+    child_hashes.sort_unstable();
     let mut hasher = fingerprint_hasher();
-    for kind in &kinds {
-        kind.hash(&mut hasher);
+    for ch in &child_hashes {
+        ch.hash(&mut hasher);
     }
     hasher.finish()
 }

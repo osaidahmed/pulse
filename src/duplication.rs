@@ -30,7 +30,14 @@ fn detect_exact_clones(
     for &i in eligible {
         groups.entry(functions[i].structural_hash).or_default().push(i);
     }
-    emit_duplication_findings(&groups, functions, t, findings, "identical structure");
+    let filtered: HashMap<u64, Vec<usize>> = groups
+        .into_iter()
+        .map(|(k, indices)| {
+            let keep = are_size_similar(&indices, functions);
+            (k, if keep { indices } else { vec![] })
+        })
+        .collect();
+    emit_duplication_findings(&filtered, functions, t, findings, "identical structure");
 }
 
 fn detect_similar_clones(
