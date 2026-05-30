@@ -110,7 +110,7 @@ fn build_metrics(
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["VarDecl"]),
-        string_match_arms: count_string_match_arms(body, "SwitchExpr", "SwitchProng", &["STRINGLITERALSINGLE"]),
+        string_match_arms: count_string_match_arms(body, "SwitchExpr", "SwitchProng", &["STRINGLITERALSINGLE"], &[]),
     })
 }
 

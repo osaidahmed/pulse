@@ -175,7 +175,7 @@ fn rust_string_match_detected() {
     match cmd {
         "alpha" => 1, "beta" => 2, "gamma" => 3,
         "delta" => 4, "epsilon" => 5, "zeta" => 6,
-        _ => 0,
+
     }
 }"#;
     assert!(has_smell(&check(code, "rs"), "Stringly-Typed Switch"));
@@ -184,7 +184,7 @@ fn rust_string_match_detected() {
 #[test]
 fn rust_string_match_below_threshold_clean() {
     let code = r#"fn small(s: &str) -> i32 {
-    match s { "a" => 1, "b" => 2, _ => 0 }
+    match s { "a" => 1, "b" => 2 }
 }"#;
     assert!(!has_smell(&check(code, "rs"), "Stringly-Typed"));
 }
@@ -195,7 +195,7 @@ fn rust_string_match_count_in_debug() {
     match cmd {
         "a" => 1, "b" => 2, "c" => 3,
         "d" => 4, "e" => 5, "f" => 6, "g" => 7,
-        _ => 0,
+
     }
 }"#;
     let out = dbg(code, "rs");
@@ -218,7 +218,7 @@ fn go_string_switch_detected() {
         "    case \"d\":\n        return 4\n",
         "    case \"e\":\n        return 5\n",
         "    case \"f\":\n        return 6\n",
-        "    default:\n        return 0\n",
+
         "    }\n",
         "}\n",
     );
@@ -240,7 +240,7 @@ fn swift_string_switch_detected() {
         "    case \"d\":\n        return 4\n",
         "    case \"e\":\n        return 5\n",
         "    case \"f\":\n        return 6\n",
-        "    default:\n        return 0\n",
+
         "    }\n",
         "}\n",
     );
@@ -271,7 +271,7 @@ fn short_vars_shows_threshold() {
 #[test]
 fn stringly_typed_shows_threshold() {
     let code = r#"fn d(s: &str) -> i32 {
-    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5, "f" => 6, _ => 0 }
+    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5, "f" => 6 }
 }"#;
     assert!(check(code, "rs").contains(&format!("threshold: {}", t().analysis.max_string_match_arms)));
 }
@@ -315,7 +315,7 @@ fn short_vars_at_4_flagged() {
 #[test]
 fn string_switch_at_5_not_flagged() {
     let code = r#"fn d(s: &str) -> i32 {
-    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5, _ => 0 }
+    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5 }
 }"#;
     assert!(!has_smell(&check(code, "rs"), "Stringly-Typed"), "5 arms = threshold, should NOT flag");
 }
@@ -323,7 +323,7 @@ fn string_switch_at_5_not_flagged() {
 #[test]
 fn string_switch_at_6_flagged() {
     let code = r#"fn d(s: &str) -> i32 {
-    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5, "f" => 6, _ => 0 }
+    match s { "a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5, "f" => 6 }
 }"#;
     assert!(has_smell(&check(code, "rs"), "Stringly-Typed"), "6 arms > threshold, should flag");
 }

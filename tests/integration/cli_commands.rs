@@ -289,7 +289,7 @@ fn stringly_typed_detected_in_rust() {
     match cmd {
         "a" => 1, "b" => 2, "c" => 3,
         "d" => 4, "e" => 5, "f" => 6,
-        _ => 0,
+
     }
 }"#;
     std::fs::write(&p, code).unwrap();
@@ -306,7 +306,7 @@ fn few_string_match_arms_not_flagged() {
     match s {
         "a" => 1,
         "b" => 2,
-        _ => 0,
+
     }
 }"#;
     std::fs::write(&p, code).unwrap();

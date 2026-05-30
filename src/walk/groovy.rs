@@ -190,6 +190,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
             "switch_expression",
             "switch_block_statement_group",
             &["string_literal"],
+            &[],
         ),
     })
 }

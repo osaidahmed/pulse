@@ -166,7 +166,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
  class_name: None,
  parent_class: None,
         short_var_count: count_short_variables(body, source, &["assignment_expression", "augmented_assignment_expression"]),
-        string_match_arms: count_string_match_arms(body, "match_expression", "match_conditional_expression", &["string", "encapsed_string"]),
+        string_match_arms: count_string_match_arms(body, "match_expression", "match_conditional_expression", &["string", "encapsed_string"], &["match_default_expression"]),
     })
 }
 

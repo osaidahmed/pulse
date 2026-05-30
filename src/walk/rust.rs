@@ -154,7 +154,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
         assert_hash = compute_assert_fingerprint(body, "expression_statement");
         short_var_count = count_short_variables(body, source, &["let_declaration"]);
-        string_match_arms = count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"]);
+        string_match_arms = count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"], &[]);
     }
 
     Some(FunctionMetrics {

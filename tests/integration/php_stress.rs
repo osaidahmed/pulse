@@ -558,7 +558,7 @@ fn switch_with_default_cc() {
 
 #[test]
 fn match_with_default_cc() {
-    let out = debug("<?php\nfunction f(int $x): int { return match($x) { 1 => 10, 2 => 20, default => 0 }; }\n");
+    let out = debug("<?php\nfunction f(int $x): int { return match($x) { 1 => 10, 2 => 20 }; }\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -629,7 +629,7 @@ fn heredoc_embedded() {
 
 #[test]
 fn string_match_arms_flagged() {
-    let out = check("<?php\nfunction f(string $s): int {\n  return match($s) { 'a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6, default => 0 };\n}\n");
+    let out = check("<?php\nfunction f(string $s): int {\n  return match($s) { 'a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6 };\n}\n");
     assert!(has_smell(&out, "Stringly-Typed Switch"), "got: {out}");
 }
 

@@ -7911,7 +7911,7 @@
         "typed_param_count": 8,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 4
+        "string_match_arms": 0
       }
     ],
     "findings": [
@@ -8510,7 +8510,7 @@
   {
     "path": "go/production_api_service.go",
     "module": {
-      "total_loc": 53,
+      "total_loc": 52,
       "total_functions": 2,
       "sum_cc": 10,
       "global_conditional_count": 0,
@@ -8522,8 +8522,8 @@
       {
         "name": "DispatchCommand",
         "start_line": 19,
-        "end_line": 36,
-        "loc": 18,
+        "end_line": 35,
+        "loc": 17,
         "cc": 7,
         "cognitive_complexity": 1,
         "max_nesting": 1,
@@ -8541,8 +8541,8 @@
       },
       {
         "name": "ProcessEvent",
-        "start_line": 38,
-        "end_line": 56,
+        "start_line": 37,
+        "end_line": 55,
         "loc": 19,
         "cc": 3,
         "cognitive_complexity": 2,
@@ -8563,12 +8563,12 @@
     "findings": [
       {
         "smell": "Short Variable Names",
-        "location": "fn:ProcessEvent:38:56",
+        "location": "fn:ProcessEvent:37:55",
         "detail": "8 single-char variables in 19 LOC function (threshold: 3)"
       },
       {
         "smell": "Stringly-Typed Switch",
-        "location": "fn:DispatchCommand:19:36",
+        "location": "fn:DispatchCommand:19:35",
         "detail": "match/switch on string with 6 arms (threshold: 5)"
       }
     ]
@@ -10641,7 +10641,7 @@
         "typed_param_count": 2,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 3
+        "string_match_arms": 0
       },
       {
         "name": "formatOutput",
@@ -10661,7 +10661,7 @@
         "typed_param_count": 2,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 3
+        "string_match_arms": 0
       },
       {
         "name": "validateConfig",
@@ -11799,7 +11799,7 @@
   {
     "path": "javascript/production_api_service.js",
     "module": {
-      "total_loc": 37,
+      "total_loc": 36,
       "total_functions": 2,
       "sum_cc": 10,
       "global_conditional_count": 0,
@@ -11811,8 +11811,8 @@
       {
         "name": "dispatchCommand",
         "start_line": 1,
-        "end_line": 18,
-        "loc": 18,
+        "end_line": 17,
+        "loc": 17,
         "cc": 7,
         "cognitive_complexity": 1,
         "max_nesting": 1,
@@ -11830,8 +11830,8 @@
       },
       {
         "name": "processEvent",
-        "start_line": 20,
-        "end_line": 38,
+        "start_line": 19,
+        "end_line": 37,
         "loc": 19,
         "cc": 3,
         "cognitive_complexity": 2,
@@ -11852,12 +11852,12 @@
     "findings": [
       {
         "smell": "Short Variable Names",
-        "location": "fn:processEvent:20:38",
+        "location": "fn:processEvent:19:37",
         "detail": "16 single-char variables in 19 LOC function (threshold: 3)"
       },
       {
         "smell": "Stringly-Typed Switch",
-        "location": "fn:dispatchCommand:1:18",
+        "location": "fn:dispatchCommand:1:17",
         "detail": "match/switch on string with 6 arms (threshold: 5)"
       }
     ]
@@ -14076,7 +14076,7 @@
         "typed_param_count": 3,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 1
+        "string_match_arms": 0
       },
       {
         "name": "OrderProcessor.retry",
@@ -14624,7 +14624,7 @@
         "typed_param_count": 3,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 2
+        "string_match_arms": 0
       },
       {
         "name": "OrderService.applyRule",
@@ -15495,7 +15495,7 @@
   {
     "path": "php/match_expression.php",
     "module": {
-      "total_loc": 12,
+      "total_loc": 11,
       "total_functions": 1,
       "sum_cc": 7,
       "global_conditional_count": 0,
@@ -15507,8 +15507,8 @@
       {
         "name": "route",
         "start_line": 3,
-        "end_line": 13,
-        "loc": 11,
+        "end_line": 12,
+        "loc": 10,
         "cc": 7,
         "cognitive_complexity": 1,
         "max_nesting": 1,
@@ -15528,7 +15528,7 @@
     "findings": [
       {
         "smell": "Stringly-Typed Switch",
-        "location": "fn:route:3:13",
+        "location": "fn:route:3:12",
         "detail": "match/switch on string with 6 arms (threshold: 5)"
       }
     ]
@@ -20135,7 +20135,7 @@
   {
     "path": "ruby/production_api_service.rb",
     "module": {
-      "total_loc": 31,
+      "total_loc": 30,
       "total_functions": 2,
       "sum_cc": 10,
       "global_conditional_count": 0,
@@ -20147,8 +20147,8 @@
       {
         "name": "dispatch_command",
         "start_line": 7,
-        "end_line": 17,
-        "loc": 11,
+        "end_line": 16,
+        "loc": 10,
         "cc": 7,
         "cognitive_complexity": 1,
         "max_nesting": 1,
@@ -20166,8 +20166,8 @@
       },
       {
         "name": "process_event",
-        "start_line": 19,
-        "end_line": 33,
+        "start_line": 18,
+        "end_line": 32,
         "loc": 15,
         "cc": 3,
         "cognitive_complexity": 2,
@@ -20188,12 +20188,12 @@
     "findings": [
       {
         "smell": "Short Variable Names",
-        "location": "fn:process_event:19:33",
+        "location": "fn:process_event:18:32",
         "detail": "8 single-char variables in 15 LOC function (threshold: 3)"
       },
       {
         "smell": "Stringly-Typed Switch",
-        "location": "fn:dispatch_command:7:17",
+        "location": "fn:dispatch_command:7:16",
         "detail": "match/switch on string with 6 arms (threshold: 5)"
       }
     ]
@@ -20268,7 +20268,7 @@
         "typed_param_count": 0,
         "empty_catch_count": 0,
         "short_var_count": 0,
-        "string_match_arms": 3
+        "string_match_arms": 0
       },
       {
         "name": "OrderService.generate_report",
@@ -23854,7 +23854,7 @@
   {
     "path": "typescript/production_api_service.ts",
     "module": {
-      "total_loc": 52,
+      "total_loc": 51,
       "total_functions": 2,
       "sum_cc": 10,
       "global_conditional_count": 0,
@@ -23866,8 +23866,8 @@
       {
         "name": "dispatchCommand",
         "start_line": 17,
-        "end_line": 34,
-        "loc": 18,
+        "end_line": 33,
+        "loc": 17,
         "cc": 7,
         "cognitive_complexity": 1,
         "max_nesting": 1,
@@ -23885,8 +23885,8 @@
       },
       {
         "name": "processEvent",
-        "start_line": 36,
-        "end_line": 54,
+        "start_line": 35,
+        "end_line": 53,
         "loc": 19,
         "cc": 3,
         "cognitive_complexity": 2,
@@ -23907,12 +23907,12 @@
     "findings": [
       {
         "smell": "Short Variable Names",
-        "location": "fn:processEvent:36:54",
+        "location": "fn:processEvent:35:53",
         "detail": "16 single-char variables in 19 LOC function (threshold: 3)"
       },
       {
         "smell": "Stringly-Typed Switch",
-        "location": "fn:dispatchCommand:17:34",
+        "location": "fn:dispatchCommand:17:33",
         "detail": "match/switch on string with 6 arms (threshold: 5)"
       }
     ]

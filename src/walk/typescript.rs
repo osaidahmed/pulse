@@ -199,7 +199,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
         assert_hash = compute_assert_fingerprint(body, "expression_statement");
         short_var_count = count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]);
-        string_match_arms = count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"]);
+        string_match_arms = count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"], &["switch_default"]);
     }
 
     Some(FunctionMetrics {

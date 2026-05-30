@@ -12,9 +12,8 @@ function dispatchCommand(cmd) {
         return "deploying";
     case "rollback":
         return "rolling back";
-    default:
-        return "unknown";
     }
+    return "unknown";
 }
 
 function processEvent(data) {

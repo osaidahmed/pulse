@@ -30,9 +30,8 @@ func DispatchCommand(cmd string) string {
 		return "deploying"
 	case "rollback":
 		return "rolling back"
-	default:
-		return "unknown"
 	}
+	return "unknown"
 }
 
 func ProcessEvent(data []byte) int {

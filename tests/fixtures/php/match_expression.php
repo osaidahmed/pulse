@@ -8,6 +8,5 @@ function route(string $path): string {
         "/login" => "AuthController",
         "/register" => "RegisterController",
         "/dashboard" => "DashboardController",
-        default => "NotFoundController",
     };
 }

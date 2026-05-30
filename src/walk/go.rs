@@ -169,7 +169,7 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         class_name: info.class_name,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["short_var_declaration", "var_declaration"]),
-        string_match_arms: count_string_match_arms(body, "expression_switch_statement", "expression_case", &["interpreted_string_literal", "raw_string_literal"]),
+        string_match_arms: count_string_match_arms(body, "expression_switch_statement", "expression_case", &["interpreted_string_literal", "raw_string_literal"], &["default_case"]),
     })
 }
 

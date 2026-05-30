@@ -12,7 +12,6 @@ def dispatch_command(cmd)
   when "status" then "checking"
   when "deploy" then "deploying"
   when "rollback" then "rolling back"
-  else "unknown"
   end
 end
 

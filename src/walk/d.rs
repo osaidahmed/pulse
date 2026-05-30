@@ -133,7 +133,7 @@ fn build_fn(node: Node, source: &str, name: String, pi: ParamInfo) -> Option<Fun
     walk_body(body, source, 0, &mut s);
     let mut m = finish(name, node, &s, body, pi);
     m.short_var_count = count_short_variables(body, source, &["variable_declaration", "auto_declaration"]);
-    m.string_match_arms = count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal"]);
+    m.string_match_arms = count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal"], &[]);
     Some(m)
 }
 

@@ -135,6 +135,6 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["bind"]),
-        string_match_arms: count_string_match_arms(body, "case", "alternative", &["string"]),
+        string_match_arms: count_string_match_arms(body, "case", "alternative", &["string"], &[]),
     }
 }

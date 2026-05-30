@@ -65,3 +65,62 @@ fn primitive_obsession_fires_on_data_clump_python() {
         "repeated primitive type is a data clump, got: {code}"
     );
 }
+
+fn switch_arms() -> usize {
+    t().analysis.max_string_match_arms as usize + 1
+}
+
+fn rust_switch(default: bool) -> String {
+    let arms: String = (0..switch_arms()).map(|i| format!("        \"k{i}\" => {{}}\n")).collect();
+    let tail = if default { "        _ => {}\n" } else { "" };
+    format!("fn f(s: &str) {{\n    match s {{\n{arms}{tail}    }}\n}}\n")
+}
+
+fn go_switch(default: bool) -> String {
+    let arms: String = (0..switch_arms()).map(|i| format!("    case \"k{i}\":\n        x()\n")).collect();
+    let tail = if default { "    default:\n        x()\n" } else { "" };
+    format!("package main\nfunc f(s string) {{\n    switch s {{\n{arms}{tail}    }}\n}}\n")
+}
+
+fn ts_switch(default: bool) -> String {
+    let arms: String = (0..switch_arms()).map(|i| format!("    case \"k{i}\": break;\n")).collect();
+    let tail = if default { "    default: break;\n" } else { "" };
+    format!("function f(s: string) {{\n  switch (s) {{\n{arms}{tail}  }}\n}}\n")
+}
+
+fn py_switch(default: bool) -> String {
+    let arms: String =
+        (0..switch_arms()).map(|i| format!("        case \"k{i}\":\n            pass\n")).collect();
+    let tail = if default { "        case _:\n            pass\n" } else { "" };
+    format!("def f(s):\n    match s:\n{arms}{tail}")
+}
+
+#[test]
+fn stringly_typed_switch_fires_without_default() {
+    for (code, ext) in [
+        (rust_switch(false), "rs"),
+        (go_switch(false), "go"),
+        (ts_switch(false), "ts"),
+        (py_switch(false), "py"),
+    ] {
+        assert!(
+            has_smell(&pulse_check_code(&code, ext), "Stringly-Typed"),
+            "{ext} string switch without a default should fire, got: {code}"
+        );
+    }
+}
+
+#[test]
+fn stringly_typed_switch_suppressed_with_default() {
+    for (code, ext) in [
+        (rust_switch(true), "rs"),
+        (go_switch(true), "go"),
+        (ts_switch(true), "ts"),
+        (py_switch(true), "py"),
+    ] {
+        assert!(
+            !has_smell(&pulse_check_code(&code, ext), "Stringly-Typed"),
+            "{ext} string switch with a default is a closed domain, got: {code}"
+        );
+    }
+}

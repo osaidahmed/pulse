@@ -164,7 +164,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
  class_name: None,
  parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_statement", "switch_entry", &["line_string_literal"]),
+        string_match_arms: count_string_match_arms(body, "switch_statement", "switch_entry", &["line_string_literal"], &[]),
     })
 }
 

@@ -143,7 +143,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         consecutive_asserts = count_consecutive_asserts(body, "assert_statement");
         assert_hash = compute_assert_fingerprint(body, "assert_statement");
         short_var_count = count_short_variables(body, source, &["assignment", "augmented_assignment"]);
-        string_match_arms = count_string_match_arms(body, "match_statement", "case_clause", &["string"]);
+        string_match_arms = count_string_match_arms(body, "match_statement", "case_clause", &["string"], &[]);
     }
 
     Some(FunctionMetrics {
