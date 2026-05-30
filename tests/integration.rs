@@ -104,6 +104,7 @@ mod history_common;
 #[path = "integration/d_stress.rs"] mod d_stress;
 #[path = "integration/diff_filtering_stress.rs"] mod diff_filtering_stress;
 #[path = "integration/duplication_extended.rs"] mod duplication_extended;
+#[path = "integration/fused_equivalence.rs"] mod fused_equivalence;
 #[path = "integration/fuzzy_duplication.rs"] mod fuzzy_duplication;
 #[path = "integration/go_smells.rs"] mod go_smells;
 #[path = "integration/go_stress.rs"] mod go_stress;
