@@ -6,6 +6,7 @@ use crate::smells::{Finding, Location};
 pub struct HookInput {
     pub file_path: String,
     pub edit_range: Option<(u32, u32)>,
+    pub edit_byte_range: Option<(usize, usize)>,
     pub old_string: Option<String>,
     pub new_string: Option<String>,
     pub session_id: Option<String>,
@@ -33,31 +34,44 @@ pub fn parse_hook_input() -> Option<HookInput> {
         .and_then(|v| v.as_str())
         .map(std::string::ToString::to_string);
 
-    let edit_range = compute_edit_range(tool_input, &file_path);
+    let (edit_range, edit_byte_range) = compute_edit_ranges(tool_input, &file_path);
 
     Some(HookInput {
         file_path,
         edit_range,
+        edit_byte_range,
         old_string,
         new_string,
         session_id,
     })
 }
 
-fn compute_edit_range(tool_input: &serde_json::Value, file_path: &str) -> Option<(u32, u32)> {
-    let new_string = tool_input.get("new_string")?.as_str()?;
-    let old_string = tool_input.get("old_string")?.as_str()?;
+type EditRanges = (Option<(u32, u32)>, Option<(usize, usize)>);
 
-    let source = std::fs::read_to_string(file_path).ok()?;
-    let start_byte = source
+fn compute_edit_ranges(tool_input: &serde_json::Value, file_path: &str) -> EditRanges {
+    let Some(new_string) = tool_input.get("new_string").and_then(|v| v.as_str()) else {
+        return (None, None);
+    };
+    let Some(old_string) = tool_input.get("old_string").and_then(|v| v.as_str()) else {
+        return (None, None);
+    };
+    let Ok(source) = std::fs::read_to_string(file_path) else {
+        return (None, None);
+    };
+    let Some((start_byte, matched_len)) = source
         .find(new_string)
-        .or_else(|| source.find(old_string))?;
+        .map(|s| (s, new_string.len()))
+        .or_else(|| source.find(old_string).map(|s| (s, old_string.len())))
+    else {
+        return (None, None);
+    };
 
     let start_line = source[..start_byte].matches('\n').count() as u32 + 1;
     let new_lines = new_string.matches('\n').count() as u32;
-    let end_line = start_line + new_lines;
-
-    Some((start_line, end_line))
+    (
+        Some((start_line, start_line + new_lines)),
+        Some((start_byte, start_byte + matched_len)),
+    )
 }
 
 pub fn filter_by_edit_range(findings: Vec<Finding>, range: Option<(u32, u32)>) -> Vec<Finding> {

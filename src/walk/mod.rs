@@ -24,6 +24,8 @@ pub mod tcl;
 pub mod typescript;
 pub mod zig;
 
+mod guards;
+
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
 pub use fingerprint::{
     collect_field_accesses_for, collect_foreign_field_accesses_for,
@@ -31,6 +33,9 @@ pub use fingerprint::{
     compute_structural_fingerprint, count_consecutive_asserts,
 };
 pub use shared::is_catch_body_empty;
+
+pub use guards::with_edit_scope;
+pub(crate) use guards::{extras_enabled, DepthGuard};
 
 use tree_sitter::Node;
 
@@ -197,6 +202,9 @@ pub fn track_global_nesting(child: Node, max_nesting: &mut u32, branch_kinds: &[
 }
 
 pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) -> u32 {
+    let Some(_guard) = DepthGuard::enter() else {
+        return current;
+    };
     let mut max = current;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {

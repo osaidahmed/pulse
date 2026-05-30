@@ -38,8 +38,9 @@ pub fn analyze_source(
     source: &str,
     lang: Language,
     cfg: Option<&config::PulseConfig>,
+    edit_byte_range: Option<(usize, usize)>,
 ) -> Option<AnalysisResultFull> {
-    let metrics = parse::parse_and_walk_guarded(source, lang)?;
+    let metrics = parse::parse_and_walk_scoped(source, lang, edit_byte_range)?;
     let thresholds = config::resolve_thresholds(cfg, lang);
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);
@@ -65,7 +66,7 @@ pub fn analyze_file(
         return None;
     }
     let (lang, source) = read_source_unchecked(file_path)?;
-    analyze_source(file_path, &source, lang, cfg)
+    analyze_source(file_path, &source, lang, cfg, None)
 }
 
 pub fn module_regressions(

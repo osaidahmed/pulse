@@ -151,9 +151,10 @@ fn collect_class_methods(
         metrics.is_constructor = method_name == "constructor";
         metrics.class_name = Some(class_name.clone());
         metrics.parent_class = parent_class.clone();
-        collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
-
-        collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+        if super::extras_enabled(child.start_byte(), child.end_byte()) {
+            collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+            collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+        }
 
         functions.push(metrics);
     }
@@ -186,10 +187,20 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
-    let structural_hash = compute_structural_fingerprint(body);
-    let skeleton_hash = compute_skeleton_hash(body);
-    let consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
-    let assert_hash = compute_assert_fingerprint(body, "expression_statement");
+    let mut structural_hash = 0;
+    let mut skeleton_hash = 0;
+    let mut consecutive_asserts = 0;
+    let mut assert_hash = 0;
+    let mut short_var_count = 0;
+    let mut string_match_arms = 0;
+    if super::extras_enabled(node.start_byte(), node.end_byte()) {
+        structural_hash = compute_structural_fingerprint(body);
+        skeleton_hash = compute_skeleton_hash(body);
+        consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
+        assert_hash = compute_assert_fingerprint(body, "expression_statement");
+        short_var_count = count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]);
+        string_match_arms = count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"]);
+    }
 
     Some(FunctionMetrics {
         name,
@@ -215,8 +226,8 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         foreign_field_accesses: Vec::new(),
         class_name: None,
         parent_class: None,
-        short_var_count: count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"]),
+        short_var_count,
+        string_match_arms,
     })
 }
 

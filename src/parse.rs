@@ -135,19 +135,32 @@ fn exceeds_size_caps(source: &str) -> bool {
         || source.split('\n').any(|line| line.len() > MAX_LINE_BYTES)
 }
 
-pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
+fn run_guarded(source: &str, work: impl FnOnce() -> Option<FileMetrics> + Send) -> Option<FileMetrics> {
     if exceeds_size_caps(source) {
         return None;
     }
     std::thread::scope(|scope| {
         let handle = std::thread::Builder::new()
             .stack_size(ANALYZE_STACK_BYTES)
-            .spawn_scoped(scope, || {
-                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    parse_and_walk(source, lang)
-                }))
-            })
+            .spawn_scoped(scope, || std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)))
             .ok()?;
         handle.join().ok().and_then(Result::ok).flatten()
     })
+}
+
+pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
+    run_guarded(source, || parse_and_walk(source, lang))
+}
+
+pub fn parse_and_walk_scoped(
+    source: &str,
+    lang: Language,
+    edit_byte_range: Option<(usize, usize)>,
+) -> Option<FileMetrics> {
+    match edit_byte_range {
+        None => parse_and_walk_guarded(source, lang),
+        scope => run_guarded(source, || {
+            walk::with_edit_scope(scope, || parse_and_walk(source, lang))
+        }),
+    }
 }

@@ -3,6 +3,9 @@ use tree_sitter::Node;
 use super::{find_child_by_kind, node_text, track_global_nesting};
 
 pub fn count_boolean_ops(node: Node, cc: &mut u32, op_kinds: &[&str], stop_kinds: &[&str]) {
+    let Some(_guard) = super::DepthGuard::enter() else {
+        return;
+    };
     let mut cursor = node.walk();
     node.children(&mut cursor).for_each(|child| {
         let kind = child.kind();
@@ -31,6 +34,9 @@ fn cogc_walk(
     op_kinds: &[&str],
     stop_kinds: &[&str],
 ) {
+    let Some(_guard) = super::DepthGuard::enter() else {
+        return;
+    };
     let mut cursor = node.walk();
     let children: Vec<_> = node.children(&mut cursor).collect();
     for child in children {

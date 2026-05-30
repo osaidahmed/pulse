@@ -11,6 +11,22 @@ use crate::{analytics, baselines, config, hook, output, parse, test_detection, t
 const CHECKPOINT_INTERVAL: u32 = 5;
 const CHECKPOINT_INTERVAL_NEW: u32 = 2;
 
+fn is_checkpoint(edit_count: u32) -> bool {
+    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW {
+        CHECKPOINT_INTERVAL_NEW
+    } else {
+        CHECKPOINT_INTERVAL
+    };
+    edit_count.is_multiple_of(interval)
+}
+
+fn edit_scope_for(h: &hook::HookInput, edit_count: u32) -> Option<(usize, usize)> {
+    if edit_count <= 1 || is_checkpoint(edit_count) {
+        return None;
+    }
+    h.edit_byte_range
+}
+
 pub fn run_hook(h: hook::HookInput) {
     if std::env::var("PULSE_DISABLE").is_ok() || test_detection::is_test_file(&h.file_path) {
         return;
@@ -30,11 +46,13 @@ pub fn run_hook(h: hook::HookInput) {
     let Some(lang) = parse::detect_language(path) else {
         process::exit(0);
     };
-    let Some(analysis) = analyze::analyze_source(&h.file_path, &source, lang, cfg) else {
+    let edit_count = baselines::increment_edit_count(&h.file_path);
+    let scope = edit_scope_for(&h, edit_count);
+    let Some(analysis) = analyze::analyze_source(&h.file_path, &source, lang, cfg, scope) else {
         process::exit(0);
     };
 
-    let findings = collect_hook_findings(&h, &analysis, cfg);
+    let findings = collect_hook_findings(&h, &analysis, cfg, edit_count);
     if findings.is_empty() {
         process::exit(0);
     }
@@ -50,8 +68,8 @@ fn collect_hook_findings(
     h: &hook::HookInput,
     analysis: &AnalysisResultFull,
     cfg: Option<&config::PulseConfig>,
+    edit_count: u32,
 ) -> Vec<Finding> {
-    let edit_count = baselines::increment_edit_count(&h.file_path);
     let func_baseline = baselines::load_function_baseline(&h.file_path);
 
     let func_findings: Vec<Finding> = analysis
@@ -130,12 +148,7 @@ fn collect_module_findings(
         );
     }
 
-    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW {
-        CHECKPOINT_INTERVAL_NEW
-    } else {
-        CHECKPOINT_INTERVAL
-    };
-    if edit_count.is_multiple_of(interval) && !test_detection::is_test_file(file_path) {
+    if is_checkpoint(edit_count) && !test_detection::is_test_file(file_path) {
         if let Some((_, regressions)) = detect_regressions(file_path, cfg, Some(analysis)) {
             findings.extend(regressions);
         }

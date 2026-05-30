@@ -49,6 +49,9 @@ pub fn compute_subtree_fingerprint_seeded(node: Node, seed: u64) -> u64 {
 }
 
 fn fingerprint_subtree_into(node: Node, hasher: &mut impl Hasher) {
+    let Some(_guard) = super::DepthGuard::enter() else {
+        return;
+    };
     if is_subtree_skipped_kind(node.kind()) {
         return;
     }
@@ -106,6 +109,9 @@ fn is_literal_kind(kind: &str) -> bool {
 }
 
 fn fingerprint_cursor(cursor: &mut tree_sitter::TreeCursor, hasher: &mut impl Hasher) {
+    let Some(_guard) = super::DepthGuard::enter() else {
+        return;
+    };
     let node = cursor.node();
     let kind = node.kind();
 

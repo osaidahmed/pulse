@@ -101,9 +101,10 @@ fn collect_impl_methods(impl_node: Node, source: &str, functions: &mut Vec<Funct
         metrics.is_constructor = method_name == "new";
         metrics.class_name = Some(type_name.clone());
         metrics.parent_class = parent_class.clone();
-        collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
-
-        collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+        if super::extras_enabled(child.start_byte(), child.end_byte()) {
+            collect_field_accesses_for(child, source, SELF_NAMES, &mut metrics.field_accesses);
+            collect_foreign_field_accesses_for(child, source, SELF_NAMES, &mut metrics.foreign_field_accesses);
+        }
 
         if has_self_param(child) && metrics.arg_count > 0 {
             metrics.arg_count -= 1;
@@ -140,10 +141,20 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
-    let structural_hash = compute_structural_fingerprint(body);
-    let skeleton_hash = compute_skeleton_hash(body);
-    let consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
-    let assert_hash = compute_assert_fingerprint(body, "expression_statement");
+    let mut structural_hash = 0;
+    let mut skeleton_hash = 0;
+    let mut consecutive_asserts = 0;
+    let mut assert_hash = 0;
+    let mut short_var_count = 0;
+    let mut string_match_arms = 0;
+    if super::extras_enabled(node.start_byte(), node.end_byte()) {
+        structural_hash = compute_structural_fingerprint(body);
+        skeleton_hash = compute_skeleton_hash(body);
+        consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
+        assert_hash = compute_assert_fingerprint(body, "expression_statement");
+        short_var_count = count_short_variables(body, source, &["let_declaration"]);
+        string_match_arms = count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"]);
+    }
 
     Some(FunctionMetrics {
         name,
@@ -169,8 +180,8 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         foreign_field_accesses: Vec::new(),
         class_name: None,
         parent_class: None,
-        short_var_count: count_short_variables(body, source, &["let_declaration"]),
-        string_match_arms: count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"]),
+        short_var_count,
+        string_match_arms,
     })
 }
 

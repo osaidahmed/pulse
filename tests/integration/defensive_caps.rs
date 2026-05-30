@@ -6,7 +6,8 @@ use pulse::audit::cycles::{
 use pulse::audit::graph::{ImportGraph, InputEdge};
 use pulse::audit::{audit_traversal_cap_hit, MAX_FILES};
 use pulse::parse::{
-    parse_and_walk, parse_and_walk_guarded, Language, MAX_INPUT_LINES, MAX_LINE_BYTES,
+    parse_and_walk, parse_and_walk_guarded, parse_and_walk_scoped, Language, MAX_INPUT_LINES,
+    MAX_LINE_BYTES,
 };
 
 fn graph_chain(n: usize) -> ImportGraph {
@@ -80,6 +81,37 @@ fn guarded_rejects_excessive_line_count() {
 fn guarded_rejects_excessive_line_length() {
     let src = format!("x = \"{}\"\n", "a".repeat(MAX_LINE_BYTES + 1_000));
     assert!(parse_and_walk_guarded(&src, Language::Python).is_none());
+}
+
+#[test]
+fn guarded_survives_deeply_nested_expression() {
+    let depth = 5_000;
+    let src = format!("fn f() {{ let _x = {}1{}; }}", "(".repeat(depth), ")".repeat(depth));
+    let _ = parse_and_walk_guarded(&src, Language::Rust);
+}
+
+#[test]
+fn scoped_walk_computes_extras_only_for_edited_function() {
+    let src = "fn untouched() {\n    let x = 1;\n}\n\nfn edited() {\n    let y = 2;\n}\n";
+    let pos = src.find("let y").unwrap();
+    let m = parse_and_walk_scoped(src, Language::Rust, Some((pos, pos + 5))).unwrap();
+    let untouched = m.functions.iter().find(|f| f.name == "untouched").unwrap();
+    let edited = m.functions.iter().find(|f| f.name == "edited").unwrap();
+    assert_ne!(edited.skeleton_hash, 0, "edited function must compute extras");
+    assert_eq!(edited.short_var_count, 1, "edited short-var counted");
+    assert_eq!(untouched.skeleton_hash, 0, "untouched function skips extras");
+    assert_eq!(untouched.short_var_count, 0, "untouched extras skipped");
+    assert!(untouched.cc >= 1, "walk_body still runs for sum_cc");
+}
+
+#[test]
+fn full_walk_computes_extras_for_all_functions() {
+    let src = "fn a() {\n    let x = 1;\n}\n\nfn b() {\n    let y = 2;\n}\n";
+    let m = parse_and_walk_scoped(src, Language::Rust, None).unwrap();
+    for f in &m.functions {
+        assert_ne!(f.skeleton_hash, 0, "{} must have extras in a full walk", f.name);
+        assert_eq!(f.short_var_count, 1, "{} short-var counted in full walk", f.name);
+    }
 }
 
 #[test]
