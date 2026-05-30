@@ -5,36 +5,38 @@ use crate::thresholds::AuditThresholds;
 use super::categorize;
 use super::discovery::RawCluster;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, PatternCategory};
-use super::walker::{KindIndex, ShapeMetrics};
+use super::mdl::{self, CorpusScale};
+use super::walker::KindIndex;
 
-pub fn build_findings(
-    clusters: Vec<RawCluster>,
-    shapes: &HashMap<u64, ShapeMetrics>,
-    kinds_by_fp: &KindIndex,
-    max_findings: usize,
-) -> Vec<AuditFinding> {
+pub struct ScoringCtx<'a> {
+    pub kinds_by_fp: &'a KindIndex,
+    pub size_by_fp: &'a HashMap<u64, u32>,
+    pub corpus: CorpusScale,
+    pub floor: f64,
+    pub max_findings: usize,
+}
+
+pub fn build_findings(clusters: Vec<RawCluster>, ctx: &ScoringCtx) -> Vec<AuditFinding> {
     let mut findings: Vec<AuditFinding> = clusters
         .into_iter()
-        .map(|c| build_categorized_finding(c, shapes, kinds_by_fp))
+        .filter_map(|c| build_categorized_finding(c, ctx))
         .collect();
     findings.sort_by(rank_descending);
-    findings.truncate(max_findings);
+    findings.truncate(ctx.max_findings);
     findings
 }
 
-fn build_categorized_finding(
-    cluster: RawCluster,
-    shapes: &HashMap<u64, ShapeMetrics>,
-    kinds_by_fp: &KindIndex,
-) -> AuditFinding {
-    let distinct_kinds = shapes
-        .get(&cluster.fingerprint)
-        .map_or(0, |s| s.distinct_kinds);
-    let score = compute_score(cluster.support, distinct_kinds);
-    let category = kinds_by_fp
+fn build_categorized_finding(cluster: RawCluster, ctx: &ScoringCtx) -> Option<AuditFinding> {
+    let size = ctx.size_by_fp.get(&cluster.fingerprint).copied().unwrap_or(0);
+    let gain = mdl::mdl_gain(cluster.support, size, ctx.corpus);
+    if gain < ctx.floor {
+        return None;
+    }
+    let category = ctx
+        .kinds_by_fp
         .get(&cluster.fingerprint)
         .map_or(PatternCategory::Other, |kinds| categorize::categorize(kinds));
-    finding_from_cluster(cluster, Some(score), category)
+    Some(finding_from_cluster(cluster, Some(gain), category))
 }
 
 fn finding_from_cluster(
@@ -57,10 +59,6 @@ fn finding_from_cluster(
         locations,
         pattern_category: Some(category),
     }
-}
-
-pub fn compute_score(support: u32, distinct_kinds: u32) -> f64 {
-    f64::from(support) * f64::from(distinct_kinds.max(1))
 }
 
 fn rank_descending(a: &AuditFinding, b: &AuditFinding) -> std::cmp::Ordering {

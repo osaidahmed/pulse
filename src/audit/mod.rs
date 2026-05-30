@@ -32,6 +32,7 @@ pub mod import_python;
 pub mod imports;
 pub mod lang_kinds;
 pub mod martin;
+pub mod mdl;
 pub mod named_smells;
 pub mod output;
 pub mod output_grouped;
@@ -167,12 +168,22 @@ fn run_pattern_mining(
     let shapes = complexity_floor::shape_index(&filtered);
     let trimmed = complexity_floor::filter_clusters(clusters, &shapes, thresholds.pattern_mining.complexity);
     let expression_only = expression_filter::keep_expression_clusters(trimmed, &bundle.kinds_by_fp);
-    scoring::build_findings(
-        expression_only,
-        &shapes,
-        &bundle.kinds_by_fp,
-        thresholds.pattern_mining.max_findings_reported,
-    )
+    let vocab = bundle
+        .kinds_by_fp
+        .values()
+        .flatten()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    let size_by_fp: std::collections::HashMap<u64, u32> =
+        filtered.iter().map(|r| (r.fingerprint, r.named_node_count)).collect();
+    let ctx = scoring::ScoringCtx {
+        kinds_by_fp: &bundle.kinds_by_fp,
+        size_by_fp: &size_by_fp,
+        corpus: mdl::CorpusScale { vocab, total_occurrences: filtered.len() as u64 },
+        floor: thresholds.pattern_mining.mdl.compression_floor_bits,
+        max_findings: thresholds.pattern_mining.max_findings_reported,
+    };
+    scoring::build_findings(expression_only, &ctx)
 }
 
 const MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS: usize = 5;
