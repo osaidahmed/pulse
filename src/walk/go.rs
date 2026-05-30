@@ -1,7 +1,7 @@
 use tree_sitter::{Node, Tree};
 
 use super::{
-    collect_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
+    collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
     find_child_by_kind, node_text, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState, track_embedded_block,
@@ -80,6 +80,7 @@ struct MethodContext {
     primitive_type_count: u32,
     typed_param_count: u32,
     field_accesses: Vec<String>,
+    foreign_field_accesses: Vec<(String, String)>,
     class_name: Option<String>,
 }
 
@@ -89,7 +90,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let (arg_count, primitive_type_count, typed_param_count) =
         count_parameters_from_node(node, source);
     let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, field_accesses: Vec::new(),
- class_name: None };
+ foreign_field_accesses: Vec::new(), class_name: None };
     build_metrics(node, source, info)
 }
 
@@ -122,11 +123,13 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
         .map(|id| vec![node_text(id, source)])
         .unwrap_or_default();
     let mut field_accesses = Vec::new();
+    let mut foreign_field_accesses = Vec::new();
     if !self_names.is_empty() {
         collect_field_accesses_for(node, source, &self_names, &mut field_accesses);
+        collect_foreign_field_accesses_for(node, source, &self_names, &mut foreign_field_accesses);
     }
 
-    let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, field_accesses, class_name: receiver_type };
+    let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, field_accesses, foreign_field_accesses, class_name: receiver_type };
     build_metrics(node, source, info)
 }
 
@@ -160,7 +163,7 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         typed_param_count: info.typed_param_count,
         empty_catch_count: 0,
         field_accesses: info.field_accesses,
-        foreign_field_accesses: Vec::new(),
+        foreign_field_accesses: info.foreign_field_accesses,
         class_name: info.class_name,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["short_var_declaration", "var_declaration"]),
