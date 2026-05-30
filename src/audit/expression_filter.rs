@@ -13,7 +13,7 @@ pub fn keep_expression_clusters(
         .collect()
 }
 
-fn is_expression_level(fp: u64, kinds_by_fp: &KindIndex) -> bool {
+pub fn is_expression_level(fp: u64, kinds_by_fp: &KindIndex) -> bool {
     let Some(kinds) = kinds_by_fp.get(&fp) else {
         return false;
     };

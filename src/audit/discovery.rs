@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::thresholds::AuditThresholds;
@@ -22,7 +22,11 @@ pub fn freqt_mine(records: &[SubtreeRecord], thresholds: &AuditThresholds) -> Ve
         .collect()
 }
 
-pub fn closed_mine(records: &[SubtreeRecord], thresholds: &AuditThresholds) -> Vec<RawCluster> {
+pub fn closed_mine(
+    records: &[SubtreeRecord],
+    expression_fps: &HashSet<u64>,
+    thresholds: &AuditThresholds,
+) -> Vec<RawCluster> {
     let mut index = ClosureIndex::default();
     for r in records {
         index.observe(r);
@@ -30,7 +34,7 @@ pub fn closed_mine(records: &[SubtreeRecord], thresholds: &AuditThresholds) -> V
     let groups = group_by_fingerprint(records);
     groups
         .into_iter()
-        .filter(|(fp, _)| index.is_closed(*fp))
+        .filter(|(fp, _)| index.is_closed(*fp, expression_fps))
         .filter_map(|(fp, idx)| materialize(fp, &idx, records, thresholds))
         .collect()
 }
@@ -38,23 +42,30 @@ pub fn closed_mine(records: &[SubtreeRecord], thresholds: &AuditThresholds) -> V
 #[derive(Default)]
 struct ClosureIndex {
     support_by_fp: HashMap<u64, u32>,
-    parent_links: HashMap<u64, BTreeSet<u64>>,
+    parent_counts: HashMap<u64, HashMap<u64, u32>>,
 }
 
 impl ClosureIndex {
     fn observe(&mut self, record: &SubtreeRecord) {
         *self.support_by_fp.entry(record.fingerprint).or_insert(0) += 1;
         if let Some(parent) = record.parent_fingerprint {
-            self.parent_links.entry(record.fingerprint).or_default().insert(parent);
+            *self
+                .parent_counts
+                .entry(record.fingerprint)
+                .or_default()
+                .entry(parent)
+                .or_insert(0) += 1;
         }
     }
 
-    fn is_closed(&self, fp: u64) -> bool {
+    fn is_closed(&self, fp: u64, expression_fps: &HashSet<u64>) -> bool {
         let support = self.support_by_fp.get(&fp).copied().unwrap_or(0);
-        match self.parent_links.get(&fp) {
+        match self.parent_counts.get(&fp) {
             None => true,
-            Some(parents) => parents.iter().all(|p| {
-                self.support_by_fp.get(p).copied().unwrap_or(0) <= support
+            Some(counts) => !counts.iter().any(|(parent, &count)| {
+                count == support
+                    && self.support_by_fp.get(parent).copied().unwrap_or(0) == support
+                    && expression_fps.contains(parent)
             }),
         }
     }

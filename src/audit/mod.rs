@@ -164,7 +164,13 @@ fn run_pattern_mining(
     let stats = corpus_stats::aggregate_corpus(bundle.features);
     let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
     let filtered: Vec<_> = bundle.subtrees.into_iter().filter(|r| !flagged.contains(&r.file)).collect();
-    let clusters = discovery::closed_mine(&filtered, thresholds);
+    let expression_fps: std::collections::HashSet<u64> = bundle
+        .kinds_by_fp
+        .keys()
+        .copied()
+        .filter(|fp| expression_filter::is_expression_level(*fp, &bundle.kinds_by_fp))
+        .collect();
+    let clusters = discovery::closed_mine(&filtered, &expression_fps, thresholds);
     let shapes = complexity_floor::shape_index(&filtered);
     let trimmed = complexity_floor::filter_clusters(clusters, &shapes, thresholds.pattern_mining.complexity);
     let expression_only = expression_filter::keep_expression_clusters(trimmed, &bundle.kinds_by_fp);
