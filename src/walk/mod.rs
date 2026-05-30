@@ -25,6 +25,7 @@ pub mod typescript;
 pub mod zig;
 
 mod guards;
+mod scope;
 
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
 pub use fingerprint::{

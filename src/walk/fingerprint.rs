@@ -259,7 +259,11 @@ pub fn collect_foreign_field_accesses_for(
 ) {
     let mut raw: Vec<(String, String)> = Vec::new();
     visit_field_accesses(func_node, source, self_names, &mut raw, try_extract_foreign);
-    let unique: std::collections::BTreeSet<(String, String)> = raw.into_iter().collect();
+    let scope = super::scope::build_scope_table(func_node, source);
+    let unique: std::collections::BTreeSet<(String, String)> = raw
+        .into_iter()
+        .map(|(recv, field)| (scope.get(&recv).cloned().unwrap_or(recv), field))
+        .collect();
     foreign.extend(unique);
 }
 
