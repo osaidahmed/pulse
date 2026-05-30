@@ -43,6 +43,7 @@ pub mod output_sections;
 pub mod package_metrics;
 pub mod record_extraction;
 pub mod scoring;
+pub mod swap_significance;
 pub mod vendor_filter;
 pub mod walker;
 
