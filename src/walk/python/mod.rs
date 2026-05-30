@@ -267,9 +267,6 @@ fn walk_nested_block(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 fn handle_elif(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.cc += 1;
     s.track_cogc_branch();
-    if depth > s.max_nesting {
-        s.max_nesting = depth;
-    }
     check_condition_complexity(child, source, &mut s.compound_condition_count);
     count_boolean_operators(child, &mut s.cc);
     count_cogc_boolean_sequences(child, &mut s.cogc);

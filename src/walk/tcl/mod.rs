@@ -180,7 +180,6 @@ fn handle_if(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         if child.kind() == "elseif" {
             s.cc += 1;
             s.track_cogc_branch();
-            if depth + 1 > s.max_nesting { s.max_nesting = depth + 1; }
             process_condition(child, source, s);
             walk_consequence(child, source, depth + 1, s);
         } else if child.kind() == "else" {
