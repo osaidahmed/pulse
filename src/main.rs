@@ -12,6 +12,7 @@ mod duplication;
 mod history;
 mod hook;
 mod hook_run;
+mod intensity;
 mod module_smells;
 mod output;
 mod parse;

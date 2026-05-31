@@ -101,7 +101,8 @@ fn emit_block(findings: &[Finding], analysis: &AnalysisResultFull) {
         analysis.sum_cc(),
         t.module.file_total_cc,
     );
-    let compact = output::format_compact(findings, &analysis.filename);
+    let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
+    let compact = output::format_compact(&ranked, &analysis.filename);
     let reason = match detect_constraint_conflict(findings, analysis.fn_count(), t) {
         Some(note) => format!("{}\n{}\n{}", compact.trim(), note, budget),
         None => format!("{}\n{}", compact.trim(), budget),

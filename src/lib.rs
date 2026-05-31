@@ -10,6 +10,7 @@ pub mod config_history;
 pub mod duplication;
 pub mod history;
 pub mod hook;
+pub mod intensity;
 pub mod module_smells;
 pub mod output;
 pub mod parse;
