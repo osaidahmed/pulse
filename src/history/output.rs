@@ -67,10 +67,12 @@ fn write_section(out: &mut String, findings: &[HistoryFinding], pillar: HistoryP
     for f in &in_section {
         match &f.kind {
             HistoryKind::ArchitecturalDrift(e) => out.push_str(&format!(
-                "  {} ↔ {}   ({} co-changes, {} authors)\n",
+                "  {} ↔ {}   ({} co-changes, conf {:.2}, lift {:.1}, {} authors)\n",
                 e.file_a.display(),
                 e.file_b.display(),
                 e.support,
+                e.confidence,
+                e.lift,
                 e.distinct_authors
             )),
             HistoryKind::Hotspot(e) => out.push_str(&format!(
@@ -138,6 +140,9 @@ fn drift_to_json(e: &DriftEvidence) -> serde_json::Value {
         "file_b": e.file_b.display().to_string(),
         "support": e.support,
         "commits": e.commits,
+        "confidence": e.confidence,
+        "lift": e.lift,
+        "jaccard": e.jaccard,
         "last_seen_unix": e.last_seen_unix,
         "distinct_authors": e.distinct_authors,
     })

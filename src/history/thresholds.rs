@@ -9,6 +9,8 @@ pub struct HistoryThresholds {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CoChangeThresholds {
     pub min_support: u32,
+    pub min_confidence: f64,
+    pub min_lift: f64,
     pub max_findings_reported: u32,
 }
 
@@ -30,6 +32,8 @@ pub struct ContributorThresholds {
 impl CoChangeThresholds {
     pub const DEFAULTS: Self = Self {
         min_support: 3,
+        min_confidence: 0.5,
+        min_lift: 1.0,
         max_findings_reported: 20,
     };
 }

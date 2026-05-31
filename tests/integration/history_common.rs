@@ -12,6 +12,22 @@ pub struct CommitSpec<'a> {
 
 const BASE_TIMESTAMP: i64 = 1_700_000_000;
 
+pub fn noise_commits(file: &'static str, n: u32) -> Vec<CommitSpec<'static>> {
+    let mut out = Vec::new();
+    for i in 0..n {
+        let body = format!("noise {i}\n");
+        let writes: &'static [(&'static str, &'static str)] =
+            Box::leak(vec![(file, Box::leak(body.into_boxed_str()) as &str)].into_boxed_slice());
+        out.push(CommitSpec {
+            author: "alice <alice@x>",
+            message: Box::leak(format!("noise{i}").into_boxed_str()),
+            writes,
+            deletes: &[],
+        });
+    }
+    out
+}
+
 pub fn build_repo(commits: &[CommitSpec]) -> TempDir {
     let dir = tempfile::tempdir().expect("create tempdir");
     let path = dir.path();

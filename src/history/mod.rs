@@ -56,12 +56,12 @@ pub fn run_with_filter(
         opts.include_tests,
         filter,
     );
-    let total_commits = u32::try_from(commits_rel.len()).unwrap_or(u32::MAX);
     let commits = absolutize_commits(commits_rel, &opts.root);
     let typed_paths: HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let graph = edges::build_graph(&typed_files, &opts.root);
     let pairs = co_change::mine(&commits, t);
-    let mut findings = co_change::rank_drift(pairs, &graph, &typed_paths, total_commits, t);
+    let scope = co_change::revisions_in_scope(&commits, t);
+    let mut findings = co_change::rank_drift(pairs, &scope, &graph, &typed_paths, t);
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
     Ok(findings)

@@ -11,6 +11,9 @@ fn drift_kind() -> HistoryKind {
         file_b: PathBuf::from("b.rs"),
         support: 5,
         commits: 100,
+        confidence: 0.8,
+        lift: 2.5,
+        jaccard: 0.4,
         last_seen_unix: 1_700_000_000,
         distinct_authors: 2,
     })

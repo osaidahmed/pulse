@@ -2,9 +2,10 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use pulse::audit::graph::{ImportGraph, InputEdge};
-use pulse::history::co_change::{mine, rank_drift};
+use pulse::history::co_change::{mine, rank_drift, revisions_in_scope};
 use pulse::history::finding::{HistoryFinding, HistoryKind};
 use pulse::history::git::Commit;
+use pulse::history::thresholds::HistoryThresholds;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 
@@ -36,11 +37,6 @@ fn graph_linking(a: &str, b: &str) -> ImportGraph {
 
 fn typed(paths: &[&str]) -> HashSet<PathBuf> {
     paths.iter().map(PathBuf::from).collect()
-}
-
-fn drift_support(f: &HistoryFinding) -> u32 {
-    let HistoryKind::ArchitecturalDrift(e) = &f.kind else { panic!("expected drift") };
-    e.support
 }
 
 fn drift_pair(f: &HistoryFinding) -> (&Path, &Path) {
@@ -168,17 +164,32 @@ fn mine_independent_of_commit_order() {
     assert_eq!(v1.authors.len(), v2.authors.len());
 }
 
+fn drift_metrics_of(f: &HistoryFinding) -> (f64, f64, f64) {
+    let HistoryKind::ArchitecturalDrift(e) = &f.kind else { panic!("expected drift") };
+    (e.confidence, e.lift, e.jaccard)
+}
+
+fn relax(th: &mut HistoryThresholds) {
+    th.co_change.min_confidence = 0.0;
+    th.co_change.min_lift = 0.0;
+}
+
+fn ranked(commits: &[Commit], typed_paths: &HashSet<PathBuf>, th: &HistoryThresholds) -> Vec<HistoryFinding> {
+    let pairs = mine(commits, th);
+    let scope = revisions_in_scope(commits, th);
+    rank_drift(pairs, &scope, &empty_graph(), typed_paths, th)
+}
+
 #[test]
 fn rank_drift_filters_below_min_support() {
     let mut th = t().history;
     th.co_change.min_support = 3;
+    relax(&mut th);
     let commits = vec![
         commit("h1", "a@x", 1, &["a.py", "b.py"]),
         commit("h2", "a@x", 2, &["a.py", "b.py"]),
     ];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 2, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     assert!(findings.is_empty());
 }
 
@@ -186,14 +197,13 @@ fn rank_drift_filters_below_min_support() {
 fn rank_drift_includes_at_min_support() {
     let mut th = t().history;
     th.co_change.min_support = 3;
+    relax(&mut th);
     let commits = vec![
         commit("h1", "a@x", 1, &["a.py", "b.py"]),
         commit("h2", "a@x", 2, &["a.py", "b.py"]),
         commit("h3", "a@x", 3, &["a.py", "b.py"]),
     ];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 3, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     assert_eq!(findings.len(), 1);
 }
 
@@ -201,11 +211,13 @@ fn rank_drift_includes_at_min_support() {
 fn rank_drift_suppresses_directly_linked_pair() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"])];
     let pairs = mine(&commits, &th);
+    let scope = revisions_in_scope(&commits, &th);
     let typed_paths = typed(&["a.py", "b.py"]);
     let graph = graph_linking("a.py", "b.py");
-    let findings = rank_drift(pairs, &graph, &typed_paths, 1, &th);
+    let findings = rank_drift(pairs, &scope, &graph, &typed_paths, &th);
     assert!(findings.is_empty(), "linked pair should be suppressed");
 }
 
@@ -213,10 +225,9 @@ fn rank_drift_suppresses_directly_linked_pair() {
 fn rank_drift_keeps_unlinked_pair() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"])];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 1, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     assert_eq!(findings.len(), 1);
 }
 
@@ -224,43 +235,45 @@ fn rank_drift_keeps_unlinked_pair() {
 fn rank_drift_filters_pair_with_path_outside_typed_set() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"])];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 1, &th);
+    let findings = ranked(&commits, &typed(&["a.py"]), &th);
     assert!(findings.is_empty());
 }
 
 #[test]
-fn rank_drift_sorts_by_support_desc() {
+fn rank_drift_sorts_by_confidence_desc() {
     let mut th = t().history;
     th.co_change.min_support = 1;
     let commits = vec![
         commit("h1", "a@x", 1, &["a.py", "b.py"]),
-        commit("h2", "a@x", 2, &["c.py", "d.py"]),
-        commit("h3", "a@x", 3, &["c.py", "d.py"]),
-        commit("h4", "a@x", 4, &["c.py", "d.py"]),
+        commit("h2", "a@x", 2, &["a.py", "b.py"]),
+        commit("h3", "a@x", 3, &["a.py"]),
+        commit("h4", "a@x", 4, &["a.py"]),
+        commit("h5", "a@x", 5, &["c.py", "d.py"]),
+        commit("h6", "a@x", 6, &["c.py", "d.py"]),
+        commit("h7", "a@x", 7, &["c.py", "d.py"]),
     ];
-    let pairs = mine(&commits, &th);
     let typed_paths = typed(&["a.py", "b.py", "c.py", "d.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 4, &th);
+    let findings = ranked(&commits, &typed_paths, &th);
     assert_eq!(findings.len(), 2);
-    assert!(drift_support(&findings[0]) >= drift_support(&findings[1]));
-    assert_eq!(drift_support(&findings[0]), 3);
-    assert_eq!(drift_support(&findings[1]), 1);
+    let (first_a, _) = drift_pair(&findings[0]);
+    assert_eq!(first_a, Path::new("c.py"), "higher-confidence pair ranks first");
+    let (c0, _, _) = drift_metrics_of(&findings[0]);
+    let (c1, _, _) = drift_metrics_of(&findings[1]);
+    assert!(c0 >= c1);
 }
 
 #[test]
-fn rank_drift_lex_tiebreak_for_equal_support() {
+fn rank_drift_lex_tiebreak_for_equal_confidence() {
     let mut th = t().history;
     th.co_change.min_support = 1;
     let commits = vec![
         commit("h1", "a@x", 1, &["x.py", "y.py"]),
         commit("h2", "a@x", 2, &["a.py", "b.py"]),
     ];
-    let pairs = mine(&commits, &th);
     let typed_paths = typed(&["a.py", "b.py", "x.py", "y.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 2, &th);
+    let findings = ranked(&commits, &typed_paths, &th);
     assert_eq!(findings.len(), 2);
     let (first_a, _) = drift_pair(&findings[0]);
     assert_eq!(first_a, Path::new("a.py"));
@@ -276,48 +289,49 @@ fn rank_drift_truncates_at_max_findings() {
         commit("h2", "a@x", 2, &["c.py", "d.py"]),
         commit("h3", "a@x", 3, &["e.py", "f.py"]),
     ];
-    let pairs = mine(&commits, &th);
     let typed_paths = typed(&["a.py", "b.py", "c.py", "d.py", "e.py", "f.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 3, &th);
+    let findings = ranked(&commits, &typed_paths, &th);
     assert_eq!(findings.len(), 2);
 }
 
 #[test]
 fn rank_drift_empty_pairs_returns_empty() {
+    let scope = revisions_in_scope(&[], &t().history);
     let findings = rank_drift(
         std::collections::HashMap::new(),
+        &scope,
         &empty_graph(),
         &typed(&[]),
-        0,
         &t().history,
     );
     assert!(findings.is_empty());
 }
 
 #[test]
-fn rank_drift_propagates_total_commits() {
+fn rank_drift_reports_effective_commit_count() {
     let mut th = t().history;
     th.co_change.min_support = 1;
-    let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"])];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 42, &th);
+    let commits = vec![
+        commit("h1", "a@x", 1, &["a.py", "b.py"]),
+        commit("h2", "a@x", 2, &["z.py"]),
+        commit("h3", "a@x", 3, &["z.py"]),
+    ];
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     let HistoryKind::ArchitecturalDrift(e) = &findings[0].kind else { panic!() };
-    assert_eq!(e.commits, 42);
+    assert_eq!(e.commits, 3);
 }
 
 #[test]
 fn rank_drift_distinct_authors_count_correct() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![
         commit("h1", "alice@x", 1, &["a.py", "b.py"]),
         commit("h2", "bob@x", 2, &["a.py", "b.py"]),
         commit("h3", "carol@x", 3, &["a.py", "b.py"]),
     ];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 3, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     let HistoryKind::ArchitecturalDrift(e) = &findings[0].kind else { panic!() };
     assert_eq!(e.distinct_authors, 3);
 }
@@ -326,10 +340,9 @@ fn rank_drift_distinct_authors_count_correct() {
 fn rank_drift_action_label_unset_initially() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"])];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 1, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     assert!(findings[0].action_label.is_none());
 }
 
@@ -337,13 +350,79 @@ fn rank_drift_action_label_unset_initially() {
 fn rank_drift_last_seen_in_evidence() {
     let mut th = t().history;
     th.co_change.min_support = 1;
+    relax(&mut th);
     let commits = vec![
         commit("h1", "a@x", 100, &["a.py", "b.py"]),
         commit("h2", "a@x", 500, &["a.py", "b.py"]),
     ];
-    let pairs = mine(&commits, &th);
-    let typed_paths = typed(&["a.py", "b.py"]);
-    let findings = rank_drift(pairs, &empty_graph(), &typed_paths, 2, &th);
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     let HistoryKind::ArchitecturalDrift(e) = &findings[0].kind else { panic!() };
     assert_eq!(e.last_seen_unix, 500);
+}
+
+#[test]
+fn rank_drift_filters_lift_at_or_below_one() {
+    let mut th = t().history;
+    th.co_change.min_support = 1;
+    let commits = vec![
+        commit("h1", "a@x", 1, &["a.py", "b.py"]),
+        commit("h2", "a@x", 2, &["a.py", "b.py"]),
+        commit("h3", "a@x", 3, &["a.py", "b.py"]),
+    ];
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
+    assert!(findings.is_empty(), "lift of 1.0 (no association beyond chance) is filtered");
+}
+
+#[test]
+fn rank_drift_keeps_lift_above_one() {
+    let mut th = t().history;
+    th.co_change.min_support = 1;
+    let commits = vec![
+        commit("h1", "a@x", 1, &["a.py", "b.py"]),
+        commit("h2", "a@x", 2, &["a.py", "b.py"]),
+        commit("h3", "a@x", 3, &["a.py", "b.py"]),
+        commit("h4", "a@x", 4, &["z.py"]),
+        commit("h5", "a@x", 5, &["z.py"]),
+    ];
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
+    assert_eq!(findings.len(), 1);
+    let (_, lift, _) = drift_metrics_of(&findings[0]);
+    assert!(lift > 1.0, "got lift {lift}");
+}
+
+#[test]
+fn rank_drift_filters_below_min_confidence() {
+    let mut th = t().history;
+    th.co_change.min_support = 1;
+    let commits = vec![
+        commit("h1", "a@x", 1, &["a.py", "b.py"]),
+        commit("h2", "a@x", 2, &["a.py", "b.py"]),
+        commit("h3", "a@x", 3, &["a.py"]),
+        commit("h4", "a@x", 4, &["a.py"]),
+        commit("h5", "a@x", 5, &["a.py"]),
+        commit("h6", "a@x", 6, &["z.py"]),
+        commit("h7", "a@x", 7, &["z.py"]),
+    ];
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
+    assert!(findings.is_empty(), "confidence 0.4 below the 0.5 floor is filtered");
+}
+
+#[test]
+fn rank_drift_metrics_match_expected() {
+    let mut th = t().history;
+    th.co_change.min_support = 1;
+    let commits = vec![
+        commit("h1", "a@x", 1, &["a.py", "b.py"]),
+        commit("h2", "a@x", 2, &["a.py", "b.py"]),
+        commit("h3", "a@x", 3, &["a.py"]),
+        commit("h4", "a@x", 4, &["a.py"]),
+        commit("h5", "a@x", 5, &["z.py"]),
+        commit("h6", "a@x", 6, &["z.py"]),
+    ];
+    let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
+    assert_eq!(findings.len(), 1);
+    let (conf, lift, jaccard) = drift_metrics_of(&findings[0]);
+    assert!((conf - 0.5).abs() < 1e-9, "confidence {conf}");
+    assert!((lift - 1.5).abs() < 1e-9, "lift {lift}");
+    assert!((jaccard - 0.5).abs() < 1e-9, "jaccard {jaccard}");
 }

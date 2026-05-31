@@ -9,7 +9,7 @@ pub struct HistoryConfig {
     #[serde(default)]
     pub ignore_paths: Vec<String>,
     #[serde(default)]
-    pub co_change: HistoryPassConfig,
+    pub co_change: CoChangePassConfig,
     #[serde(default)]
     pub hotspot: HistoryPassConfig,
     #[serde(default)]
@@ -20,6 +20,14 @@ pub struct HistoryConfig {
 #[serde(deny_unknown_fields)]
 pub struct HistoryPassConfig {
     pub max_findings: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct CoChangePassConfig {
+    pub max_findings: Option<u32>,
+    pub min_confidence: Option<f64>,
+    pub min_lift: Option<f64>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -36,15 +44,7 @@ pub fn resolve_history_thresholds(
 ) -> HistoryThresholds {
     let mut t = HistoryThresholds::DEFAULTS;
     if let Some(c) = config {
-        if let Some(v) = c.history.co_change.max_findings {
-            t.co_change.max_findings_reported = v;
-        }
-        if let Some(v) = c.history.hotspot.max_findings {
-            t.hotspot.max_findings_reported = v;
-        }
-        if let Some(v) = c.history.contributors.max_findings {
-            t.contributors.max_findings_reported = v;
-        }
+        apply_config_overrides(&mut t, c);
     }
     if let Some(v) = overrides.co_change_top {
         t.co_change.max_findings_reported = v;
@@ -56,6 +56,24 @@ pub fn resolve_history_thresholds(
         t.contributors.max_findings_reported = v;
     }
     t
+}
+
+fn apply_config_overrides(t: &mut HistoryThresholds, c: &PulseConfig) {
+    if let Some(v) = c.history.co_change.max_findings {
+        t.co_change.max_findings_reported = v;
+    }
+    if let Some(v) = c.history.co_change.min_confidence {
+        t.co_change.min_confidence = v;
+    }
+    if let Some(v) = c.history.co_change.min_lift {
+        t.co_change.min_lift = v;
+    }
+    if let Some(v) = c.history.hotspot.max_findings {
+        t.hotspot.max_findings_reported = v;
+    }
+    if let Some(v) = c.history.contributors.max_findings {
+        t.contributors.max_findings_reported = v;
+    }
 }
 
 pub fn combined_history_ignore_patterns(config: Option<&PulseConfig>) -> Vec<String> {

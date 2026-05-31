@@ -12,6 +12,9 @@ fn drift(a: &str, b: &str, support: u32) -> HistoryFinding {
             file_b: PathBuf::from(b),
             support,
             commits: 100,
+            confidence: 0.75,
+            lift: 2.0,
+            jaccard: 0.5,
             last_seen_unix: 1_700_000_000,
             distinct_authors: 3,
         }),
@@ -61,7 +64,10 @@ fn empty_pillars_each_show_none() {
 fn drift_finding_renders_pair_with_arrow() {
     let out = format_findings(&[drift("src/a.rs", "src/b.rs", 7)], None);
     assert!(out.contains("src/a.rs ↔ src/b.rs"));
-    assert!(out.contains("(7 co-changes, 3 authors)"));
+    assert!(out.contains("7 co-changes"));
+    assert!(out.contains("conf 0.75"));
+    assert!(out.contains("lift 2.0"));
+    assert!(out.contains("3 authors"));
 }
 
 #[test]

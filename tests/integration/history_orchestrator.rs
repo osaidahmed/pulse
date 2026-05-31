@@ -4,7 +4,7 @@ use pulse::history::finding::{HistoryFinding, HistoryKind, HistoryPillar};
 use pulse::history::{run, HistoryError, HistoryOpts};
 use pulse::thresholds::Thresholds;
 
-use crate::history_common::{build_repo, CommitSpec};
+use crate::history_common::{build_repo, noise_commits, CommitSpec};
 
 fn t() -> Thresholds {
     Thresholds::default()
@@ -73,6 +73,7 @@ fn run_unlinked_co_change_pair_emerges_as_drift() {
             deletes: &[],
         });
     }
+    commits.extend(noise_commits("NOTES.md", 2));
     let repo = build_repo(&commits);
     let mut th = t().history;
     th.co_change.min_support = 3;

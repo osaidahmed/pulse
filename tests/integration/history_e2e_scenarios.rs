@@ -4,7 +4,7 @@ use pulse::history::finding::{HistoryFinding, HistoryKind, HistoryPillar};
 use pulse::history::{run, HistoryOpts};
 use pulse::thresholds::Thresholds;
 
-use crate::history_common::{build_repo, CommitSpec};
+use crate::history_common::{build_repo, noise_commits, CommitSpec};
 
 fn t() -> Thresholds {
     Thresholds::default()
@@ -53,7 +53,8 @@ fn varied_commits<const N: usize>(
 
 #[test]
 fn e2e_two_unrelated_files_consistent_co_change_emerges_as_drift() {
-    let specs = varied_commits::<2>(&[("controllers.py", ""), ("models.py", "")], 5);
+    let mut specs = varied_commits::<2>(&[("controllers.py", ""), ("models.py", "")], 5);
+    specs.extend(noise_commits("NOTES.md", 3));
     let repo = build_repo(&specs);
     let mut th = t().history;
     th.co_change.min_support = 3;
@@ -154,9 +155,9 @@ fn e2e_single_commit_repo_no_findings() {
 }
 
 #[test]
-fn e2e_high_support_pair_ranks_above_low_support_pair() {
+fn e2e_drift_ranks_by_confidence() {
     let mut commits = Vec::new();
-    for i in 0..10 {
+    for i in 0..3 {
         let body = format!("x = {i}\n");
         commits.push(CommitSpec {
             author: "alice <alice@x>",
@@ -165,6 +166,15 @@ fn e2e_high_support_pair_ranks_above_low_support_pair() {
                 ("a.py", Box::leak(body.clone().into_boxed_str()) as &str),
                 ("b.py", Box::leak(body.into_boxed_str()) as &str),
             ])),
+            deletes: &[],
+        });
+    }
+    for i in 0..3 {
+        let body = format!("y = {i}\n");
+        commits.push(CommitSpec {
+            author: "alice <alice@x>",
+            message: Box::leak(format!("a{i}").into_boxed_str()),
+            writes: Box::leak(Box::new([("a.py", Box::leak(body.into_boxed_str()) as &str)])),
             deletes: &[],
         });
     }
@@ -191,7 +201,7 @@ fn e2e_high_support_pair_ranks_above_low_support_pair() {
     assert!(drift.len() >= 2);
     let HistoryKind::ArchitecturalDrift(first) = &drift[0].kind else { panic!() };
     let HistoryKind::ArchitecturalDrift(second) = &drift[1].kind else { panic!() };
-    assert!(first.support >= second.support);
+    assert!(first.confidence >= second.confidence, "ranked by confidence, not raw support");
 }
 
 #[test]
@@ -337,6 +347,7 @@ fn e2e_drift_finding_carries_correct_total_commits() {
             deletes: &[],
         });
     }
+    commits.extend(noise_commits("NOTES.md", 2));
     let repo = build_repo(&commits);
     let mut th = t().history;
     th.co_change.min_support = 1;
@@ -346,7 +357,7 @@ fn e2e_drift_finding_carries_correct_total_commits() {
         .find(|x| matches!(x.kind, HistoryKind::ArchitecturalDrift(_)))
         .expect("drift finding present");
     let HistoryKind::ArchitecturalDrift(e) = &drift.kind else { panic!() };
-    assert_eq!(e.commits, 4);
+    assert_eq!(e.commits, 6);
 }
 
 #[test]
@@ -388,6 +399,7 @@ fn e2e_includes_tests_uses_test_files_in_drift() {
             deletes: &[],
         });
     }
+    commits.extend(noise_commits("NOTES.md", 2));
     let repo = build_repo(&commits);
     let mut o = opts(repo.path().to_path_buf());
     o.include_tests = true;
@@ -435,6 +447,7 @@ fn e2e_typescript_drift_no_import() {
             deletes: &[],
         });
     }
+    commits.extend(noise_commits("NOTES.md", 2));
     let repo = build_repo(&commits);
     let mut th = t().history;
     th.co_change.min_support = 3;

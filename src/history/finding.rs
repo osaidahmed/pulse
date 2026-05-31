@@ -19,6 +19,9 @@ pub struct DriftEvidence {
     pub file_b: PathBuf,
     pub support: u32,
     pub commits: u32,
+    pub confidence: f64,
+    pub lift: f64,
+    pub jaccard: f64,
     pub last_seen_unix: i64,
     pub distinct_authors: u32,
 }
