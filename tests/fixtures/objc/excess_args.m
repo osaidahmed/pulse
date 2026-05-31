@@ -17,7 +17,10 @@
                          age:(NSInteger)age
                         role:(NSString *)role
                   department:(NSString *)department
-                      salary:(double)salary {
+                      salary:(double)salary
+                      extra7:(id)extra7
+                      extra8:(id)extra8
+                      extra9:(id)extra9 {
     self = [super init];
     if (self) {
         _name = name;

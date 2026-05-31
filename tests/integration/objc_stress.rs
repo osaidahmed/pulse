@@ -299,7 +299,7 @@ fn args_selector_syntax() {
 fn args_init_constructor() {
     let code = concat!(
         "@implementation X\n",
-        "- (instancetype)initWithA:(int)a b:(int)b c:(int)c d:(int)d e:(int)e f:(int)f {\n",
+        "- (instancetype)initWithA:(int)a b:(int)b c:(int)c d:(int)d e:(int)e f:(int)f g:(int)g h:(int)h i:(int)i {\n",
         "    self = [super init];\n",
         "    return self;\n",
         "}\n",
@@ -822,7 +822,7 @@ fn init_with_is_constructor() {
         "@implementation X\n",
         "- (instancetype)initWithName:(NSString *)name age:(NSInteger)age\n",
         "    role:(NSString *)role dept:(NSString *)dept\n",
-        "    level:(NSInteger)level active:(BOOL)active {\n",
+        "    level:(NSInteger)level active:(BOOL)active g:(id)g h:(id)h i:(id)i {\n",
         "    self = [super init];\n",
         "    return self;\n",
         "}\n",
@@ -851,7 +851,7 @@ fn regular_method_not_constructor() {
 fn init_constructor_over_injection() {
     let code = concat!(
         "@implementation X\n",
-        "- (instancetype)initWithA:(int)a b:(int)b c:(int)c d:(int)d e:(int)e f:(int)f {\n",
+        "- (instancetype)initWithA:(int)a b:(int)b c:(int)c d:(int)d e:(int)e f:(int)f g:(int)g h:(int)h i:(int)i {\n",
         "    self = [super init];\n",
         "    return self;\n",
         "}\n",

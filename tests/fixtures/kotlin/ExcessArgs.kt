@@ -21,7 +21,10 @@ class UserService(
     private val logger: String,
     private val mailer: String,
     private val validator: String,
-    private val scheduler: String
+    private val scheduler: String,
+    private val extra7: String,
+    private val extra8: String,
+    private val extra9: String
 ) {
     fun getUser(userId: String): String {
         return db

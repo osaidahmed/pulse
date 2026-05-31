@@ -19,7 +19,7 @@ def simple_func(a, b):
 
 
 class UserService:
-    def __init__(self, db, cache, logger, mailer, validator, scheduler):
+    def __init__(self, db, cache, logger, mailer, validator, scheduler, p7, p8, p9):
         self.db = db
         self.cache = cache
         self.logger = logger

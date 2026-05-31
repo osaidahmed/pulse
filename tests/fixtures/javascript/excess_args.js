@@ -7,7 +7,7 @@ function simpleFunc(a, b) {
 }
 
 class UserService {
-    constructor(db, cache, logger, mailer, validator, scheduler) {
+    constructor(db, cache, logger, mailer, validator, scheduler, p7, p8, p9) {
         this.db = db;
         this.cache = cache;
         this.logger = logger;

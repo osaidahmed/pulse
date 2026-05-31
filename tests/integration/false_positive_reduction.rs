@@ -124,3 +124,42 @@ fn stringly_typed_switch_suppressed_with_default() {
         );
     }
 }
+
+fn rust_ctor(types: &[&str]) -> String {
+    let params: Vec<String> =
+        types.iter().enumerate().map(|(i, ty)| format!("a{i}: {ty}")).collect();
+    format!("struct S {{}}\nimpl S {{\n    fn new({}) -> Self {{ S {{}} }}\n}}\n", params.join(", "))
+}
+
+#[test]
+fn constructor_over_injection_fires_on_non_primitive_deps() {
+    let n = t().analysis.constructor_dep_injection_min as usize;
+    let deps: Vec<&str> = (0..n).map(|_| "Service").collect();
+    let code = rust_ctor(&deps);
+    assert!(
+        has_smell(&pulse_check_code(&code, "rs"), "Constructor Over-Injection"),
+        "{n} non-primitive dependencies should fire below the arg threshold, got: {code}"
+    );
+}
+
+#[test]
+fn constructor_primitive_value_object_not_over_injection() {
+    let n = t().function.constructor_arg_max as usize;
+    let values: Vec<&str> = (0..n).map(|_| "i32").collect();
+    let code = rust_ctor(&values);
+    assert!(
+        !has_smell(&pulse_check_code(&code, "rs"), "Constructor Over-Injection"),
+        "{n} primitive value params (at the arg threshold) is a value object, not DI, got: {code}"
+    );
+}
+
+#[test]
+fn constructor_over_threshold_args_still_fires() {
+    let n = t().function.constructor_arg_max as usize + 1;
+    let values: Vec<&str> = (0..n).map(|_| "i32").collect();
+    let code = rust_ctor(&values);
+    assert!(
+        has_smell(&pulse_check_code(&code, "rs"), "Constructor Over-Injection"),
+        "{n} params exceeds the arg threshold, got: {code}"
+    );
+}

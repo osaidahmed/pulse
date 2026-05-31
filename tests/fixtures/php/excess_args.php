@@ -11,6 +11,9 @@ class Service {
         private readonly mixed $cache,
         private readonly mixed $mailer,
         private readonly mixed $queue,
-        private readonly mixed $config
+        private readonly mixed $config,
+        private readonly mixed $extra7,
+        private readonly mixed $extra8,
+        private readonly mixed $extra9
     ) {}
 }

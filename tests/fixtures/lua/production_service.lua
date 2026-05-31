@@ -2,7 +2,7 @@
 
 local OrderService = {}
 
-function OrderService:new(db, cache, mailer, event_bus, rate_limiter, audit_logger)
+function OrderService:new(db, cache, mailer, event_bus, rate_limiter, audit_logger, p7, p8, p9)
     self.db = db
     self.cache = cache
     self.mailer = mailer

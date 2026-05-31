@@ -345,7 +345,7 @@ fn global_nesting_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection() {
-    let out = check("class S {\n    constructor(a, b, c, d, e, f) {}\n}\n");
+    let out = check("class S {\n    constructor(a, b, c, d, e, f, g, h, i) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
 }
 
@@ -914,7 +914,7 @@ fn nesting_deep_try_catch() {
 
 #[test]
 fn constructor_injection_not_excess() {
-    let out = check("class S {\n    constructor(a, b, c, d, e, f) {}\n}\n");
+    let out = check("class S {\n    constructor(a, b, c, d, e, f, g, h, i) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));

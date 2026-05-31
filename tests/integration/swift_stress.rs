@@ -704,7 +704,7 @@ fn init_over_injection_detected() {
     let out = check(concat!(
         "class Svc {\n",
         "    var a: Int = 0\n",
-        "    init(a: Int, b: Int, c: Int, d: Int, e: Int, f: Int) {\n",
+        "    init(a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int) {\n",
         "        self.a = a\n",
         "    }\n",
         "}\n",

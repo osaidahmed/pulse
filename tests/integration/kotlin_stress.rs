@@ -316,7 +316,7 @@ fn duplication_two_is_minimum() {
 
 #[test]
 fn constructor_reports_over_injection() {
-    let out = check("class S(\n    val a: String,\n    val b: String,\n    val c: String,\n    val d: String,\n    val e: String,\n    val f: String\n) {\n    fun get(): String { return a }\n}\n");
+    let out = check("class S(\n    val a: String,\n    val b: String,\n    val c: String,\n    val d: String,\n    val e: String,\n    val f: String,\n    val g: String,\n    val h: String,\n    val i: String\n) {\n    fun get(): String { return a }\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
@@ -329,7 +329,7 @@ fn regular_method_reports_excess_not_injection() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out = check("class S(\n    val a: String,\n    val b: String,\n    val c: String,\n    val d: String,\n    val e: String,\n    val f: String\n) {\n    fun get(): String { return a }\n}\n");
+    let out = check("class S(\n    val a: String,\n    val b: String,\n    val c: String,\n    val d: String,\n    val e: String,\n    val f: String,\n    val g: String,\n    val h: String,\n    val i: String\n) {\n    fun get(): String { return a }\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
     assert!(!has_smell(&out, "Excess Arguments"), "got: {out}");
 }

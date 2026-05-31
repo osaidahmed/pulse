@@ -317,24 +317,28 @@ fn detect_structural_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut 
 }
 
 fn detect_argument_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
-    let threshold = if f.is_constructor {
-        t.function.constructor_arg_max
-    } else {
-        t.function.arg_max
-    };
-    if f.arg_count <= threshold {
+    if !f.is_constructor {
+        if f.arg_count > t.function.arg_max {
+            findings.push(Finding {
+                smell: Smell::ExcessArguments,
+                location: func_loc(f),
+                detail: format!("{} args (threshold: {})", f.arg_count, t.function.arg_max),
+            });
+        }
         return;
     }
-    let smell = if f.is_constructor {
-        Smell::ConstructorOverInjection
+    let deps = f.typed_param_count.saturating_sub(f.primitive_type_count);
+    let too_many = f.arg_count > t.function.constructor_arg_max;
+    let over_injected = deps >= t.analysis.constructor_dep_injection_min;
+    if !too_many && !over_injected {
+        return;
+    }
+    let detail = if over_injected {
+        format!("{deps} non-primitive dependencies injected (threshold: {})", t.analysis.constructor_dep_injection_min)
     } else {
-        Smell::ExcessArguments
+        format!("{} args (threshold: {})", f.arg_count, t.function.constructor_arg_max)
     };
-    findings.push(Finding {
-        smell,
-        location: func_loc(f),
-        detail: format!("{} args (threshold: {})", f.arg_count, threshold),
-    });
+    findings.push(Finding { smell: Smell::ConstructorOverInjection, location: func_loc(f), detail });
 }
 
 fn detect_embedded_smells(f: &FunctionMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {

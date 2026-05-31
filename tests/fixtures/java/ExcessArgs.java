@@ -19,7 +19,8 @@ class UserService {
     private String scheduler;
 
     public UserService(String db, String cache, String logger,
-                       String mailer, String validator, String scheduler) {
+                       String mailer, String validator, String scheduler,
+                       String extra7, String extra8, String extra9) {
         this.db = db;
         this.cache = cache;
         this.logger = logger;

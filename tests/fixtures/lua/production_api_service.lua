@@ -16,7 +16,7 @@ local config = {
 
 local ApiService = {}
 
-function ApiService:new(db, cache, auth, logger, metrics, validator)
+function ApiService:new(db, cache, auth, logger, metrics, validator, p7, p8, p9)
     self.db = db
     self.cache = cache
     self.auth = auth

@@ -230,8 +230,8 @@ fn constructor_args_exclude_self() {
     let debug = run_debug(LANG, "excess_args.py");
     let args = function_metric(&debug, "UserService.__init__", "args").unwrap_or(0);
     assert_eq!(
-        args, 6,
-        "constructor args should be 6 (excluding self), got: {args}"
+        args, 9,
+        "constructor args should be 9 (excluding self), got: {args}"
     );
 }
 

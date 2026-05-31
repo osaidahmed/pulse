@@ -23,7 +23,8 @@ public class UserService
     private object scheduler;
 
     public UserService(object db, object cache, object logger,
-                       object mailer, object validator, object scheduler)
+                       object mailer, object validator, object scheduler,
+                       object extra7, object extra8, object extra9)
     {
         this.db = db;
         this.cache = cache;

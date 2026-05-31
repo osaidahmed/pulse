@@ -13,7 +13,7 @@ class PaymentService {
     string[string] config;
     int retryLimit;
 
-    this(string gateway, string db, string cache, string logger, string notifier, string apiKey, int retryLimit) {
+    this(string gateway, string db, string cache, string logger, string notifier, string apiKey, int retryLimit, string p8, string p9) {
         this.gateway = gateway;
         this.db = db;
         this.cache = cache;

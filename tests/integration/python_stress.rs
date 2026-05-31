@@ -718,7 +718,7 @@ fn global_nesting_depth_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection_not_excess_args() {
-    let out = check("class S:\n    def __init__(self, a, b, c, d, e, f):\n        pass\n");
+    let out = check("class S:\n    def __init__(self, a, b, c, d, e, f, g, h, i):\n        pass\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     // Should say "Constructor Over-Injection", not "Excess Arguments"
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("__init__")).collect();

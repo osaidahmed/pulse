@@ -344,7 +344,7 @@ fn deep_nesting_detected() {
 
 #[test]
 fn constructor_reports_over_injection() {
-    let out = check("struct S {}\nimpl S {\n    fn new(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) -> Self { S {} }\n}\n");
+    let out = check("struct S {}\nimpl S {\n    fn new(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32, i: i32) -> Self { S {} }\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
 }
 
@@ -983,7 +983,7 @@ fn cc_match_many_arms() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out = check("struct S {}\nimpl S {\n    fn new(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) -> Self { S {} }\n}\n");
+    let out = check("struct S {}\nimpl S {\n    fn new(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32, i: i32) -> Self { S {} }\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("new")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));

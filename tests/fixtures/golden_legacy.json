@@ -5549,7 +5549,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:UserService::UserService:14:17",
-        "detail": "6 args (threshold: 5)"
+        "detail": "6 non-primitive dependencies injected (threshold: 4)"
       },
       {
         "smell": "Excess Arguments",
@@ -6078,7 +6078,7 @@
   {
     "path": "csharp/excess_args.cs",
     "module": {
-      "total_loc": 36,
+      "total_loc": 37,
       "total_functions": 4,
       "sum_cc": 4,
       "global_conditional_count": 0,
@@ -6130,27 +6130,27 @@
       {
         "name": "UserService.UserService",
         "start_line": 25,
-        "end_line": 34,
-        "loc": 10,
+        "end_line": 35,
+        "loc": 11,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 6,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.GetUser",
-        "start_line": 36,
-        "end_line": 39,
+        "start_line": 37,
+        "end_line": 40,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6171,8 +6171,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.UserService:25:34",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.UserService:25:35",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -6186,8 +6186,8 @@
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:UserService.UserService:25:34",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:UserService.UserService:25:35",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       }
     ]
   },
@@ -6451,7 +6451,7 @@
   {
     "path": "csharp/production_service.cs",
     "module": {
-      "total_loc": 179,
+      "total_loc": 180,
       "total_functions": 9,
       "sum_cc": 36,
       "global_conditional_count": 0,
@@ -6463,27 +6463,27 @@
       {
         "name": "UserService.UserService",
         "start_line": 13,
-        "end_line": 22,
-        "loc": 10,
+        "end_line": 23,
+        "loc": 11,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 6,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.GetUser",
-        "start_line": 24,
-        "end_line": 27,
+        "start_line": 25,
+        "end_line": 28,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6502,8 +6502,8 @@
       },
       {
         "name": "UserService.SendWelcomeEmail",
-        "start_line": 29,
-        "end_line": 31,
+        "start_line": 30,
+        "end_line": 32,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6522,8 +6522,8 @@
       },
       {
         "name": "UserService.PublishEvent",
-        "start_line": 33,
-        "end_line": 35,
+        "start_line": 34,
+        "end_line": 36,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6542,8 +6542,8 @@
       },
       {
         "name": "UserService.CheckRateLimit",
-        "start_line": 37,
-        "end_line": 40,
+        "start_line": 38,
+        "end_line": 41,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6562,8 +6562,8 @@
       },
       {
         "name": "UserService.LogAudit",
-        "start_line": 42,
-        "end_line": 44,
+        "start_line": 43,
+        "end_line": 45,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -6582,8 +6582,8 @@
       },
       {
         "name": "OrderProcessor.ProcessOrder",
-        "start_line": 49,
-        "end_line": 158,
+        "start_line": 50,
+        "end_line": 159,
         "loc": 110,
         "cc": 26,
         "cognitive_complexity": 36,
@@ -6602,8 +6602,8 @@
       },
       {
         "name": "OrderProcessor.GenerateInvoice",
-        "start_line": 160,
-        "end_line": 174,
+        "start_line": 161,
+        "end_line": 175,
         "loc": 15,
         "cc": 2,
         "cognitive_complexity": 1,
@@ -6622,8 +6622,8 @@
       },
       {
         "name": "OrderProcessor.GenerateReceipt",
-        "start_line": 176,
-        "end_line": 190,
+        "start_line": 177,
+        "end_line": 191,
         "loc": 15,
         "cc": 2,
         "cognitive_complexity": 1,
@@ -6645,21 +6645,21 @@
       {
         "smell": "Code Duplication",
         "location": "module",
-        "detail": "2 functions with identical structure: OrderProcessor.GenerateInvoice (L160-174), OrderProcessor.GenerateReceipt (L176-190)"
+        "detail": "2 functions with identical structure: OrderProcessor.GenerateInvoice (L161-175), OrderProcessor.GenerateReceipt (L177-191)"
       },
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.UserService:13:22",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.UserService:13:23",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
-        "location": "fn:OrderProcessor.ProcessOrder:49:158",
+        "location": "fn:OrderProcessor.ProcessOrder:50:159",
         "detail": "8 args (threshold: 5)"
       },
       {
         "smell": "God Method",
-        "location": "fn:OrderProcessor.ProcessOrder:49:158",
+        "location": "fn:OrderProcessor.ProcessOrder:50:159",
         "detail": "cc=26, cogc=36 [alert] (cc threshold: 9, cogc threshold: 15), 110 lines (both thresholds exceeded)"
       },
       {
@@ -6674,18 +6674,18 @@
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:OrderProcessor.ProcessOrder:49:158",
+        "location": "fn:OrderProcessor.ProcessOrder:50:159",
         "detail": "2 nested conditional chunks (threshold: 2)"
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:OrderProcessor.ProcessOrder:49:158",
+        "location": "fn:OrderProcessor.ProcessOrder:50:159",
         "detail": "8/8 typed params are primitives (100%); 5 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:UserService.UserService:13:22",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:UserService.UserService:13:23",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       }
     ]
   },
@@ -7454,13 +7454,13 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 7,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 1,
         "consecutive_asserts": 7,
-        "primitive_type_count": 7,
-        "typed_param_count": 7,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
@@ -7600,7 +7600,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:PaymentService.this:16:24",
-        "detail": "7 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Low Cohesion",
@@ -7615,7 +7615,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:PaymentService.this:16:24",
-        "detail": "7/7 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "detail": "9/9 typed params are primitives (100%); 8 share one primitive type (data clump)"
       }
     ]
   },
@@ -9457,11 +9457,6 @@
     ],
     "findings": [
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:Config.Config:2:4",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Primitive Obsession",
         "location": "fn:Config.Config:2:4",
         "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
@@ -9826,7 +9821,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:OrderService.OrderService:2:4",
-        "detail": "7 args (threshold: 5)"
+        "detail": "7 non-primitive dependencies injected (threshold: 4)"
       },
       {
         "smell": "Deep Nested Complexity",
@@ -11107,7 +11102,7 @@
   {
     "path": "java/ExcessArgs.java",
     "module": {
-      "total_loc": 30,
+      "total_loc": 31,
       "total_functions": 4,
       "sum_cc": 4,
       "global_conditional_count": 0,
@@ -11159,27 +11154,27 @@
       {
         "name": "UserService.UserService",
         "start_line": 21,
-        "end_line": 29,
-        "loc": 9,
+        "end_line": 30,
+        "loc": 10,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 6,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.getUser",
-        "start_line": 31,
-        "end_line": 33,
+        "start_line": 32,
+        "end_line": 34,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -11200,8 +11195,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.UserService:21:29",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.UserService:21:30",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -11215,8 +11210,8 @@
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:UserService.UserService:21:29",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:UserService.UserService:21:30",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       }
     ]
   },
@@ -11751,7 +11746,7 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
@@ -11787,7 +11782,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:UserService.constructor:10:17",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -12037,7 +12032,7 @@
   {
     "path": "kotlin/ExcessArgs.kt",
     "module": {
-      "total_loc": 27,
+      "total_loc": 30,
       "total_functions": 4,
       "sum_cc": 4,
       "global_conditional_count": 0,
@@ -12089,27 +12084,27 @@
       {
         "name": "UserService.UserService",
         "start_line": 18,
-        "end_line": 25,
-        "loc": 8,
+        "end_line": 28,
+        "loc": 11,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 0,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.getUser",
-        "start_line": 26,
-        "end_line": 28,
+        "start_line": 29,
+        "end_line": 31,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -12130,8 +12125,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.UserService:18:25",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.UserService:18:28",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -12140,8 +12135,8 @@
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:UserService.UserService:18:25",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:UserService.UserService:18:28",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -12402,7 +12397,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:AppConfig.AppConfig:1:15",
-        "detail": "13 args (threshold: 5)"
+        "detail": "13 args (threshold: 8)"
       },
       {
         "smell": "Primitive Obsession",
@@ -12932,11 +12927,6 @@
     ],
     "findings": [
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.init:19:26",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Excess Arguments",
         "location": "fn:createUser:1:12",
         "detail": "8 args (threshold: 5)"
@@ -13267,7 +13257,7 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
@@ -13368,7 +13358,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:ApiService.new:19:26",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Deep Nested Complexity",
@@ -13408,7 +13398,7 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
@@ -13799,7 +13789,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:OrderService.new:5:12",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Deep Nested Complexity",
@@ -14207,7 +14197,7 @@
   {
     "path": "objc/excess_args.m",
     "module": {
-      "total_loc": 27,
+      "total_loc": 30,
       "total_functions": 3,
       "sum_cc": 4,
       "global_conditional_count": 0,
@@ -14239,27 +14229,27 @@
       {
         "name": "UserService.initWithName",
         "start_line": 15,
-        "end_line": 26,
-        "loc": 12,
+        "end_line": 29,
+        "loc": 15,
         "cc": 2,
         "cognitive_complexity": 1,
         "max_nesting": 1,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 1,
         "primitive_type_count": 2,
-        "typed_param_count": 6,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.getName",
-        "start_line": 28,
-        "end_line": 30,
+        "start_line": 31,
+        "end_line": 33,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14280,8 +14270,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.initWithName:15:26",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.initWithName:15:29",
+        "detail": "7 non-primitive dependencies injected (threshold: 4)"
       },
       {
         "smell": "Excess Arguments",
@@ -14577,7 +14567,7 @@
   {
     "path": "objc/production_service.m",
     "module": {
-      "total_loc": 118,
+      "total_loc": 121,
       "total_functions": 11,
       "sum_cc": 34,
       "global_conditional_count": 0,
@@ -14589,27 +14579,27 @@
       {
         "name": "OrderService.initWithDatabase",
         "start_line": 9,
-        "end_line": 25,
-        "loc": 17,
+        "end_line": 28,
+        "loc": 20,
         "cc": 2,
         "cognitive_complexity": 1,
         "max_nesting": 1,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 1,
         "primitive_type_count": 0,
-        "typed_param_count": 6,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "OrderService.processOrder",
-        "start_line": 27,
-        "end_line": 82,
+        "start_line": 30,
+        "end_line": 85,
         "loc": 56,
         "cc": 23,
         "cognitive_complexity": 56,
@@ -14628,8 +14618,8 @@
       },
       {
         "name": "OrderService.applyRule",
-        "start_line": 84,
-        "end_line": 86,
+        "start_line": 87,
+        "end_line": 89,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14648,8 +14638,8 @@
       },
       {
         "name": "OrderService.retry",
-        "start_line": 88,
-        "end_line": 90,
+        "start_line": 91,
+        "end_line": 93,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14668,8 +14658,8 @@
       },
       {
         "name": "OrderService.fetchReport",
-        "start_line": 92,
-        "end_line": 100,
+        "start_line": 95,
+        "end_line": 103,
         "loc": 9,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14688,8 +14678,8 @@
       },
       {
         "name": "OrderService.handleA",
-        "start_line": 102,
-        "end_line": 105,
+        "start_line": 105,
+        "end_line": 108,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14708,8 +14698,8 @@
       },
       {
         "name": "OrderService.handleB",
-        "start_line": 107,
-        "end_line": 110,
+        "start_line": 110,
+        "end_line": 113,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14728,8 +14718,8 @@
       },
       {
         "name": "OrderService.handleC",
-        "start_line": 112,
-        "end_line": 115,
+        "start_line": 115,
+        "end_line": 118,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14748,8 +14738,8 @@
       },
       {
         "name": "OrderService.handleD",
-        "start_line": 117,
-        "end_line": 120,
+        "start_line": 120,
+        "end_line": 123,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14768,8 +14758,8 @@
       },
       {
         "name": "OrderService.handleE",
-        "start_line": 122,
-        "end_line": 125,
+        "start_line": 125,
+        "end_line": 128,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14788,8 +14778,8 @@
       },
       {
         "name": "OrderService.handleF",
-        "start_line": 127,
-        "end_line": 130,
+        "start_line": 130,
+        "end_line": 133,
         "loc": 4,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -14810,22 +14800,22 @@
     "findings": [
       {
         "smell": "Complex Method",
-        "location": "fn:OrderService.processOrder:27:82",
+        "location": "fn:OrderService.processOrder:30:85",
         "detail": "cc=23, cogc=56 [alert] (cc threshold: 9, cogc threshold: 15)"
       },
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:OrderService.initWithDatabase:9:25",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:OrderService.initWithDatabase:9:28",
+        "detail": "9 non-primitive dependencies injected (threshold: 4)"
       },
       {
         "smell": "Deep Nested Complexity",
-        "location": "fn:OrderService.processOrder:27:82",
+        "location": "fn:OrderService.processOrder:30:85",
         "detail": "depth=7 (threshold: 4)"
       },
       {
         "smell": "Excess Arguments",
-        "location": "fn:OrderService.fetchReport:92:100",
+        "location": "fn:OrderService.fetchReport:95:103",
         "detail": "6 args (threshold: 5)"
       },
       {
@@ -14835,7 +14825,7 @@
       },
       {
         "smell": "Nested Conditional Chunks",
-        "location": "fn:OrderService.processOrder:27:82",
+        "location": "fn:OrderService.processOrder:30:85",
         "detail": "2 nested conditional chunks (threshold: 2)"
       }
     ]
@@ -15258,7 +15248,7 @@
   {
     "path": "php/excess_args.php",
     "module": {
-      "total_loc": 14,
+      "total_loc": 17,
       "total_functions": 2,
       "sum_cc": 2,
       "global_conditional_count": 0,
@@ -15290,19 +15280,19 @@
       {
         "name": "Service.__construct",
         "start_line": 8,
-        "end_line": 15,
-        "loc": 8,
+        "end_line": 18,
+        "loc": 11,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 0,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
@@ -15311,8 +15301,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:Service.__construct:8:15",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:Service.__construct:8:18",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -15321,8 +15311,8 @@
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:Service.__construct:8:15",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:Service.__construct:8:18",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -16644,7 +16634,7 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
@@ -16680,7 +16670,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:UserService.__init__:22:28",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -17940,7 +17930,7 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
@@ -18211,7 +18201,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:UserService.__init__:14:20",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Deep Nested Complexity",
@@ -19839,11 +19829,6 @@
     ],
     "findings": [
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.initialize:13:20",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Excess Arguments",
         "location": "fn:create_user:1:6",
         "detail": "8 args (threshold: 5)"
@@ -20438,11 +20423,6 @@
         "detail": "cc=17, cogc=26 [alert] (cc threshold: 9, cogc threshold: 15)"
       },
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:OrderService.initialize:2:9",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Low Cohesion",
         "location": "module",
         "detail": "OrderService: LCOM4=4 (4 disconnected method groups)"
@@ -20693,7 +20673,7 @@
   {
     "path": "rust/excess_args.rs",
     "module": {
-      "total_loc": 38,
+      "total_loc": 41,
       "total_functions": 4,
       "sum_cc": 4,
       "global_conditional_count": 0,
@@ -20750,27 +20730,27 @@
       {
         "name": "UserService.new",
         "start_line": 28,
-        "end_line": 37,
-        "loc": 10,
+        "end_line": 40,
+        "loc": 13,
         "cc": 1,
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 0,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
       },
       {
         "name": "UserService.get_user",
-        "start_line": 39,
-        "end_line": 41,
+        "start_line": 42,
+        "end_line": 44,
         "loc": 3,
         "cc": 1,
         "cognitive_complexity": 0,
@@ -20791,8 +20771,8 @@
     "findings": [
       {
         "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.new:28:37",
-        "detail": "6 args (threshold: 5)"
+        "location": "fn:UserService.new:28:40",
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -20801,8 +20781,8 @@
       },
       {
         "smell": "Primitive Obsession",
-        "location": "fn:UserService.new:28:37",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "location": "fn:UserService.new:28:40",
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -21313,13 +21293,13 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 0,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
@@ -21329,7 +21309,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:Config.init:17:24",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -21339,7 +21319,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:Config.init:17:24",
-        "detail": "6/6 typed params are primitives (100%); 3 share one primitive type (data clump)"
+        "detail": "9/9 typed params are primitives (100%); 6 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -22283,11 +22263,6 @@
     ],
     "findings": [
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.init:19:26",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Excess Arguments",
         "location": "fn:create_user:1:12",
         "detail": "8 args (threshold: 5)"
@@ -22720,11 +22695,6 @@
         "smell": "Complex Method",
         "location": "fn:OrderService.process_order:12:37",
         "detail": "cc=9, cogc=16 [warning] (cc threshold: 9, cogc threshold: 15)"
-      },
-      {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:OrderService.init:6:10",
-        "detail": "6 args (threshold: 5)"
       },
       {
         "smell": "Low Cohesion",
@@ -23244,13 +23214,13 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 6,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
@@ -23280,7 +23250,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:UserService.constructor:26:33",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -23290,7 +23260,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:UserService.constructor:26:33",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -23561,13 +23531,13 @@
         "cognitive_complexity": 0,
         "max_nesting": 0,
         "bump_count": 0,
-        "arg_count": 6,
+        "arg_count": 9,
         "compound_condition_count": 0,
         "is_constructor": true,
         "max_embedded_block_loc": 0,
         "consecutive_asserts": 6,
-        "primitive_type_count": 6,
-        "typed_param_count": 6,
+        "primitive_type_count": 9,
+        "typed_param_count": 9,
         "empty_catch_count": 0,
         "short_var_count": 0,
         "string_match_arms": 0
@@ -23827,7 +23797,7 @@
       {
         "smell": "Constructor Over-Injection",
         "location": "fn:ApiService.constructor:22:29",
-        "detail": "6 args (threshold: 5)"
+        "detail": "9 args (threshold: 8)"
       },
       {
         "smell": "Excess Arguments",
@@ -23842,7 +23812,7 @@
       {
         "smell": "Primitive Obsession",
         "location": "fn:ApiService.constructor:22:29",
-        "detail": "6/6 typed params are primitives (100%); 6 share one primitive type (data clump)"
+        "detail": "9/9 typed params are primitives (100%); 9 share one primitive type (data clump)"
       },
       {
         "smell": "Primitive Obsession",
@@ -24387,11 +24357,6 @@
     ],
     "findings": [
       {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:UserService.init:35:51",
-        "detail": "6 args (threshold: 5)"
-      },
-      {
         "smell": "Excess Arguments",
         "location": "fn:createUser:3:21",
         "detail": "8 args (threshold: 5)"
@@ -24898,11 +24863,6 @@
         "smell": "Complex Method",
         "location": "fn:PaymentService.processPayment:29:69",
         "detail": "cc=13, cogc=16 [warning] (cc threshold: 9, cogc threshold: 15)"
-      },
-      {
-        "smell": "Constructor Over-Injection",
-        "location": "fn:PaymentService.init:11:27",
-        "detail": "6 args (threshold: 5)"
       },
       {
         "smell": "Excess Arguments",

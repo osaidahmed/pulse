@@ -32,6 +32,9 @@ impl UserService {
         mailer: String,
         validator: String,
         scheduler: String,
+        extra7: String,
+        extra8: String,
+        extra9: String,
     ) -> Self {
         Self { db, cache, logger, mailer, validator, scheduler }
     }

@@ -23,7 +23,7 @@ class UserService {
     private validator: any;
     private scheduler: any;
 
-    constructor(db: any, cache: any, logger: any, mailer: any, validator: any, scheduler: any) {
+    constructor(db: any, cache: any, logger: any, mailer: any, validator: any, scheduler: any, p7: any, p8: any, p9: any) {
         this.db = db;
         this.cache = cache;
         this.logger = logger;

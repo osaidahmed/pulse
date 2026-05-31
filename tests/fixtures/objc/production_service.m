@@ -11,7 +11,10 @@
                           logger:(id)logger
                          metrics:(id)metrics
                         notifier:(id)notifier
-                          config:(NSDictionary *)config {
+                          config:(NSDictionary *)config
+                          extra7:(id)extra7
+                          extra8:(id)extra8
+                          extra9:(id)extra9 {
     self = [super init];
     if (self) {
         _db = db;

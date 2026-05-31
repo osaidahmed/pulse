@@ -245,7 +245,7 @@ fn args_excess() {
 fn constructor_detected() {
     let out = check(concat!(
         "public class T {\n",
-        "    public T(object a, object b, object c, object d, object e, object f) {}\n",
+        "    public T(object a, object b, object c, object d, object e, object f, object g, object h, object i) {}\n",
         "}\n",
     ));
     assert!(
@@ -559,7 +559,7 @@ fn args_constructor_separate_threshold() {
 fn args_constructor_over_threshold() {
     let out = check(concat!(
         "public class T {\n",
-        "    public T(object a, object b, object c, object d, object e, object f) {}\n",
+        "    public T(object a, object b, object c, object d, object e, object f, object g, object h, object i) {}\n",
         "}\n",
     ));
     assert!(has_smell(&out, "Constructor Over-Injection"), "6 ctor args should fire, got: {out}");
@@ -1253,7 +1253,7 @@ fn lcom4_transitive_connected_not_flagged() {
 fn constructor_reports_injection_not_excess() {
     let out = check(concat!(
         "public class S {\n",
-        "    public S(int a, int b, int c, int d, int e, int f) {}\n",
+        "    public S(int a, int b, int c, int d, int e, int f, int g, int h, int i) {}\n",
         "}\n",
     ));
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");

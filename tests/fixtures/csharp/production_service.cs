@@ -11,7 +11,8 @@ public class UserService
     private object auditLogger;
 
     public UserService(object db, object cache, object mailer,
-                       object eventBus, object rateLimiter, object auditLogger)
+                       object eventBus, object rateLimiter, object auditLogger,
+                       object extra7, object extra8, object extra9)
     {
         this.db = db;
         this.cache = cache;

@@ -418,7 +418,7 @@ fn global_nesting_depth_3_flagged() {
 #[test]
 fn constructor_reports_over_injection() {
     let out =
-        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
+        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
@@ -998,7 +998,7 @@ fn overall_function_size_below_threshold_not_flagged() {
 #[test]
 fn constructor_reports_injection_not_excess() {
     let out =
-        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any) {}\n}\n");
+        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));

@@ -329,7 +329,7 @@ fn constructor_arg_count() {
 
 #[test]
 fn constructor_over_injection() {
-    let out = check("class Foo {\n    this(int a, int b, int c, int d, int e, int f, int g) {\n        int x = 1;\n    }\n}\n");
+    let out = check("class Foo {\n    this(int a, int b, int c, int d, int e, int f, int g, int h, int i) {\n        int x = 1;\n    }\n}\n");
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 

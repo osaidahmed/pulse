@@ -562,7 +562,7 @@ fn constructor_arg_count() {
 
 #[test]
 fn constructor_over_injection() {
-    let out = check("class Foo { Foo(int a, int b, int c, int d, int e, int f, int g) { int x = 1 } }\n");
+    let out = check("class Foo { Foo(int a, int b, int c, int d, int e, int f, int g, int h, int i) { int x = 1 } }\n");
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
@@ -579,7 +579,7 @@ fn regular_method_reports_excess_not_injection() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out = check("class S { S(int a, int b, int c, int d, int e, int f) {} }\n");
+    let out = check("class S { S(int a, int b, int c, int d, int e, int f, int g, int h, int i) {} }\n");
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("S(") || l.contains(".S")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));

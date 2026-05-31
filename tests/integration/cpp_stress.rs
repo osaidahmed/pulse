@@ -613,7 +613,7 @@ fn shallow_global_not_flagged() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out = check("class S {\npublic:\n    S(int a, int b, int c, int d, int e, int f) {}\n};\n");
+    let out = check("class S {\npublic:\n    S(int a, int b, int c, int d, int e, int f, int g, int h, int i) {}\n};\n");
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out
         .lines()

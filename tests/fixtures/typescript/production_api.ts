@@ -19,7 +19,7 @@ class ApiService {
     private rateLimiter: any;
     private circuitBreaker: any;
 
-    constructor(db: any, cache: any, logger: any, metrics: any, rateLimiter: any, circuitBreaker: any) {
+    constructor(db: any, cache: any, logger: any, metrics: any, rateLimiter: any, circuitBreaker: any, p7: any, p8: any, p9: any) {
         this.db = db;
         this.cache = cache;
         this.logger = logger;

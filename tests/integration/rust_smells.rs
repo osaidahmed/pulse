@@ -110,7 +110,7 @@ fn excess_args_count_correct() {
 fn constructor_args_count_correct() {
     let debug = run_debug(LANG, "excess_args.rs");
     let args = function_metric(&debug, "UserService.new", "args").unwrap_or(0);
-    assert_eq!(args, 6, "got: {args}");
+    assert_eq!(args, 9, "got: {args}");
 }
 
 #[test]

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class UserService:
     """Manages user operations — intentionally has low cohesion for testing."""
 
-    def __init__(self, db, cache, mailer, event_bus, rate_limiter, audit_logger):
+    def __init__(self, db, cache, mailer, event_bus, rate_limiter, audit_logger, p7, p8, p9):
         self.db = db
         self.cache = cache
         self.mailer = mailer

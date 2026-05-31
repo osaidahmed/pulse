@@ -14,7 +14,7 @@ class Config {
     var verbose: Bool = false
     var secure: Bool = false
 
-    init(host: String, port: Int, timeout: Int, retries: Int, verbose: Bool, secure: Bool) {
+    init(host: String, port: Int, timeout: Int, retries: Int, verbose: Bool, secure: Bool, p7: Int, p8: Int, p9: Int) {
         self.host = host
         self.port = port
         self.timeout = timeout
