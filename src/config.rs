@@ -53,6 +53,16 @@ pub struct ConfigThresholds {
     pub module: ModuleThresholds,
     #[serde(flatten)]
     pub analysis: AnalysisThresholds,
+    #[serde(flatten)]
+    pub duplication: DuplicationThresholds,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct DuplicationThresholds {
+    pub duplication_min_loc: Option<u32>,
+    pub skeleton_duplication_min_loc: Option<u32>,
+    pub duplication_min_group: Option<u32>,
+    pub duplication_min_distinct_kinds: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -85,9 +95,6 @@ pub struct ModuleThresholds {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct AnalysisThresholds {
-    pub duplication_min_loc: Option<u32>,
-    pub skeleton_duplication_min_loc: Option<u32>,
-    pub duplication_min_group: Option<u32>,
     pub consecutive_asserts_max: Option<u32>,
     pub primitive_ratio_threshold: Option<f32>,
     pub primitive_min_typed_params: Option<u32>,
@@ -322,11 +329,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             max_struct_fields: m.max_struct_fields.unwrap_or(bm.max_struct_fields),
         },
         analysis: crate::thresholds::AnalysisThresholds {
-            duplication_min_loc: a.duplication_min_loc.unwrap_or(ba.duplication_min_loc),
-            skeleton_duplication_min_loc: a
-                .skeleton_duplication_min_loc
-                .unwrap_or(ba.skeleton_duplication_min_loc),
-            duplication_min_group: a.duplication_min_group.unwrap_or(ba.duplication_min_group),
+            duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
             consecutive_asserts_max: a
                 .consecutive_asserts_max
                 .unwrap_or(ba.consecutive_asserts_max),
@@ -349,6 +352,18 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         audit: base.audit,
         history: base.history,
+    }
+}
+
+fn resolve_duplication(
+    over: &DuplicationThresholds,
+    base: &crate::thresholds::DuplicationThresholds,
+) -> crate::thresholds::DuplicationThresholds {
+    crate::thresholds::DuplicationThresholds {
+        min_loc: over.duplication_min_loc.unwrap_or(base.min_loc),
+        skeleton_min_loc: over.skeleton_duplication_min_loc.unwrap_or(base.skeleton_min_loc),
+        min_group: over.duplication_min_group.unwrap_or(base.min_group),
+        min_distinct_kinds: over.duplication_min_distinct_kinds.unwrap_or(base.min_distinct_kinds),
     }
 }
 

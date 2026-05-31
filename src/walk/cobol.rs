@@ -2,8 +2,9 @@ use tree_sitter::{Node, Tree};
 
 use super::counters::count_short_variables;
 use super::{
-    compute_skeleton_hash, compute_structural_fingerprint, count_code_lines, find_child_by_kind,
-    node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    compute_skeleton_hash, compute_structural_fingerprint, count_code_lines,
+    count_distinct_node_kinds_multi, find_child_by_kind, node_text, track_embedded_block, FileMetrics,
+    FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["*>", "*"];
@@ -149,6 +150,7 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
     bw.walk_range(0, info.body.len(), 0);
 
     let struct_hash = info.body.first().map_or(0, |n| compute_structural_fingerprint(*n));
+    let distinct_kinds = count_distinct_node_kinds_multi(info.body);
     let skel_hash = info.body.iter().fold(0u64, |acc, n| {
         acc.wrapping_mul(31).wrapping_add(compute_skeleton_hash(*n))
     });
@@ -162,7 +164,7 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
         max_nesting: bw.s.max_nesting, bump_count: bw.s.bump_count,
         arg_count: 0, compound_condition_count: bw.s.compound_condition_count,
         is_constructor: false, max_embedded_block_loc: bw.s.max_embedded_block_loc,
-        structural_hash: struct_hash, skeleton_hash: skel_hash,
+        structural_hash: struct_hash, distinct_node_kinds: distinct_kinds, skeleton_hash: skel_hash,
         consecutive_asserts: 0, assert_hash: 0,
         primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: 0, field_accesses: Vec::new(),

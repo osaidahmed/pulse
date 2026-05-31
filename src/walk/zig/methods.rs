@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use super::super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint,
     compute_skeleton_hash, compute_structural_fingerprint, count_consecutive_asserts,
-    find_child_by_kind, node_text, FunctionMetrics, WalkState,
+    count_distinct_node_kinds, find_child_by_kind, node_text, FunctionMetrics, WalkState,
 };
 use super::super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 
@@ -98,6 +98,7 @@ fn build_metrics(
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
+        distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),

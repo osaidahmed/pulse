@@ -4,7 +4,8 @@ use super::counters::count_short_variables;
 use super::shared::{self, GlobalMetricsConfig};
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, node_text, track_embedded_block, FileMetrics,
+    count_code_lines, count_consecutive_asserts, count_distinct_node_kinds, node_text,
+    track_embedded_block, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
 };
 
@@ -97,6 +98,7 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: body.map_or(0, compute_structural_fingerprint),
+        distinct_node_kinds: body.map_or(0, count_distinct_node_kinds),
         skeleton_hash: body.map_or(0, compute_skeleton_hash),
         consecutive_asserts: body.map_or(0, |b| count_consecutive_asserts(b, "call")),
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "call")),

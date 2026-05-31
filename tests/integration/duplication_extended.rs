@@ -27,6 +27,7 @@ fn fn_with(
         is_constructor: false,
         max_embedded_block_loc: 0,
         structural_hash,
+        distinct_node_kinds: t().analysis.duplication.min_distinct_kinds + 1,
         skeleton_hash,
         consecutive_asserts: 0,
         assert_hash: 0,
@@ -225,7 +226,7 @@ fn raising_min_loc_threshold_suppresses() {
         fn_with("b", 50, 79, 0xCAFE, 0x2),
     ];
     let mut th = t();
-    th.analysis.duplication_min_loc = 1000;
+    th.analysis.duplication.min_loc = 1000;
     let findings = detect(&funcs, &th);
     let dup = findings.iter().filter(|f| f.smell == Smell::CodeDuplication).count();
     assert_eq!(dup, 0);
@@ -238,7 +239,7 @@ fn raising_skeleton_loc_threshold_suppresses_skeleton_findings() {
         fn_with("b", 50, 79, 0xBBB, 0xFEED),
     ];
     let mut th = t();
-    th.analysis.skeleton_duplication_min_loc = 1000;
+    th.analysis.duplication.skeleton_min_loc = 1000;
     let _ = detect(&funcs, &th);
 }
 
@@ -249,11 +250,40 @@ fn raising_min_group_threshold_to_three_filters_pairs() {
         fn_with("b", 50, 79, 0xCAFE, 0x2),
     ];
     let mut th = t();
-    th.analysis.duplication_min_group = 3;
+    th.analysis.duplication.min_group = 3;
     let findings = detect(&funcs, &th);
     assert_eq!(
         findings.iter().filter(|f| f.smell == Smell::CodeDuplication).count(),
         0
+    );
+}
+
+#[test]
+fn distinct_node_kinds_below_floor_suppresses_exact_clone() {
+    let floor = t().analysis.duplication.min_distinct_kinds;
+    let mut a = fn_with("a", 1, 30, 0xCAFE, 0x1);
+    let mut b = fn_with("b", 50, 79, 0xCAFE, 0x2);
+    a.distinct_node_kinds = floor - 1;
+    b.distinct_node_kinds = floor - 1;
+    let findings = detect(&[a, b], &t());
+    assert_eq!(
+        findings.iter().filter(|f| f.smell == Smell::CodeDuplication).count(),
+        0,
+        "structurally identical functions below the distinct-kind floor are not flagged"
+    );
+}
+
+#[test]
+fn distinct_node_kinds_at_floor_emits_exact_clone() {
+    let floor = t().analysis.duplication.min_distinct_kinds;
+    let mut a = fn_with("a", 1, 30, 0xCAFE, 0x1);
+    let mut b = fn_with("b", 50, 79, 0xCAFE, 0x2);
+    a.distinct_node_kinds = floor;
+    b.distinct_node_kinds = floor;
+    let findings = detect(&[a, b], &t());
+    assert!(
+        findings.iter().any(|f| f.smell == Smell::CodeDuplication),
+        "exact clones at the distinct-kind floor are flagged"
     );
 }
 

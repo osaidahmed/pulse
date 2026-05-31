@@ -5,7 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
 };
 
@@ -148,6 +148,7 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
         arg_count: pi.args, compound_condition_count: s.compound_condition_count,
         is_constructor: false, max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
+        distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),

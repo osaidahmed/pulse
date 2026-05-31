@@ -8,6 +8,7 @@ use super::shared::{
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    count_distinct_node_kinds,
     find_child_by_kind, node_text, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState, track_embedded_block,
 };
@@ -143,6 +144,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     walk_body(body, source, 0, &mut s);
 
     let mut structural_hash = 0;
+    let mut distinct_node_kinds = 0;
     let mut skeleton_hash = 0;
     let mut consecutive_asserts = 0;
     let mut assert_hash = 0;
@@ -150,6 +152,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let mut string_match_arms = 0;
     if super::extras_enabled(node.start_byte(), node.end_byte()) {
         structural_hash = compute_structural_fingerprint(body);
+        distinct_node_kinds = count_distinct_node_kinds(body);
         skeleton_hash = compute_skeleton_hash(body);
         consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
         assert_hash = compute_assert_fingerprint(body, "expression_statement");
@@ -171,6 +174,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash,
+        distinct_node_kinds,
         skeleton_hash,
         consecutive_asserts,
         assert_hash,

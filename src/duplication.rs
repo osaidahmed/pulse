@@ -12,7 +12,7 @@ pub fn detect_code_duplication(
     let eligible: Vec<usize> = functions
         .iter()
         .enumerate()
-        .filter(|(_, f)| f.loc >= t.analysis.duplication_min_loc)
+        .filter(|(_, f)| f.loc >= t.analysis.duplication.min_loc)
         .map(|(i, _)| i)
         .collect();
 
@@ -33,7 +33,8 @@ fn detect_exact_clones(
     let filtered: HashMap<u64, Vec<usize>> = groups
         .into_iter()
         .map(|(k, indices)| {
-            let keep = are_size_similar(&indices, functions);
+            let keep = are_size_similar(&indices, functions)
+                && has_distinct_kind_variety(&indices, functions, t);
             (k, if keep { indices } else { vec![] })
         })
         .collect();
@@ -49,7 +50,7 @@ fn detect_similar_clones(
     let skeleton_eligible: Vec<usize> = functions
         .iter()
         .enumerate()
-        .filter(|(_, f)| f.loc >= t.analysis.skeleton_duplication_min_loc)
+        .filter(|(_, f)| f.loc >= t.analysis.duplication.skeleton_min_loc)
         .map(|(i, _)| i)
         .collect();
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
@@ -76,6 +77,18 @@ fn detect_similar_clones(
         .collect();
 
     emit_duplication_findings(&filtered, functions, t, findings, "similar structure");
+}
+
+fn has_distinct_kind_variety(
+    indices: &[usize],
+    functions: &[FunctionMetrics],
+    t: &Thresholds,
+) -> bool {
+    indices
+        .iter()
+        .map(|&i| functions[i].distinct_node_kinds)
+        .min()
+        .is_some_and(|min| min >= t.analysis.duplication.min_distinct_kinds)
 }
 
 fn are_size_similar(indices: &[usize], functions: &[FunctionMetrics]) -> bool {
@@ -107,7 +120,7 @@ fn emit_duplication_findings(
     label: &str,
 ) {
     let duplicated = groups.values().filter(|indices| {
-        indices.len() >= t.analysis.duplication_min_group as usize
+        indices.len() >= t.analysis.duplication.min_group as usize
             && !indices.iter().all(|&i| is_test_function(&functions[i].name))
     });
 

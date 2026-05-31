@@ -5,7 +5,8 @@ use super::walk_tree::walk_function_matches;
 use super::super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_consecutive_asserts, find_child_by_kind, node_text, FunctionMetrics, WalkState,
+    count_consecutive_asserts, count_distinct_node_kinds, find_child_by_kind, node_text,
+    FunctionMetrics, WalkState,
 };
 
 const PRIMITIVE_TYPES: &[&str] = &[
@@ -123,6 +124,7 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
+        distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "apply"),
         assert_hash: compute_assert_fingerprint(body, "apply"),

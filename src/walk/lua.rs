@@ -5,7 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
     ModuleMetrics, WalkState,
 };
 
@@ -191,6 +191,7 @@ fn build_metrics(node: Node, source: &str, info: FnInfo) -> Option<FunctionMetri
         is_constructor: info.is_constructor,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: body.map_or(0, compute_structural_fingerprint),
+        distinct_node_kinds: body.map_or(0, count_distinct_node_kinds),
         skeleton_hash: body.map_or(0, compute_skeleton_hash),
         consecutive_asserts: body.map_or(0, |b| count_consecutive_asserts(b, "function_call")),
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "function_call")),

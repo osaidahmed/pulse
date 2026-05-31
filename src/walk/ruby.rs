@@ -4,8 +4,8 @@ use super::counters::{count_short_variables, count_string_match_arms};
 use super::shared::{self, GlobalMetricsConfig};
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, node_text,
-    track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    count_code_lines, count_consecutive_asserts, count_distinct_node_kinds, find_child_by_kind,
+    node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["#"];
@@ -107,6 +107,7 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
     let mut s = WalkState::new();
     if let Some(b) = body { walk_body(b, source, 0, &mut s); }
     let sh = body.map_or(0, compute_structural_fingerprint);
+    let dk = body.map_or(0, count_distinct_node_kinds);
     let sk = body.map_or(0, compute_skeleton_hash);
     let ca = body.map_or(0, |b| count_consecutive_asserts(b, "call"));
     let ah = body.map_or(0, |b| compute_assert_fingerprint(b, "call"));
@@ -126,7 +127,7 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
         compound_condition_count: s.compound_condition_count,
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
-        structural_hash: sh, skeleton_hash: sk,
+        structural_hash: sh, distinct_node_kinds: dk, skeleton_hash: sk,
         consecutive_asserts: ca, assert_hash: ah,
         primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,

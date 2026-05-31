@@ -39,9 +39,7 @@ pub struct ModuleThresholds {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AnalysisThresholds {
-    pub duplication_min_loc: u32,
-    pub skeleton_duplication_min_loc: u32,
-    pub duplication_min_group: u32,
+    pub duplication: DuplicationThresholds,
     pub consecutive_asserts_max: u32,
     pub primitive_ratio_threshold: f32,
     pub primitive_min_typed_params: u32,
@@ -51,6 +49,14 @@ pub struct AnalysisThresholds {
     pub short_var_min_fn_loc: u32,
     pub short_var_max_count: u32,
     pub max_string_match_arms: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DuplicationThresholds {
+    pub min_loc: u32,
+    pub skeleton_min_loc: u32,
+    pub min_group: u32,
+    pub min_distinct_kinds: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -184,9 +190,7 @@ impl ModuleThresholds {
 
 impl AnalysisThresholds {
     pub const DEFAULTS: Self = Self {
-        duplication_min_loc: 6,
-        skeleton_duplication_min_loc: 20,
-        duplication_min_group: 2,
+        duplication: DuplicationThresholds::DEFAULTS,
         consecutive_asserts_max: 10,
         primitive_ratio_threshold: 0.7,
         primitive_min_typed_params: 4,
@@ -196,6 +200,15 @@ impl AnalysisThresholds {
         short_var_min_fn_loc: 15,
         short_var_max_count: 3,
         max_string_match_arms: 5,
+    };
+}
+
+impl DuplicationThresholds {
+    pub const DEFAULTS: Self = Self {
+        min_loc: 6,
+        skeleton_min_loc: 20,
+        min_group: 2,
+        min_distinct_kinds: 3,
     };
 }
 

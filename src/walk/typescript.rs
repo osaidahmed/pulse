@@ -3,6 +3,7 @@ use tree_sitter::{Node, Tree};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    count_distinct_node_kinds,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
 };
@@ -187,20 +188,20 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
-    let mut structural_hash = 0;
-    let mut skeleton_hash = 0;
-    let mut consecutive_asserts = 0;
-    let mut assert_hash = 0;
-    let mut short_var_count = 0;
-    let mut string_match_arms = 0;
-    if super::extras_enabled(node.start_byte(), node.end_byte()) {
-        structural_hash = compute_structural_fingerprint(body);
-        skeleton_hash = compute_skeleton_hash(body);
-        consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
-        assert_hash = compute_assert_fingerprint(body, "expression_statement");
-        short_var_count = count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]);
-        string_match_arms = count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"], &["switch_default"]);
-    }
+    let (structural_hash, distinct_node_kinds, skeleton_hash, consecutive_asserts, assert_hash, short_var_count, string_match_arms) =
+        if super::extras_enabled(node.start_byte(), node.end_byte()) {
+            (
+                compute_structural_fingerprint(body),
+                count_distinct_node_kinds(body),
+                compute_skeleton_hash(body),
+                count_consecutive_asserts(body, "expression_statement"),
+                compute_assert_fingerprint(body, "expression_statement"),
+                count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]),
+                count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"], &["switch_default"]),
+            )
+        } else {
+            (0, 0, 0, 0, 0, 0, 0)
+        };
 
     Some(FunctionMetrics {
         name,
@@ -216,6 +217,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash,
+        distinct_node_kinds,
         skeleton_hash,
         consecutive_asserts,
         assert_hash,

@@ -163,3 +163,39 @@ fn constructor_over_threshold_args_still_fires() {
         "{n} params exceeds the arg threshold, got: {code}"
     );
 }
+
+fn parse_functions(code: &str, ext: &str) -> Vec<pulse::walk::FunctionMetrics> {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(format!("dup.{ext}"));
+    std::fs::write(&path, code).unwrap();
+    let lang = pulse::parse::detect_language(&path).expect("language");
+    let source = std::fs::read_to_string(&path).unwrap();
+    pulse::parse::parse_and_walk(&source, lang).expect("parse").functions
+}
+
+fn has_exact_duplication(code: &str, ext: &str) -> bool {
+    let fns = parse_functions(code, ext);
+    let mut findings = Vec::new();
+    pulse::duplication::detect_code_duplication(&fns, &t(), &mut findings);
+    findings.iter().any(|f| f.smell == pulse::smells::Smell::CodeDuplication)
+}
+
+const TRIVIAL_CLONE_RS: &str = "fn alpha() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\nfn beta() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\n";
+
+const RICH_CLONE_RS: &str = "fn gamma(n: i32) -> i32 {\n    let mut total = n;\n    for i in total..n {\n        if i > total {\n            total += i;\n        }\n    }\n    total\n}\nfn delta(n: i32) -> i32 {\n    let mut total = n;\n    for i in total..n {\n        if i > total {\n            total += i;\n        }\n    }\n    total\n}\n";
+
+#[test]
+fn exact_clone_of_trivial_functions_suppressed_by_distinct_kind_floor() {
+    assert!(
+        !has_exact_duplication(TRIVIAL_CLONE_RS, "rs"),
+        "structurally trivial clones (few distinct node kinds) should not be flagged"
+    );
+}
+
+#[test]
+fn exact_clone_of_rich_functions_still_detected() {
+    assert!(
+        has_exact_duplication(RICH_CLONE_RS, "rs"),
+        "structurally rich clones must remain detected after the floor"
+    );
+}

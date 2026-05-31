@@ -5,7 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
+    count_distinct_node_kinds, find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState,
 };
 
@@ -195,7 +195,7 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
         parent_class: None,
         cognitive_complexity: 0, max_nesting: 0, bump_count: 0,
         compound_condition_count: 0, max_embedded_block_loc: 0,
-        structural_hash: 0, skeleton_hash: 0, consecutive_asserts: 0,
+        structural_hash: 0, distinct_node_kinds: 0, skeleton_hash: 0, consecutive_asserts: 0,
         assert_hash: 0, empty_catch_count: 0, field_accesses: Vec::new(),
         short_var_count: 0, string_match_arms: 0,
     });
@@ -252,6 +252,7 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         compound_condition_count: s.compound_condition_count,
         is_constructor: false, max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
+        distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "call_expression"),
         assert_hash: compute_assert_fingerprint(body, "call_expression"),

@@ -314,7 +314,7 @@ fn case_expression_cc_value() {
 
 #[test]
 fn code_duplication_detected() {
-    let loc = t().analysis.duplication_min_loc + 2;
+    let loc = t().analysis.duplication.min_loc + 2;
     let mut a_body = String::new();
     let mut b_body = String::new();
     for i in 0..loc {

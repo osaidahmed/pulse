@@ -7,6 +7,7 @@ use super::shared::{
 };
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
+    count_distinct_node_kinds,
     count_code_lines, count_consecutive_asserts, find_child_by_kind, node_text,
     FileMetrics, FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
 };
@@ -95,6 +96,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     walk_body(body, source, 0, &mut s);
 
     let structural_hash = compute_structural_fingerprint(body);
+    let distinct_node_kinds = count_distinct_node_kinds(body);
     let skeleton_hash = compute_skeleton_hash(body);
     let consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
     let assert_hash = compute_assert_fingerprint(body, "expression_statement");
@@ -113,6 +115,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash,
+        distinct_node_kinds,
         skeleton_hash,
         consecutive_asserts,
         assert_hash,

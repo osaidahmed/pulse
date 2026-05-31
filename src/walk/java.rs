@@ -5,6 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
+    count_distinct_node_kinds,
     find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
     FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
 };
@@ -153,6 +154,7 @@ fn analyze_callable(
     walk_body(body, source, 0, &mut s);
 
     let structural_hash = compute_structural_fingerprint(body);
+    let distinct_node_kinds = count_distinct_node_kinds(body);
     let skeleton_hash = compute_skeleton_hash(body);
     let consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
     let assert_hash = compute_assert_fingerprint(body, "expression_statement");
@@ -171,6 +173,7 @@ fn analyze_callable(
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash,
+        distinct_node_kinds,
         skeleton_hash,
         consecutive_asserts,
         assert_hash,

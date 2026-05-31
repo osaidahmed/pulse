@@ -6,7 +6,7 @@ use super::shared::{
 };
 use super::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, node_text,
+    count_code_lines, count_consecutive_asserts, count_distinct_node_kinds, find_child_by_kind, node_text,
     track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
@@ -154,6 +154,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
         bump_count: s.bump_count, arg_count, compound_condition_count: s.compound_condition_count,
         is_constructor: is_init, max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(hash_node),
+        distinct_node_kinds: count_distinct_node_kinds(hash_node),
         skeleton_hash: compute_skeleton_hash(hash_node),
         consecutive_asserts: count_consecutive_asserts(hash_node, "call_expression"),
         assert_hash: compute_assert_fingerprint(hash_node, "call_expression"),

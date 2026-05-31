@@ -4,6 +4,7 @@ pub mod counters;
 pub mod d;
 pub mod cpp;
 pub mod csharp;
+pub mod field_access;
 pub mod fingerprint;
 pub mod go;
 pub mod groovy;
@@ -28,10 +29,10 @@ mod guards;
 mod scope;
 
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
+pub use field_access::{collect_field_accesses_for, collect_foreign_field_accesses_for};
 pub use fingerprint::{
-    collect_field_accesses_for, collect_foreign_field_accesses_for,
-    compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_consecutive_asserts,
+    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
+    count_consecutive_asserts, count_distinct_node_kinds, count_distinct_node_kinds_multi,
 };
 pub use shared::is_catch_body_empty;
 
@@ -128,6 +129,7 @@ mod metrics {
         pub is_constructor: bool,
         pub max_embedded_block_loc: u32,
         pub structural_hash: u64,
+        pub distinct_node_kinds: u32,
         pub skeleton_hash: u64,
         pub consecutive_asserts: u32,
         pub assert_hash: u64,

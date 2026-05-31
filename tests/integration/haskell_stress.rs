@@ -254,7 +254,7 @@ fn primitive_obsession_complex_types_not_flagged() {
 
 #[test]
 fn duplication_detected() {
-    let loc = t().analysis.duplication_min_loc + 2;
+    let loc = t().analysis.duplication.min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -266,7 +266,7 @@ fn duplication_detected() {
 
 #[test]
 fn duplication_test_suppressed() {
-    let loc = t().analysis.duplication_min_loc + 2;
+    let loc = t().analysis.duplication.min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -278,7 +278,7 @@ fn duplication_test_suppressed() {
 
 #[test]
 fn duplication_mixed_test_and_prod_flagged() {
-    let loc = t().analysis.duplication_min_loc + 2;
+    let loc = t().analysis.duplication.min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
@@ -290,7 +290,7 @@ fn duplication_mixed_test_and_prod_flagged() {
 
 #[test]
 fn duplication_two_is_minimum() {
-    let loc = t().analysis.duplication_min_loc + 2;
+    let loc = t().analysis.duplication.min_loc + 2;
     let mut body = String::new();
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
