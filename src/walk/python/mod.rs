@@ -175,6 +175,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         parent_class: None,
         short_var_count,
         string_match_arms,
+        cpg: None,
     })
 }
 

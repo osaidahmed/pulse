@@ -197,6 +197,7 @@ fn analyze_callable(
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["variable_declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "switch_section", &["string_literal", "verbatim_string_literal", "interpolated_string_expression"], &[]),
+        cpg: None,
     })
 }
 

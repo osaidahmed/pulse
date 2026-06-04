@@ -8,6 +8,7 @@ mod baselines;
 mod cli;
 mod config;
 mod config_history;
+mod cpg;
 mod duplication;
 mod history;
 mod hook;

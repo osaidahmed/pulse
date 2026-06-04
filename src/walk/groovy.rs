@@ -193,6 +193,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
             &["string_literal"],
             &[],
         ),
+        cpg: None,
     })
 }
 

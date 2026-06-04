@@ -187,6 +187,7 @@ fn analyze_callable(
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["local_variable_declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_expression", "switch_block_statement_group", &["string_literal"], &[]),
+        cpg: None,
     })
 }
 

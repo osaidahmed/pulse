@@ -147,6 +147,7 @@ fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Opti
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"], &[]),
+        cpg: None,
     })
 }
 

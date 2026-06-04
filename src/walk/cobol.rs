@@ -172,6 +172,7 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
         class_name: section.map(String::from),
         parent_class: None,
         short_var_count: short_vars, string_match_arms: bw.match_arms,
+        cpg: None,
     });
 }
 

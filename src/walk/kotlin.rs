@@ -198,6 +198,7 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
         structural_hash: 0, distinct_node_kinds: 0, skeleton_hash: 0, consecutive_asserts: 0,
         assert_hash: 0, empty_catch_count: 0, field_accesses: Vec::new(),
         short_var_count: 0, string_match_arms: 0,
+        cpg: None,
     });
 }
 
@@ -265,6 +266,7 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         string_match_arms: count_string_match_arms(
             body, "when_expression", "when_entry", &["string_literal"], &[],
         ),
+        cpg: None,
     }
 }
 

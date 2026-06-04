@@ -41,6 +41,7 @@ fn fn_with(
         parent_class: None,
         short_var_count: 0,
         string_match_arms: 0,
+        cpg: None,
     }
 }
 

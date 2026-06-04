@@ -125,6 +125,7 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
  parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["set"])),
         string_match_arms: sma,
+        cpg: None,
     })
 }
 

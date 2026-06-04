@@ -110,6 +110,7 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
  parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["binary_operator"])),
         string_match_arms: 0,
+        cpg: None,
     })
 }
 

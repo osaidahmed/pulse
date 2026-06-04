@@ -129,6 +129,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
         string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"], &[]),
+        cpg: None,
     })
 }
 

@@ -231,6 +231,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         parent_class: None,
         short_var_count,
         string_match_arms,
+        cpg: None,
     })
 }
 

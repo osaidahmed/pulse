@@ -160,6 +160,7 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
  class_name: None,
  parent_class: None,
         short_var_count: 0, string_match_arms: 0,
+        cpg: None,
     }
 }
 

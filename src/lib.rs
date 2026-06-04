@@ -7,6 +7,7 @@ pub mod audit;
 pub mod baselines;
 pub mod config;
 pub mod config_history;
+pub mod cpg;
 pub mod duplication;
 pub mod history;
 pub mod hook;

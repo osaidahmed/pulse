@@ -137,6 +137,7 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
  parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment", "operator_assignment"])),
         string_match_arms: body.map_or(0, |b| count_string_match_arms(b, "case", "when", &["string"], &["else"])),
+        cpg: None,
     })
 }
 
