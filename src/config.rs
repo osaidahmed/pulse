@@ -56,6 +56,12 @@ pub struct ConfigThresholds {
     pub analysis: AnalysisThresholds,
     #[serde(flatten)]
     pub duplication: DuplicationThresholds,
+    #[serde(default)]
+    pub clone_cluster: CloneClusterConfig,
+    #[serde(default)]
+    pub cpg: CpgConfig,
+    #[serde(default)]
+    pub naturalness: NaturalnessConfig,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -64,6 +70,37 @@ pub struct DuplicationThresholds {
     pub skeleton_duplication_min_loc: Option<u32>,
     pub duplication_min_group: Option<u32>,
     pub duplication_min_distinct_kinds: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct CloneClusterConfig {
+    pub max_sim_threshold: Option<u32>,
+    pub min_cluster_size: Option<u32>,
+    pub loc_window_pct: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct CpgConfig {
+    pub enabled: Option<bool>,
+    pub taint_visit_cap: Option<u32>,
+    pub taint_max_depth: Option<u32>,
+    pub dead_store: Option<bool>,
+    pub use_before_def: Option<bool>,
+    pub unreachable_code: Option<bool>,
+    pub unused_result: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct NaturalnessConfig {
+    pub enabled: Option<bool>,
+    pub ngram_order: Option<u32>,
+    pub cache_k: Option<u32>,
+    pub jm_gamma: Option<f64>,
+    pub min_fn_tokens: Option<u32>,
+    pub zscore_cutoff: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

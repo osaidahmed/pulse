@@ -383,3 +383,50 @@ fn language_config_keys_correct() {
     assert_eq!(Language::CSharp.to_config_key(), "csharp");
     assert_eq!(Language::ObjectiveC.to_config_key(), "objc");
 }
+
+#[test]
+fn cpg_and_naturalness_default_off() {
+    let resolved = config::resolve_thresholds(None, Language::Rust);
+    assert!(!resolved.cpg.enabled);
+    assert!(!resolved.naturalness.enabled);
+    assert_eq!(resolved.cpg, t().cpg);
+    assert_eq!(resolved.naturalness, t().naturalness);
+    assert_eq!(resolved.analysis.clone_cluster, t().analysis.clone_cluster);
+}
+
+#[test]
+fn cpg_section_overrides_flags() {
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds.cpg]
+        enabled = true
+        unused_result = true
+        taint_max_depth = 8
+        ",
+    )
+    .unwrap();
+    let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
+    assert!(resolved.cpg.enabled);
+    assert!(resolved.cpg.unused_result);
+    assert_eq!(resolved.cpg.taint_max_depth, 8);
+    assert_eq!(resolved.cpg.dead_store, t().cpg.dead_store);
+}
+
+#[test]
+fn naturalness_and_clone_sections_override() {
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds.naturalness]
+        enabled = true
+        ngram_order = 4
+        [thresholds.clone_cluster]
+        max_sim_threshold = 8
+        ",
+    )
+    .unwrap();
+    let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
+    assert!(resolved.naturalness.enabled);
+    assert_eq!(resolved.naturalness.ngram_order, 4);
+    assert_eq!(resolved.naturalness.cache_k, t().naturalness.cache_k);
+    assert_eq!(resolved.analysis.clone_cluster.max_sim_threshold, 8);
+}

@@ -1,7 +1,10 @@
 use crate::parse::Language;
 use crate::thresholds::Thresholds;
 
-use super::{ConfigThresholds, DuplicationThresholds, PulseConfig};
+use super::{
+    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig,
+    PulseConfig,
+};
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
     let base = Thresholds::default();
@@ -55,6 +58,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         analysis: crate::thresholds::AnalysisThresholds {
             duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
+            clone_cluster: resolve_clone_cluster(&o.clone_cluster, &base.analysis.clone_cluster),
             consecutive_asserts_max: a
                 .consecutive_asserts_max
                 .unwrap_or(ba.consecutive_asserts_max),
@@ -77,6 +81,48 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         audit: base.audit,
         history: base.history,
+        cpg: resolve_cpg(&o.cpg, &base.cpg),
+        naturalness: resolve_naturalness(&o.naturalness, &base.naturalness),
+    }
+}
+
+fn resolve_clone_cluster(
+    over: &CloneClusterConfig,
+    base: &crate::thresholds::CloneClusterThresholds,
+) -> crate::thresholds::CloneClusterThresholds {
+    crate::thresholds::CloneClusterThresholds {
+        max_sim_threshold: over.max_sim_threshold.unwrap_or(base.max_sim_threshold),
+        min_cluster_size: over.min_cluster_size.unwrap_or(base.min_cluster_size),
+        loc_window_pct: over.loc_window_pct.unwrap_or(base.loc_window_pct),
+    }
+}
+
+fn resolve_cpg(
+    over: &CpgConfig,
+    base: &crate::thresholds::CpgThresholds,
+) -> crate::thresholds::CpgThresholds {
+    crate::thresholds::CpgThresholds {
+        enabled: over.enabled.unwrap_or(base.enabled),
+        taint_visit_cap: over.taint_visit_cap.unwrap_or(base.taint_visit_cap),
+        taint_max_depth: over.taint_max_depth.unwrap_or(base.taint_max_depth),
+        dead_store: over.dead_store.unwrap_or(base.dead_store),
+        use_before_def: over.use_before_def.unwrap_or(base.use_before_def),
+        unreachable_code: over.unreachable_code.unwrap_or(base.unreachable_code),
+        unused_result: over.unused_result.unwrap_or(base.unused_result),
+    }
+}
+
+fn resolve_naturalness(
+    over: &NaturalnessConfig,
+    base: &crate::thresholds::NaturalnessThresholds,
+) -> crate::thresholds::NaturalnessThresholds {
+    crate::thresholds::NaturalnessThresholds {
+        enabled: over.enabled.unwrap_or(base.enabled),
+        ngram_order: over.ngram_order.unwrap_or(base.ngram_order),
+        cache_k: over.cache_k.unwrap_or(base.cache_k),
+        jm_gamma: over.jm_gamma.unwrap_or(base.jm_gamma),
+        min_fn_tokens: over.min_fn_tokens.unwrap_or(base.min_fn_tokens),
+        zscore_cutoff: over.zscore_cutoff.unwrap_or(base.zscore_cutoff),
     }
 }
 

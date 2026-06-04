@@ -1,5 +1,8 @@
 use crate::history::thresholds::HistoryThresholds;
 
+mod features;
+pub use features::{CloneClusterThresholds, CpgThresholds, NaturalnessThresholds};
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Thresholds {
     pub function: FunctionThresholds,
@@ -7,6 +10,8 @@ pub struct Thresholds {
     pub analysis: AnalysisThresholds,
     pub audit: AuditThresholds,
     pub history: HistoryThresholds,
+    pub cpg: CpgThresholds,
+    pub naturalness: NaturalnessThresholds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -40,6 +45,7 @@ pub struct ModuleThresholds {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AnalysisThresholds {
     pub duplication: DuplicationThresholds,
+    pub clone_cluster: CloneClusterThresholds,
     pub consecutive_asserts_max: u32,
     pub primitive_ratio_threshold: f32,
     pub primitive_min_typed_params: u32,
@@ -58,6 +64,7 @@ pub struct DuplicationThresholds {
     pub min_group: u32,
     pub min_distinct_kinds: u32,
 }
+
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AuditThresholds {
@@ -191,6 +198,7 @@ impl ModuleThresholds {
 impl AnalysisThresholds {
     pub const DEFAULTS: Self = Self {
         duplication: DuplicationThresholds::DEFAULTS,
+        clone_cluster: CloneClusterThresholds::DEFAULTS,
         consecutive_asserts_max: 10,
         primitive_ratio_threshold: 0.7,
         primitive_min_typed_params: 4,
@@ -338,6 +346,8 @@ impl Default for Thresholds {
             analysis: AnalysisThresholds::DEFAULTS,
             audit: AuditThresholds::DEFAULTS,
             history: HistoryThresholds::DEFAULTS,
+            cpg: CpgThresholds::DEFAULTS,
+            naturalness: NaturalnessThresholds::DEFAULTS,
         }
     }
 }
