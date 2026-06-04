@@ -156,11 +156,14 @@ pub fn parse_and_walk_scoped(
     source: &str,
     lang: Language,
     edit_byte_range: Option<(usize, usize)>,
+    cpg_enabled: bool,
 ) -> Option<FileMetrics> {
-    match edit_byte_range {
-        None => parse_and_walk_guarded(source, lang),
-        scope => run_guarded(source, || {
-            walk::with_edit_scope(scope, || parse_and_walk(source, lang))
+    match (edit_byte_range, cpg_enabled) {
+        (None, false) => parse_and_walk_guarded(source, lang),
+        (range, cpg) => run_guarded(source, || {
+            walk::with_cpg_enabled(cpg, || {
+                walk::with_edit_scope(range, || parse_and_walk(source, lang))
+            })
         }),
     }
 }

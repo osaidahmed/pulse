@@ -94,7 +94,7 @@ fn guarded_survives_deeply_nested_expression() {
 fn scoped_walk_computes_extras_only_for_edited_function() {
     let src = "fn untouched() {\n    let x = 1;\n}\n\nfn edited() {\n    let y = 2;\n}\n";
     let pos = src.find("let y").unwrap();
-    let m = parse_and_walk_scoped(src, Language::Rust, Some((pos, pos + 5))).unwrap();
+    let m = parse_and_walk_scoped(src, Language::Rust, Some((pos, pos + 5)), false).unwrap();
     let untouched = m.functions.iter().find(|f| f.name == "untouched").unwrap();
     let edited = m.functions.iter().find(|f| f.name == "edited").unwrap();
     assert_ne!(edited.skeleton_hash, 0, "edited function must compute extras");
@@ -107,7 +107,7 @@ fn scoped_walk_computes_extras_only_for_edited_function() {
 #[test]
 fn full_walk_computes_extras_for_all_functions() {
     let src = "fn a() {\n    let x = 1;\n}\n\nfn b() {\n    let y = 2;\n}\n";
-    let m = parse_and_walk_scoped(src, Language::Rust, None).unwrap();
+    let m = parse_and_walk_scoped(src, Language::Rust, None, false).unwrap();
     for f in &m.functions {
         assert_ne!(f.skeleton_hash, 0, "{} must have extras in a full walk", f.name);
         assert_eq!(f.short_var_count, 1, "{} short-var counted in full walk", f.name);

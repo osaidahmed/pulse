@@ -5,6 +5,7 @@ pub const MAX_WALK_DEPTH: u32 = 2000;
 thread_local! {
     static WALK_DEPTH: Cell<u32> = const { Cell::new(0) };
     static EDIT_SCOPE: Cell<Option<(usize, usize)>> = const { Cell::new(None) };
+    static CPG_ENABLED: Cell<bool> = const { Cell::new(false) };
 }
 
 pub(crate) struct DepthGuard;
@@ -48,4 +49,22 @@ pub(crate) fn extras_enabled(start_byte: usize, end_byte: usize) -> bool {
         None => true,
         Some((lo, hi)) => start_byte <= hi && end_byte >= lo,
     }
+}
+
+struct CpgReset;
+
+impl Drop for CpgReset {
+    fn drop(&mut self) {
+        CPG_ENABLED.with(|c| c.set(false));
+    }
+}
+
+pub fn with_cpg_enabled<T>(enabled: bool, f: impl FnOnce() -> T) -> T {
+    CPG_ENABLED.with(|c| c.set(enabled));
+    let _reset = CpgReset;
+    f()
+}
+
+pub(crate) fn cpg_enabled() -> bool {
+    CPG_ENABLED.with(Cell::get)
 }

@@ -12,6 +12,7 @@ mod history_common;
 #[path = "integration/applicability_matrix.rs"] mod applicability_matrix;
 #[path = "integration/false_positive_reduction.rs"] mod false_positive_reduction;
 #[path = "integration/intensity_grading.rs"] mod intensity_grading;
+#[path = "integration/cfg_construction.rs"] mod cfg_construction;
 #[path = "integration/audit_abstractness.rs"] mod audit_abstractness;
 #[path = "integration/audit_ws1_stats.rs"] mod audit_ws1_stats;
 #[path = "integration/audit_call_extraction_clean.rs"] mod audit_call_extraction_clean;

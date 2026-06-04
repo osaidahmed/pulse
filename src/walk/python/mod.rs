@@ -146,6 +146,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         } else {
             (0, 0, 0, 0, 0, 0, 0)
         };
+    let cpg = super::cpg_for(body, node, &crate::cpg::PYTHON);
 
     Some(FunctionMetrics {
         name,
@@ -175,7 +176,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         parent_class: None,
         short_var_count,
         string_match_arms,
-        cpg: None,
+        cpg,
     })
 }
 

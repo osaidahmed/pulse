@@ -57,8 +57,9 @@ pub fn analyze_source(
     cfg: Option<&config::PulseConfig>,
     opts: ScanOptions,
 ) -> Option<AnalysisResultFull> {
-    let metrics = parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range)?;
     let thresholds = config::resolve_thresholds(cfg, lang);
+    let metrics =
+        parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range, thresholds.cpg.enabled)?;
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);
     config::filter_disabled(&mut findings, &disabled);

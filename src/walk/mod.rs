@@ -36,8 +36,8 @@ pub use fingerprint::{
 };
 pub use shared::is_catch_body_empty;
 
-pub use guards::with_edit_scope;
-pub(crate) use guards::{extras_enabled, DepthGuard};
+pub use guards::{with_cpg_enabled, with_edit_scope};
+pub(crate) use guards::{cpg_enabled, extras_enabled, DepthGuard};
 
 use tree_sitter::Node;
 
@@ -105,6 +105,20 @@ fn update_max(current: &mut u32, new: u32) {
     if new > *current {
         *current = new;
     }
+}
+
+pub(crate) fn cpg_for(
+    body: Node,
+    fn_node: Node,
+    lang: &crate::cpg::CfgLang,
+) -> Option<crate::cpg::CpgMetrics> {
+    if !cpg_enabled() || !extras_enabled(fn_node.start_byte(), fn_node.end_byte()) {
+        return None;
+    }
+    Some(crate::cpg::CpgMetrics {
+        cfg: crate::cpg::build_cfg(body, lang),
+        ..Default::default()
+    })
 }
 
 pub fn track_embedded_block(max: &mut u32, node: Node) {
