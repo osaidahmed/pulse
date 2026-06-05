@@ -250,6 +250,10 @@ fn dispatch_known_variants_human(
         super::output_taint::write_injection(out, e, root, action);
         return true;
     }
+    if let AuditKind::NearDuplicate(e) = &f.kind {
+        super::output_clones::write_clone(out, e, root, t, action);
+        return true;
+    }
     let ctx = WriterCtx { root, confidence_str, display_path, action };
     super::output_named_smells::dispatch_human(out, &f.kind, &ctx)
 }
@@ -306,6 +310,9 @@ fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option
     }
     if let AuditKind::InjectionShape(e) = &f.kind {
         return Some(super::output_taint::injection_json(e, root));
+    }
+    if let AuditKind::NearDuplicate(e) = &f.kind {
+        return Some(super::output_clones::clone_json(e, root));
     }
     None
 }

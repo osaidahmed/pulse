@@ -3,6 +3,7 @@ pub struct CloneClusterThresholds {
     pub max_sim_threshold: u32,
     pub min_cluster_size: u32,
     pub loc_window_pct: u32,
+    pub min_loc: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -30,6 +31,7 @@ impl CloneClusterThresholds {
         max_sim_threshold: 12,
         min_cluster_size: 2,
         loc_window_pct: 30,
+        min_loc: 6,
     };
 }
 

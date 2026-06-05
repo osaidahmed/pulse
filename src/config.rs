@@ -57,8 +57,6 @@ pub struct ConfigThresholds {
     #[serde(flatten)]
     pub duplication: DuplicationThresholds,
     #[serde(default)]
-    pub clone_cluster: CloneClusterConfig,
-    #[serde(default)]
     pub cpg: CpgConfig,
     #[serde(default)]
     pub naturalness: NaturalnessConfig,
@@ -72,13 +70,6 @@ pub struct DuplicationThresholds {
     pub duplication_min_distinct_kinds: Option<u32>,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct CloneClusterConfig {
-    pub max_sim_threshold: Option<u32>,
-    pub min_cluster_size: Option<u32>,
-    pub loc_window_pct: Option<u32>,
-}
 
 #[derive(Debug, Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]

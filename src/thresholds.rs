@@ -45,7 +45,6 @@ pub struct ModuleThresholds {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AnalysisThresholds {
     pub duplication: DuplicationThresholds,
-    pub clone_cluster: CloneClusterThresholds,
     pub consecutive_asserts_max: u32,
     pub primitive_ratio_threshold: f32,
     pub primitive_min_typed_params: u32,
@@ -72,6 +71,7 @@ pub struct AuditThresholds {
     pub package_metrics: PackageMetricsThresholds,
     pub named_smells: NamedSmellThresholds,
     pub taint: TaintThresholds,
+    pub clone_cluster: CloneClusterThresholds,
     pub max_locations_per_finding: usize,
 }
 
@@ -206,7 +206,6 @@ impl ModuleThresholds {
 impl AnalysisThresholds {
     pub const DEFAULTS: Self = Self {
         duplication: DuplicationThresholds::DEFAULTS,
-        clone_cluster: CloneClusterThresholds::DEFAULTS,
         consecutive_asserts_max: 10,
         primitive_ratio_threshold: 0.7,
         primitive_min_typed_params: 4,
@@ -345,6 +344,7 @@ impl AuditThresholds {
         package_metrics: PackageMetricsThresholds::DEFAULTS,
         named_smells: NamedSmellThresholds::DEFAULTS,
         taint: TaintThresholds::DEFAULTS,
+        clone_cluster: CloneClusterThresholds::DEFAULTS,
         max_locations_per_finding: 10,
     };
 }

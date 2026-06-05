@@ -391,7 +391,7 @@ fn cpg_and_naturalness_default_off() {
     assert!(!resolved.naturalness.enabled);
     assert_eq!(resolved.cpg, t().cpg);
     assert_eq!(resolved.naturalness, t().naturalness);
-    assert_eq!(resolved.analysis.clone_cluster, t().analysis.clone_cluster);
+    assert_eq!(resolved.audit.clone_cluster, t().audit.clone_cluster);
 }
 
 #[test]
@@ -412,14 +412,12 @@ fn cpg_section_overrides_flags() {
 }
 
 #[test]
-fn naturalness_and_clone_sections_override() {
+fn naturalness_section_overrides() {
     let cfg: PulseConfig = toml::from_str(
         r"
         [thresholds.naturalness]
         enabled = true
         ngram_order = 4
-        [thresholds.clone_cluster]
-        max_sim_threshold = 8
         ",
     )
     .unwrap();
@@ -427,5 +425,4 @@ fn naturalness_and_clone_sections_override() {
     assert!(resolved.naturalness.enabled);
     assert_eq!(resolved.naturalness.ngram_order, 4);
     assert_eq!(resolved.naturalness.cache_k, t().naturalness.cache_k);
-    assert_eq!(resolved.analysis.clone_cluster.max_sim_threshold, 8);
 }

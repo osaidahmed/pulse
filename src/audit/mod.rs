@@ -12,6 +12,7 @@ pub mod complexity_floor;
 pub mod confidence;
 pub mod corpus_stats;
 pub mod cycles;
+pub mod duplication_clusters;
 pub mod expression_filter;
 pub mod definitions;
 pub mod detector_divergent_change;
@@ -40,6 +41,7 @@ pub mod output_grouped;
 pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
+pub mod output_clones;
 pub mod output_sections;
 pub mod output_taint;
 pub mod package_metrics;
@@ -91,6 +93,7 @@ pub enum AuditPass {
     PackageMetrics,
     NamedSmells,
     Taint,
+    Clones,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -100,6 +103,7 @@ pub enum PassChoice {
     PackageMetrics,
     NamedSmells,
     Taint,
+    Clones,
     All,
 }
 
@@ -138,6 +142,9 @@ pub fn run_with_filter(
     if passes.contains(&AuditPass::Taint) {
         findings.extend(taint::run(&typed_files, thresholds));
     }
+    if passes.contains(&AuditPass::Clones) {
+        findings.extend(duplication_clusters::run(&typed_files, thresholds));
+    }
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
@@ -158,6 +165,7 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {
         Some(PassChoice::PackageMetrics) => vec![AuditPass::PackageMetrics],
         Some(PassChoice::NamedSmells) => vec![AuditPass::NamedSmells],
         Some(PassChoice::Taint) => vec![AuditPass::Taint],
+        Some(PassChoice::Clones) => vec![AuditPass::Clones],
         Some(PassChoice::All) | None => vec![
             AuditPass::PatternMining,
             AuditPass::PackageMetrics,

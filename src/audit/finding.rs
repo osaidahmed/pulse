@@ -19,6 +19,16 @@ pub enum AuditKind {
     ParallelInheritance(ParallelInheritanceEvidence),
     RefusedBequest(RefusedBequestEvidence),
     InjectionShape(InjectionEvidence),
+    NearDuplicate(CloneClusterEvidence),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CloneClusterEvidence {
+    pub members: Vec<AuditLocation>,
+    pub member_count: u32,
+    pub max_loc: u32,
+    pub representative: String,
+    pub confidence: ImportConfidence,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -246,10 +256,11 @@ pub enum AuditPillar {
     Architecture,
     ClassSmells,
     Security,
+    Duplication,
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 11] = [
+const VARIANT_TABLE: [VariantInfo; 12] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -338,6 +349,14 @@ const VARIANT_TABLE: [VariantInfo; 11] = [
         label: "Injection shape",
         pillar: AuditPillar::Security,
     },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::NearDuplicate(_)),
+        pass: "clones",
+        slug: "near_duplicate",
+        action: "extract the shared fragment into a single reusable definition",
+        label: "Near-duplicate clones",
+        pillar: AuditPillar::Duplication,
+    },
 ];
 
 pub fn kind_label(kind: &AuditKind) -> &'static str {
@@ -373,7 +392,9 @@ pub fn finding_confidence(f: &AuditFinding) -> ImportConfidence {
 }
 
 fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    package_metric_confidence(kind).or_else(|| named_smell_confidence(kind))
+    package_metric_confidence(kind)
+        .or_else(|| named_smell_confidence(kind))
+        .or_else(|| advisory_confidence(kind))
 }
 
 fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
@@ -397,7 +418,14 @@ fn named_smell_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
         AuditKind::GodClass(e) => Some(e.confidence),
         AuditKind::ParallelInheritance(e) => Some(e.confidence),
         AuditKind::RefusedBequest(e) => Some(e.confidence),
+        _ => None,
+    }
+}
+
+fn advisory_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
+    match kind {
         AuditKind::InjectionShape(e) => Some(e.confidence),
+        AuditKind::NearDuplicate(e) => Some(e.confidence),
         _ => None,
     }
 }

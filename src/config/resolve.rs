@@ -1,10 +1,7 @@
 use crate::parse::Language;
 use crate::thresholds::Thresholds;
 
-use super::{
-    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig,
-    PulseConfig,
-};
+use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig, PulseConfig};
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
     let base = Thresholds::default();
@@ -58,7 +55,6 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         analysis: crate::thresholds::AnalysisThresholds {
             duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
-            clone_cluster: resolve_clone_cluster(&o.clone_cluster, &base.analysis.clone_cluster),
             consecutive_asserts_max: a
                 .consecutive_asserts_max
                 .unwrap_or(ba.consecutive_asserts_max),
@@ -97,11 +93,6 @@ macro_rules! field_resolvers {
 }
 
 field_resolvers! {
-    fn resolve_clone_cluster(CloneClusterConfig => crate::thresholds::CloneClusterThresholds) {
-        max_sim_threshold <- max_sim_threshold,
-        min_cluster_size <- min_cluster_size,
-        loc_window_pct <- loc_window_pct,
-    }
     fn resolve_cpg(CpgConfig => crate::thresholds::CpgThresholds) {
         enabled <- enabled,
         dead_store <- dead_store,

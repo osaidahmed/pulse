@@ -29,9 +29,7 @@ pub struct SubtreeRecord {
     pub named_node_count: u32,
     pub snippet: String,
     pub shape: ShapeMetrics,
-    #[allow(dead_code)]
     pub simhash: u64,
-    #[allow(dead_code)]
     pub loc: u32,
 }
 
