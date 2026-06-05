@@ -22,10 +22,12 @@ pub enum AuditKind {
     NearDuplicate(CloneClusterEvidence),
     UnnaturalCode(NaturalnessEvidence),
     VulnerableCloneSibling(VulnCloneEvidence),
+    UnstableDependency(UnstableDepEvidence),
 }
 
 pub use super::finding_evidence::{
-    CloneClusterEvidence, InjectionEvidence, NaturalnessEvidence, VulnCloneEvidence,
+    CloneClusterEvidence, InjectionEvidence, NaturalnessEvidence, UnstableDepEvidence,
+    VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -255,7 +257,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 14] = [
+const VARIANT_TABLE: [VariantInfo; 15] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -278,6 +280,14 @@ const VARIANT_TABLE: [VariantInfo; 14] = [
         slug: "import_cycle",
         action: "break by hoisting shared symbols to a leaf module",
         label: "Import cycles",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::UnstableDependency(_)),
+        pass: "package-metrics",
+        slug: "unstable_dependency",
+        action: "depend on more stable components or invert the unstable dependencies",
+        label: "Unstable dependency",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -417,6 +427,9 @@ fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
     }
     if matches!(kind, AuditKind::ZeroEdgeProject { .. }) {
         return Some(ImportConfidence::Medium);
+    }
+    if let AuditKind::UnstableDependency(e) = kind {
+        return Some(e.confidence);
     }
     None
 }

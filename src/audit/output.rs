@@ -13,7 +13,8 @@ use super::output_helpers::{
 };
 use super::output_named_smells::WriterCtx;
 use super::output_package_metrics::{
-    cycle_json, martin_json, write_cycle, write_martin, write_zero_edge, zero_edge_json,
+    cycle_json, martin_json, unstable_json, write_cycle, write_martin, write_unstable,
+    write_zero_edge, zero_edge_json,
 };
 
 pub fn format_findings(
@@ -246,6 +247,10 @@ fn dispatch_known_variants_human(
         write_shotgun(out, e, root, t, action);
         return true;
     }
+    if let AuditKind::UnstableDependency(e) = &f.kind {
+        write_unstable(out, e, root, action);
+        return true;
+    }
     if super::output_advisory::dispatch_human(out, f, root, t, action) {
         return true;
     }
@@ -302,6 +307,9 @@ fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option
     }
     if let AuditKind::ShotgunSurgery(e) = &f.kind {
         return Some(shotgun_json(e, root));
+    }
+    if let AuditKind::UnstableDependency(e) = &f.kind {
+        return Some(unstable_json(e, root));
     }
     if let Some(v) = super::output_advisory::dispatch_json(f, root) {
         return Some(v);

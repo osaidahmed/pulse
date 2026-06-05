@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::thresholds::AuditThresholds;
 
-use super::finding::{CycleMembership, MartinMetrics, MartinTier};
+use super::finding::{CycleMembership, MartinMetrics, MartinTier, UnstableDepEvidence};
 use super::output_helpers::{confidence_str, display_path, write_capped_list, ListLayout};
 
 fn write_action_row(out: &mut String, action: &str) {
@@ -60,6 +60,33 @@ pub fn write_cycle(
     let _ = writeln!(out, "  confidence:    {}", confidence_str(c.confidence));
     write_action_row(out, action);
     let _ = writeln!(out);
+}
+
+pub fn write_unstable(out: &mut String, e: &UnstableDepEvidence, root: Option<&Path>, action: &'static str) {
+    let _ = writeln!(out, "audit: unstable dependency — {}", display_path(&e.component, root));
+    let _ = writeln!(out, "  instability:   {:.3}", e.instability);
+    let _ = writeln!(
+        out,
+        "  strength:      {:.3} ({} of {} deps less stable)",
+        e.strength, e.unstable_deps, e.total_deps
+    );
+    let _ = writeln!(out, "  gap:           {:.3}", e.gap);
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    write_action_row(out, action);
+    let _ = writeln!(out);
+}
+
+pub fn unstable_json(e: &UnstableDepEvidence, root: Option<&Path>) -> serde_json::Value {
+    serde_json::json!({
+        "kind": "UnstableDependency",
+        "component": display_path(&e.component, root),
+        "instability": e.instability,
+        "strength": e.strength,
+        "gap": e.gap,
+        "unstable_deps": e.unstable_deps,
+        "total_deps": e.total_deps,
+        "confidence": confidence_str(e.confidence),
+    })
 }
 
 pub fn write_zero_edge(out: &mut String, module_count: u32, action: &'static str) {

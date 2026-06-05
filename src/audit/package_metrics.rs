@@ -37,7 +37,17 @@ pub fn run_with_module_count(
     let mut findings: Vec<AuditFinding> = Vec::new();
     findings.extend(martin_findings(&graph, &profile_lookup, thresholds));
     findings.extend(cycle_findings(&graph, &profile_lookup, thresholds));
+    findings.extend(arch_findings(&graph, &profile_lookup, thresholds));
     findings
+}
+
+fn arch_findings(
+    graph: &ImportGraph,
+    profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
+    thresholds: &AuditThresholds,
+) -> Vec<AuditFinding> {
+    let cg = super::components::build(graph, |path| profile_lookup(path).abstractness.abstractness);
+    super::arch_smells::unstable_dependencies(&cg, thresholds)
 }
 
 fn zero_edge_finding(module_count: u32) -> Vec<AuditFinding> {

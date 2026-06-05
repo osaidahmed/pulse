@@ -35,6 +35,17 @@ pub struct NaturalnessEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct UnstableDepEvidence {
+    pub component: PathBuf,
+    pub instability: f64,
+    pub strength: f64,
+    pub gap: f64,
+    pub unstable_deps: u32,
+    pub total_deps: u32,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct VulnCloneEvidence {
     pub file: PathBuf,
     pub line: u32,
