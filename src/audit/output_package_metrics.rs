@@ -34,7 +34,12 @@ pub fn write_cycle(
     t: &AuditThresholds,
     action: &'static str,
 ) {
-    let _ = writeln!(out, "audit: import cycle (size {})", c.members.len());
+    let _ = writeln!(
+        out,
+        "audit: import cycle (size {}, {} shape)",
+        c.members.len(),
+        super::cycle_shapes::shape_label(c.shape)
+    );
     let members_layout = ListLayout {
         prefix_first: "  members:       ",
         prefix_rest: "                 ",
@@ -96,6 +101,7 @@ pub fn cycle_json(c: &CycleMembership, root: Option<&Path>) -> serde_json::Value
     serde_json::json!({
         "kind": "ImportCycle",
         "size": c.members.len(),
+        "shape": super::cycle_shapes::shape_label(c.shape),
         "members": members,
         "edges": edges,
         "confidence": confidence_str(c.confidence),

@@ -77,6 +77,7 @@ mod history_common;
 #[path = "integration/audit_clones.rs"] mod audit_clones;
 #[path = "integration/audit_naturalness.rs"] mod audit_naturalness;
 #[path = "integration/audit_vuln_clones.rs"] mod audit_vuln_clones;
+#[path = "integration/audit_cycle_shapes.rs"] mod audit_cycle_shapes;
 #[path = "integration/audit_parallel_inheritance.rs"] mod audit_parallel_inheritance;
 #[path = "integration/audit_parallel_inheritance_extended.rs"] mod audit_parallel_inheritance_extended;
 #[path = "integration/audit_per_language_deep.rs"] mod audit_per_language_deep;

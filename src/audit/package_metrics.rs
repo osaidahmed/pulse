@@ -2,9 +2,10 @@ use std::path::PathBuf;
 
 use crate::thresholds::AuditThresholds;
 
+use super::cycle_shapes;
 use super::cycles::{find_cycles, Scc};
 use super::finding::{
-    AuditFinding, AuditKind, AuditLocation, CycleMembership, ImportConfidence, MartinTier,
+    AuditFinding, AuditKind, AuditLocation, CycleMembership, CycleShape, ImportConfidence, MartinTier,
 };
 use super::graph::{ImportGraph, InputEdge, NodeIndex};
 use super::martin::{compute, AbstractnessRecord};
@@ -103,17 +104,30 @@ fn cycle_findings(
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let mut sccs = find_cycles(graph, thresholds.package_metrics.martin_cycle_min_size);
-    sccs.sort_by(|a, b| b.members.len().cmp(&a.members.len()));
-    sccs.truncate(thresholds.package_metrics.max_cycle_findings_reported);
-    sccs.into_iter()
-        .map(|scc| cycle_finding(graph, scc, profile_lookup))
+    let sccs = find_cycles(graph, thresholds.package_metrics.martin_cycle_min_size);
+    let mut shaped: Vec<(Scc, CycleShape)> = sccs
+        .into_iter()
+        .map(|scc| {
+            let shape = cycle_shapes::classify(&scc.members, &scc.edges);
+            (scc, shape)
+        })
+        .collect();
+    shaped.sort_by(|a, b| cycle_severity(b).partial_cmp(&cycle_severity(a)).unwrap_or(std::cmp::Ordering::Equal));
+    shaped.truncate(thresholds.package_metrics.max_cycle_findings_reported);
+    shaped
+        .into_iter()
+        .map(|(scc, shape)| cycle_finding(graph, scc, shape, profile_lookup))
         .collect()
+}
+
+fn cycle_severity(item: &(Scc, CycleShape)) -> f64 {
+    cycle_shapes::shape_weight(item.1) * item.0.members.len() as f64
 }
 
 fn cycle_finding(
     graph: &ImportGraph,
     scc: Scc,
+    shape: CycleShape,
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
 ) -> AuditFinding {
     let members: Vec<PathBuf> = scc
@@ -143,7 +157,7 @@ fn cycle_finding(
     let support = edges.len() as u32;
     let file_count = members.len() as u32;
     AuditFinding {
-        kind: AuditKind::ImportCycle(CycleMembership { members, edges, confidence }),
+        kind: AuditKind::ImportCycle(CycleMembership { members, edges, confidence, shape }),
         representative_snippet: format!("cycle of {file_count} modules"),
         support,
         file_count,

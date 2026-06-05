@@ -127,6 +127,16 @@ pub struct CycleMembership {
     pub members: Vec<PathBuf>,
     pub edges: Vec<(PathBuf, PathBuf)>,
     pub confidence: ImportConfidence,
+    pub shape: CycleShape,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CycleShape {
+    Tiny,
+    Circle,
+    Chain,
+    Star,
+    Clique,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
