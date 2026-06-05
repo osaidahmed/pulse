@@ -156,7 +156,6 @@ mod metrics {
         pub parent_class: Option<String>,
         pub short_var_count: u32,
         pub string_match_arms: u32,
-        #[allow(dead_code)]
         pub cpg: Option<crate::cpg::CpgMetrics>,
     }
 }

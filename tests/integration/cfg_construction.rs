@@ -3,6 +3,7 @@ use pulse::config::PulseConfig;
 use pulse::cpg::cfg::{Cfg, EdgeLabel, NodeKind};
 use pulse::cpg::defuse::{DefUse, DefUseRecord};
 use pulse::parse::Language;
+use pulse::smells::{Finding, Smell};
 
 fn cpg_config() -> PulseConfig {
     toml::from_str("[thresholds.cpg]\nenabled = true\n").unwrap()
@@ -161,6 +162,73 @@ fn def_use_empty_when_cpg_disabled() {
     let result = analyze_source("t.py", src, Language::Python, None, ScanOptions::check()).unwrap();
     let func = result.metrics.functions.iter().find(|f| f.name == "f").unwrap();
     assert!(func.cpg.is_none());
+}
+
+fn smells_of(src: &str, lang: Language, ext: &str) -> Vec<Finding> {
+    let cfg = cpg_config();
+    analyze_source(&format!("t.{ext}"), src, lang, Some(&cfg), ScanOptions::check())
+        .expect("analyze")
+        .findings
+}
+
+fn has_finding(findings: &[Finding], smell: Smell) -> bool {
+    findings.iter().any(|f| f.smell == smell)
+}
+
+#[test]
+fn unreachable_code_after_return_flagged() {
+    let f = smells_of("def f():\n    return 1\n    dead = 2\n", Language::Python, "py");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn dead_store_flagged_on_redefinition_without_use() {
+    let f = smells_of("def f():\n    x = 1\n    x = 2\n    return x\n", Language::Python, "py");
+    assert!(has_finding(&f, Smell::DeadStore), "{f:?}");
+}
+
+#[test]
+fn use_before_def_flagged() {
+    let f = smells_of("def f():\n    print(x)\n    x = 1\n", Language::Python, "py");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn clean_function_has_no_cpg_smells() {
+    let f = smells_of("def f(a):\n    x = a + 1\n    return x\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn param_use_is_not_use_before_def() {
+    let f = smells_of("def f(a, b):\n    return a + b\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "params are defined: {f:?}");
+}
+
+#[test]
+fn cpg_smells_off_when_disabled() {
+    let findings =
+        analyze_source("t.py", "def f():\n    return 1\n    dead = 2\n", Language::Python, None, ScanOptions::check())
+            .unwrap()
+            .findings;
+    assert!(!has_finding(&findings, Smell::UnreachableCode));
+}
+
+#[test]
+fn smell_arrays_are_index_aligned() {
+    for (i, &s) in pulse::smells::ALL_SMELLS.iter().enumerate() {
+        assert_eq!(s as usize, i, "ALL_SMELLS discriminant order broken at {i}");
+        assert!(!s.as_str().is_empty(), "{s:?} display name");
+        assert!(!s.snake_name().is_empty(), "{s:?} snake name");
+        assert!(!pulse::output::action_for(s, "").is_empty(), "{s:?} action");
+        assert_eq!(
+            pulse::smells::smell_from_snake_case(s.snake_name()),
+            Some(s),
+            "{s:?} snake round-trip"
+        );
+    }
 }
 
 #[test]

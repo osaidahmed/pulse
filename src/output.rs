@@ -130,9 +130,12 @@ const ACTIONS: &[&str] = &[
     "group related fields into smaller structs or use composition",
     "use descriptive names that convey purpose",
     "replace string matching with an enum for type safety",
+    "remove the dead assignment or use its value before reassigning",
+    "define the variable before it is read on every path",
+    "remove the unreachable code or fix the control flow that skips it",
 ];
 
-fn action_for(smell: Smell, detail: &str) -> &'static str {
+pub fn action_for(smell: Smell, detail: &str) -> &'static str {
     if smell == Smell::CodeDuplication && detail.contains("similar structure") {
         return "restructure to reduce structural similarity";
     }

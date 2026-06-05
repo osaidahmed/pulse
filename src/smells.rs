@@ -34,6 +34,9 @@ pub enum Smell {
     LargeStruct,
     ShortVariableNames,
     StringlyTypedSwitch,
+    DeadStore,
+    UseBeforeDef,
+    UnreachableCode,
 }
 
 const SMELL_NAMES: &[&str] = &[
@@ -63,6 +66,9 @@ const SMELL_NAMES: &[&str] = &[
     "Large Struct",
     "Short Variable Names",
     "Stringly-Typed Switch",
+    "Dead Store",
+    "Use Before Definition",
+    "Unreachable Code",
 ];
 
 const SMELL_SNAKE_NAMES: &[&str] = &[
@@ -92,9 +98,12 @@ const SMELL_SNAKE_NAMES: &[&str] = &[
     "large_struct",
     "short_variable_names",
     "stringly_typed_switch",
+    "dead_store",
+    "use_before_def",
+    "unreachable_code",
 ];
 
-const ALL_SMELLS: &[Smell] = &[
+pub const ALL_SMELLS: &[Smell] = &[
     Smell::GodMethod,
     Smell::ComplexMethod,
     Smell::LargeMethod,
@@ -121,11 +130,19 @@ const ALL_SMELLS: &[Smell] = &[
     Smell::LargeStruct,
     Smell::ShortVariableNames,
     Smell::StringlyTypedSwitch,
+    Smell::DeadStore,
+    Smell::UseBeforeDef,
+    Smell::UnreachableCode,
 ];
 
 impl Smell {
     pub fn as_str(self) -> &'static str {
         SMELL_NAMES[self as usize]
+    }
+
+    #[allow(dead_code)]
+    pub fn snake_name(self) -> &'static str {
+        SMELL_SNAKE_NAMES[self as usize]
     }
 }
 
@@ -175,6 +192,10 @@ pub fn detect(metrics: &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Findi
     module_smells::detect_duplicated_assertion_blocks(&metrics.functions, &mut findings);
     module_smells::detect_lcom4(&metrics.functions, t, &mut findings);
     detect_empty_error_handlers(&metrics.functions, &mut findings);
+
+    if t.cpg.enabled {
+        crate::cpg::detect_all(&metrics.functions, t, &mut findings);
+    }
 
     findings
 }
