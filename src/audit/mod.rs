@@ -42,16 +42,19 @@ pub mod output_grouped;
 pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
+pub mod output_advisory;
 pub mod output_clones;
 pub mod output_naturalness;
 pub mod output_sections;
 pub mod output_taint;
+pub mod output_vuln_clones;
 pub mod package_metrics;
 pub mod record_extraction;
 pub mod scoring;
 pub mod swap_significance;
 pub mod taint;
 pub mod vendor_filter;
+pub mod vuln_clones;
 pub mod walker;
 
 use std::path::{Path, PathBuf};
@@ -89,16 +92,6 @@ impl<'a> IgnoreFilter<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AuditPass {
-    PatternMining,
-    PackageMetrics,
-    NamedSmells,
-    Taint,
-    Clones,
-    Naturalness,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 #[clap(rename_all = "kebab-case")]
 pub enum PassChoice {
@@ -108,6 +101,7 @@ pub enum PassChoice {
     Taint,
     Clones,
     Naturalness,
+    VulnClones,
     All,
 }
 
@@ -134,23 +128,26 @@ pub fn run_with_filter(
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let passes = active_passes(opts.pass);
     let mut findings: Vec<AuditFinding> = Vec::new();
-    if passes.contains(&AuditPass::PatternMining) {
+    if passes.contains(&PassChoice::PatternMining) {
         findings.extend(run_pattern_mining(&typed_files, thresholds));
     }
-    if passes.contains(&AuditPass::PackageMetrics) {
+    if passes.contains(&PassChoice::PackageMetrics) {
         findings.extend(run_package_metrics(&typed_files, &opts.root, thresholds));
     }
-    if passes.contains(&AuditPass::NamedSmells) {
+    if passes.contains(&PassChoice::NamedSmells) {
         findings.extend(named_smells::run(&typed_files, &opts.root, thresholds));
     }
-    if passes.contains(&AuditPass::Taint) {
+    if passes.contains(&PassChoice::Taint) {
         findings.extend(taint::run(&typed_files, thresholds));
     }
-    if passes.contains(&AuditPass::Clones) {
+    if passes.contains(&PassChoice::Clones) {
         findings.extend(duplication_clusters::run(&typed_files, thresholds));
     }
-    if passes.contains(&AuditPass::Naturalness) {
+    if passes.contains(&PassChoice::Naturalness) {
         findings.extend(crate::naturalness::run(&typed_files, thresholds));
+    }
+    if passes.contains(&PassChoice::VulnClones) {
+        findings.extend(vuln_clones::run(&typed_files, thresholds));
     }
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
@@ -166,19 +163,12 @@ fn populate_action_labels(findings: &mut [AuditFinding]) {
     }
 }
 
-pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {
+pub fn active_passes(pass: Option<PassChoice>) -> Vec<PassChoice> {
     match pass {
-        Some(PassChoice::PatternMining) => vec![AuditPass::PatternMining],
-        Some(PassChoice::PackageMetrics) => vec![AuditPass::PackageMetrics],
-        Some(PassChoice::NamedSmells) => vec![AuditPass::NamedSmells],
-        Some(PassChoice::Taint) => vec![AuditPass::Taint],
-        Some(PassChoice::Clones) => vec![AuditPass::Clones],
-        Some(PassChoice::Naturalness) => vec![AuditPass::Naturalness],
-        Some(PassChoice::All) | None => vec![
-            AuditPass::PatternMining,
-            AuditPass::PackageMetrics,
-            AuditPass::NamedSmells,
-        ],
+        Some(PassChoice::All) | None => {
+            vec![PassChoice::PatternMining, PassChoice::PackageMetrics, PassChoice::NamedSmells]
+        }
+        Some(choice) => vec![choice],
     }
 }
 

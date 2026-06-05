@@ -33,3 +33,13 @@ pub struct NaturalnessEvidence {
     pub zscore: f64,
     pub confidence: ImportConfidence,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VulnCloneEvidence {
+    pub file: PathBuf,
+    pub line: u32,
+    pub vuln_file: PathBuf,
+    pub vuln_line: u32,
+    pub sink_name: String,
+    pub confidence: ImportConfidence,
+}

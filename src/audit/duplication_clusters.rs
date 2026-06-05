@@ -16,6 +16,13 @@ struct Candidate {
     snippet: String,
 }
 
+#[derive(Clone)]
+pub struct CloneMember {
+    pub file: PathBuf,
+    pub line: u32,
+    pub loc: u32,
+}
+
 struct UnionFind {
     parent: Vec<usize>,
     rank: Vec<u8>,
@@ -62,6 +69,22 @@ pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) ->
     cluster(&cands, thr)
         .iter()
         .map(|group| build_finding(&cands, group, thresholds))
+        .collect()
+}
+
+pub fn cluster_members(
+    typed_files: &[(PathBuf, Language)],
+    thresholds: &AuditThresholds,
+) -> Vec<Vec<CloneMember>> {
+    let cands = candidates(typed_files, thresholds);
+    cluster(&cands, &thresholds.clone_cluster)
+        .iter()
+        .map(|group| {
+            group
+                .iter()
+                .map(|&i| CloneMember { file: cands[i].file.clone(), line: cands[i].line, loc: cands[i].loc })
+                .collect()
+        })
         .collect()
 }
 

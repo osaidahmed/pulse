@@ -21,9 +21,12 @@ pub enum AuditKind {
     InjectionShape(InjectionEvidence),
     NearDuplicate(CloneClusterEvidence),
     UnnaturalCode(NaturalnessEvidence),
+    VulnerableCloneSibling(VulnCloneEvidence),
 }
 
-pub use super::finding_evidence::{CloneClusterEvidence, InjectionEvidence, NaturalnessEvidence};
+pub use super::finding_evidence::{
+    CloneClusterEvidence, InjectionEvidence, NaturalnessEvidence, VulnCloneEvidence,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DivergentChangeEvidence {
@@ -242,7 +245,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 13] = [
+const VARIANT_TABLE: [VariantInfo; 14] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -347,6 +350,14 @@ const VARIANT_TABLE: [VariantInfo; 13] = [
         label: "Unnatural code",
         pillar: AuditPillar::Naturalness,
     },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::VulnerableCloneSibling(_)),
+        pass: "vuln-clones",
+        slug: "vulnerable_clone_sibling",
+        action: "audit this clone for the same tainted-input flow as its vulnerable sibling",
+        label: "Vulnerable clone sibling",
+        pillar: AuditPillar::Security,
+    },
 ];
 
 pub fn kind_label(kind: &AuditKind) -> &'static str {
@@ -400,26 +411,24 @@ fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
     None
 }
 
-fn named_smell_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    match kind {
-        AuditKind::ShotgunSurgery(e) => Some(e.confidence),
-        AuditKind::DivergentChange(e) => Some(e.confidence),
-        AuditKind::FeatureEnvy(e) => Some(e.confidence),
-        AuditKind::GodClass(e) => Some(e.confidence),
-        AuditKind::ParallelInheritance(e) => Some(e.confidence),
-        AuditKind::RefusedBequest(e) => Some(e.confidence),
-        _ => None,
-    }
+macro_rules! confidence_lookup {
+    ($name:ident { $($variant:ident),+ $(,)? }) => {
+        fn $name(kind: &AuditKind) -> Option<ImportConfidence> {
+            match kind {
+                $( AuditKind::$variant(e) => Some(e.confidence), )+
+                _ => None,
+            }
+        }
+    };
 }
 
-fn advisory_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    match kind {
-        AuditKind::InjectionShape(e) => Some(e.confidence),
-        AuditKind::NearDuplicate(e) => Some(e.confidence),
-        AuditKind::UnnaturalCode(e) => Some(e.confidence),
-        _ => None,
-    }
-}
+confidence_lookup!(named_smell_confidence {
+    ShotgunSurgery, DivergentChange, FeatureEnvy, GodClass, ParallelInheritance, RefusedBequest
+});
+
+confidence_lookup!(advisory_confidence {
+    InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling
+});
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);
