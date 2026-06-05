@@ -219,7 +219,8 @@ impl Builder<'_> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
         self.record_cond(node, p);
-        let then_end = self.branch(node.child_by_field_name("consequence"), p, EdgeLabel::True);
+        let then_end =
+            self.seq_opt_block(node.child_by_field_name("consequence"), Some((p, EdgeLabel::True)));
         let alt = node.child_by_field_name("alternative");
         let else_end = match alt {
             Some(a) => self.do_else(a, p),
@@ -239,10 +240,10 @@ impl Builder<'_> {
         Some(merge)
     }
 
-    fn branch(&mut self, block: Option<Node>, p: u32, label: EdgeLabel) -> Option<u32> {
+    fn seq_opt_block(&mut self, block: Option<Node>, incoming: Incoming) -> Option<u32> {
         match block {
-            Some(b) => self.seq(b, Some((p, label))),
-            None => Some(p),
+            Some(b) => self.seq(b, incoming),
+            None => incoming.map(|(id, _)| id),
         }
     }
 
@@ -279,28 +280,42 @@ impl Builder<'_> {
         Some(after)
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     fn do_try(&mut self, node: Node, incoming: Incoming) -> Option<u32> {
         let entry = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, entry);
         let after = self.add(NodeKind::Stmt, end_line(node));
-        if let Some(b) = node.child_by_field_name("body") {
-            if let Some(e) = self.seq(b, Some((entry, EdgeLabel::Epsilon))) {
-                self.edge(e, after, EdgeLabel::Epsilon);
-            }
-        }
+        let body_end = node
+            .child_by_field_name("body")
+            .map_or(Some(entry), |b| self.seq(b, Some((entry, EdgeLabel::Epsilon))));
+        let mut normal = body_end;
+        let mut finalizer = None;
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if self.lang.handler_kinds.contains(&child.kind()) {
-                self.handler(child, entry, after);
+            let k = child.kind();
+            if self.lang.handler_kinds.contains(&k) {
+                self.handler(child, entry, body_end, after);
+            } else if k == "else_clause" {
+                let inc = normal.map(|n| (n, EdgeLabel::Epsilon));
+                normal = self.seq_opt_block(find_child_by_kind(child, "block"), inc);
+            } else if k == "finally_clause" {
+                finalizer = Some(child);
             }
         }
-        Some(after)
+        if let Some(e) = normal {
+            self.edge(e, after, EdgeLabel::Epsilon);
+        }
+        match finalizer {
+            Some(fc) => self.seq_opt_block(find_child_by_kind(fc, "block"), Some((after, EdgeLabel::Epsilon))),
+            None => Some(after),
+        }
     }
 
-    fn handler(&mut self, child: Node, entry: u32, after: u32) {
+    fn handler(&mut self, child: Node, entry: u32, body_end: Option<u32>, after: u32) {
         let h = self.add(NodeKind::Handler, line(child));
         self.edge(entry, h, EdgeLabel::ToHandler);
+        if let Some(b) = body_end {
+            self.edge(b, h, EdgeLabel::ToHandler);
+        }
         if let Some(hb) = find_child_by_kind(child, "block") {
             if let Some(e) = self.seq(hb, Some((h, EdgeLabel::Epsilon))) {
                 self.edge(e, after, EdgeLabel::Epsilon);

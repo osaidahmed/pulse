@@ -62,13 +62,27 @@ pub(crate) fn loop_header(
 
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     if let Some(l) = binding_left(node) {
-        push_idents(l, source, block, DefUse::Def, out);
-        if lang.aug_kinds.contains(&node.kind()) {
-            push_idents(l, source, block, DefUse::Use, out);
+        if is_field_or_index_target(l.kind()) {
+            collect(l, source, block, lang, out);
+        } else {
+            push_idents(l, source, block, DefUse::Def, out);
+            if lang.aug_kinds.contains(&node.kind()) {
+                push_idents(l, source, block, DefUse::Use, out);
+            }
         }
     }
     if let Some(r) = binding_right(node) {
         collect(r, source, block, lang, out);
+    }
+}
+
+fn is_field_or_index_target(kind: &str) -> bool {
+    matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression")
+}
+
+pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+    if let Some(params) = fn_node.child_by_field_name("parameters") {
+        push_idents(params, source, entry, DefUse::Def, out);
     }
 }
 

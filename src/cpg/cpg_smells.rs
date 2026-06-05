@@ -74,7 +74,7 @@ fn reaches_a_use(def_idx: usize, var: &str, cpg: &CpgMetrics, flow: &Flow) -> bo
 
 fn dead_stores(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {
     for (i, r) in cpg.def_use.iter().enumerate() {
-        if r.kind != DefUse::Def || !flow.reachable.contains(&r.block) {
+        if r.kind != DefUse::Def || r.block == cpg.cfg.entry || !flow.reachable.contains(&r.block) {
             continue;
         }
         if !reaches_a_use(i, &r.name, cpg, flow) {

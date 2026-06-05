@@ -217,6 +217,44 @@ fn cpg_smells_off_when_disabled() {
 }
 
 #[test]
+fn field_write_is_not_a_dead_store() {
+    let f = smells_of("def f(self):\n    self.x = 1\n    return self\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "field write is not a local dead store: {f:?}");
+}
+
+#[test]
+fn subscript_write_is_not_a_dead_store() {
+    let f = smells_of("def f(arr, i):\n    arr[i] = 0\n    return arr\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "element write is not a local dead store: {f:?}");
+}
+
+#[test]
+fn try_body_def_used_in_handler_no_false_positive() {
+    let src = "def f():\n    try:\n        x = safe()\n        risky(x)\n    except Exception:\n        return x\n    return 0\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "try-body def reaches the handler: {f:?}");
+}
+
+#[test]
+fn try_else_clause_use_is_not_dead_store() {
+    let src = "def f(n):\n    try:\n        y = risky(n)\n    except Exception:\n        return 0\n    else:\n        return y\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "else-clause use keeps the try def live: {f:?}");
+}
+
+#[test]
+fn reassigned_param_is_not_use_before_def() {
+    let f = smells_of("def f(x):\n    x += 1\n    return x\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "params are defined at entry: {f:?}");
+}
+
+#[test]
+fn unused_param_is_not_a_dead_store() {
+    let f = smells_of("def f(unused):\n    return 1\n", Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "an unused param is not a dead store: {f:?}");
+}
+
+#[test]
 fn smell_arrays_are_index_aligned() {
     for (i, &s) in pulse::smells::ALL_SMELLS.iter().enumerate() {
         assert_eq!(s as usize, i, "ALL_SMELLS discriminant order broken at {i}");
