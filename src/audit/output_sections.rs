@@ -33,6 +33,7 @@ pub fn render_pillars(out: &mut String, visible: &[&AuditFinding], ctx: &PillarC
 const PILLAR_ORDER: &[(AuditPillar, &str)] = &[
     (AuditPillar::Architecture, "ARCHITECTURE"),
     (AuditPillar::ClassSmells, "CLASS-LEVEL SMELLS"),
+    (AuditPillar::Security, "SECURITY"),
     (AuditPillar::Patterns, "CROSS-FILE PATTERNS"),
 ];
 

@@ -1,0 +1,119 @@
+use std::path::Path;
+
+use pulse::audit::finding::{AuditFinding, AuditKind, ImportConfidence, InjectionEvidence};
+use pulse::audit::{self, AuditOpts, IgnoreFilter, PassChoice};
+use pulse::config::{AuditSuppression, IgnoreMatcher};
+
+use crate::audit_common::*;
+
+fn run_pass(dir: &Path, pass: Option<PassChoice>) -> Vec<AuditFinding> {
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let opts = AuditOpts {
+        root: dir.to_path_buf(),
+        pass,
+        json: false,
+        include_tests: true,
+        show_noise: false,
+        suppression: AuditSuppression::new(),
+    };
+    let filter = IgnoreFilter::new(&matcher, dir);
+    audit::run_with_filter(&opts, &t().audit, &filter)
+}
+
+fn taint_findings(name: &str, body: &str) -> Vec<InjectionEvidence> {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join(name), body).unwrap();
+    let findings = run_pass(dir.path(), Some(PassChoice::Taint));
+    findings
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::InjectionShape(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn unsanitized_source_to_sink_is_flagged() {
+    let body = "def handler(cursor):\n    q = input()\n    cursor.execute(q)\n";
+    let found = taint_findings("app.py", body);
+    assert_eq!(found.len(), 1, "expected one injection shape");
+    let e = &found[0];
+    assert_eq!(e.source_name, "input");
+    assert_eq!(e.sink_name, "execute");
+    assert_eq!(e.tainted_var, "q");
+    assert!(!e.crossed_opacity);
+    assert_eq!(e.confidence, ImportConfidence::Low);
+}
+
+#[test]
+fn sanitized_flow_is_not_flagged() {
+    let body = "def handler(cursor):\n    q = input()\n    safe = escape(q)\n    cursor.execute(safe)\n";
+    assert!(taint_findings("app.py", body).is_empty());
+}
+
+#[test]
+fn redefinition_clears_taint() {
+    let body = "def handler(cursor):\n    q = input()\n    q = \"SELECT 1\"\n    cursor.execute(q)\n";
+    assert!(taint_findings("app.py", body).is_empty());
+}
+
+#[test]
+fn source_with_no_sink_is_not_flagged() {
+    let body = "def handler():\n    q = input()\n    return q\n";
+    assert!(taint_findings("app.py", body).is_empty());
+}
+
+#[test]
+fn direct_source_into_sink_is_flagged() {
+    let body = "import os\n\ndef handler():\n    os.system(input())\n";
+    let found = taint_findings("app.py", body);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].source_name, "input");
+    assert_eq!(found[0].sink_name, "system");
+}
+
+#[test]
+fn opacity_keeps_flow_as_unknown_not_clean() {
+    let body = "def handler(cursor):\n    q = input()\n    payload = build(**q)\n    cursor.execute(payload)\n";
+    let found = taint_findings("app.py", body);
+    assert_eq!(found.len(), 1, "opacity must not silently drop the flow");
+    assert!(found[0].crossed_opacity);
+    assert_eq!(found[0].confidence, ImportConfidence::BestEffort);
+}
+
+#[test]
+fn sanitizer_cannot_clean_an_opaque_flow() {
+    let body = "def handler(cursor):\n    q = input()\n    payload = build(**q)\n    clean = escape(payload)\n    cursor.execute(clean)\n";
+    let found = taint_findings("app.py", body);
+    assert_eq!(found.len(), 1, "a sanitizer must not be trusted across opacity (A6)");
+    assert!(found[0].crossed_opacity);
+    assert_eq!(found[0].confidence, ImportConfidence::BestEffort);
+}
+
+#[test]
+fn clean_function_has_no_findings() {
+    let body = "def compute(a, b):\n    total = a + b\n    return total * 2\n";
+    assert!(taint_findings("app.py", body).is_empty());
+}
+
+#[test]
+fn rust_unsanitized_source_to_sink_is_flagged() {
+    let body = "fn handle(conn: &Conn) {\n    let q = var(\"INPUT\");\n    conn.execute(q);\n}\n";
+    let found = taint_findings("app.rs", body);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].source_name, "var");
+    assert_eq!(found[0].sink_name, "execute");
+}
+
+#[test]
+fn taint_is_opt_in_not_in_default_passes() {
+    let dir = tempfile::tempdir().unwrap();
+    let body = "def handler(cursor):\n    q = input()\n    cursor.execute(q)\n";
+    std::fs::write(dir.path().join("app.py"), body).unwrap();
+    let default_findings = run_pass(dir.path(), None);
+    let any_injection = default_findings
+        .iter()
+        .any(|f| matches!(f.kind, AuditKind::InjectionShape(_)));
+    assert!(!any_injection, "taint must not run in the default (All) pass");
+}

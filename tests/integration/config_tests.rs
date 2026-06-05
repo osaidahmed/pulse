@@ -401,15 +401,14 @@ fn cpg_section_overrides_flags() {
         [thresholds.cpg]
         enabled = true
         unused_result = true
-        taint_max_depth = 8
         ",
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
     assert!(resolved.cpg.enabled);
     assert!(resolved.cpg.unused_result);
-    assert_eq!(resolved.cpg.taint_max_depth, 8);
     assert_eq!(resolved.cpg.dead_store, t().cpg.dead_store);
+    assert_eq!(resolved.cpg.use_before_def, t().cpg.use_before_def);
 }
 
 #[test]

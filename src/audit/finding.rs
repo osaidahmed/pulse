@@ -18,6 +18,20 @@ pub enum AuditKind {
     GodClass(GodClassEvidence),
     ParallelInheritance(ParallelInheritanceEvidence),
     RefusedBequest(RefusedBequestEvidence),
+    InjectionShape(InjectionEvidence),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InjectionEvidence {
+    pub file: PathBuf,
+    pub function: String,
+    pub source_name: String,
+    pub source_line: u32,
+    pub sink_name: String,
+    pub sink_line: u32,
+    pub tainted_var: String,
+    pub crossed_opacity: bool,
+    pub confidence: ImportConfidence,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -231,10 +245,11 @@ struct VariantInfo {
 pub enum AuditPillar {
     Architecture,
     ClassSmells,
+    Security,
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 10] = [
+const VARIANT_TABLE: [VariantInfo; 11] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -315,6 +330,14 @@ const VARIANT_TABLE: [VariantInfo; 10] = [
         label: "Refused bequest",
         pillar: AuditPillar::ClassSmells,
     },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::InjectionShape(_)),
+        pass: "taint",
+        slug: "injection_shape",
+        action: "sanitize or validate the tainted value before it reaches the sink",
+        label: "Injection shape",
+        pillar: AuditPillar::Security,
+    },
 ];
 
 pub fn kind_label(kind: &AuditKind) -> &'static str {
@@ -374,6 +397,7 @@ fn named_smell_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
         AuditKind::GodClass(e) => Some(e.confidence),
         AuditKind::ParallelInheritance(e) => Some(e.confidence),
         AuditKind::RefusedBequest(e) => Some(e.confidence),
+        AuditKind::InjectionShape(e) => Some(e.confidence),
         _ => None,
     }
 }

@@ -9,8 +9,6 @@ pub struct CloneClusterThresholds {
 #[allow(clippy::struct_excessive_bools)]
 pub struct CpgThresholds {
     pub enabled: bool,
-    pub taint_visit_cap: u32,
-    pub taint_max_depth: u32,
     pub dead_store: bool,
     pub use_before_def: bool,
     pub unreachable_code: bool,
@@ -38,8 +36,6 @@ impl CloneClusterThresholds {
 impl CpgThresholds {
     pub const DEFAULTS: Self = Self {
         enabled: false,
-        taint_visit_cap: 2,
-        taint_max_depth: 16,
         dead_store: true,
         use_before_def: true,
         unreachable_code: true,

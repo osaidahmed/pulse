@@ -84,8 +84,6 @@ pub struct CloneClusterConfig {
 #[serde(deny_unknown_fields)]
 pub struct CpgConfig {
     pub enabled: Option<bool>,
-    pub taint_visit_cap: Option<u32>,
-    pub taint_max_depth: Option<u32>,
     pub dead_store: Option<bool>,
     pub use_before_def: Option<bool>,
     pub unreachable_code: Option<bool>,

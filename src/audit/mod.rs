@@ -41,10 +41,12 @@ pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
 pub mod output_sections;
+pub mod output_taint;
 pub mod package_metrics;
 pub mod record_extraction;
 pub mod scoring;
 pub mod swap_significance;
+pub mod taint;
 pub mod vendor_filter;
 pub mod walker;
 
@@ -88,6 +90,7 @@ pub enum AuditPass {
     PatternMining,
     PackageMetrics,
     NamedSmells,
+    Taint,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -96,6 +99,7 @@ pub enum PassChoice {
     PatternMining,
     PackageMetrics,
     NamedSmells,
+    Taint,
     All,
 }
 
@@ -131,6 +135,9 @@ pub fn run_with_filter(
     if passes.contains(&AuditPass::NamedSmells) {
         findings.extend(named_smells::run(&typed_files, &opts.root, thresholds));
     }
+    if passes.contains(&AuditPass::Taint) {
+        findings.extend(taint::run(&typed_files, thresholds));
+    }
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
@@ -150,6 +157,7 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {
         Some(PassChoice::PatternMining) => vec![AuditPass::PatternMining],
         Some(PassChoice::PackageMetrics) => vec![AuditPass::PackageMetrics],
         Some(PassChoice::NamedSmells) => vec![AuditPass::NamedSmells],
+        Some(PassChoice::Taint) => vec![AuditPass::Taint],
         Some(PassChoice::All) | None => vec![
             AuditPass::PatternMining,
             AuditPass::PackageMetrics,

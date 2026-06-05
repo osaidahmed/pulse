@@ -71,7 +71,15 @@ pub struct AuditThresholds {
     pub pattern_mining: PatternMiningThresholds,
     pub package_metrics: PackageMetricsThresholds,
     pub named_smells: NamedSmellThresholds,
+    pub taint: TaintThresholds,
     pub max_locations_per_finding: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TaintThresholds {
+    pub visit_cap: u32,
+    pub max_depth: u32,
+    pub max_findings: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -323,11 +331,20 @@ impl NamedSmellThresholds {
     };
 }
 
+impl TaintThresholds {
+    pub const DEFAULTS: Self = Self {
+        visit_cap: 2,
+        max_depth: 16,
+        max_findings: 50,
+    };
+}
+
 impl AuditThresholds {
     pub const DEFAULTS: Self = Self {
         pattern_mining: PatternMiningThresholds::DEFAULTS,
         package_metrics: PackageMetricsThresholds::DEFAULTS,
         named_smells: NamedSmellThresholds::DEFAULTS,
+        taint: TaintThresholds::DEFAULTS,
         max_locations_per_finding: 10,
     };
 }

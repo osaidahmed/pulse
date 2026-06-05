@@ -86,54 +86,41 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
     }
 }
 
-fn resolve_clone_cluster(
-    over: &CloneClusterConfig,
-    base: &crate::thresholds::CloneClusterThresholds,
-) -> crate::thresholds::CloneClusterThresholds {
-    crate::thresholds::CloneClusterThresholds {
-        max_sim_threshold: over.max_sim_threshold.unwrap_or(base.max_sim_threshold),
-        min_cluster_size: over.min_cluster_size.unwrap_or(base.min_cluster_size),
-        loc_window_pct: over.loc_window_pct.unwrap_or(base.loc_window_pct),
-    }
+macro_rules! field_resolvers {
+    ( $( fn $name:ident($Cfg:path => $Th:path) { $($field:ident <- $src:ident),+ $(,)? } )+ ) => {
+        $(
+            fn $name(over: &$Cfg, base: &$Th) -> $Th {
+                $Th { $($field: over.$src.unwrap_or(base.$field)),+ }
+            }
+        )+
+    };
 }
 
-fn resolve_cpg(
-    over: &CpgConfig,
-    base: &crate::thresholds::CpgThresholds,
-) -> crate::thresholds::CpgThresholds {
-    crate::thresholds::CpgThresholds {
-        enabled: over.enabled.unwrap_or(base.enabled),
-        taint_visit_cap: over.taint_visit_cap.unwrap_or(base.taint_visit_cap),
-        taint_max_depth: over.taint_max_depth.unwrap_or(base.taint_max_depth),
-        dead_store: over.dead_store.unwrap_or(base.dead_store),
-        use_before_def: over.use_before_def.unwrap_or(base.use_before_def),
-        unreachable_code: over.unreachable_code.unwrap_or(base.unreachable_code),
-        unused_result: over.unused_result.unwrap_or(base.unused_result),
+field_resolvers! {
+    fn resolve_clone_cluster(CloneClusterConfig => crate::thresholds::CloneClusterThresholds) {
+        max_sim_threshold <- max_sim_threshold,
+        min_cluster_size <- min_cluster_size,
+        loc_window_pct <- loc_window_pct,
     }
-}
-
-fn resolve_naturalness(
-    over: &NaturalnessConfig,
-    base: &crate::thresholds::NaturalnessThresholds,
-) -> crate::thresholds::NaturalnessThresholds {
-    crate::thresholds::NaturalnessThresholds {
-        enabled: over.enabled.unwrap_or(base.enabled),
-        ngram_order: over.ngram_order.unwrap_or(base.ngram_order),
-        cache_k: over.cache_k.unwrap_or(base.cache_k),
-        jm_gamma: over.jm_gamma.unwrap_or(base.jm_gamma),
-        min_fn_tokens: over.min_fn_tokens.unwrap_or(base.min_fn_tokens),
-        zscore_cutoff: over.zscore_cutoff.unwrap_or(base.zscore_cutoff),
+    fn resolve_cpg(CpgConfig => crate::thresholds::CpgThresholds) {
+        enabled <- enabled,
+        dead_store <- dead_store,
+        use_before_def <- use_before_def,
+        unreachable_code <- unreachable_code,
+        unused_result <- unused_result,
     }
-}
-
-fn resolve_duplication(
-    over: &DuplicationThresholds,
-    base: &crate::thresholds::DuplicationThresholds,
-) -> crate::thresholds::DuplicationThresholds {
-    crate::thresholds::DuplicationThresholds {
-        min_loc: over.duplication_min_loc.unwrap_or(base.min_loc),
-        skeleton_min_loc: over.skeleton_duplication_min_loc.unwrap_or(base.skeleton_min_loc),
-        min_group: over.duplication_min_group.unwrap_or(base.min_group),
-        min_distinct_kinds: over.duplication_min_distinct_kinds.unwrap_or(base.min_distinct_kinds),
+    fn resolve_naturalness(NaturalnessConfig => crate::thresholds::NaturalnessThresholds) {
+        enabled <- enabled,
+        ngram_order <- ngram_order,
+        cache_k <- cache_k,
+        jm_gamma <- jm_gamma,
+        min_fn_tokens <- min_fn_tokens,
+        zscore_cutoff <- zscore_cutoff,
+    }
+    fn resolve_duplication(DuplicationThresholds => crate::thresholds::DuplicationThresholds) {
+        min_loc <- duplication_min_loc,
+        skeleton_min_loc <- skeleton_duplication_min_loc,
+        min_group <- duplication_min_group,
+        min_distinct_kinds <- duplication_min_distinct_kinds,
     }
 }
