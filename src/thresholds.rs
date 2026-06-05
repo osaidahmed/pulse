@@ -122,6 +122,7 @@ pub struct PackageMetricsThresholds {
     pub max_cycle_findings_reported: usize,
     pub max_martin_findings_reported: usize,
     pub unstable_dep_strength: f64,
+    pub hublike_imbalance_ratio: f64,
     pub max_arch_findings_reported: usize,
 }
 
@@ -273,6 +274,7 @@ impl PackageMetricsThresholds {
         max_cycle_findings_reported: 50,
         max_martin_findings_reported: 100,
         unstable_dep_strength: 0.30,
+        hublike_imbalance_ratio: 0.25,
         max_arch_findings_reported: 50,
     };
 }

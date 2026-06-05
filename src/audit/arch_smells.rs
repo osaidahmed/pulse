@@ -3,20 +3,81 @@ use std::path::PathBuf;
 use crate::thresholds::AuditThresholds;
 
 use super::components::{Component, ComponentGraph};
-use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, UnstableDepEvidence};
+use super::finding::{
+    AuditFinding, AuditKind, AuditLocation, HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
+};
 
 const MIN_DEPS: usize = 2;
 
 pub fn unstable_dependencies(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let threshold = thresholds.package_metrics.unstable_dep_strength;
-    let mut out: Vec<AuditFinding> = cg
+    let out: Vec<AuditFinding> = cg
         .components
         .iter()
         .filter_map(|c| unstable_dep_finding(cg, c, threshold))
         .collect();
-    out.sort_by(|a, b| severity(b).partial_cmp(&severity(a)).unwrap_or(std::cmp::Ordering::Equal));
-    out.truncate(thresholds.package_metrics.max_arch_findings_reported);
-    out
+    rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
+}
+
+struct HubBounds {
+    median_in: f64,
+    median_out: f64,
+    ratio: f64,
+}
+
+pub fn hub_like_dependencies(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let bounds = HubBounds {
+        median_in: median(cg.components.iter().map(|c| c.afferent)),
+        median_out: median(cg.components.iter().map(|c| c.efferent)),
+        ratio: thresholds.package_metrics.hublike_imbalance_ratio,
+    };
+    let out: Vec<AuditFinding> = cg
+        .components
+        .iter()
+        .filter_map(|c| hub_finding(c, &bounds))
+        .collect();
+    rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
+}
+
+fn hub_finding(c: &Component, bounds: &HubBounds) -> Option<AuditFinding> {
+    if f64::from(c.afferent) <= bounds.median_in || f64::from(c.efferent) <= bounds.median_out {
+        return None;
+    }
+    let total = c.afferent + c.efferent;
+    let imbalance = c.afferent.abs_diff(c.efferent);
+    if total == 0 || f64::from(imbalance) >= bounds.ratio * f64::from(total) {
+        return None;
+    }
+    let evidence = HubLikeEvidence {
+        component: c.path.clone(),
+        afferent: c.afferent,
+        efferent: c.efferent,
+        imbalance,
+        confidence: ImportConfidence::Medium,
+    };
+    Some(arch_finding(AuditKind::HubLikeDependency(evidence), c.path.clone(), c.file_count, total))
+}
+
+fn median(values: impl Iterator<Item = u32>) -> f64 {
+    let mut v: Vec<u32> = values.collect();
+    v.sort_unstable();
+    let n = v.len();
+    if n == 0 {
+        return 0.0;
+    }
+    if n % 2 == 1 {
+        f64::from(v[n / 2])
+    } else {
+        f64::midpoint(f64::from(v[n / 2 - 1]), f64::from(v[n / 2]))
+    }
+}
+
+fn rank_and_cap(mut findings: Vec<AuditFinding>, cap: usize) -> Vec<AuditFinding> {
+    findings.sort_by(|a, b| {
+        arch_severity(b).partial_cmp(&arch_severity(a)).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    findings.truncate(cap);
+    findings
 }
 
 fn unstable_dep_finding(cg: &ComponentGraph, c: &Component, threshold: f64) -> Option<AuditFinding> {
@@ -62,9 +123,10 @@ fn arch_finding(kind: AuditKind, path: PathBuf, file_count: u32, support: u32) -
     }
 }
 
-fn severity(f: &AuditFinding) -> f64 {
+fn arch_severity(f: &AuditFinding) -> f64 {
     match &f.kind {
         AuditKind::UnstableDependency(e) => e.strength * e.gap.abs(),
+        AuditKind::HubLikeDependency(e) => f64::from(e.afferent + e.efferent),
         _ => 0.0,
     }
 }

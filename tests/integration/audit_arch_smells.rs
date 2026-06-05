@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use pulse::audit::finding::{AuditKind, ImportConfidence, UnstableDepEvidence};
+use pulse::audit::finding::{AuditKind, HubLikeEvidence, ImportConfidence, UnstableDepEvidence};
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
 use pulse::audit::package_metrics::{run_from_edges, ModuleProfile};
@@ -29,6 +29,16 @@ fn unstable_deps(edges: &[InputEdge]) -> Vec<UnstableDepEvidence> {
         .into_iter()
         .filter_map(|f| match f.kind {
             AuditKind::UnstableDependency(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn hub_likes(edges: &[InputEdge]) -> Vec<HubLikeEvidence> {
+    run_from_edges(edges, profile, &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::HubLikeDependency(e) => Some(e),
             _ => None,
         })
         .collect()
@@ -76,4 +86,44 @@ fn single_dependency_is_not_flagged() {
     ];
     let uds = unstable_deps(&edges);
     assert!(!uds.iter().any(|e| e.component.as_path() == Path::new("s")));
+}
+
+#[test]
+fn balanced_high_traffic_component_is_a_hub() {
+    let edges = [
+        edge("in1/m.rs", "h/m.rs"),
+        edge("in2/m.rs", "h/m.rs"),
+        edge("in3/m.rs", "h/m.rs"),
+        edge("h/m.rs", "out1/m.rs"),
+        edge("h/m.rs", "out2/m.rs"),
+        edge("h/m.rs", "out3/m.rs"),
+    ];
+    let hubs = hub_likes(&edges);
+    let h = hubs.iter().find(|e| e.component.as_path() == Path::new("h")).expect("h is a hub");
+    assert_eq!((h.afferent, h.efferent), (3, 3));
+    assert_eq!(h.imbalance, 0);
+    assert_eq!(h.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn unbalanced_component_is_not_a_hub() {
+    let edges = [
+        edge("u/m.rs", "a/m.rs"),
+        edge("u/m.rs", "b/m.rs"),
+        edge("u/m.rs", "c/m.rs"),
+        edge("x/m.rs", "a/m.rs"),
+        edge("y/m.rs", "b/m.rs"),
+    ];
+    assert!(!hub_likes(&edges).iter().any(|e| e.component.as_path() == Path::new("u")));
+}
+
+#[test]
+fn uniform_ring_has_no_hub() {
+    let edges = [
+        edge("a/m.rs", "b/m.rs"),
+        edge("b/m.rs", "c/m.rs"),
+        edge("c/m.rs", "d/m.rs"),
+        edge("d/m.rs", "a/m.rs"),
+    ];
+    assert!(hub_likes(&edges).is_empty(), "a uniform ring has no hub");
 }

@@ -35,6 +35,15 @@ pub struct NaturalnessEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct HubLikeEvidence {
+    pub component: PathBuf,
+    pub afferent: u32,
+    pub efferent: u32,
+    pub imbalance: u32,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,

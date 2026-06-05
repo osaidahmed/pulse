@@ -46,6 +46,7 @@ pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
 pub mod output_advisory;
+pub mod output_arch;
 pub mod output_clones;
 pub mod output_naturalness;
 pub mod output_sections;

@@ -47,7 +47,9 @@ fn arch_findings(
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
     let cg = super::components::build(graph, |path| profile_lookup(path).abstractness.abstractness);
-    super::arch_smells::unstable_dependencies(&cg, thresholds)
+    let mut out = super::arch_smells::unstable_dependencies(&cg, thresholds);
+    out.extend(super::arch_smells::hub_like_dependencies(&cg, thresholds));
+    out
 }
 
 fn zero_edge_finding(module_count: u32) -> Vec<AuditFinding> {
