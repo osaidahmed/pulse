@@ -251,6 +251,8 @@ fn freqt_mine_does_not_panic_on_record_with_huge_line_number() {
         named_node_count: 8,
         snippet: "x".to_string(),
         shape: ShapeMetrics::default(),
+        simhash: 0,
+        loc: 0,
     };
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 1;
@@ -395,6 +397,8 @@ fn freqt_mine_with_zero_min_support_includes_all_clusters() {
         named_node_count: 8,
         snippet: "x".to_string(),
         shape: ShapeMetrics::default(),
+        simhash: 0,
+        loc: 0,
     }).collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 5);

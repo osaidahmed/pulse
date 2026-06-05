@@ -20,6 +20,7 @@ pub mod r;
 pub mod ruby;
 pub mod rust;
 pub mod shared;
+pub mod simhash;
 pub mod swift;
 pub mod tcl;
 pub mod typescript;
@@ -34,6 +35,7 @@ pub use fingerprint::{
     compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
     count_consecutive_asserts, count_distinct_node_kinds, count_distinct_node_kinds_multi,
 };
+pub use simhash::compute_simhash;
 pub use shared::is_catch_body_empty;
 
 pub use guards::{with_cpg_enabled, with_edit_scope};

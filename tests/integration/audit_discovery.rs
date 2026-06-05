@@ -14,6 +14,8 @@ fn record(fp: u64, file: &str, line: u32, snippet: &str) -> SubtreeRecord {
         named_node_count: 8,
         snippet: snippet.to_string(),
         shape: ShapeMetrics::default(),
+        simhash: 0,
+        loc: 0,
     }
 }
 

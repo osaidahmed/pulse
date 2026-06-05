@@ -29,6 +29,10 @@ pub struct SubtreeRecord {
     pub named_node_count: u32,
     pub snippet: String,
     pub shape: ShapeMetrics,
+    #[allow(dead_code)]
+    pub simhash: u64,
+    #[allow(dead_code)]
+    pub loc: u32,
 }
 
 pub struct WalkOutput {
@@ -175,6 +179,8 @@ fn consider(node: Node, parent_fp: Option<u64>, ctx: &WalkCtx) -> Option<Subtree
         named_node_count: named_count,
         snippet: snippet_for(node, ctx.source),
         shape: shape_metrics_for(node, named_count),
+        simhash: crate::walk::compute_simhash(node),
+        loc: node.end_position().row.saturating_sub(node.start_position().row) as u32 + 1,
     })
 }
 

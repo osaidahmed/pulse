@@ -141,6 +141,8 @@ fn pipeline_freqt_mine_then_apply_idf_round_trip() {
         named_node_count: 8,
         snippet: "x".to_string(),
         shape: ShapeMetrics::default(),
+        simhash: 0,
+        loc: 0,
     }).collect();
     let clusters = freqt_mine(&recs, &th);
     let findings = apply_idf(clusters, 100, &th);
