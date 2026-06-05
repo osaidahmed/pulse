@@ -1,6 +1,7 @@
 use pulse::analyze::{analyze_source, ScanOptions};
 use pulse::config::PulseConfig;
 use pulse::cpg::cfg::{Cfg, EdgeLabel, NodeKind};
+use pulse::cpg::defuse::{DefUse, DefUseRecord};
 use pulse::parse::Language;
 
 fn cpg_config() -> PulseConfig {
@@ -103,6 +104,63 @@ fn cpg_disabled_by_default_yields_no_cfg() {
     let result = analyze_source("t.py", src, Language::Python, None, ScanOptions::check()).unwrap();
     let func = result.metrics.functions.iter().find(|f| f.name == "f").unwrap();
     assert!(func.cpg.is_none(), "cpg must be None when the feature is disabled");
+}
+
+fn def_use_of(src: &str, lang: Language, ext: &str, fname: &str) -> Vec<DefUseRecord> {
+    let cfg = cpg_config();
+    let path = format!("t.{ext}");
+    let result = analyze_source(&path, src, lang, Some(&cfg), ScanOptions::check()).expect("analyze");
+    let func = result.metrics.functions.iter().find(|f| f.name == fname).expect("function");
+    func.cpg.as_ref().expect("cpg populated").def_use.clone()
+}
+
+fn has(records: &[DefUseRecord], name: &str, kind: DefUse) -> bool {
+    records.iter().any(|r| r.name == name && r.kind == kind)
+}
+
+#[test]
+fn python_assignment_records_def_and_use() {
+    let du = def_use_of("def f(a):\n    x = a\n    return x\n", Language::Python, "py", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "a", DefUse::Use), "{du:?}");
+    assert!(has(&du, "x", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn python_augmented_assignment_is_def_and_use() {
+    let du = def_use_of("def f():\n    x = 0\n    x += 1\n    return x\n", Language::Python, "py", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "x", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn python_if_condition_use_recorded() {
+    let du = def_use_of("def f(flag):\n    if flag:\n        return 1\n    return 0\n", Language::Python, "py", "f");
+    assert!(has(&du, "flag", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn rust_let_records_def_and_use() {
+    let du = def_use_of("fn f(a: i32) -> i32 {\n    let x = a;\n    x\n}\n", Language::Rust, "rs", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "a", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn def_use_records_carry_block_ids_in_range() {
+    let du = def_use_of("def f(a):\n    x = a\n    return x\n", Language::Python, "py", "f");
+    let cfg = cfg_of("def f(a):\n    x = a\n    return x\n", Language::Python, "py", "f");
+    let n = cfg.nodes.len() as u32;
+    assert!(!du.is_empty());
+    assert!(du.iter().all(|r| r.block < n), "every record references a real cfg node");
+}
+
+#[test]
+fn def_use_empty_when_cpg_disabled() {
+    let src = "def f(a):\n    x = a\n    return x\n";
+    let result = analyze_source("t.py", src, Language::Python, None, ScanOptions::check()).unwrap();
+    let func = result.metrics.functions.iter().find(|f| f.name == "f").unwrap();
+    assert!(func.cpg.is_none());
 }
 
 #[test]

@@ -110,15 +110,14 @@ fn update_max(current: &mut u32, new: u32) {
 pub(crate) fn cpg_for(
     body: Node,
     fn_node: Node,
+    source: &str,
     lang: &crate::cpg::CfgLang,
 ) -> Option<crate::cpg::CpgMetrics> {
     if !cpg_enabled() || !extras_enabled(fn_node.start_byte(), fn_node.end_byte()) {
         return None;
     }
-    Some(crate::cpg::CpgMetrics {
-        cfg: crate::cpg::build_cfg(body, lang),
-        ..Default::default()
-    })
+    let (cfg, def_use) = crate::cpg::build_cfg(body, source, lang);
+    Some(crate::cpg::CpgMetrics { cfg, def_use, ..Default::default() })
 }
 
 pub fn track_embedded_block(max: &mut u32, node: Node) {

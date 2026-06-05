@@ -159,7 +159,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         short_var_count = count_short_variables(body, source, &["let_declaration"]);
         string_match_arms = count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"], &[]);
     }
-    let cpg = super::cpg_for(body, node, &crate::cpg::RUST);
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::RUST);
 
     Some(FunctionMetrics {
         name,

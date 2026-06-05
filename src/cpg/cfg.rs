@@ -1,5 +1,6 @@
 use tree_sitter::Node;
 
+use crate::cpg::defuse::{self, DefUseRecord};
 use crate::walk::{find_child_by_kind, DepthGuard};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +53,8 @@ pub struct CfgLang {
     pub continue_kinds: &'static [&'static str],
     pub try_kinds: &'static [&'static str],
     pub handler_kinds: &'static [&'static str],
+    pub def_kinds: &'static [&'static str],
+    pub aug_kinds: &'static [&'static str],
 }
 
 pub const PYTHON: CfgLang = CfgLang {
@@ -62,6 +65,8 @@ pub const PYTHON: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["except_clause"],
+    def_kinds: &["assignment", "augmented_assignment"],
+    aug_kinds: &["augmented_assignment"],
 };
 
 pub const RUST: CfgLang = CfgLang {
@@ -72,6 +77,8 @@ pub const RUST: CfgLang = CfgLang {
     continue_kinds: &["continue_expression"],
     try_kinds: &[],
     handler_kinds: &[],
+    def_kinds: &["let_declaration", "assignment_expression", "compound_assignment_expr"],
+    aug_kinds: &["compound_assignment_expr"],
 };
 
 type Incoming = Option<(u32, EdgeLabel)>;
@@ -90,21 +97,31 @@ struct LoopCtx {
 
 struct Builder<'a> {
     lang: &'a CfgLang,
+    source: &'a str,
     nodes: Vec<CfgNode>,
     edges: Vec<CfgEdge>,
     loops: Vec<LoopCtx>,
+    def_use: Vec<DefUseRecord>,
     exit: u32,
 }
 
-pub fn build_cfg(body: Node, lang: &CfgLang) -> Cfg {
-    let mut b = Builder { lang, nodes: Vec::new(), edges: Vec::new(), loops: Vec::new(), exit: 0 };
+pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRecord>) {
+    let mut b = Builder {
+        lang,
+        source,
+        nodes: Vec::new(),
+        edges: Vec::new(),
+        loops: Vec::new(),
+        def_use: Vec::new(),
+        exit: 0,
+    };
     let entry = b.add(NodeKind::Entry, line(body));
     let exit = b.add(NodeKind::Exit, end_line(body));
     b.exit = exit;
     if let Some(e) = b.seq(body, Some((entry, EdgeLabel::Epsilon))) {
         b.edge(e, exit, EdgeLabel::Epsilon);
     }
-    Cfg { nodes: b.nodes, edges: b.edges, entry, exit }
+    (Cfg { nodes: b.nodes, edges: b.edges, entry, exit }, b.def_use)
 }
 
 impl Builder<'_> {
@@ -160,6 +177,7 @@ impl Builder<'_> {
         }
         let n = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, n);
+        defuse::collect(node, self.source, n, self.lang, &mut self.def_use);
         Some(n)
     }
 
@@ -179,6 +197,7 @@ impl Builder<'_> {
     fn do_jump(&mut self, node: Node, incoming: Incoming, to: JumpTo) -> Option<u32> {
         let n = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, n);
+        defuse::collect(node, self.source, n, self.lang, &mut self.def_use);
         let target = match to {
             JumpTo::Exit => Some(self.exit),
             JumpTo::Break => self.loops.last().map(|l| l.after),
@@ -190,9 +209,16 @@ impl Builder<'_> {
         None
     }
 
+    fn record_cond(&mut self, node: Node, block: u32) {
+        if let Some(c) = node.child_by_field_name("condition") {
+            defuse::collect(c, self.source, block, self.lang, &mut self.def_use);
+        }
+    }
+
     fn do_if(&mut self, node: Node, incoming: Incoming) -> Option<u32> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
+        self.record_cond(node, p);
         let then_end = self.branch(node.child_by_field_name("consequence"), p, EdgeLabel::True);
         let alt = node.child_by_field_name("alternative");
         let else_end = match alt {
@@ -240,6 +266,7 @@ impl Builder<'_> {
     fn do_loop(&mut self, node: Node, incoming: Incoming) -> Option<u32> {
         let head = self.add(NodeKind::LoopHead, line(node));
         self.link(incoming, head);
+        defuse::loop_header(node, self.source, head, self.lang, &mut self.def_use);
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(head, after, EdgeLabel::False);
         self.loops.push(LoopCtx { head, after });
