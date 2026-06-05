@@ -254,6 +254,10 @@ fn dispatch_known_variants_human(
         super::output_clones::write_clone(out, e, root, t, action);
         return true;
     }
+    if let AuditKind::UnnaturalCode(e) = &f.kind {
+        super::output_naturalness::write_unnatural(out, e, root, action);
+        return true;
+    }
     let ctx = WriterCtx { root, confidence_str, display_path, action };
     super::output_named_smells::dispatch_human(out, &f.kind, &ctx)
 }
@@ -313,6 +317,9 @@ fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option
     }
     if let AuditKind::NearDuplicate(e) = &f.kind {
         return Some(super::output_clones::clone_json(e, root));
+    }
+    if let AuditKind::UnnaturalCode(e) = &f.kind {
+        return Some(super::output_naturalness::unnatural_json(e, root));
     }
     None
 }

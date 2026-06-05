@@ -13,6 +13,7 @@ pub mod history;
 pub mod hook;
 pub mod intensity;
 pub mod module_smells;
+pub mod naturalness;
 pub mod output;
 pub mod parse;
 pub mod smells;

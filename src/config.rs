@@ -58,8 +58,6 @@ pub struct ConfigThresholds {
     pub duplication: DuplicationThresholds,
     #[serde(default)]
     pub cpg: CpgConfig,
-    #[serde(default)]
-    pub naturalness: NaturalnessConfig,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -81,16 +79,6 @@ pub struct CpgConfig {
     pub unused_result: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct NaturalnessConfig {
-    pub enabled: Option<bool>,
-    pub ngram_order: Option<u32>,
-    pub cache_k: Option<u32>,
-    pub jm_gamma: Option<f64>,
-    pub min_fn_tokens: Option<u32>,
-    pub zscore_cutoff: Option<f64>,
-}
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct FunctionThresholds {

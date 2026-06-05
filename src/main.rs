@@ -15,6 +15,7 @@ mod hook;
 mod hook_run;
 mod intensity;
 mod module_smells;
+mod naturalness;
 mod output;
 mod parse;
 mod setup;

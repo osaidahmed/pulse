@@ -1,7 +1,7 @@
 use crate::parse::Language;
 use crate::thresholds::Thresholds;
 
-use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig, PulseConfig};
+use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, PulseConfig};
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
     let base = Thresholds::default();
@@ -78,7 +78,6 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         audit: base.audit,
         history: base.history,
         cpg: resolve_cpg(&o.cpg, &base.cpg),
-        naturalness: resolve_naturalness(&o.naturalness, &base.naturalness),
     }
 }
 
@@ -99,14 +98,6 @@ field_resolvers! {
         use_before_def <- use_before_def,
         unreachable_code <- unreachable_code,
         unused_result <- unused_result,
-    }
-    fn resolve_naturalness(NaturalnessConfig => crate::thresholds::NaturalnessThresholds) {
-        enabled <- enabled,
-        ngram_order <- ngram_order,
-        cache_k <- cache_k,
-        jm_gamma <- jm_gamma,
-        min_fn_tokens <- min_fn_tokens,
-        zscore_cutoff <- zscore_cutoff,
     }
     fn resolve_duplication(DuplicationThresholds => crate::thresholds::DuplicationThresholds) {
         min_loc <- duplication_min_loc,

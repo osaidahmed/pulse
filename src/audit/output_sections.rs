@@ -35,6 +35,7 @@ const PILLAR_ORDER: &[(AuditPillar, &str)] = &[
     (AuditPillar::ClassSmells, "CLASS-LEVEL SMELLS"),
     (AuditPillar::Security, "SECURITY"),
     (AuditPillar::Duplication, "DUPLICATION"),
+    (AuditPillar::Naturalness, "NATURALNESS"),
     (AuditPillar::Patterns, "CROSS-FILE PATTERNS"),
 ];
 

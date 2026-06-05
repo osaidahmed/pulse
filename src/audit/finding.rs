@@ -20,29 +20,10 @@ pub enum AuditKind {
     RefusedBequest(RefusedBequestEvidence),
     InjectionShape(InjectionEvidence),
     NearDuplicate(CloneClusterEvidence),
+    UnnaturalCode(NaturalnessEvidence),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct CloneClusterEvidence {
-    pub members: Vec<AuditLocation>,
-    pub member_count: u32,
-    pub max_loc: u32,
-    pub representative: String,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct InjectionEvidence {
-    pub file: PathBuf,
-    pub function: String,
-    pub source_name: String,
-    pub source_line: u32,
-    pub sink_name: String,
-    pub sink_line: u32,
-    pub tainted_var: String,
-    pub crossed_opacity: bool,
-    pub confidence: ImportConfidence,
-}
+pub use super::finding_evidence::{CloneClusterEvidence, InjectionEvidence, NaturalnessEvidence};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DivergentChangeEvidence {
@@ -257,10 +238,11 @@ pub enum AuditPillar {
     ClassSmells,
     Security,
     Duplication,
+    Naturalness,
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 12] = [
+const VARIANT_TABLE: [VariantInfo; 13] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -357,6 +339,14 @@ const VARIANT_TABLE: [VariantInfo; 12] = [
         label: "Near-duplicate clones",
         pillar: AuditPillar::Duplication,
     },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::UnnaturalCode(_)),
+        pass: "naturalness",
+        slug: "unnatural_code",
+        action: "review this unusually-structured function for clarity or hidden bugs",
+        label: "Unnatural code",
+        pillar: AuditPillar::Naturalness,
+    },
 ];
 
 pub fn kind_label(kind: &AuditKind) -> &'static str {
@@ -426,6 +416,7 @@ fn advisory_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
     match kind {
         AuditKind::InjectionShape(e) => Some(e.confidence),
         AuditKind::NearDuplicate(e) => Some(e.confidence),
+        AuditKind::UnnaturalCode(e) => Some(e.confidence),
         _ => None,
     }
 }

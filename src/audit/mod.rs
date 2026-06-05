@@ -22,6 +22,7 @@ pub mod detector_parallel_inheritance;
 pub mod detector_refused_bequest;
 pub mod discovery;
 pub mod finding;
+pub mod finding_evidence;
 pub mod inheritance;
 pub mod graph;
 pub mod import_call_form;
@@ -42,6 +43,7 @@ pub mod output_helpers;
 pub mod output_named_smells;
 pub mod output_package_metrics;
 pub mod output_clones;
+pub mod output_naturalness;
 pub mod output_sections;
 pub mod output_taint;
 pub mod package_metrics;
@@ -94,6 +96,7 @@ pub enum AuditPass {
     NamedSmells,
     Taint,
     Clones,
+    Naturalness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -104,6 +107,7 @@ pub enum PassChoice {
     NamedSmells,
     Taint,
     Clones,
+    Naturalness,
     All,
 }
 
@@ -145,6 +149,9 @@ pub fn run_with_filter(
     if passes.contains(&AuditPass::Clones) {
         findings.extend(duplication_clusters::run(&typed_files, thresholds));
     }
+    if passes.contains(&AuditPass::Naturalness) {
+        findings.extend(crate::naturalness::run(&typed_files, thresholds));
+    }
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
@@ -166,6 +173,7 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<AuditPass> {
         Some(PassChoice::NamedSmells) => vec![AuditPass::NamedSmells],
         Some(PassChoice::Taint) => vec![AuditPass::Taint],
         Some(PassChoice::Clones) => vec![AuditPass::Clones],
+        Some(PassChoice::Naturalness) => vec![AuditPass::Naturalness],
         Some(PassChoice::All) | None => vec![
             AuditPass::PatternMining,
             AuditPass::PackageMetrics,

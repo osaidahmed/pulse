@@ -11,7 +11,6 @@ pub struct Thresholds {
     pub audit: AuditThresholds,
     pub history: HistoryThresholds,
     pub cpg: CpgThresholds,
-    pub naturalness: NaturalnessThresholds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,6 +71,7 @@ pub struct AuditThresholds {
     pub named_smells: NamedSmellThresholds,
     pub taint: TaintThresholds,
     pub clone_cluster: CloneClusterThresholds,
+    pub naturalness: NaturalnessThresholds,
     pub max_locations_per_finding: usize,
 }
 
@@ -345,6 +345,7 @@ impl AuditThresholds {
         named_smells: NamedSmellThresholds::DEFAULTS,
         taint: TaintThresholds::DEFAULTS,
         clone_cluster: CloneClusterThresholds::DEFAULTS,
+        naturalness: NaturalnessThresholds::DEFAULTS,
         max_locations_per_finding: 10,
     };
 }
@@ -364,7 +365,6 @@ impl Default for Thresholds {
             audit: AuditThresholds::DEFAULTS,
             history: HistoryThresholds::DEFAULTS,
             cpg: CpgThresholds::DEFAULTS,
-            naturalness: NaturalnessThresholds::DEFAULTS,
         }
     }
 }
