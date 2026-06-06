@@ -1,0 +1,78 @@
+use std::path::{Path, PathBuf};
+
+use pulse::audit::finding::{AuditKind, ImportConfidence, SplitComponentEvidence};
+use pulse::audit::graph::InputEdge;
+use pulse::audit::martin::AbstractnessRecord;
+use pulse::audit::package_metrics::{run_from_edges, ModuleProfile};
+use pulse::parse::Language;
+
+use crate::audit_common::*;
+
+fn edge(src: &str, dst: &str) -> InputEdge {
+    InputEdge {
+        source: PathBuf::from(src),
+        target: PathBuf::from(dst),
+        source_lang: Language::Rust,
+        target_lang: Language::Rust,
+    }
+}
+
+fn profile(_path: &Path) -> ModuleProfile {
+    ModuleProfile {
+        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
+        import_confidence: ImportConfidence::High,
+        loc: 0,
+    }
+}
+
+fn split_components(edges: &[InputEdge]) -> Vec<SplitComponentEvidence> {
+    run_from_edges(edges, profile, &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::SplitComponent(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn clique(dir_files: &[&str], bridge: Option<(&str, &str)>) -> Vec<InputEdge> {
+    let mut edges = Vec::new();
+    for i in 0..dir_files.len() {
+        for j in (i + 1)..dir_files.len() {
+            edges.push(edge(dir_files[i], dir_files[j]));
+        }
+    }
+    if let Some((a, b)) = bridge {
+        edges.push(edge(a, b));
+    }
+    edges
+}
+
+#[test]
+fn directory_split_across_communities_is_flagged() {
+    let mut edges = clique(&["core/x.rs", "core/y.rs", "mixed/a.rs", "mixed/b.rs"], None);
+    edges.extend(clique(&["util/p.rs", "util/q.rs", "mixed/c.rs", "mixed/d.rs"], None));
+    edges.push(edge("core/x.rs", "util/p.rs"));
+
+    let splits = split_components(&edges);
+    let mixed = splits
+        .iter()
+        .find(|e| e.component.as_path() == Path::new("mixed"))
+        .expect("the mixed directory straddles two dependency communities");
+    assert_eq!(mixed.file_count, 4);
+    assert_eq!(mixed.community_count, 2);
+    assert!((mixed.cohesion - 0.5).abs() < 1e-9, "its four files split evenly across two communities");
+    assert_eq!(mixed.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn cohesive_directories_are_not_flagged() {
+    let mut edges = clique(&["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs"], None);
+    edges.extend(clique(&["util/p.rs", "util/q.rs", "util/r.rs", "util/s.rs"], None));
+    edges.push(edge("core/a.rs", "util/p.rs"));
+
+    assert!(
+        split_components(&edges).is_empty(),
+        "directories whose files share one community need no split"
+    );
+}

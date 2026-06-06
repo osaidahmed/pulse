@@ -82,6 +82,7 @@ mod history_common;
 #[path = "integration/audit_arch_smells.rs"] mod audit_arch_smells;
 #[path = "integration/audit_centrality.rs"] mod audit_centrality;
 #[path = "integration/audit_community.rs"] mod audit_community;
+#[path = "integration/audit_remodularization.rs"] mod audit_remodularization;
 #[path = "integration/audit_decoupling.rs"] mod audit_decoupling;
 #[path = "integration/audit_parallel_inheritance.rs"] mod audit_parallel_inheritance;
 #[path = "integration/audit_parallel_inheritance_extended.rs"] mod audit_parallel_inheritance_extended;

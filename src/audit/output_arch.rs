@@ -40,6 +40,13 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  severity:      {:.4}", e.combined_severity);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        AuditKind::SplitComponent(e) => {
+            let _ = writeln!(out, "audit: component to split — {}", display_path(&e.component, root));
+            let _ = writeln!(out, "  files:         {}", e.file_count);
+            let _ = writeln!(out, "  communities:   {}", e.community_count);
+            let _ = writeln!(out, "  cohesion:      {:.2}", e.cohesion);
+            let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+        }
         _ => return false,
     }
     if !action.is_empty() {
@@ -85,6 +92,14 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "component": display_path(&e.component, root),
             "constituent_kinds": e.constituent_kinds,
             "combined_severity": e.combined_severity,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::SplitComponent(e) => Some(serde_json::json!({
+            "kind": "SplitComponent",
+            "component": display_path(&e.component, root),
+            "file_count": e.file_count,
+            "community_count": e.community_count,
+            "cohesion": e.cohesion,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

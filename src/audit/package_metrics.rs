@@ -39,6 +39,7 @@ pub fn run_with_module_count(
     findings.extend(martin_findings(&graph, &profile_lookup, thresholds));
     findings.extend(cycle_findings(&graph, &profile_lookup, thresholds));
     findings.extend(arch_findings(&graph, &profile_lookup, thresholds));
+    findings.extend(super::remodularization::detect(&graph, thresholds));
     findings
 }
 

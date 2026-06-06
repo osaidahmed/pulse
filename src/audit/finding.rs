@@ -26,11 +26,12 @@ pub enum AuditKind {
     HubLikeDependency(HubLikeEvidence),
     GodComponent(GodComponentEvidence),
     CompoundArchSmell(CompoundEvidence),
+    SplitComponent(SplitComponentEvidence),
 }
 
 pub use super::finding_evidence::{
     CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
-    NaturalnessEvidence, UnstableDepEvidence, VulnCloneEvidence,
+    NaturalnessEvidence, SplitComponentEvidence, UnstableDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -260,7 +261,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 18] = [
+const VARIANT_TABLE: [VariantInfo; 19] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -315,6 +316,14 @@ const VARIANT_TABLE: [VariantInfo; 18] = [
         slug: "compound_arch_smell",
         action: "this component carries several reinforcing architecture smells — address it first",
         label: "Compound architecture smell",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::SplitComponent(_)),
+        pass: "package-metrics",
+        slug: "split_component",
+        action: "split this directory along its dependency communities",
+        label: "Component to split",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -446,28 +455,10 @@ fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
 }
 
 fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    if let AuditKind::DistanceFromMainSequence(m) = kind {
-        return Some(m.confidence);
-    }
-    if let AuditKind::ImportCycle(c) = kind {
-        return Some(c.confidence);
-    }
     if matches!(kind, AuditKind::ZeroEdgeProject { .. }) {
         return Some(ImportConfidence::Medium);
     }
-    if let AuditKind::UnstableDependency(e) = kind {
-        return Some(e.confidence);
-    }
-    if let AuditKind::HubLikeDependency(e) = kind {
-        return Some(e.confidence);
-    }
-    if let AuditKind::GodComponent(e) = kind {
-        return Some(e.confidence);
-    }
-    if let AuditKind::CompoundArchSmell(e) = kind {
-        return Some(e.confidence);
-    }
-    None
+    package_metric_evidence_confidence(kind)
 }
 
 macro_rules! confidence_lookup {
@@ -480,6 +471,11 @@ macro_rules! confidence_lookup {
         }
     };
 }
+
+confidence_lookup!(package_metric_evidence_confidence {
+    DistanceFromMainSequence, ImportCycle, UnstableDependency, HubLikeDependency, GodComponent,
+    CompoundArchSmell, SplitComponent
+});
 
 confidence_lookup!(named_smell_confidence {
     ShotgunSurgery, DivergentChange, FeatureEnvy, GodClass, ParallelInheritance, RefusedBequest

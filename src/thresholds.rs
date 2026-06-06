@@ -1,6 +1,8 @@
 use crate::history::thresholds::HistoryThresholds;
 
+mod arch;
 mod features;
+pub use arch::{CommunityThresholds, PageRankThresholds};
 pub use features::{CloneClusterThresholds, CpgThresholds, NaturalnessThresholds};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -125,14 +127,8 @@ pub struct PackageMetricsThresholds {
     pub hublike_imbalance_ratio: f64,
     pub god_component_loc_percentile: f64,
     pub pagerank: PageRankThresholds,
+    pub community: CommunityThresholds,
     pub max_arch_findings_reported: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PageRankThresholds {
-    pub damping: f64,
-    pub max_iters: u32,
-    pub epsilon: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -286,15 +282,8 @@ impl PackageMetricsThresholds {
         hublike_imbalance_ratio: 0.25,
         god_component_loc_percentile: 0.90,
         pagerank: PageRankThresholds::DEFAULTS,
+        community: CommunityThresholds::DEFAULTS,
         max_arch_findings_reported: 50,
-    };
-}
-
-impl PageRankThresholds {
-    pub const DEFAULTS: Self = Self {
-        damping: 0.85,
-        max_iters: 100,
-        epsilon: 1e-6,
     };
 }
 

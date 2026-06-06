@@ -63,6 +63,15 @@ pub struct CompoundEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SplitComponentEvidence {
+    pub component: PathBuf,
+    pub file_count: u32,
+    pub community_count: u32,
+    pub cohesion: f64,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,

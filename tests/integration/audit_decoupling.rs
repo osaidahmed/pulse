@@ -15,6 +15,8 @@ const ARCH_MODULES: &[&str] = &[
     "martin.rs",
     "graph.rs",
     "package_metrics.rs",
+    "community.rs",
+    "remodularization.rs",
 ];
 
 const CLASS_SMELL_SYMBOLS: &[&str] = &[

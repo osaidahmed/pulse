@@ -57,6 +57,7 @@ pub mod output_taint;
 pub mod output_vuln_clones;
 pub mod package_metrics;
 pub mod record_extraction;
+pub mod remodularization;
 pub mod scoring;
 pub mod swap_significance;
 pub mod taint;

@@ -71,7 +71,7 @@ fn assign_components(graph: &ImportGraph) -> (Vec<PathBuf>, Vec<usize>) {
     (paths, file_comp)
 }
 
-fn component_of(path: &Path) -> PathBuf {
+pub fn component_of(path: &Path) -> PathBuf {
     path.parent().map_or_else(|| PathBuf::from("."), Path::to_path_buf)
 }
 
