@@ -34,6 +34,12 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  centrality:    {:.4}", e.centrality);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        AuditKind::CompoundArchSmell(e) => {
+            let _ = writeln!(out, "audit: compound architecture smell — {}", display_path(&e.component, root));
+            let _ = writeln!(out, "  smells:        {}", e.constituent_kinds.join(" + "));
+            let _ = writeln!(out, "  severity:      {:.4}", e.combined_severity);
+            let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+        }
         _ => return false,
     }
     if !action.is_empty() {
@@ -72,6 +78,13 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "file_count": e.file_count,
             "density": e.density,
             "centrality": e.centrality,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::CompoundArchSmell(e) => Some(serde_json::json!({
+            "kind": "CompoundArchSmell",
+            "component": display_path(&e.component, root),
+            "constituent_kinds": e.constituent_kinds,
+            "combined_severity": e.combined_severity,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

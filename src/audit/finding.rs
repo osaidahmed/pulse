@@ -25,10 +25,11 @@ pub enum AuditKind {
     UnstableDependency(UnstableDepEvidence),
     HubLikeDependency(HubLikeEvidence),
     GodComponent(GodComponentEvidence),
+    CompoundArchSmell(CompoundEvidence),
 }
 
 pub use super::finding_evidence::{
-    CloneClusterEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
+    CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
     NaturalnessEvidence, UnstableDepEvidence, VulnCloneEvidence,
 };
 
@@ -259,7 +260,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 17] = [
+const VARIANT_TABLE: [VariantInfo; 18] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -306,6 +307,14 @@ const VARIANT_TABLE: [VariantInfo; 17] = [
         slug: "god_component",
         action: "split this oversized component or relocate cohesive files into a new module",
         label: "God component",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::CompoundArchSmell(_)),
+        pass: "package-metrics",
+        slug: "compound_arch_smell",
+        action: "this component carries several reinforcing architecture smells — address it first",
+        label: "Compound architecture smell",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -453,6 +462,9 @@ fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
         return Some(e.confidence);
     }
     if let AuditKind::GodComponent(e) = kind {
+        return Some(e.confidence);
+    }
+    if let AuditKind::CompoundArchSmell(e) = kind {
         return Some(e.confidence);
     }
     None

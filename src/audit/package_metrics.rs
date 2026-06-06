@@ -55,9 +55,11 @@ fn arch_findings(
         }
     });
     assign_centrality(&mut cg, thresholds);
-    let mut out = super::arch_smells::unstable_dependencies(&cg, thresholds);
-    out.extend(super::arch_smells::hub_like_dependencies(&cg, thresholds));
-    out.extend(super::arch_smells::god_components(&cg, thresholds));
+    let mut singles = super::arch_smells::unstable_dependencies(&cg, thresholds);
+    singles.extend(super::arch_smells::hub_like_dependencies(&cg, thresholds));
+    singles.extend(super::arch_smells::god_components(&cg, thresholds));
+    let mut out = super::compound::detect(&singles, thresholds);
+    out.extend(singles);
     out
 }
 

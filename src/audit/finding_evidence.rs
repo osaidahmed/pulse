@@ -55,6 +55,14 @@ pub struct GodComponentEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct CompoundEvidence {
+    pub component: PathBuf,
+    pub constituent_kinds: Vec<&'static str>,
+    pub combined_severity: f64,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,

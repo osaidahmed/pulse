@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use pulse::audit::finding::{
-    AuditKind, GodComponentEvidence, HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
+    AuditKind, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, ImportConfidence,
+    UnstableDepEvidence,
 };
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
@@ -66,6 +67,42 @@ fn god_components(
             _ => None,
         })
         .collect()
+}
+
+fn compounds(edges: &[InputEdge]) -> Vec<CompoundEvidence> {
+    run_from_edges(edges, profile, &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::CompoundArchSmell(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn compounds_with_loc(
+    edges: &[InputEdge],
+    loc_of: impl Fn(&Path) -> u32 + Copy,
+) -> Vec<CompoundEvidence> {
+    run_from_edges(edges, |p| profile_with_loc(p, loc_of), &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::CompoundArchSmell(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn unstable_hub_edges() -> Vec<InputEdge> {
+    vec![
+        edge("x/m.rs", "s/m.rs"),
+        edge("y/m.rs", "s/m.rs"),
+        edge("s/m.rs", "u1/m.rs"),
+        edge("s/m.rs", "u2/m.rs"),
+        edge("u1/m.rs", "a/m.rs"),
+        edge("u1/m.rs", "b/m.rs"),
+        edge("u2/m.rs", "c/m.rs"),
+        edge("u2/m.rs", "d/m.rs"),
+    ]
 }
 
 #[test]
@@ -202,4 +239,38 @@ fn two_components_lack_a_distribution_for_god_detection() {
         god_components(&edges, |p| if p.starts_with("large") { 1000 } else { 100 }).is_empty(),
         "two components are too few to call one an outlier"
     );
+}
+
+#[test]
+fn component_with_two_co_occurring_smells_is_a_compound() {
+    let cs = compounds(&unstable_hub_edges());
+    let s = cs.iter().find(|e| e.component.as_path() == Path::new("s")).expect("s is a compound");
+    assert!(s.constituent_kinds.contains(&"unstable_dependency"));
+    assert!(s.constituent_kinds.contains(&"hub_like_dependency"));
+    assert!(s.combined_severity > 0.0);
+    assert_eq!(s.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn a_lone_smell_is_not_a_compound() {
+    let edges = [
+        edge("in1/m.rs", "h/m.rs"),
+        edge("in2/m.rs", "h/m.rs"),
+        edge("in3/m.rs", "h/m.rs"),
+        edge("h/m.rs", "out1/m.rs"),
+        edge("h/m.rs", "out2/m.rs"),
+        edge("h/m.rs", "out3/m.rs"),
+    ];
+    assert!(compounds(&edges).is_empty(), "a hub with no other smell is not a compound");
+}
+
+#[test]
+fn god_component_joins_a_compound() {
+    let cs = compounds_with_loc(&unstable_hub_edges(), |p| if p.starts_with("s") { 900 } else { 100 });
+    let s = cs.iter().find(|e| e.component.as_path() == Path::new("s")).expect("s is a compound");
+    assert!(s.constituent_kinds.contains(&"god_component"));
+    assert!(s.constituent_kinds.contains(&"unstable_dependency"));
+    assert!(s.constituent_kinds.contains(&"hub_like_dependency"));
+    assert!(s.combined_severity > 0.0);
+    assert_eq!(s.confidence, ImportConfidence::Medium);
 }

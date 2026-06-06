@@ -174,7 +174,7 @@ fn arch_finding(kind: AuditKind, path: PathBuf, file_count: u32, support: u32) -
     }
 }
 
-fn arch_severity(f: &AuditFinding) -> f64 {
+pub fn arch_severity(f: &AuditFinding) -> f64 {
     match &f.kind {
         AuditKind::UnstableDependency(e) => e.centrality * e.strength * e.gap.abs(),
         AuditKind::HubLikeDependency(e) => e.centrality * f64::from(e.afferent + e.efferent),
