@@ -14,6 +14,7 @@ use super::martin::{compute, AbstractnessRecord};
 pub struct ModuleProfile {
     pub abstractness: AbstractnessRecord,
     pub import_confidence: ImportConfidence,
+    pub loc: u32,
 }
 
 pub fn run_from_edges(
@@ -46,9 +47,16 @@ fn arch_findings(
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let cg = super::components::build(graph, |path| profile_lookup(path).abstractness.abstractness);
+    let cg = super::components::build(graph, |path| {
+        let profile = profile_lookup(path);
+        super::components::MemberMetrics {
+            abstractness: profile.abstractness.abstractness,
+            loc: profile.loc,
+        }
+    });
     let mut out = super::arch_smells::unstable_dependencies(&cg, thresholds);
     out.extend(super::arch_smells::hub_like_dependencies(&cg, thresholds));
+    out.extend(super::arch_smells::god_components(&cg, thresholds));
     out
 }
 

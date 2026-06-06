@@ -4,10 +4,12 @@ use crate::thresholds::AuditThresholds;
 
 use super::components::{Component, ComponentGraph};
 use super::finding::{
-    AuditFinding, AuditKind, AuditLocation, HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
+    AuditFinding, AuditKind, AuditLocation, GodComponentEvidence, HubLikeEvidence, ImportConfidence,
+    UnstableDepEvidence,
 };
 
 const MIN_DEPS: usize = 2;
+const MIN_COMPONENTS_FOR_GC: usize = 3;
 
 pub fn unstable_dependencies(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let threshold = thresholds.package_metrics.unstable_dep_strength;
@@ -56,6 +58,52 @@ fn hub_finding(c: &Component, bounds: &HubBounds) -> Option<AuditFinding> {
         confidence: ImportConfidence::Medium,
     };
     Some(arch_finding(AuditKind::HubLikeDependency(evidence), c.path.clone(), c.file_count, total))
+}
+
+pub fn god_components(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    if cg.components.len() < MIN_COMPONENTS_FOR_GC {
+        return Vec::new();
+    }
+    let cutoff = percentile(
+        cg.components.iter().map(|c| c.loc),
+        thresholds.package_metrics.god_component_loc_percentile,
+    );
+    let out: Vec<AuditFinding> =
+        cg.components.iter().filter_map(|c| god_finding(c, cutoff)).collect();
+    rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
+}
+
+fn god_finding(c: &Component, cutoff: f64) -> Option<AuditFinding> {
+    if f64::from(c.loc) <= cutoff {
+        return None;
+    }
+    let density = if c.file_count == 0 {
+        f64::from(c.loc)
+    } else {
+        f64::from(c.loc) / f64::from(c.file_count)
+    };
+    let evidence = GodComponentEvidence {
+        component: c.path.clone(),
+        loc: c.loc,
+        file_count: c.file_count,
+        density,
+        confidence: ImportConfidence::Medium,
+    };
+    Some(arch_finding(AuditKind::GodComponent(evidence), c.path.clone(), c.file_count, c.loc))
+}
+
+fn percentile(values: impl Iterator<Item = u32>, p: f64) -> f64 {
+    let mut v: Vec<u32> = values.collect();
+    v.sort_unstable();
+    let n = v.len();
+    if n == 0 {
+        return 0.0;
+    }
+    let rank = p.clamp(0.0, 1.0) * (n - 1) as f64;
+    let lo = rank.floor() as usize;
+    let hi = rank.ceil() as usize;
+    let frac = rank - lo as f64;
+    f64::from(v[lo]) + frac * (f64::from(v[hi]) - f64::from(v[lo]))
 }
 
 fn median(values: impl Iterator<Item = u32>) -> f64 {
@@ -127,6 +175,7 @@ fn arch_severity(f: &AuditFinding) -> f64 {
     match &f.kind {
         AuditKind::UnstableDependency(e) => e.strength * e.gap.abs(),
         AuditKind::HubLikeDependency(e) => f64::from(e.afferent + e.efferent),
+        AuditKind::GodComponent(e) => e.density,
         _ => 0.0,
     }
 }

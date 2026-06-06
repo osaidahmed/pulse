@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use pulse::audit::finding::{AuditKind, HubLikeEvidence, ImportConfidence, UnstableDepEvidence};
+use pulse::audit::finding::{
+    AuditKind, GodComponentEvidence, HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
+};
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
 use pulse::audit::package_metrics::{run_from_edges, ModuleProfile};
@@ -21,6 +23,15 @@ fn profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
         abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
+        loc: 0,
+    }
+}
+
+fn profile_with_loc(path: &Path, loc_of: impl Fn(&Path) -> u32) -> ModuleProfile {
+    ModuleProfile {
+        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
+        import_confidence: ImportConfidence::High,
+        loc: loc_of(path),
     }
 }
 
@@ -39,6 +50,19 @@ fn hub_likes(edges: &[InputEdge]) -> Vec<HubLikeEvidence> {
         .into_iter()
         .filter_map(|f| match f.kind {
             AuditKind::HubLikeDependency(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn god_components(
+    edges: &[InputEdge],
+    loc_of: impl Fn(&Path) -> u32 + Copy,
+) -> Vec<GodComponentEvidence> {
+    run_from_edges(edges, |p| profile_with_loc(p, loc_of), &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::GodComponent(e) => Some(e),
             _ => None,
         })
         .collect()
@@ -126,4 +150,53 @@ fn uniform_ring_has_no_hub() {
         edge("d/m.rs", "a/m.rs"),
     ];
     assert!(hub_likes(&edges).is_empty(), "a uniform ring has no hub");
+}
+
+#[test]
+fn flags_oversized_component_against_the_loc_distribution() {
+    let edges = [
+        edge("g/m.rs", "a/m.rs"),
+        edge("g/m.rs", "b/m.rs"),
+        edge("g/m.rs", "c/m.rs"),
+        edge("g/m.rs", "d/m.rs"),
+    ];
+    let gods = god_components(&edges, |p| if p.starts_with("g") { 900 } else { 100 });
+    assert_eq!(gods.len(), 1, "only the outlier component is a god component");
+    let g = &gods[0];
+    assert_eq!(g.component.as_path(), Path::new("g"));
+    assert_eq!((g.loc, g.file_count), (900, 1));
+    assert!((g.density - 900.0).abs() < 1e-9, "density is loc per file");
+    assert_eq!(g.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn uniform_component_sizes_have_no_god_component() {
+    let edges = [
+        edge("g/m.rs", "a/m.rs"),
+        edge("g/m.rs", "b/m.rs"),
+        edge("g/m.rs", "c/m.rs"),
+        edge("g/m.rs", "d/m.rs"),
+    ];
+    assert!(
+        god_components(&edges, |_| 200).is_empty(),
+        "uniformly-sized components yield no outlier"
+    );
+}
+
+#[test]
+fn single_component_is_not_a_god_component() {
+    let edges = [edge("src/a.rs", "src/b.rs")];
+    assert!(
+        god_components(&edges, |_| 5000).is_empty(),
+        "a single component has no distribution to stand out from"
+    );
+}
+
+#[test]
+fn two_components_lack_a_distribution_for_god_detection() {
+    let edges = [edge("small/m.rs", "large/m.rs")];
+    assert!(
+        god_components(&edges, |p| if p.starts_with("large") { 1000 } else { 100 }).is_empty(),
+        "two components are too few to call one an outlier"
+    );
 }

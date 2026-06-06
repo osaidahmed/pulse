@@ -307,9 +307,11 @@ fn profile_for_path(
         },
         |l| abstractness::abstractness_for_file(path, l),
     );
+    let loc = std::fs::read_to_string(path).map_or(0, |s| s.lines().count() as u32);
     ModuleProfile {
         abstractness,
         import_confidence,
+        loc,
     }
 }
 

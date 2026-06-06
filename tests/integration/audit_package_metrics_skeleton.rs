@@ -31,6 +31,7 @@ fn high_concrete_profile(_path: &Path) -> ModuleProfile {
             confidence: ImportConfidence::High,
         },
         import_confidence: ImportConfidence::High,
+        loc: 0,
     }
 }
 
@@ -41,6 +42,7 @@ fn high_abstract_profile(_path: &Path) -> ModuleProfile {
             confidence: ImportConfidence::High,
         },
         import_confidence: ImportConfidence::High,
+        loc: 0,
     }
 }
 
@@ -102,6 +104,7 @@ fn cycle_confidence_inherits_minimum_member_confidence() {
                     confidence: ImportConfidence::High,
                 },
                 import_confidence: conf,
+                loc: 0,
             }
         },
         &t().audit,

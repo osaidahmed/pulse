@@ -12,14 +12,20 @@ pub struct Component {
     pub efferent: u32,
     pub instability: f64,
     pub abstractness: f64,
+    pub loc: u32,
     pub deps: Vec<usize>,
+}
+
+pub struct MemberMetrics {
+    pub abstractness: f64,
+    pub loc: u32,
 }
 
 pub struct ComponentGraph {
     pub components: Vec<Component>,
 }
 
-pub fn build(graph: &ImportGraph, abstractness_of: impl Fn(&Path) -> f64) -> ComponentGraph {
+pub fn build(graph: &ImportGraph, member_of: impl Fn(&Path) -> MemberMetrics) -> ComponentGraph {
     let (paths, file_comp) = assign_components(graph);
     let count = paths.len();
     let edges = component_edges(graph, &file_comp);
@@ -31,7 +37,7 @@ pub fn build(graph: &ImportGraph, abstractness_of: impl Fn(&Path) -> f64) -> Com
         afferent[to] += 1;
         deps[from].push(to);
     }
-    let (file_counts, abstractness) = aggregate_members(graph, &file_comp, count, &abstractness_of);
+    let (file_counts, abstractness, loc) = aggregate_members(graph, &file_comp, count, &member_of);
     let mut components = Vec::with_capacity(count);
     for c in 0..count {
         components.push(Component {
@@ -41,6 +47,7 @@ pub fn build(graph: &ImportGraph, abstractness_of: impl Fn(&Path) -> f64) -> Com
             efferent: efferent[c],
             instability: instability(afferent[c], efferent[c]),
             abstractness: abstractness[c],
+            loc: loc[c],
             deps: std::mem::take(&mut deps[c]),
         });
     }
@@ -83,20 +90,23 @@ fn aggregate_members(
     graph: &ImportGraph,
     file_comp: &[usize],
     count: usize,
-    abstractness_of: &impl Fn(&Path) -> f64,
-) -> (Vec<u32>, Vec<f64>) {
+    member_of: &impl Fn(&Path) -> MemberMetrics,
+) -> (Vec<u32>, Vec<f64>, Vec<u32>) {
     let mut counts = vec![0u32; count];
     let mut sum_abs = vec![0.0f64; count];
+    let mut sum_loc = vec![0u32; count];
     for (i, &c) in file_comp.iter().enumerate() {
+        let m = member_of(graph.registry.path_of(NodeIndex(i as u32)));
         counts[c] += 1;
-        sum_abs[c] += abstractness_of(graph.registry.path_of(NodeIndex(i as u32)));
+        sum_abs[c] += m.abstractness;
+        sum_loc[c] = sum_loc[c].saturating_add(m.loc);
     }
     let abstractness = counts
         .iter()
         .zip(&sum_abs)
         .map(|(&n, &s)| if n == 0 { 0.0 } else { s / f64::from(n) })
         .collect();
-    (counts, abstractness)
+    (counts, abstractness, sum_loc)
 }
 
 fn instability(afferent: u32, efferent: u32) -> f64 {

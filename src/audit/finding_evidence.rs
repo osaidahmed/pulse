@@ -44,6 +44,15 @@ pub struct HubLikeEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct GodComponentEvidence {
+    pub component: PathBuf,
+    pub loc: u32,
+    pub file_count: u32,
+    pub density: f64,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,

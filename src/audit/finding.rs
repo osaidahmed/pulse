@@ -24,11 +24,12 @@ pub enum AuditKind {
     VulnerableCloneSibling(VulnCloneEvidence),
     UnstableDependency(UnstableDepEvidence),
     HubLikeDependency(HubLikeEvidence),
+    GodComponent(GodComponentEvidence),
 }
 
 pub use super::finding_evidence::{
-    CloneClusterEvidence, HubLikeEvidence, InjectionEvidence, NaturalnessEvidence,
-    UnstableDepEvidence, VulnCloneEvidence,
+    CloneClusterEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
+    NaturalnessEvidence, UnstableDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -258,7 +259,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 16] = [
+const VARIANT_TABLE: [VariantInfo; 17] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -297,6 +298,14 @@ const VARIANT_TABLE: [VariantInfo; 16] = [
         slug: "hub_like_dependency",
         action: "split this hub or introduce interfaces to reduce its coupling",
         label: "Hub-like dependency",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::GodComponent(_)),
+        pass: "package-metrics",
+        slug: "god_component",
+        action: "split this oversized component or relocate cohesive files into a new module",
+        label: "God component",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -441,6 +450,9 @@ fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
         return Some(e.confidence);
     }
     if let AuditKind::HubLikeDependency(e) = kind {
+        return Some(e.confidence);
+    }
+    if let AuditKind::GodComponent(e) = kind {
         return Some(e.confidence);
     }
     None
