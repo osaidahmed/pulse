@@ -55,6 +55,7 @@ fn hub_finding(c: &Component, bounds: &HubBounds) -> Option<AuditFinding> {
         afferent: c.afferent,
         efferent: c.efferent,
         imbalance,
+        centrality: c.centrality,
         confidence: ImportConfidence::Medium,
     };
     Some(arch_finding(AuditKind::HubLikeDependency(evidence), c.path.clone(), c.file_count, total))
@@ -87,6 +88,7 @@ fn god_finding(c: &Component, cutoff: f64) -> Option<AuditFinding> {
         loc: c.loc,
         file_count: c.file_count,
         density,
+        centrality: c.centrality,
         confidence: ImportConfidence::Medium,
     };
     Some(arch_finding(AuditKind::GodComponent(evidence), c.path.clone(), c.file_count, c.loc))
@@ -151,6 +153,7 @@ fn unstable_dep_finding(cg: &ComponentGraph, c: &Component, threshold: f64) -> O
         gap: c.instability - mean_higher,
         unstable_deps: higher.len() as u32,
         total_deps: total as u32,
+        centrality: c.centrality,
         confidence: ImportConfidence::Medium,
     };
     Some(arch_finding(AuditKind::UnstableDependency(evidence), c.path.clone(), c.file_count, higher.len() as u32))
@@ -173,9 +176,9 @@ fn arch_finding(kind: AuditKind, path: PathBuf, file_count: u32, support: u32) -
 
 fn arch_severity(f: &AuditFinding) -> f64 {
     match &f.kind {
-        AuditKind::UnstableDependency(e) => e.strength * e.gap.abs(),
-        AuditKind::HubLikeDependency(e) => f64::from(e.afferent + e.efferent),
-        AuditKind::GodComponent(e) => e.density,
+        AuditKind::UnstableDependency(e) => e.centrality * e.strength * e.gap.abs(),
+        AuditKind::HubLikeDependency(e) => e.centrality * f64::from(e.afferent + e.efferent),
+        AuditKind::GodComponent(e) => e.centrality * e.density,
         _ => 0.0,
     }
 }

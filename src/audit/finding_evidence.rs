@@ -40,6 +40,7 @@ pub struct HubLikeEvidence {
     pub afferent: u32,
     pub efferent: u32,
     pub imbalance: u32,
+    pub centrality: f64,
     pub confidence: ImportConfidence,
 }
 
@@ -49,6 +50,7 @@ pub struct GodComponentEvidence {
     pub loc: u32,
     pub file_count: u32,
     pub density: f64,
+    pub centrality: f64,
     pub confidence: ImportConfidence,
 }
 
@@ -60,6 +62,7 @@ pub struct UnstableDepEvidence {
     pub gap: f64,
     pub unstable_deps: u32,
     pub total_deps: u32,
+    pub centrality: f64,
     pub confidence: ImportConfidence,
 }
 

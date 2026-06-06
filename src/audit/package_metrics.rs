@@ -47,17 +47,32 @@ fn arch_findings(
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let cg = super::components::build(graph, |path| {
+    let mut cg = super::components::build(graph, |path| {
         let profile = profile_lookup(path);
         super::components::MemberMetrics {
             abstractness: profile.abstractness.abstractness,
             loc: profile.loc,
         }
     });
+    assign_centrality(&mut cg, thresholds);
     let mut out = super::arch_smells::unstable_dependencies(&cg, thresholds);
     out.extend(super::arch_smells::hub_like_dependencies(&cg, thresholds));
     out.extend(super::arch_smells::god_components(&cg, thresholds));
     out
+}
+
+fn assign_centrality(cg: &mut super::components::ComponentGraph, thresholds: &AuditThresholds) {
+    let adjacency: Vec<Vec<usize>> = cg.components.iter().map(|c| c.deps.clone()).collect();
+    let pm = &thresholds.package_metrics;
+    let params = super::centrality::PageRankParams {
+        damping: pm.pagerank.damping,
+        max_iters: pm.pagerank.max_iters,
+        epsilon: pm.pagerank.epsilon,
+    };
+    let (ranks, _converged) = super::centrality::pagerank(&adjacency, params);
+    for (component, &rank) in cg.components.iter_mut().zip(&ranks) {
+        component.centrality = rank;
+    }
 }
 
 fn zero_edge_finding(module_count: u32) -> Vec<AuditFinding> {

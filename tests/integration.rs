@@ -80,6 +80,7 @@ mod history_common;
 #[path = "integration/audit_cycle_shapes.rs"] mod audit_cycle_shapes;
 #[path = "integration/audit_components.rs"] mod audit_components;
 #[path = "integration/audit_arch_smells.rs"] mod audit_arch_smells;
+#[path = "integration/audit_centrality.rs"] mod audit_centrality;
 #[path = "integration/audit_parallel_inheritance.rs"] mod audit_parallel_inheritance;
 #[path = "integration/audit_parallel_inheritance_extended.rs"] mod audit_parallel_inheritance_extended;
 #[path = "integration/audit_per_language_deep.rs"] mod audit_per_language_deep;

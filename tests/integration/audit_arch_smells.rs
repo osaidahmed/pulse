@@ -86,6 +86,7 @@ fn flags_component_depending_on_less_stable_components() {
     assert!((e.strength - 1.0).abs() < 1e-9);
     assert_eq!((e.unstable_deps, e.total_deps), (2, 2));
     assert!(e.gap < 0.0, "gap is negative when deps are more unstable");
+    assert!(e.centrality > 0.0, "centrality is populated from PageRank");
     assert_eq!(e.confidence, ImportConfidence::Medium);
 }
 
@@ -126,6 +127,7 @@ fn balanced_high_traffic_component_is_a_hub() {
     let h = hubs.iter().find(|e| e.component.as_path() == Path::new("h")).expect("h is a hub");
     assert_eq!((h.afferent, h.efferent), (3, 3));
     assert_eq!(h.imbalance, 0);
+    assert!(h.centrality > 0.0, "centrality is populated from PageRank");
     assert_eq!(h.confidence, ImportConfidence::Medium);
 }
 
@@ -166,6 +168,7 @@ fn flags_oversized_component_against_the_loc_distribution() {
     assert_eq!(g.component.as_path(), Path::new("g"));
     assert_eq!((g.loc, g.file_count), (900, 1));
     assert!((g.density - 900.0).abs() < 1e-9, "density is loc per file");
+    assert!(g.centrality > 0.0, "centrality is populated from PageRank");
     assert_eq!(g.confidence, ImportConfidence::Medium);
 }
 

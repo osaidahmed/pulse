@@ -124,7 +124,15 @@ pub struct PackageMetricsThresholds {
     pub unstable_dep_strength: f64,
     pub hublike_imbalance_ratio: f64,
     pub god_component_loc_percentile: f64,
+    pub pagerank: PageRankThresholds,
     pub max_arch_findings_reported: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PageRankThresholds {
+    pub damping: f64,
+    pub max_iters: u32,
+    pub epsilon: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -277,7 +285,16 @@ impl PackageMetricsThresholds {
         unstable_dep_strength: 0.30,
         hublike_imbalance_ratio: 0.25,
         god_component_loc_percentile: 0.90,
+        pagerank: PageRankThresholds::DEFAULTS,
         max_arch_findings_reported: 50,
+    };
+}
+
+impl PageRankThresholds {
+    pub const DEFAULTS: Self = Self {
+        damping: 0.85,
+        max_iters: 100,
+        epsilon: 1e-6,
     };
 }
 

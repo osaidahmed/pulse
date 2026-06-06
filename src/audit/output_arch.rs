@@ -15,6 +15,7 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
                 e.strength, e.unstable_deps, e.total_deps
             );
             let _ = writeln!(out, "  gap:           {:.3}", e.gap);
+            let _ = writeln!(out, "  centrality:    {:.4}", e.centrality);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
         AuditKind::HubLikeDependency(e) => {
@@ -22,6 +23,7 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  Ca:            {}", e.afferent);
             let _ = writeln!(out, "  Ce:            {}", e.efferent);
             let _ = writeln!(out, "  imbalance:     {}", e.imbalance);
+            let _ = writeln!(out, "  centrality:    {:.4}", e.centrality);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
         AuditKind::GodComponent(e) => {
@@ -29,6 +31,7 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  LOC:           {}", e.loc);
             let _ = writeln!(out, "  files:         {}", e.file_count);
             let _ = writeln!(out, "  density:       {:.1} LOC/file", e.density);
+            let _ = writeln!(out, "  centrality:    {:.4}", e.centrality);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
         _ => return false,
@@ -50,6 +53,7 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "gap": e.gap,
             "unstable_deps": e.unstable_deps,
             "total_deps": e.total_deps,
+            "centrality": e.centrality,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::HubLikeDependency(e) => Some(serde_json::json!({
@@ -58,6 +62,7 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "afferent": e.afferent,
             "efferent": e.efferent,
             "imbalance": e.imbalance,
+            "centrality": e.centrality,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::GodComponent(e) => Some(serde_json::json!({
@@ -66,6 +71,7 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "loc": e.loc,
             "file_count": e.file_count,
             "density": e.density,
+            "centrality": e.centrality,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

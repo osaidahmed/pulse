@@ -8,6 +8,7 @@ pub mod call_path_qualified;
 pub mod call_walker;
 pub mod calls;
 pub mod categorize;
+pub mod centrality;
 pub mod class_registry;
 pub mod complexity_floor;
 pub mod components;

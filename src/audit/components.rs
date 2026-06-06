@@ -13,6 +13,7 @@ pub struct Component {
     pub instability: f64,
     pub abstractness: f64,
     pub loc: u32,
+    pub centrality: f64,
     pub deps: Vec<usize>,
 }
 
@@ -48,6 +49,7 @@ pub fn build(graph: &ImportGraph, member_of: impl Fn(&Path) -> MemberMetrics) ->
             instability: instability(afferent[c], efferent[c]),
             abstractness: abstractness[c],
             loc: loc[c],
+            centrality: 0.0,
             deps: std::mem::take(&mut deps[c]),
         });
     }
