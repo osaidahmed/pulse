@@ -5,6 +5,12 @@ use pulse::audit::finding::{
     AuditFinding, AuditKind, DivergentChangeEvidence, GodClassEvidence, ImportConfidence, ShotgunSurgeryEvidence,
 };
 use pulse::audit::hist_crossval::{apply_crossval, crossval_confidence};
+use pulse::audit::{walk_typed_source_files_filtered, IgnoreFilter};
+use pulse::config::IgnoreMatcher;
+use pulse::history::thresholds::HistoryThresholds;
+use pulse::history::{changeshotgun_files, HistoryOpts};
+
+use crate::history_common::{build_repo, CommitSpec};
 
 fn wrap(kind: AuditKind) -> AuditFinding {
     AuditFinding {
@@ -157,4 +163,59 @@ fn apply_crossval_leaves_god_class_untouched() {
     let mut findings = vec![god_class("a.rs", ImportConfidence::Medium)];
     apply_crossval(&mut findings, Some(&flagged(&["other.rs"])));
     assert_eq!(conf_of(&findings[0]), ImportConfidence::Medium, "GodClass is not a HIST cross-val target");
+}
+
+fn co_change_repo() -> tempfile::TempDir {
+    let w1 = [("core/hub.py", "1\n"), ("p1/a.py", "1\n"), ("p2/b.py", "1\n"), ("p3/c.py", "1\n"), ("p4/d.py", "1\n")];
+    let w2 = [("core/hub.py", "2\n"), ("p1/a.py", "2\n"), ("p2/b.py", "2\n"), ("p3/c.py", "2\n"), ("p4/d.py", "2\n")];
+    let w3 = [("core/hub.py", "3\n"), ("p1/a.py", "3\n"), ("p2/b.py", "3\n"), ("p3/c.py", "3\n"), ("p4/d.py", "3\n")];
+    build_repo(&[
+        CommitSpec { author: "a <a@x>", message: "c1", writes: &w1, deletes: &[] },
+        CommitSpec { author: "a <a@x>", message: "c2", writes: &w2, deletes: &[] },
+        CommitSpec { author: "a <a@x>", message: "c3", writes: &w3, deletes: &[] },
+    ])
+}
+
+fn opts_for(root: &std::path::Path) -> HistoryOpts {
+    HistoryOpts { root: root.to_path_buf(), include_tests: true, since: None, max_commits: None }
+}
+
+#[test]
+fn changeshotgun_files_returns_none_outside_a_git_repo() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("a.py"), "x = 1\n").unwrap();
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&matcher, dir.path());
+    assert!(changeshotgun_files(&opts_for(dir.path()), &HistoryThresholds::default(), &filter).is_none());
+}
+
+#[test]
+fn changeshotgun_files_flags_a_cross_package_hub() {
+    let repo = co_change_repo();
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&matcher, repo.path());
+    let flagged = changeshotgun_files(&opts_for(repo.path()), &HistoryThresholds::default(), &filter)
+        .expect("a git repo with co-change history yields a flagged set");
+    assert!(
+        flagged.contains(&repo.path().join("core/hub.py")),
+        "hub co-changes across four packages; got: {flagged:?}"
+    );
+}
+
+#[test]
+fn changeshotgun_files_paths_match_the_audit_walk_form() {
+    let repo = co_change_repo();
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&matcher, repo.path());
+    let flagged = changeshotgun_files(&opts_for(repo.path()), &HistoryThresholds::default(), &filter).expect("flagged");
+
+    let walk: HashSet<PathBuf> =
+        walk_typed_source_files_filtered(repo.path(), true, &filter).into_iter().map(|(p, _)| p).collect();
+    assert!(!flagged.is_empty(), "fixture must produce at least one change-shotgun file");
+    for f in &flagged {
+        assert!(
+            walk.contains(f),
+            "flagged path {f:?} must match the audit walk form — the cross-val matching contract"
+        );
+    }
 }

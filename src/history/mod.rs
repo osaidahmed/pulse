@@ -103,6 +103,42 @@ pub fn calibrate(
     calibrate_with_filter(opts, t, &filter, now_secs)
 }
 
+#[allow(dead_code)]
+pub fn changeshotgun_files(
+    opts: &HistoryOpts,
+    t: &HistoryThresholds,
+    filter: &crate::audit::IgnoreFilter<'_>,
+) -> Option<HashSet<PathBuf>> {
+    if !git::is_git_repo(&opts.root) {
+        return None;
+    }
+    let git_opts = git::GitOpts {
+        root: &opts.root,
+        since: opts.since.as_deref(),
+        max_commits: opts.max_commits,
+        max_commit_files: t.max_commit_files,
+    };
+    let commits = absolutize_commits(git::collect_commits(&git_opts).ok()?, &opts.root);
+    if commits.is_empty() {
+        return None;
+    }
+    let mut ht = *t;
+    ht.hist.enabled = true;
+    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let typed_paths: HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
+    let pairs = co_change::mine(&commits, &ht);
+    let scope = co_change::revisions_in_scope(&commits, &ht);
+    let hist = hist_smells::rank(&commits, &pairs, &scope, &typed_paths, &ht);
+    Some(
+        hist.iter()
+            .filter_map(|f| match &f.kind {
+                finding::HistoryKind::ChangeShotgun(e) => Some(e.file.clone()),
+                _ => None,
+            })
+            .collect(),
+    )
+}
+
 fn absolutize_commits(commits: Vec<git::Commit>, root: &Path) -> Vec<git::Commit> {
     commits
         .into_iter()
