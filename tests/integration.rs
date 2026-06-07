@@ -236,6 +236,8 @@ mod defensive_caps;
 mod diff_filtering_stress;
 #[path = "integration/duplication_extended.rs"]
 mod duplication_extended;
+#[path = "integration/extract_suggester.rs"]
+mod extract_suggester;
 #[path = "integration/false_positive_reduction.rs"]
 mod false_positive_reduction;
 #[path = "integration/fused_equivalence.rs"]

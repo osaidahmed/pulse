@@ -10,6 +10,7 @@ mod config;
 mod config_history;
 mod cpg;
 mod duplication;
+mod extract;
 mod history;
 mod hook;
 mod hook_run;

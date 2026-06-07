@@ -9,6 +9,7 @@ pub mod config;
 pub mod config_history;
 pub mod cpg;
 pub mod duplication;
+pub mod extract;
 pub mod history;
 pub mod hook;
 pub mod intensity;

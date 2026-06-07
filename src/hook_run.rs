@@ -117,11 +117,34 @@ fn build_block_reason(
         Some(note) => format!("{}\n{}\n{}", compact.trim(), note, budget),
         None => format!("{}\n{}", compact.trim(), budget),
     };
-    if let Some(risk) = crate::history::jit_risk::hook_advisory(source, path) {
-        reason.push('\n');
-        reason.push_str(&risk);
-    }
+    push_line(&mut reason, extract_hint_for(blocking, source, path));
+    push_line(&mut reason, crate::history::jit_risk::hook_advisory(source, path));
     reason
+}
+
+fn push_line(reason: &mut String, line: Option<String>) {
+    if let Some(line) = line {
+        reason.push('\n');
+        reason.push_str(&line);
+    }
+}
+
+fn extract_hint_for(blocking: &[Finding], source: &str, path: &Path) -> Option<String> {
+    let lang = parse::detect_language(path)?;
+    let finding = blocking.iter().find(|f| is_extractable(f.smell))?;
+    let (start, end) = match &finding.location {
+        Location::Function { start_line, end_line, .. } => (*start_line, *end_line),
+        Location::Module => return None,
+    };
+    let region = crate::extract::suggest_extract(source, lang, crate::extract::LineSpan { start, end })?;
+    Some(format!(
+        "[extract] lines {}-{} are nested {} levels deep — extracting that block into a helper would flatten the function",
+        region.start_line, region.end_line, region.nesting
+    ))
+}
+
+fn is_extractable(smell: smells::Smell) -> bool {
+    matches!(smell, smells::Smell::ComplexMethod | smells::Smell::GodMethod | smells::Smell::DeepNestedComplexity)
 }
 
 fn emit_decision(reason: &str, advisory_ctx: Option<String>) {
