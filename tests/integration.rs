@@ -340,6 +340,8 @@ mod php_walker_extended;
 mod production_fixtures;
 #[path = "integration/production_fixtures_new_smells.rs"]
 mod production_fixtures_new_smells;
+#[path = "integration/property_invariants.rs"]
+mod property_invariants;
 #[path = "integration/python_future_smells.rs"]
 mod python_future_smells;
 #[path = "integration/python_smells.rs"]
