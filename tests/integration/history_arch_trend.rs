@@ -52,6 +52,40 @@ fn catalyst_flags_a_newly_introduced_cycle() {
 }
 
 #[test]
+fn decay_flags_a_growing_cycle() {
+    let repo = build_repo(&[
+        CommitSpec {
+            author: "alice <alice@x>",
+            message: "a->b->c->a cycle",
+            writes: &[
+                ("pkg/a.py", "import pkg.b\n"),
+                ("pkg/b.py", "import pkg.c\n"),
+                ("pkg/c.py", "import pkg.a\n"),
+            ],
+            deletes: &[],
+        },
+        CommitSpec {
+            author: "alice <alice@x>",
+            message: "cycle absorbs pkg.d",
+            writes: &[("pkg/c.py", "import pkg.d\n"), ("pkg/d.py", "import pkg.a\n")],
+            deletes: &[],
+        },
+    ]);
+    let mut t = HistoryThresholds::default();
+    t.arch_trend = true;
+    let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
+
+    assert!(
+        findings.iter().any(|f| matches!(f.kind, HistoryKind::DecayTrend(_))),
+        "the cycle grew from 3 to 4 modules — that is decay, not a fresh catalyst"
+    );
+    assert!(
+        !has_catalyst(&findings),
+        "a grown cycle overlaps its baseline, so it must not be mislabeled as a fresh catalyst"
+    );
+}
+
+#[test]
 fn catalyst_is_silent_without_the_flag() {
     let repo = cyclic_repo();
     let t = HistoryThresholds::default();

@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::finding::{
-    self, BlobEvidence, CatalystEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence,
-    HistoryFinding, HistoryKind, HistoryPillar, HotspotEvidence,
+    self, BlobEvidence, CatalystEvidence, ChangeShotgunEvidence, DecayEvidence, DriftEvidence,
+    FragmentationEvidence, HistoryFinding, HistoryKind, HistoryPillar, HotspotEvidence,
 };
 
 const PILLAR_ORDER: [(HistoryPillar, &str); 4] = [
@@ -116,6 +116,12 @@ fn render_finding_line(out: &mut String, f: &HistoryFinding) {
             e.members.len(),
             e.members.iter().map(|m| m.display().to_string()).collect::<Vec<_>>().join(" → ")
         )),
+        HistoryKind::DecayTrend(e) => out.push_str(&format!(
+            "  growing cycle ({} → {} modules): {}\n",
+            e.previous_size,
+            e.current_size,
+            e.members.iter().map(|m| m.display().to_string()).collect::<Vec<_>>().join(" → ")
+        )),
     }
 }
 
@@ -154,18 +160,23 @@ pub fn format_findings_json(findings: &[HistoryFinding], root: Option<&Path>) ->
 }
 
 fn finding_to_json(f: &HistoryFinding) -> serde_json::Value {
-    let mut obj = match &f.kind {
+    let mut obj = kind_to_json(&f.kind);
+    if let (serde_json::Value::Object(ref mut map), Some(action)) = (&mut obj, f.action_label) {
+        map.insert("action".to_string(), serde_json::Value::String(action.to_string()));
+    }
+    obj
+}
+
+fn kind_to_json(kind: &HistoryKind) -> serde_json::Value {
+    match kind {
         HistoryKind::ArchitecturalDrift(e) => drift_to_json(e),
         HistoryKind::Hotspot(e) => hotspot_to_json(e),
         HistoryKind::KnowledgeFragmentation(e) => ownership_to_json(e),
         HistoryKind::FileBlob(e) => blob_to_json(e),
         HistoryKind::ChangeShotgun(e) => shotgun_to_json(e),
         HistoryKind::CatalystWarning(e) => catalyst_to_json(e),
-    };
-    if let (serde_json::Value::Object(ref mut map), Some(action)) = (&mut obj, f.action_label) {
-        map.insert("action".to_string(), serde_json::Value::String(action.to_string()));
+        HistoryKind::DecayTrend(e) => decay_to_json(e),
     }
-    obj
 }
 
 fn drift_to_json(e: &DriftEvidence) -> serde_json::Value {
@@ -212,6 +223,16 @@ fn shotgun_to_json(e: &ChangeShotgunEvidence) -> serde_json::Value {
 fn catalyst_to_json(e: &CatalystEvidence) -> serde_json::Value {
     let members: Vec<String> = e.members.iter().map(|m| m.display().to_string()).collect();
     serde_json::json!({ "kind": "CatalystWarning", "members": members })
+}
+
+fn decay_to_json(e: &DecayEvidence) -> serde_json::Value {
+    let members: Vec<String> = e.members.iter().map(|m| m.display().to_string()).collect();
+    serde_json::json!({
+        "kind": "DecayTrend",
+        "members": members,
+        "previous_size": e.previous_size,
+        "current_size": e.current_size,
+    })
 }
 
 fn ownership_to_json(e: &FragmentationEvidence) -> serde_json::Value {

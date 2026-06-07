@@ -14,6 +14,7 @@ pub enum HistoryKind {
     FileBlob(BlobEvidence),
     ChangeShotgun(ChangeShotgunEvidence),
     CatalystWarning(CatalystEvidence),
+    DecayTrend(DecayEvidence),
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +68,13 @@ pub struct CatalystEvidence {
     pub members: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone)]
+pub struct DecayEvidence {
+    pub members: Vec<PathBuf>,
+    pub previous_size: u32,
+    pub current_size: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistoryPillar {
     Drift,
@@ -84,7 +92,7 @@ pub struct VariantInfo {
     pub action: &'static str,
 }
 
-const VARIANT_TABLE: [VariantInfo; 6] = [
+const VARIANT_TABLE: [VariantInfo; 7] = [
     VariantInfo {
         pillar: HistoryPillar::Drift,
         slug: "architectural_drift",
@@ -121,6 +129,12 @@ const VARIANT_TABLE: [VariantInfo; 6] = [
         label: "newly-introduced cycle",
         action: "break this fresh dependency cycle early — cycles tend to precede other smells",
     },
+    VariantInfo {
+        pillar: HistoryPillar::Evolution,
+        slug: "decay_trend",
+        label: "decaying cycle",
+        action: "this dependency cycle is growing across history — break it before it absorbs more modules",
+    },
 ];
 
 pub fn variant_info(k: &HistoryKind) -> VariantInfo {
@@ -135,5 +149,6 @@ fn variant_index(k: &HistoryKind) -> usize {
         HistoryKind::FileBlob(_) => 3,
         HistoryKind::ChangeShotgun(_) => 4,
         HistoryKind::CatalystWarning(_) => 5,
+        HistoryKind::DecayTrend(_) => 6,
     }
 }

@@ -1,8 +1,61 @@
 use std::path::{Path, PathBuf};
 
 use pulse::history::finding::{
-    DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind, HotspotEvidence,
+    CatalystEvidence, DecayEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding,
+    HistoryKind, HotspotEvidence,
 };
+
+fn catalyst(members: &[&str]) -> HistoryFinding {
+    HistoryFinding {
+        kind: HistoryKind::CatalystWarning(CatalystEvidence {
+            members: members.iter().map(|&m| PathBuf::from(m)).collect(),
+        }),
+        action_label: None,
+    }
+}
+
+fn decay(members: &[&str], previous_size: u32, current_size: u32) -> HistoryFinding {
+    HistoryFinding {
+        kind: HistoryKind::DecayTrend(DecayEvidence {
+            members: members.iter().map(|&m| PathBuf::from(m)).collect(),
+            previous_size,
+            current_size,
+        }),
+        action_label: None,
+    }
+}
+
+#[test]
+fn catalyst_renders_fresh_cycle_text() {
+    let out = format_findings(&[catalyst(&["pkg/a.rs", "pkg/b.rs"])], None);
+    assert!(out.contains("fresh cycle"), "got: {out}");
+    assert!(out.contains("pkg/a.rs"), "got: {out}");
+    assert!(out.contains("→"), "members joined with arrow: {out}");
+}
+
+#[test]
+fn catalyst_renders_json() {
+    let out = format_findings_json(&[catalyst(&["pkg/a.rs", "pkg/b.rs"])], None);
+    assert!(serde_json::from_str::<serde_json::Value>(&out).is_ok(), "valid JSON: {out}");
+    assert!(out.contains("\"CatalystWarning\""), "got: {out}");
+    assert!(out.contains("members"), "got: {out}");
+}
+
+#[test]
+fn decay_renders_growing_cycle_text() {
+    let out = format_findings(&[decay(&["pkg/a.rs", "pkg/b.rs", "pkg/c.rs"], 2, 3)], None);
+    assert!(out.contains("growing cycle"), "got: {out}");
+    assert!(out.contains("2 → 3"), "size transition shown: {out}");
+}
+
+#[test]
+fn decay_renders_json() {
+    let out = format_findings_json(&[decay(&["pkg/a.rs", "pkg/b.rs", "pkg/c.rs"], 2, 3)], None);
+    assert!(serde_json::from_str::<serde_json::Value>(&out).is_ok(), "valid JSON: {out}");
+    assert!(out.contains("\"DecayTrend\""), "got: {out}");
+    assert!(out.contains("previous_size"), "got: {out}");
+    assert!(out.contains("current_size"), "got: {out}");
+}
 use pulse::history::output::{format_findings, format_findings_json};
 
 fn drift(a: &str, b: &str, support: u32) -> HistoryFinding {

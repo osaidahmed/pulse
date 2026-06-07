@@ -9,7 +9,7 @@ use crate::audit::package_metrics::{run_from_edges, ModuleProfile};
 use crate::parse::{self, Language};
 use crate::thresholds::{AuditThresholds, Thresholds};
 
-use super::finding::{CatalystEvidence, HistoryFinding, HistoryKind};
+use super::finding::{CatalystEvidence, DecayEvidence, HistoryFinding, HistoryKind};
 use super::git;
 
 pub fn catalyst_findings(root: &Path, commits: &[git::Commit]) -> Vec<HistoryFinding> {
@@ -20,14 +20,34 @@ pub fn catalyst_findings(root: &Path, commits: &[git::Commit]) -> Vec<HistoryFin
     let before = cycle_members(root, &baseline.hash, &audit);
     cycle_members(root, "HEAD", &audit)
         .into_iter()
-        .filter(|members| !before.contains(members))
-        .map(|members| HistoryFinding {
-            kind: HistoryKind::CatalystWarning(CatalystEvidence {
-                members: members.into_iter().collect(),
-            }),
-            action_label: None,
-        })
+        .filter_map(|cycle| classify(&cycle, &before))
         .collect()
+}
+
+fn classify(cycle: &BTreeSet<PathBuf>, before: &BTreeSet<BTreeSet<PathBuf>>) -> Option<HistoryFinding> {
+    if before.iter().all(|b| b.is_disjoint(cycle)) {
+        return Some(history_finding(HistoryKind::CatalystWarning(CatalystEvidence {
+            members: members_of(cycle),
+        })));
+    }
+    let previous = before
+        .iter()
+        .filter(|b| b.len() < cycle.len() && b.is_subset(cycle))
+        .map(BTreeSet::len)
+        .max()?;
+    Some(history_finding(HistoryKind::DecayTrend(DecayEvidence {
+        members: members_of(cycle),
+        previous_size: previous as u32,
+        current_size: cycle.len() as u32,
+    })))
+}
+
+fn history_finding(kind: HistoryKind) -> HistoryFinding {
+    HistoryFinding { kind, action_label: None }
+}
+
+fn members_of(cycle: &BTreeSet<PathBuf>) -> Vec<PathBuf> {
+    cycle.iter().cloned().collect()
 }
 
 fn cycle_members(root: &Path, rev: &str, audit: &AuditThresholds) -> BTreeSet<BTreeSet<PathBuf>> {
