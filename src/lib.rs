@@ -12,6 +12,7 @@ pub mod duplication;
 pub mod history;
 pub mod hook;
 pub mod intensity;
+pub mod interaction;
 pub mod module_smells;
 pub mod naturalness;
 pub mod output;
