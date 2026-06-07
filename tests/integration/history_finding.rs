@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use pulse::history::finding::{
-    variant_info, DriftEvidence, FragmentationEvidence, HistoryKind, HistoryPillar,
+    variant_info, BlobEvidence, DriftEvidence, FragmentationEvidence, HistoryKind, HistoryPillar,
     HotspotEvidence,
 };
 
@@ -48,9 +48,23 @@ fn hotspot_dispatches_to_complexity_pillar() {
     assert_eq!(variant_info(&hotspot_kind()).pillar, HistoryPillar::Complexity);
 }
 
+fn blob_kind() -> HistoryKind {
+    HistoryKind::FileBlob(BlobEvidence {
+        file: PathBuf::from("god.rs"),
+        multi_file_commits: 20,
+        total_multi_file_commits: 24,
+        blob_ratio: 0.83,
+    })
+}
+
 #[test]
 fn ownership_dispatches_to_ownership_pillar() {
     assert_eq!(variant_info(&ownership_kind()).pillar, HistoryPillar::Ownership);
+}
+
+#[test]
+fn file_blob_dispatches_to_evolution_pillar() {
+    assert_eq!(variant_info(&blob_kind()).pillar, HistoryPillar::Evolution);
 }
 
 #[test]

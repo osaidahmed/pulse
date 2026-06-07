@@ -3,7 +3,15 @@ pub struct HistoryThresholds {
     pub co_change: CoChangeThresholds,
     pub hotspot: HotspotThresholds,
     pub contributors: ContributorThresholds,
+    pub hist: HistSmellThresholds,
     pub max_commit_files: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HistSmellThresholds {
+    pub enabled: bool,
+    pub blob_commit_pct: f64,
+    pub max_findings_reported: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,11 +63,20 @@ impl ContributorThresholds {
     };
 }
 
+impl HistSmellThresholds {
+    pub const DEFAULTS: Self = Self {
+        enabled: false,
+        blob_commit_pct: 0.08,
+        max_findings_reported: 20,
+    };
+}
+
 impl HistoryThresholds {
     pub const DEFAULTS: Self = Self {
         co_change: CoChangeThresholds::DEFAULTS,
         hotspot: HotspotThresholds::DEFAULTS,
         contributors: ContributorThresholds::DEFAULTS,
+        hist: HistSmellThresholds::DEFAULTS,
         max_commit_files: 40,
     };
 }

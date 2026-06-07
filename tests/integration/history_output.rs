@@ -51,13 +51,13 @@ fn ownership(file: &str, total: u32, minor: u32) -> HistoryFinding {
 fn empty_findings_shows_zero_total() {
     let out = format_findings(&[], Some(Path::new(".")));
     assert!(out.contains("history: . — 0 findings"));
-    assert!(out.contains("0 drift · 0 hotspots · 0 ownership"));
+    assert!(out.contains("0 drift · 0 hotspots · 0 ownership · 0 evolution"));
 }
 
 #[test]
 fn empty_pillars_each_show_none() {
     let out = format_findings(&[], None);
-    assert_eq!(out.matches("(none)").count(), 3);
+    assert_eq!(out.matches("(none)").count(), 4);
 }
 
 #[test]

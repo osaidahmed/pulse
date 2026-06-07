@@ -1,15 +1,24 @@
 use std::path::Path;
 
 use super::finding::{
-    self, DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind, HistoryPillar,
-    HotspotEvidence,
+    self, BlobEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind,
+    HistoryPillar, HotspotEvidence,
 };
 
-const PILLAR_ORDER: [(HistoryPillar, &str); 3] = [
+const PILLAR_ORDER: [(HistoryPillar, &str); 4] = [
     (HistoryPillar::Drift, "architectural drift"),
     (HistoryPillar::Complexity, "hotspots"),
     (HistoryPillar::Ownership, "knowledge fragmentation"),
+    (HistoryPillar::Evolution, "evolutionary smells"),
 ];
+
+#[derive(Default)]
+struct PillarCounts {
+    drift: usize,
+    complexity: usize,
+    ownership: usize,
+    evolution: usize,
+}
 
 pub fn format_findings(findings: &[HistoryFinding], root: Option<&Path>) -> String {
     let mut out = String::new();
@@ -23,24 +32,24 @@ pub fn format_findings(findings: &[HistoryFinding], root: Option<&Path>) -> Stri
 fn write_header(out: &mut String, findings: &[HistoryFinding], root: Option<&Path>) {
     let root_label = root.map_or_else(|| ".".to_string(), |p| p.display().to_string());
     out.push_str(&format!("history: {} — {} findings\n", root_label, findings.len()));
-    let (drift, complexity, ownership) = pillar_counts(findings);
+    let c = pillar_counts(findings);
     out.push_str(&format!(
-        "  {drift} drift · {complexity} hotspots · {ownership} ownership\n\n"
+        "  {} drift · {} hotspots · {} ownership · {} evolution\n\n",
+        c.drift, c.complexity, c.ownership, c.evolution
     ));
 }
 
-fn pillar_counts(findings: &[HistoryFinding]) -> (usize, usize, usize) {
-    let mut drift = 0;
-    let mut complexity = 0;
-    let mut ownership = 0;
+fn pillar_counts(findings: &[HistoryFinding]) -> PillarCounts {
+    let mut c = PillarCounts::default();
     for f in findings {
         match finding::variant_info(&f.kind).pillar {
-            HistoryPillar::Drift => drift += 1,
-            HistoryPillar::Complexity => complexity += 1,
-            HistoryPillar::Ownership => ownership += 1,
+            HistoryPillar::Drift => c.drift += 1,
+            HistoryPillar::Complexity => c.complexity += 1,
+            HistoryPillar::Ownership => c.ownership += 1,
+            HistoryPillar::Evolution => c.evolution += 1,
         }
     }
-    (drift, complexity, ownership)
+    c
 }
 
 fn pillar_label(p: HistoryPillar) -> &'static str {
@@ -83,6 +92,13 @@ fn write_section(out: &mut String, findings: &[HistoryFinding], pillar: HistoryP
                 e.score
             )),
             HistoryKind::KnowledgeFragmentation(e) => render_ownership(e, out),
+            HistoryKind::FileBlob(e) => out.push_str(&format!(
+                "  {}   {} of {} multi-file commits ({:.0}%)\n",
+                e.file.display(),
+                e.multi_file_commits,
+                e.total_multi_file_commits,
+                e.blob_ratio * 100.0
+            )),
         }
     }
     out.push('\n');
@@ -106,14 +122,15 @@ fn render_ownership(e: &FragmentationEvidence, out: &mut String) {
 }
 
 pub fn format_findings_json(findings: &[HistoryFinding], root: Option<&Path>) -> String {
-    let (drift, complexity, ownership) = pillar_counts(findings);
+    let c = pillar_counts(findings);
     let summary = serde_json::json!({
         "root": root.map_or_else(|| ".".to_string(), |p| p.display().to_string()),
         "findings_total": findings.len(),
         "by_pillar": {
-            "drift": drift,
-            "complexity": complexity,
-            "ownership": ownership,
+            "drift": c.drift,
+            "complexity": c.complexity,
+            "ownership": c.ownership,
+            "evolution": c.evolution,
         },
     });
     let arr: Vec<serde_json::Value> = findings.iter().map(finding_to_json).collect();
@@ -126,6 +143,7 @@ fn finding_to_json(f: &HistoryFinding) -> serde_json::Value {
         HistoryKind::ArchitecturalDrift(e) => drift_to_json(e),
         HistoryKind::Hotspot(e) => hotspot_to_json(e),
         HistoryKind::KnowledgeFragmentation(e) => ownership_to_json(e),
+        HistoryKind::FileBlob(e) => blob_to_json(e),
     };
     if let (serde_json::Value::Object(ref mut map), Some(action)) = (&mut obj, f.action_label) {
         map.insert("action".to_string(), serde_json::Value::String(action.to_string()));
@@ -148,14 +166,24 @@ fn drift_to_json(e: &DriftEvidence) -> serde_json::Value {
     })
 }
 
+fn evidence_json(kind: &str, file: &Path, fields: &[(&str, serde_json::Value)]) -> serde_json::Value {
+    let mut obj = serde_json::Map::new();
+    obj.insert("kind".to_string(), serde_json::Value::String(kind.to_string()));
+    obj.insert("file".to_string(), serde_json::Value::String(file.display().to_string()));
+    for (key, value) in fields {
+        obj.insert((*key).to_string(), value.clone());
+    }
+    serde_json::Value::Object(obj)
+}
+
 fn hotspot_to_json(e: &HotspotEvidence) -> serde_json::Value {
-    serde_json::json!({
-        "kind": "Hotspot",
-        "file": e.file.display().to_string(),
-        "revisions": e.revisions,
-        "sum_cc": e.sum_cc,
-        "score": e.score,
-    })
+    let fields = [("revisions", e.revisions.into()), ("sum_cc", e.sum_cc.into()), ("score", e.score.into())];
+    evidence_json("Hotspot", &e.file, &fields)
+}
+
+fn blob_to_json(e: &BlobEvidence) -> serde_json::Value {
+    let fields = [("multi_file_commits", e.multi_file_commits.into()), ("total_multi_file_commits", e.total_multi_file_commits.into()), ("blob_ratio", e.blob_ratio.into())];
+    evidence_json("FileBlob", &e.file, &fields)
 }
 
 fn ownership_to_json(e: &FragmentationEvidence) -> serde_json::Value {

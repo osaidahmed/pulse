@@ -7,6 +7,7 @@ pub mod edges;
 pub mod co_change;
 pub mod hotspots;
 pub mod contributors;
+pub mod hist_smells;
 pub mod finding;
 pub mod output;
 pub mod cmd;
@@ -64,6 +65,7 @@ pub fn run_with_filter(
     let mut findings = co_change::rank_drift(pairs, &scope, &graph, &typed_paths, t);
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
+    findings.extend(hist_smells::rank(&commits, &typed_paths, t));
     Ok(findings)
 }
 

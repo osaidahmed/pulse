@@ -316,6 +316,24 @@ fn cli_top_default_run_preserves_old_behavior() {
 }
 
 #[test]
+fn hist_flag_is_required_to_surface_evolutionary_smells() {
+    let repo = drift_repo();
+    let (off, _, _) = pulse_in(repo.path(), &["--json"]);
+    let (on, _, _) = pulse_in(repo.path(), &["--json", "--hist"]);
+    let off_v: Value = serde_json::from_str(&off).unwrap();
+    let on_v: Value = serde_json::from_str(&on).unwrap();
+    assert_eq!(
+        off_v["summary"]["by_pillar"]["evolution"].as_u64().unwrap(),
+        0,
+        "evolutionary smells stay hidden without --hist"
+    );
+    assert!(
+        on_v["summary"]["by_pillar"]["evolution"].as_u64().unwrap() > 0,
+        "--hist surfaces evolutionary smells on a repo full of multi-file commits"
+    );
+}
+
+#[test]
 fn cli_top_works_with_include_tests_flag_position() {
     let repo = small_repo();
     let (stdout, _, code) = pulse(&[

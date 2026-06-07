@@ -11,6 +11,7 @@ pub enum HistoryKind {
     ArchitecturalDrift(DriftEvidence),
     Hotspot(HotspotEvidence),
     KnowledgeFragmentation(FragmentationEvidence),
+    FileBlob(BlobEvidence),
 }
 
 #[derive(Debug, Clone)]
@@ -43,11 +44,20 @@ pub struct FragmentationEvidence {
     pub top_minor_authors: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct BlobEvidence {
+    pub file: PathBuf,
+    pub multi_file_commits: u32,
+    pub total_multi_file_commits: u32,
+    pub blob_ratio: f64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistoryPillar {
     Drift,
     Complexity,
     Ownership,
+    Evolution,
 }
 
 #[allow(dead_code)]
@@ -77,6 +87,12 @@ pub fn variant_info(k: &HistoryKind) -> VariantInfo {
             slug: "knowledge_fragmentation",
             label: "knowledge fragmentation",
             action: "assign a code owner or schedule pair-programming",
+        },
+        HistoryKind::FileBlob(_) => VariantInfo {
+            pillar: HistoryPillar::Evolution,
+            slug: "file_blob",
+            label: "file blob",
+            action: "split this file's responsibilities — it changes with everything",
         },
     }
 }

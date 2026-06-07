@@ -31,11 +31,11 @@ pub struct CoChangePassConfig {
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-#[allow(clippy::struct_field_names)]
 pub struct HistoryCliOverrides {
     pub co_change_top: Option<u32>,
     pub hotspot_top: Option<u32>,
     pub contributors_top: Option<u32>,
+    pub hist: bool,
 }
 
 pub fn resolve_history_thresholds(
@@ -54,6 +54,9 @@ pub fn resolve_history_thresholds(
     }
     if let Some(v) = overrides.contributors_top {
         t.contributors.max_findings_reported = v;
+    }
+    if overrides.hist {
+        t.hist.enabled = true;
     }
     t
 }

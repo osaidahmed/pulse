@@ -141,6 +141,7 @@ mod history_common;
 #[path = "integration/history_finding.rs"] mod history_finding;
 #[path = "integration/history_git.rs"] mod history_git;
 #[path = "integration/history_hotspots.rs"] mod history_hotspots;
+#[path = "integration/history_hist_smells.rs"] mod history_hist_smells;
 #[path = "integration/history_languages_static_link.rs"] mod history_languages_static_link;
 #[path = "integration/history_negative_paths.rs"] mod history_negative_paths;
 #[path = "integration/history_orchestrator.rs"] mod history_orchestrator;

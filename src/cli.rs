@@ -91,6 +91,10 @@ pub struct HistoryArgs {
     /// Override the cap on knowledge-fragmentation findings reported.
     #[arg(long = "contributors-top")]
     pub contributors_top: Option<u32>,
+
+    /// Surface evolutionary (HIST) smells such as file blobs (opt-in).
+    #[arg(long)]
+    pub hist: bool,
 }
 
 pub enum Dispatch {
