@@ -256,6 +256,8 @@ mod groovy_stress;
 mod haskell_smells;
 #[path = "integration/haskell_stress.rs"]
 mod haskell_stress;
+#[path = "integration/hist_crossval.rs"]
+mod hist_crossval;
 #[path = "integration/history_arch_trend.rs"]
 mod history_arch_trend;
 #[path = "integration/history_cli.rs"]

@@ -30,6 +30,7 @@ pub mod expression_filter;
 pub mod finding;
 pub mod finding_evidence;
 pub mod graph;
+pub mod hist_crossval;
 pub mod import_call_form;
 pub mod import_command_form;
 pub mod import_jsts;
