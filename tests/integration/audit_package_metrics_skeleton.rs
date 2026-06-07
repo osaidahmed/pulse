@@ -88,6 +88,17 @@ fn cycle_finding_carries_member_paths() {
 }
 
 #[test]
+fn cycle_finding_carries_centrality_and_a_feedback_edge() {
+    let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "a.rs")];
+    let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
+    let cycle = findings.iter().find(|f| matches!(f.kind, AuditKind::ImportCycle(_))).unwrap();
+    let AuditKind::ImportCycle(c) = &cycle.kind else { panic!() };
+    assert!(c.centrality > 0.0, "cycle severity carries the max member PageRank");
+    let edge = c.feedback_edge.clone().expect("a cycle has a feedback edge to break");
+    assert!(c.edges.contains(&edge), "the suggested cut is one of the cycle's edges");
+}
+
+#[test]
 fn cycle_confidence_inherits_minimum_member_confidence() {
     let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "a.rs")];
     let findings = run_from_edges(

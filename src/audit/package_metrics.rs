@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::thresholds::AuditThresholds;
+use crate::thresholds::{AuditThresholds, PackageMetricsThresholds};
 
 use super::cycle_shapes;
 use super::cycles::{find_cycles, Scc};
@@ -66,16 +66,26 @@ fn arch_findings(
 
 fn assign_centrality(cg: &mut super::components::ComponentGraph, thresholds: &AuditThresholds) {
     let adjacency: Vec<Vec<usize>> = cg.components.iter().map(|c| c.deps.clone()).collect();
-    let pm = &thresholds.package_metrics;
-    let params = super::centrality::PageRankParams {
-        damping: pm.pagerank.damping,
-        max_iters: pm.pagerank.max_iters,
-        epsilon: pm.pagerank.epsilon,
-    };
-    let (ranks, _converged) = super::centrality::pagerank(&adjacency, params);
+    let (ranks, _converged) = super::centrality::pagerank(&adjacency, pagerank_params(&thresholds.package_metrics));
     for (component, &rank) in cg.components.iter_mut().zip(&ranks) {
         component.centrality = rank;
     }
+}
+
+fn pagerank_params(pm: &PackageMetricsThresholds) -> super::centrality::PageRankParams {
+    super::centrality::PageRankParams {
+        damping: pm.pagerank.damping,
+        max_iters: pm.pagerank.max_iters,
+        epsilon: pm.pagerank.epsilon,
+    }
+}
+
+fn file_centrality(graph: &ImportGraph, thresholds: &AuditThresholds) -> Vec<f64> {
+    let n = graph.registry.count();
+    let adjacency: Vec<Vec<usize>> = (0..n)
+        .map(|u| graph.adjacency.outgoing(NodeIndex(u as u32)).iter().map(|v| v.0 as usize).collect())
+        .collect();
+    super::centrality::pagerank(&adjacency, pagerank_params(&thresholds.package_metrics)).0
 }
 
 fn zero_edge_finding(module_count: u32) -> Vec<AuditFinding> {
@@ -143,31 +153,66 @@ fn cycle_findings(
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
     let sccs = find_cycles(graph, thresholds.package_metrics.martin_cycle_min_size);
-    let mut shaped: Vec<(Scc, CycleShape)> = sccs
+    if sccs.is_empty() {
+        return Vec::new();
+    }
+    let centrality = file_centrality(graph, thresholds);
+    let mut shaped: Vec<ShapedCycle> = sccs
         .into_iter()
         .map(|scc| {
             let shape = cycle_shapes::classify(&scc.members, &scc.edges);
-            (scc, shape)
+            let max_centrality = max_member_centrality(&scc, &centrality);
+            ShapedCycle { scc, shape, max_centrality }
         })
         .collect();
     shaped.sort_by(|a, b| cycle_severity(b).partial_cmp(&cycle_severity(a)).unwrap_or(std::cmp::Ordering::Equal));
     shaped.truncate(thresholds.package_metrics.max_cycle_findings_reported);
     shaped
         .into_iter()
-        .map(|(scc, shape)| cycle_finding(graph, scc, shape, profile_lookup))
+        .map(|s| cycle_finding(graph, s, &centrality, profile_lookup))
         .collect()
 }
 
-fn cycle_severity(item: &(Scc, CycleShape)) -> f64 {
-    cycle_shapes::shape_weight(item.1) * item.0.members.len() as f64
+struct ShapedCycle {
+    scc: Scc,
+    shape: CycleShape,
+    max_centrality: f64,
+}
+
+fn cycle_severity(c: &ShapedCycle) -> f64 {
+    cycle_shapes::shape_weight(c.shape) * c.max_centrality * c.scc.members.len() as f64
+}
+
+fn max_member_centrality(scc: &Scc, centrality: &[f64]) -> f64 {
+    scc.members.iter().map(|n| centrality[n.0 as usize]).fold(0.0, f64::max)
+}
+
+fn feedback_edge(scc: &Scc, centrality: &[f64]) -> Option<(NodeIndex, NodeIndex)> {
+    let mut weakest: Option<(NodeIndex, NodeIndex)> = None;
+    let mut min_weakness = f64::INFINITY;
+    for &edge in &scc.edges {
+        let weakness = edge_weakness(edge, centrality);
+        if weakness < min_weakness {
+            min_weakness = weakness;
+            weakest = Some(edge);
+        }
+    }
+    weakest
+}
+
+fn edge_weakness(edge: (NodeIndex, NodeIndex), centrality: &[f64]) -> f64 {
+    centrality[edge.0 .0 as usize] + centrality[edge.1 .0 as usize]
 }
 
 fn cycle_finding(
     graph: &ImportGraph,
-    scc: Scc,
-    shape: CycleShape,
+    shaped: ShapedCycle,
+    centrality: &[f64],
     profile_lookup: &impl Fn(&std::path::Path) -> ModuleProfile,
 ) -> AuditFinding {
+    let ShapedCycle { scc, shape, max_centrality } = shaped;
+    let feedback = feedback_edge(&scc, centrality)
+        .map(|(a, b)| (graph.registry.path_of(a).to_path_buf(), graph.registry.path_of(b).to_path_buf()));
     let members: Vec<PathBuf> = scc
         .members
         .iter()
@@ -195,7 +240,14 @@ fn cycle_finding(
     let support = edges.len() as u32;
     let file_count = members.len() as u32;
     AuditFinding {
-        kind: AuditKind::ImportCycle(CycleMembership { members, edges, confidence, shape }),
+        kind: AuditKind::ImportCycle(CycleMembership {
+            members,
+            edges,
+            confidence,
+            shape,
+            centrality: max_centrality,
+            feedback_edge: feedback,
+        }),
         representative_snippet: format!("cycle of {file_count} modules"),
         support,
         file_count,

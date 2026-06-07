@@ -134,6 +134,8 @@ pub struct CycleMembership {
     pub edges: Vec<(PathBuf, PathBuf)>,
     pub confidence: ImportConfidence,
     pub shape: CycleShape,
+    pub centrality: f64,
+    pub feedback_edge: Option<(PathBuf, PathBuf)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -57,6 +57,15 @@ pub fn write_cycle(
         let (src, dst) = &c.edges[i];
         format!("{} -> {}", display_path(src, root), display_path(dst, root))
     });
+    let _ = writeln!(out, "  centrality:    {:.4}", c.centrality);
+    if let Some((src, dst)) = &c.feedback_edge {
+        let _ = writeln!(
+            out,
+            "  suggested cut: {} -> {}",
+            display_path(src, root),
+            display_path(dst, root)
+        );
+    }
     let _ = writeln!(out, "  confidence:    {}", confidence_str(c.confidence));
     write_action_row(out, action);
     let _ = writeln!(out);
@@ -98,12 +107,18 @@ pub fn cycle_json(c: &CycleMembership, root: Option<&Path>) -> serde_json::Value
         .iter()
         .map(|(src, dst)| serde_json::json!([display_path(src, root), display_path(dst, root)]))
         .collect();
+    let feedback = c
+        .feedback_edge
+        .as_ref()
+        .map(|(src, dst)| serde_json::json!([display_path(src, root), display_path(dst, root)]));
     serde_json::json!({
         "kind": "ImportCycle",
         "size": c.members.len(),
         "shape": super::cycle_shapes::shape_label(c.shape),
         "members": members,
         "edges": edges,
+        "centrality": c.centrality,
+        "feedback_edge": feedback,
         "confidence": confidence_str(c.confidence),
     })
 }

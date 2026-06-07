@@ -55,6 +55,8 @@ fn cycle_finding(members: &[&str], confidence: ImportConfidence) -> AuditFinding
             edges: edges.clone(),
             confidence,
             shape: pulse::audit::finding::CycleShape::Circle,
+            centrality: 0.0,
+            feedback_edge: None,
         }),
         representative_snippet: format!("cycle of {} modules", members.len()),
         support: edges.len() as u32,
