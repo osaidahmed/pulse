@@ -47,6 +47,18 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  cohesion:      {:.2}", e.cohesion);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        AuditKind::MoveFile(e) => {
+            let _ = writeln!(out, "audit: file to relocate — {}", display_path(&e.file, root));
+            let _ = writeln!(out, "  current dir:   {}", display_path(&e.current_dir, root));
+            let _ = writeln!(out, "  target dir:    {}", display_path(&e.target_dir, root));
+            let _ = writeln!(
+                out,
+                "  community:     {} files, {:.0}% in target",
+                e.community_size,
+                e.home_share * 100.0
+            );
+            let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+        }
         _ => return false,
     }
     if !action.is_empty() {
@@ -100,6 +112,15 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "file_count": e.file_count,
             "community_count": e.community_count,
             "cohesion": e.cohesion,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::MoveFile(e) => Some(serde_json::json!({
+            "kind": "MoveFile",
+            "file": display_path(&e.file, root),
+            "current_dir": display_path(&e.current_dir, root),
+            "target_dir": display_path(&e.target_dir, root),
+            "community_size": e.community_size,
+            "home_share": e.home_share,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

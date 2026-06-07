@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use pulse::audit::finding::{AuditKind, ImportConfidence, SplitComponentEvidence};
+use pulse::audit::finding::{AuditKind, ImportConfidence, MoveFileEvidence, SplitComponentEvidence};
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
 use pulse::audit::package_metrics::{run_from_edges, ModuleProfile};
@@ -35,6 +35,16 @@ fn split_components(edges: &[InputEdge]) -> Vec<SplitComponentEvidence> {
         .collect()
 }
 
+fn move_files(edges: &[InputEdge]) -> Vec<MoveFileEvidence> {
+    run_from_edges(edges, profile, &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::MoveFile(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
 fn clique(dir_files: &[&str], bridge: Option<(&str, &str)>) -> Vec<InputEdge> {
     let mut edges = Vec::new();
     for i in 0..dir_files.len() {
@@ -63,6 +73,46 @@ fn directory_split_across_communities_is_flagged() {
     assert_eq!(mixed.community_count, 2);
     assert!((mixed.cohesion - 0.5).abs() < 1e-9, "its four files split evenly across two communities");
     assert_eq!(mixed.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn stray_file_in_foreign_community_is_flagged_for_move() {
+    let edges = clique(
+        &["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "stray/x.rs"],
+        None,
+    );
+
+    let moves = move_files(&edges);
+    let stray = moves
+        .iter()
+        .find(|e| e.file.as_path() == Path::new("stray/x.rs"))
+        .expect("the lone stray file clusters with the core community");
+    assert_eq!(stray.current_dir.as_path(), Path::new("stray"));
+    assert_eq!(stray.target_dir.as_path(), Path::new("core"));
+    assert_eq!(stray.community_size, 5);
+    assert!(stray.home_share >= t().audit.package_metrics.community.split_cohesion);
+    assert_eq!(stray.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn cohesive_minority_is_not_relocated_piecemeal() {
+    let edges = clique(
+        &["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "helpers/x.rs", "helpers/y.rs"],
+        None,
+    );
+    assert!(
+        move_files(&edges).is_empty(),
+        "a cohesive multi-file minority is a secondary cluster, not piecemeal strays"
+    );
+}
+
+#[test]
+fn community_inside_one_directory_has_no_moves() {
+    let edges = clique(&["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs"], None);
+    assert!(
+        move_files(&edges).is_empty(),
+        "a community wholly inside one directory needs no relocation"
+    );
 }
 
 #[test]

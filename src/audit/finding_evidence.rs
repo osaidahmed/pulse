@@ -72,6 +72,16 @@ pub struct SplitComponentEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct MoveFileEvidence {
+    pub file: PathBuf,
+    pub current_dir: PathBuf,
+    pub target_dir: PathBuf,
+    pub community_size: u32,
+    pub home_share: f64,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,
