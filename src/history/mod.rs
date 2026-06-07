@@ -62,10 +62,11 @@ pub fn run_with_filter(
     let graph = edges::build_graph(&typed_files, &opts.root);
     let pairs = co_change::mine(&commits, t);
     let scope = co_change::revisions_in_scope(&commits, t);
+    let hist = hist_smells::rank(&commits, &pairs, &scope, &typed_paths, t);
     let mut findings = co_change::rank_drift(pairs, &scope, &graph, &typed_paths, t);
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
-    findings.extend(hist_smells::rank(&commits, &typed_paths, t));
+    findings.extend(hist);
     Ok(findings)
 }
 

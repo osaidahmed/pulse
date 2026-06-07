@@ -11,6 +11,8 @@ pub struct HistoryThresholds {
 pub struct HistSmellThresholds {
     pub enabled: bool,
     pub blob_commit_pct: f64,
+    pub shotgun_confidence: f64,
+    pub shotgun_distinct_packages: u32,
     pub max_findings_reported: u32,
 }
 
@@ -67,6 +69,8 @@ impl HistSmellThresholds {
     pub const DEFAULTS: Self = Self {
         enabled: false,
         blob_commit_pct: 0.08,
+        shotgun_confidence: 0.70,
+        shotgun_distinct_packages: 3,
         max_findings_reported: 20,
     };
 }

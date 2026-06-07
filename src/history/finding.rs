@@ -12,6 +12,7 @@ pub enum HistoryKind {
     Hotspot(HotspotEvidence),
     KnowledgeFragmentation(FragmentationEvidence),
     FileBlob(BlobEvidence),
+    ChangeShotgun(ChangeShotgunEvidence),
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +51,14 @@ pub struct BlobEvidence {
     pub multi_file_commits: u32,
     pub total_multi_file_commits: u32,
     pub blob_ratio: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChangeShotgunEvidence {
+    pub file: PathBuf,
+    pub partner_count: u32,
+    pub package_count: u32,
+    pub packages: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +102,12 @@ pub fn variant_info(k: &HistoryKind) -> VariantInfo {
             slug: "file_blob",
             label: "file blob",
             action: "split this file's responsibilities — it changes with everything",
+        },
+        HistoryKind::ChangeShotgun(_) => VariantInfo {
+            pillar: HistoryPillar::Evolution,
+            slug: "change_shotgun",
+            label: "change shotgun",
+            action: "consolidate this responsibility — its changes ripple across many packages",
         },
     }
 }
