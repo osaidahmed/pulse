@@ -63,7 +63,7 @@ fn dispatch_session(d: cli::Dispatch) -> Option<cli::Dispatch> {
         return None;
     }
     if matches!(d, cli::Dispatch::UsageError) {
-        eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version");
+        eprintln!("{}", cli::USAGE);
         process::exit(1);
     }
     Some(d)

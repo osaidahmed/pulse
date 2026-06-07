@@ -2,6 +2,8 @@ use clap::{Parser, Subcommand};
 
 use crate::audit::PassChoice;
 
+pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version";
+
 /// Pulse — fast code smell detector and refactoring auditor.
 #[derive(Parser, Debug)]
 #[command(name = "pulse", version, disable_help_subcommand = true)]
@@ -124,7 +126,7 @@ pub fn parse() -> Dispatch {
 fn parse_clap() -> Cli {
     Cli::try_parse().unwrap_or_else(|e| {
         if matches!(e.kind(), clap::error::ErrorKind::InvalidSubcommand) {
-            eprintln!("usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version");
+            eprintln!("{USAGE}");
             std::process::exit(1);
         }
         let _ = e.print();
