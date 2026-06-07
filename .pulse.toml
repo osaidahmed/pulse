@@ -1,3 +1,8 @@
+[thresholds]
+fn_loc_warning = 80
+file_loc_warning = 600
+large_fn_loc = 50
+
 [ignore]
 paths = [
   "examples/**",

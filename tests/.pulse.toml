@@ -1,0 +1,4 @@
+# Fixtures under tests/ are crafted against canonical default thresholds.
+# This stops config discovery from inheriting the repo-root threshold
+# relaxations (which exist only to absorb rustfmt reflow in real source),
+# so fixture-based tests are always evaluated at defaults.
