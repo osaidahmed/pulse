@@ -39,13 +39,25 @@ pub fn repo_toplevel(root: &Path) -> Option<PathBuf> {
     (!trimmed.is_empty()).then(|| PathBuf::from(trimmed))
 }
 
+fn git_stdout(dir: &Path, args: &[&str]) -> Option<String> {
+    let output = Command::new("git").arg("-C").arg(dir).args(args).output().ok()?;
+    output.status.success().then(|| String::from_utf8(output.stdout).ok()).flatten()
+}
+
 pub fn last_commit_unix(dir: &Path, pathspec: &Path) -> Option<i64> {
-    let output =
-        Command::new("git").arg("-C").arg(dir).args(["log", "-1", "--format=%at", "--"]).arg(pathspec).output().ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    String::from_utf8(output.stdout).ok()?.trim().parse::<i64>().ok()
+    let spec = pathspec.to_string_lossy();
+    git_stdout(dir, &["log", "-1", "--format=%at", "--", &spec])?.trim().parse::<i64>().ok()
+}
+
+pub fn working_tree_numstat(dir: &Path) -> Option<Vec<u64>> {
+    Some(git_stdout(dir, &["diff", "HEAD", "--numstat"])?.lines().filter_map(numstat_line_changes).collect())
+}
+
+fn numstat_line_changes(line: &str) -> Option<u64> {
+    let mut cols = line.split('\t');
+    let added = cols.next()?.parse::<u64>().ok()?;
+    let deleted = cols.next()?.parse::<u64>().ok()?;
+    Some(added + deleted)
 }
 
 fn has_any_commit(root: &Path) -> bool {

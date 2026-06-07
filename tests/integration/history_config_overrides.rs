@@ -452,3 +452,54 @@ fn config_history_pass_max_findings_is_optional() {
     let cfg = parse("[history.co_change]\n");
     assert!(cfg.history.co_change.max_findings.is_none());
 }
+
+#[test]
+fn config_jit_section_parses_each_field() {
+    let cfg = parse("[history.jit]\nuse_lt = false\nuse_age = false\nuse_entropy = false\nentropy_bits = 3.5\n");
+    assert_eq!(cfg.history.jit.use_lt, Some(false));
+    assert_eq!(cfg.history.jit.use_age, Some(false));
+    assert_eq!(cfg.history.jit.use_entropy, Some(false));
+    assert_eq!(cfg.history.jit.entropy_bits, Some(3.5));
+}
+
+#[test]
+fn config_jit_unknown_field_rejected() {
+    assert!(parse_err("[history.jit]\nbogus = 1\n"));
+}
+
+#[test]
+fn config_jit_empty_section_leaves_all_none() {
+    let cfg = parse("[history.jit]\n");
+    assert!(cfg.history.jit.use_lt.is_none());
+    assert!(cfg.history.jit.use_entropy.is_none());
+    assert!(cfg.history.jit.entropy_bits.is_none());
+}
+
+#[test]
+fn resolve_history_jit_defaults_without_config() {
+    let t = resolve_history_thresholds(None, cli(None, None, None));
+    assert_eq!(t.jit, HistoryThresholds::DEFAULTS.jit);
+    assert!(t.jit.use_entropy, "entropy is on by default once calibrated, like lt and age");
+}
+
+#[test]
+fn resolve_history_jit_disable_entropy_keeps_lt_and_age() {
+    let cfg = parse("[history.jit]\nuse_entropy = false\n");
+    let t = resolve_history_thresholds(Some(&cfg), cli(None, None, None));
+    assert!(!t.jit.use_entropy, "config must be able to opt out of entropy");
+    assert!(t.jit.use_lt && t.jit.use_age, "disabling entropy must not touch lt or age");
+}
+
+#[test]
+fn resolve_history_jit_entropy_bits_override_is_applied() {
+    let cfg = parse("[history.jit]\nentropy_bits = 4.0\n");
+    let t = resolve_history_thresholds(Some(&cfg), cli(None, None, None));
+    assert!((t.jit.entropy_bits - 4.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn resolve_history_jit_does_not_touch_co_change() {
+    let cfg = parse("[history.jit]\nuse_entropy = false\n");
+    let t = resolve_history_thresholds(Some(&cfg), cli(None, None, None));
+    assert_eq!(t.co_change.max_findings_reported, defaults_co());
+}

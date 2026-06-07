@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 use crate::config::PulseConfig;
+use crate::history::jit_thresholds::JitThresholds;
 use crate::history::thresholds::HistoryThresholds;
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -14,6 +15,17 @@ pub struct HistoryConfig {
     pub hotspot: HistoryPassConfig,
     #[serde(default)]
     pub contributors: HistoryPassConfig,
+    #[serde(default)]
+    pub jit: JitPassConfig,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct JitPassConfig {
+    pub use_lt: Option<bool>,
+    pub use_age: Option<bool>,
+    pub use_entropy: Option<bool>,
+    pub entropy_bits: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]
@@ -62,22 +74,24 @@ pub fn resolve_history_thresholds(config: Option<&PulseConfig>, overrides: Histo
     t
 }
 
+fn or_set<T: Copy>(field: &mut T, opt: Option<T>) {
+    *field = opt.unwrap_or(*field);
+}
+
 fn apply_config_overrides(t: &mut HistoryThresholds, c: &PulseConfig) {
-    if let Some(v) = c.history.co_change.max_findings {
-        t.co_change.max_findings_reported = v;
-    }
-    if let Some(v) = c.history.co_change.min_confidence {
-        t.co_change.min_confidence = v;
-    }
-    if let Some(v) = c.history.co_change.min_lift {
-        t.co_change.min_lift = v;
-    }
-    if let Some(v) = c.history.hotspot.max_findings {
-        t.hotspot.max_findings_reported = v;
-    }
-    if let Some(v) = c.history.contributors.max_findings {
-        t.contributors.max_findings_reported = v;
-    }
+    or_set(&mut t.co_change.max_findings_reported, c.history.co_change.max_findings);
+    or_set(&mut t.co_change.min_confidence, c.history.co_change.min_confidence);
+    or_set(&mut t.co_change.min_lift, c.history.co_change.min_lift);
+    or_set(&mut t.hotspot.max_findings_reported, c.history.hotspot.max_findings);
+    or_set(&mut t.contributors.max_findings_reported, c.history.contributors.max_findings);
+    apply_jit_overrides(&mut t.jit, &c.history.jit);
+}
+
+fn apply_jit_overrides(t: &mut JitThresholds, c: &JitPassConfig) {
+    or_set(&mut t.use_lt, c.use_lt);
+    or_set(&mut t.use_age, c.use_age);
+    or_set(&mut t.use_entropy, c.use_entropy);
+    or_set(&mut t.entropy_bits, c.entropy_bits);
 }
 
 pub fn combined_history_ignore_patterns(config: Option<&PulseConfig>) -> Vec<String> {
