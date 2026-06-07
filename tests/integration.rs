@@ -240,6 +240,8 @@ mod duplication_extended;
 mod false_positive_reduction;
 #[path = "integration/fused_equivalence.rs"]
 mod fused_equivalence;
+#[path = "integration/fuzz_corpus.rs"]
+mod fuzz_corpus;
 #[path = "integration/fuzzy_duplication.rs"]
 mod fuzzy_duplication;
 #[path = "integration/go_smells.rs"]
