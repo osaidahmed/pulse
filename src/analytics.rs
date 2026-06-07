@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use crate::baselines;
 use crate::hook::HookInput;
+use crate::interaction::tier_for;
 use crate::smells::{Finding, Location};
 
 pub fn analytics_dir() -> PathBuf {
@@ -50,6 +51,7 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str) {
             "file": filename,
             "path": hook.file_path,
             "smell": f.smell.as_str(),
+            "tier": tier_for(f.smell).as_str(),
             "fn": func_name,
             "line": start_line,
             "detail": f.detail,
@@ -150,6 +152,7 @@ fn write_outcome(
         "session": session_id,
         "file": entry.get("file").and_then(|v| v.as_str()).unwrap_or(""),
         "smell": smell,
+        "tier": entry.get("tier").and_then(|v| v.as_str()).unwrap_or(""),
         "fn": func,
         "detail": entry.get("detail").and_then(|v| v.as_str()).unwrap_or(""),
         "outcome": outcome,

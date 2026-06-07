@@ -7,6 +7,16 @@ pub enum FindingTier {
     AuditOnly,
 }
 
+impl FindingTier {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            FindingTier::Blocking => "blocking",
+            FindingTier::Advisory => "advisory",
+            FindingTier::AuditOnly => "audit_only",
+        }
+    }
+}
+
 const BLOCKING: &[Smell] = &[
     Smell::GodMethod,
     Smell::ComplexMethod,

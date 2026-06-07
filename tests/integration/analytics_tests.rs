@@ -254,3 +254,60 @@ fn no_analytics_when_no_findings() {
     let content = read_analytics(analytics.path());
     assert!(content.is_empty(), "no findings should produce no analytics, got: {content}");
 }
+
+// ===========================================================================
+// Tier metadata (machine-readable interaction tier)
+// ===========================================================================
+
+fn write_json(path: &str) -> String {
+    format!(
+        r#"{{"session_id":"test","tool_input":{{"file_path":"{}"}}}}"#,
+        path.replace('\\', "\\\\").replace('"', "\\\"")
+    )
+}
+
+#[test]
+fn findings_log_tags_blocking_tier() {
+    let bl = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    pulse(&["--hook"], bl.path(), &write_json(p.to_str().unwrap()));
+    let log = std::fs::read_to_string(bl.path().join("findings.jsonl")).unwrap_or_default();
+    assert!(log.contains(r#""tier":"blocking""#), "excess-arguments is a blocking tier: {log}");
+}
+
+#[test]
+fn findings_log_tags_advisory_tier() {
+    let bl = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    std::fs::write(&p, "def g(a: int, b: int, c: int, d: int):\n    return a\n").unwrap();
+    pulse(&["--hook"], bl.path(), &write_json(p.to_str().unwrap()));
+    let log = std::fs::read_to_string(bl.path().join("findings.jsonl")).unwrap_or_default();
+    assert!(log.contains(r#""tier":"advisory""#), "primitive-obsession is an advisory tier: {log}");
+}
+
+#[test]
+fn outcome_record_carries_tier() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    pulse(&["--hook"], bl.path(), &write_json(p.to_str().unwrap()));
+    let _ = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", bl.path())
+        .env("PULSE_ANALYTICS_DIR", analytics.path())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
+        .unwrap();
+    let content = read_analytics(analytics.path());
+    assert!(content.contains(r#""tier":"blocking""#), "resolved outcome carries the tier: {content}");
+}
