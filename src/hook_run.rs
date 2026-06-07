@@ -55,7 +55,7 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     }
     analytics::log_findings(&h, &findings, &analysis.filename, &analysis.metrics.functions);
-    emit_findings(&findings, &analysis);
+    emit_findings(&findings, &analysis, &source, path);
 }
 
 fn is_ignored_by(cfg_root: Option<&(config::PulseConfig, PathBuf)>, path: &Path) -> bool {
@@ -82,7 +82,7 @@ fn collect_hook_findings(
     findings
 }
 
-fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull) {
+fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull, source: &str, path: &Path) {
     let t = &analysis.thresholds;
     let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
     let (blocking, advisory): (Vec<Finding>, Vec<Finding>) =
@@ -92,11 +92,17 @@ fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull) {
         emit_advisory_only(advisory_ctx);
         return;
     }
-    let reason = build_block_reason(&blocking, analysis, t);
+    let reason = build_block_reason(&blocking, analysis, t, source, path);
     emit_decision(&reason, advisory_ctx);
 }
 
-fn build_block_reason(blocking: &[Finding], analysis: &AnalysisResultFull, t: &thresholds::Thresholds) -> String {
+fn build_block_reason(
+    blocking: &[Finding],
+    analysis: &AnalysisResultFull,
+    t: &thresholds::Thresholds,
+    source: &str,
+    path: &Path,
+) -> String {
     let budget = format!(
         "[budget] fn={}/{} loc={}/{} cc={}/{}",
         analysis.fn_count(),
@@ -107,10 +113,15 @@ fn build_block_reason(blocking: &[Finding], analysis: &AnalysisResultFull, t: &t
         t.module.file_total_cc,
     );
     let compact = output::format_compact(blocking, &analysis.filename);
-    match detect_constraint_conflict(blocking, analysis.fn_count(), t) {
+    let mut reason = match detect_constraint_conflict(blocking, analysis.fn_count(), t) {
         Some(note) => format!("{}\n{}\n{}", compact.trim(), note, budget),
         None => format!("{}\n{}", compact.trim(), budget),
+    };
+    if let Some(risk) = crate::history::jit_risk::hook_advisory(source, path) {
+        reason.push('\n');
+        reason.push_str(&risk);
     }
+    reason
 }
 
 fn emit_decision(reason: &str, advisory_ctx: Option<String>) {

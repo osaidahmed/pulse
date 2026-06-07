@@ -1,4 +1,4 @@
-use pulse::history::jit_risk::{calib_path, percentiles};
+use pulse::history::jit_risk::{calib_path, hook_advisory, percentiles, write_calibration, JitCalibration, Quintiles};
 use pulse::history::thresholds::HistoryThresholds;
 use pulse::history::{calibrate, HistoryOpts};
 
@@ -48,4 +48,21 @@ fn calib_path_is_keyed_by_git_toplevel_not_the_passed_subdir() {
         calib_path(&repo.path().join("pkg")),
         "calibration must key by the git toplevel so the hook resolves the same path from any file in the repo"
     );
+}
+
+#[test]
+fn hook_advisory_flags_smallest_and_largest_quintile_files() {
+    let analytics = tempfile::tempdir().unwrap();
+    std::env::set_var("PULSE_ANALYTICS_DIR", analytics.path());
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
+    let calib = JitCalibration { lt: Some(Quintiles { p20: 10.0, p50: 50.0, p80: 100.0 }), age_days: None };
+    write_calibration(repo.path(), &calib).expect("write calibration");
+    let file = repo.path().join("a.py");
+
+    let small = hook_advisory("x = 1\n", &file).expect("small file flagged");
+    assert!(small.contains("below the repo's 20th percentile"), "got: {small}");
+    let large = hook_advisory(&"y = 1\n".repeat(200), &file).expect("large file flagged");
+    assert!(large.contains("above the repo's 80th percentile"), "got: {large}");
+    assert!(hook_advisory(&"z = 1\n".repeat(50), &file).is_none(), "mid-range file must not flag");
 }

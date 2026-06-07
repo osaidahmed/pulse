@@ -86,3 +86,32 @@ pub fn write_calibration(repo_root: &Path, calib: &JitCalibration) -> std::io::R
     }
     std::fs::write(path, serde_json::to_string_pretty(calib).unwrap_or_default())
 }
+
+pub fn read_calibration(repo_root: &Path) -> Option<JitCalibration> {
+    serde_json::from_str(&std::fs::read_to_string(calib_path(repo_root)).ok()?).ok()
+}
+
+pub fn hook_advisory(source: &str, file_path: &Path) -> Option<String> {
+    if !crate::analytics::analytics_dir().join("jit").is_dir() {
+        return None;
+    }
+    let lt = read_calibration(file_path.parent()?)?.lt?;
+    lt_band_message(source.lines().count(), &lt)
+}
+
+fn lt_band_message(file_lt: usize, lt: &Quintiles) -> Option<String> {
+    let value = f64::from(u32::try_from(file_lt).unwrap_or(u32::MAX));
+    if value < lt.p20 {
+        Some(format!(
+            "[risk] file length is below the repo's 20th percentile (LT {file_lt} < p20 {:.0}); small dense files churn — change carefully",
+            lt.p20
+        ))
+    } else if value > lt.p80 {
+        Some(format!(
+            "[risk] file length is above the repo's 80th percentile (LT {file_lt} > p80 {:.0}); a maintainability hotspot — prefer extracting over adding",
+            lt.p80
+        ))
+    } else {
+        None
+    }
+}
