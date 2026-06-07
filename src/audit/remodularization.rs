@@ -6,7 +6,8 @@ use crate::thresholds::{AuditThresholds, CommunityThresholds};
 use super::community::{louvain, CommunityParams};
 use super::components::component_of;
 use super::finding::{
-    AuditFinding, AuditKind, AuditLocation, ImportConfidence, MoveFileEvidence, SplitComponentEvidence,
+    AuditFinding, AuditKind, AuditLocation, ImportConfidence, MergeComponentsEvidence, MoveFileEvidence,
+    SplitComponentEvidence,
 };
 use super::graph::{ImportGraph, NodeIndex};
 
@@ -14,9 +15,12 @@ pub fn detect(graph: &ImportGraph, thresholds: &AuditThresholds) -> Vec<AuditFin
     let community = thresholds.package_metrics.community;
     let adjacency = undirected_adjacency(graph);
     let result = louvain(&adjacency, CommunityParams { resolution: community.resolution, max_passes: community.max_passes });
-    let tally = tally_by_directory(graph, &result.assignment);
-    let mut out: Vec<AuditFinding> =
-        tally.into_iter().filter_map(|(dir, counts)| split_finding(dir, &counts, &community)).collect();
+    let by_dir = tally_by_directory(graph, &result.assignment);
+    let mut out: Vec<AuditFinding> = by_dir
+        .iter()
+        .filter_map(|(dir, counts)| split_finding(dir.clone(), counts, &community))
+        .collect();
+    out.extend(merge_findings(&by_dir, &community));
     out.extend(move_findings(graph, &result.assignment, &community));
     rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
 }
@@ -110,18 +114,12 @@ fn move_finding(file: &Path, current_dir: PathBuf, target: &MoveTarget) -> Audit
         home_share: target.share,
         confidence: ImportConfidence::Medium,
     };
-    AuditFinding {
-        kind: AuditKind::MoveFile(evidence),
-        representative_snippet: String::new(),
-        support: target.total,
-        file_count: 1,
-        idf_score: None,
-        action_label: None,
-        pattern_category: None,
-        locality_entropy: None,
-        p_value: None,
-        locations: vec![AuditLocation { file: file.to_path_buf(), line: 1 }],
-    }
+    arch_finding(
+        AuditKind::MoveFile(evidence),
+        target.total,
+        1,
+        vec![AuditLocation { file: file.to_path_buf(), line: 1 }],
+    )
 }
 
 fn undirected_adjacency(graph: &ImportGraph) -> Vec<Vec<(usize, f64)>> {
@@ -170,18 +168,74 @@ fn split_finding(
         cohesion,
         confidence: ImportConfidence::Medium,
     };
-    Some(AuditFinding {
-        kind: AuditKind::SplitComponent(evidence),
+    Some(arch_finding(
+        AuditKind::SplitComponent(evidence),
+        file_count,
+        file_count,
+        vec![AuditLocation { file: dir, line: 1 }],
+    ))
+}
+
+fn arch_finding(
+    kind: AuditKind,
+    support: u32,
+    file_count: u32,
+    locations: Vec<AuditLocation>,
+) -> AuditFinding {
+    AuditFinding {
+        kind,
         representative_snippet: String::new(),
-        support: file_count,
+        support,
         file_count,
         idf_score: None,
         action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
-        locations: vec![AuditLocation { file: dir, line: 1 }],
-    })
+        locations,
+    }
+}
+
+fn merge_findings(
+    by_dir: &BTreeMap<PathBuf, BTreeMap<usize, u32>>,
+    thresholds: &CommunityThresholds,
+) -> Vec<AuditFinding> {
+    let mut groups: BTreeMap<usize, Vec<(PathBuf, u32)>> = BTreeMap::new();
+    for (dir, counts) in by_dir {
+        if let Some((community, count)) = dominant_community(counts, thresholds) {
+            groups.entry(community).or_default().push((dir.clone(), count));
+        }
+    }
+    groups
+        .values()
+        .filter(|dirs| dirs.len() >= 2)
+        .filter(|dirs| {
+            dirs.iter().map(|(_, count)| count).sum::<u32>() >= thresholds.min_split_files
+        })
+        .map(|dirs| merge_finding(dirs))
+        .collect()
+}
+
+fn dominant_community(counts: &BTreeMap<usize, u32>, thresholds: &CommunityThresholds) -> Option<(usize, u32)> {
+    let total: u32 = counts.values().sum();
+    let (&community, &count) = counts.iter().max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))?;
+    if count >= 2 && f64::from(count) / f64::from(total) >= thresholds.split_cohesion {
+        Some((community, count))
+    } else {
+        None
+    }
+}
+
+fn merge_finding(dirs: &[(PathBuf, u32)]) -> AuditFinding {
+    let components: Vec<PathBuf> = dirs.iter().map(|(dir, _)| dir.clone()).collect();
+    let community_files: u32 = dirs.iter().map(|(_, count)| count).sum();
+    let locations = components.iter().map(|c| AuditLocation { file: c.clone(), line: 1 }).collect();
+    let evidence = MergeComponentsEvidence {
+        components: components.clone(),
+        community_files,
+        confidence: ImportConfidence::Medium,
+    };
+    arch_finding(AuditKind::MergeComponents(evidence), community_files, community_files, locations)
 }
 
 fn rank_and_cap(mut findings: Vec<AuditFinding>, cap: usize) -> Vec<AuditFinding> {
@@ -194,6 +248,7 @@ fn severity(f: &AuditFinding) -> f64 {
     match &f.kind {
         AuditKind::SplitComponent(e) => f64::from(e.file_count) * (1.0 - e.cohesion),
         AuditKind::MoveFile(e) => f64::from(e.community_size) * e.home_share,
+        AuditKind::MergeComponents(e) => f64::from(e.community_files),
         _ => 0.0,
     }
 }

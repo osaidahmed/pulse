@@ -5,6 +5,21 @@ use super::finding::AuditKind;
 use super::output_helpers::{confidence_str, display_path};
 
 pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, action: &'static str) -> bool {
+    if !render_arch(out, kind, root) {
+        return false;
+    }
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+    let _ = writeln!(out);
+    true
+}
+
+fn render_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>) -> bool {
+    render_component_smell(out, kind, root) || render_remod(out, kind, root)
+}
+
+fn render_component_smell(out: &mut String, kind: &AuditKind, root: Option<&Path>) -> bool {
     match kind {
         AuditKind::UnstableDependency(e) => {
             let _ = writeln!(out, "audit: unstable dependency — {}", display_path(&e.component, root));
@@ -47,6 +62,13 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             let _ = writeln!(out, "  cohesion:      {:.2}", e.cohesion);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        _ => return false,
+    }
+    true
+}
+
+fn render_remod(out: &mut String, kind: &AuditKind, root: Option<&Path>) -> bool {
+    match kind {
         AuditKind::MoveFile(e) => {
             let _ = writeln!(out, "audit: file to relocate — {}", display_path(&e.file, root));
             let _ = writeln!(out, "  current dir:   {}", display_path(&e.current_dir, root));
@@ -59,16 +81,22 @@ pub fn write_arch(out: &mut String, kind: &AuditKind, root: Option<&Path>, actio
             );
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        AuditKind::MergeComponents(e) => {
+            let dirs: Vec<String> = e.components.iter().map(|c| display_path(c, root)).collect();
+            let _ = writeln!(out, "audit: components to merge — {}", dirs.join(", "));
+            let _ = writeln!(out, "  shared community: {} files", e.community_files);
+            let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+        }
         _ => return false,
     }
-    if !action.is_empty() {
-        let _ = writeln!(out, "  action:        {action}");
-    }
-    let _ = writeln!(out);
     true
 }
 
 pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Value> {
+    component_json(kind, root).or_else(|| remod_json(kind, root))
+}
+
+fn component_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Value> {
     match kind {
         AuditKind::UnstableDependency(e) => Some(serde_json::json!({
             "kind": "UnstableDependency",
@@ -114,6 +142,12 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "cohesion": e.cohesion,
             "confidence": confidence_str(e.confidence),
         })),
+        _ => None,
+    }
+}
+
+fn remod_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Value> {
+    match kind {
         AuditKind::MoveFile(e) => Some(serde_json::json!({
             "kind": "MoveFile",
             "file": display_path(&e.file, root),
@@ -121,6 +155,12 @@ pub fn arch_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Va
             "target_dir": display_path(&e.target_dir, root),
             "community_size": e.community_size,
             "home_share": e.home_share,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::MergeComponents(e) => Some(serde_json::json!({
+            "kind": "MergeComponents",
+            "components": e.components.iter().map(|c| display_path(c, root)).collect::<Vec<_>>(),
+            "community_files": e.community_files,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

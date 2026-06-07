@@ -28,12 +28,13 @@ pub enum AuditKind {
     CompoundArchSmell(CompoundEvidence),
     SplitComponent(SplitComponentEvidence),
     MoveFile(MoveFileEvidence),
+    MergeComponents(MergeComponentsEvidence),
 }
 
 pub use super::finding_evidence::{
     CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
-    MoveFileEvidence, NaturalnessEvidence, SplitComponentEvidence, UnstableDepEvidence,
-    VulnCloneEvidence,
+    MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, SplitComponentEvidence,
+    UnstableDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -265,7 +266,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 20] = [
+const VARIANT_TABLE: [VariantInfo; 21] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -336,6 +337,14 @@ const VARIANT_TABLE: [VariantInfo; 20] = [
         slug: "move_file",
         action: "consider relocating this file to align with its import-graph community",
         label: "File to relocate",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::MergeComponents(_)),
+        pass: "package-metrics",
+        slug: "merge_components",
+        action: "consider merging these directories — their files form one dependency community",
+        label: "Components to merge",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -486,7 +495,7 @@ macro_rules! confidence_lookup {
 
 confidence_lookup!(package_metric_evidence_confidence {
     DistanceFromMainSequence, ImportCycle, UnstableDependency, HubLikeDependency, GodComponent,
-    CompoundArchSmell, SplitComponent, MoveFile
+    CompoundArchSmell, SplitComponent, MoveFile, MergeComponents
 });
 
 confidence_lookup!(named_smell_confidence {

@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use pulse::audit::finding::{AuditKind, ImportConfidence, MoveFileEvidence, SplitComponentEvidence};
+use pulse::audit::finding::{
+    AuditKind, ImportConfidence, MergeComponentsEvidence, MoveFileEvidence, SplitComponentEvidence,
+};
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
 use pulse::audit::package_metrics::{run_from_edges, ModuleProfile};
@@ -40,6 +42,16 @@ fn move_files(edges: &[InputEdge]) -> Vec<MoveFileEvidence> {
         .into_iter()
         .filter_map(|f| match f.kind {
             AuditKind::MoveFile(e) => Some(e),
+            _ => None,
+        })
+        .collect()
+}
+
+fn merge_components(edges: &[InputEdge]) -> Vec<MergeComponentsEvidence> {
+    run_from_edges(edges, profile, &t().audit)
+        .into_iter()
+        .filter_map(|f| match f.kind {
+            AuditKind::MergeComponents(e) => Some(e),
             _ => None,
         })
         .collect()
@@ -112,6 +124,33 @@ fn community_inside_one_directory_has_no_moves() {
     assert!(
         move_files(&edges).is_empty(),
         "a community wholly inside one directory needs no relocation"
+    );
+}
+
+#[test]
+fn two_directories_in_one_community_are_flagged_for_merge() {
+    let edges = clique(&["core/a.rs", "core/b.rs", "shared/c.rs", "shared/d.rs"], None);
+
+    let merges = merge_components(&edges);
+    let merge = merges
+        .iter()
+        .find(|e| e.components.len() == 2)
+        .expect("the two directories form a single dependency community");
+    let comps: Vec<&Path> = merge.components.iter().map(|p| p.as_path()).collect();
+    assert!(comps.contains(&Path::new("core")), "got: {comps:?}");
+    assert!(comps.contains(&Path::new("shared")), "got: {comps:?}");
+    assert_eq!(merge.community_files, 4);
+    assert_eq!(merge.confidence, ImportConfidence::Medium);
+}
+
+#[test]
+fn directories_in_distinct_communities_are_not_merged() {
+    let mut edges = clique(&["core/a.rs", "core/b.rs"], None);
+    edges.extend(clique(&["util/p.rs", "util/q.rs"], None));
+
+    assert!(
+        merge_components(&edges).is_empty(),
+        "directories that form separate communities must not be merged"
     );
 }
 
