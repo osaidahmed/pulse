@@ -80,7 +80,7 @@ fn edges_for(root: &Path, rev: &str, rel: &Path, lang: Language, typed_set: &Has
     let Some(source) = git::file_at_commit(root, rev, rel) else {
         return Vec::new();
     };
-    let Some(tree) = parse::parse_only(&source, lang) else {
+    let Some(tree) = parse::parse_guarded(&source, lang) else {
         return Vec::new();
     };
     let abs = root.join(rel);

@@ -27,7 +27,7 @@ pub enum Language {
     Groovy,
 }
 
-const CONFIG_KEYS: &[&str] = &[
+const CONFIG_KEYS: [&str; Language::COUNT] = [
     "python",
     "typescript",
     "javascript",
@@ -53,6 +53,34 @@ const CONFIG_KEYS: &[&str] = &[
 ];
 
 impl Language {
+    pub const COUNT: usize = 22;
+
+    #[allow(dead_code)]
+    pub const ALL: [Language; Self::COUNT] = [
+        Language::Python,
+        Language::TypeScript,
+        Language::JavaScript,
+        Language::Rust,
+        Language::C,
+        Language::Cpp,
+        Language::Java,
+        Language::CSharp,
+        Language::Go,
+        Language::Swift,
+        Language::Zig,
+        Language::Ruby,
+        Language::ObjectiveC,
+        Language::Tcl,
+        Language::Kotlin,
+        Language::Haskell,
+        Language::Lua,
+        Language::R,
+        Language::Php,
+        Language::Cobol,
+        Language::D,
+        Language::Groovy,
+    ];
+
     pub fn to_config_key(self) -> &'static str {
         CONFIG_KEYS[self as usize]
     }
@@ -93,7 +121,7 @@ macro_rules! lang_init {
 
 type LangInit = fn() -> tree_sitter::Language;
 
-static DISPATCH: [(LangInit, WalkFn); 22] = [
+static DISPATCH: [(LangInit, WalkFn); Language::COUNT] = [
     (lang_init!(tree_sitter_python::LANGUAGE), walk::python::walk as WalkFn),
     (lang_init!(tree_sitter_typescript::LANGUAGE_TYPESCRIPT), |t, s| walk::typescript::walk(t, s, true)),
     (lang_init!(tree_sitter_javascript::LANGUAGE), walk::javascript::walk as WalkFn),
@@ -127,7 +155,12 @@ pub fn parse_only(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
     let (ts_lang_fn, _) = DISPATCH[lang as usize];
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(&ts_lang_fn()).ok()?;
-    parser.parse(source, None)
+    let deadline = std::time::Instant::now() + PARSE_TIMEOUT;
+    let mut cancel = move |_: &tree_sitter::ParseState| std::time::Instant::now() >= deadline;
+    let options = tree_sitter::ParseOptions::new().progress_callback(&mut cancel);
+    let bytes = source.as_bytes();
+    let mut read = |byte: usize, _: tree_sitter::Point| -> &[u8] { bytes.get(byte..).unwrap_or(&[]) };
+    parser.parse_with_options(&mut read, None, Some(options))
 }
 
 pub fn walk_only(tree: &tree_sitter::Tree, source: &str, lang: Language) -> FileMetrics {
@@ -143,6 +176,8 @@ pub const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_INPUT_LINES: usize = 50_000;
 pub const MAX_LINE_BYTES: usize = 200_000;
 const ANALYZE_STACK_BYTES: usize = 32 * 1024 * 1024;
+const PARSE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+const ANALYZE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 fn exceeds_size_caps(source: &str) -> bool {
     source.len() > MAX_INPUT_BYTES
@@ -150,21 +185,29 @@ fn exceeds_size_caps(source: &str) -> bool {
         || source.split('\n').any(|line| line.len() > MAX_LINE_BYTES)
 }
 
-fn run_guarded(source: &str, work: impl FnOnce() -> Option<FileMetrics> + Send) -> Option<FileMetrics> {
+fn run_guarded<T: Send + 'static>(source: &str, work: impl FnOnce() -> Option<T> + Send + 'static) -> Option<T> {
     if exceeds_size_caps(source) {
         return None;
     }
-    std::thread::scope(|scope| {
-        let handle = std::thread::Builder::new()
-            .stack_size(ANALYZE_STACK_BYTES)
-            .spawn_scoped(scope, || std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)))
-            .ok()?;
-        handle.join().ok().and_then(Result::ok).flatten()
-    })
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let spawned = std::thread::Builder::new().stack_size(ANALYZE_STACK_BYTES).spawn(move || {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).ok().flatten();
+        let _ = tx.send(result);
+    });
+    if spawned.is_err() {
+        return None;
+    }
+    rx.recv_timeout(ANALYZE_TIMEOUT).unwrap_or(None)
+}
+
+pub fn parse_guarded(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
+    let owned = source.to_string();
+    run_guarded(source, move || parse_only(&owned, lang))
 }
 
 pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
-    run_guarded(source, || parse_and_walk(source, lang))
+    let owned = source.to_string();
+    run_guarded(source, move || parse_and_walk(&owned, lang))
 }
 
 pub fn parse_and_walk_scoped(
@@ -175,8 +218,11 @@ pub fn parse_and_walk_scoped(
 ) -> Option<FileMetrics> {
     match (edit_byte_range, cpg_enabled) {
         (None, false) => parse_and_walk_guarded(source, lang),
-        (range, cpg) => run_guarded(source, || {
-            walk::with_cpg_enabled(cpg, || walk::with_edit_scope(range, || parse_and_walk(source, lang)))
-        }),
+        (range, cpg) => {
+            let owned = source.to_string();
+            run_guarded(source, move || {
+                walk::with_cpg_enabled(cpg, || walk::with_edit_scope(range, || parse_and_walk(&owned, lang)))
+            })
+        }
     }
 }

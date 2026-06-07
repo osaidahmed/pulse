@@ -58,6 +58,6 @@ pub fn revisions_per_file(commits: &[Commit]) -> HashMap<PathBuf, u32> {
 
 fn file_cc(path: &Path, lang: Language) -> u32 {
     let Ok(source) = std::fs::read_to_string(path) else { return 0 };
-    let Some(metrics) = parse::parse_and_walk(&source, lang) else { return 0 };
+    let Some(metrics) = parse::parse_and_walk_guarded(&source, lang) else { return 0 };
     metrics.module.sum_cc
 }

@@ -90,7 +90,7 @@ fn analyze_file(
     out: &mut Vec<AuditFinding>,
 ) {
     let Ok(source) = std::fs::read_to_string(path) else { return };
-    let Some(tree) = parse::parse_only(&source, lang) else { return };
+    let Some(tree) = parse::parse_guarded(&source, lang) else { return };
     let ctx = FileCtx {
         lang: tl,
         source: &source,

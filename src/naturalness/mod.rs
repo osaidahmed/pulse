@@ -65,7 +65,7 @@ fn collect_docs(
     let mut docs = Vec::new();
     for (path, file_lang) in typed_files.iter().filter(|(_, l)| *l == lang) {
         let Ok(source) = std::fs::read_to_string(path) else { continue };
-        let Some(tree) = parse::parse_only(&source, *file_lang) else { continue };
+        let Some(tree) = parse::parse_guarded(&source, *file_lang) else { continue };
         let mut functions = Vec::new();
         find_functions(tree.root_node(), fn_kinds, &mut functions);
         for f in functions {

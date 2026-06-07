@@ -45,7 +45,7 @@ pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {
     let Ok(source) = std::fs::read_to_string(path) else {
         return Vec::new();
     };
-    let Some(tree) = parse::parse_only(&source, lang) else {
+    let Some(tree) = parse::parse_guarded(&source, lang) else {
         return Vec::new();
     };
     let ctx = CallCtx { source: &source, lang, path };

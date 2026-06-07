@@ -133,7 +133,7 @@ fn compute_baseline(
     let Some(lang) = parse::detect_language(Path::new(&hook.file_path)) else {
         return (HashMap::new(), Vec::new());
     };
-    let Some(metrics) = parse::parse_and_walk(&source, lang) else {
+    let Some(metrics) = parse::parse_and_walk_guarded(&source, lang) else {
         return (HashMap::new(), Vec::new());
     };
     let t = config::resolve_thresholds(cfg, lang);

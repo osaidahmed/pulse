@@ -19,7 +19,7 @@ pub fn definitions_for_file(path: &Path, lang: Language) -> Vec<DefinitionRecord
     let Ok(source) = std::fs::read_to_string(path) else {
         return Vec::new();
     };
-    let Some(metrics) = parse::parse_and_walk(&source, lang) else {
+    let Some(metrics) = parse::parse_and_walk_guarded(&source, lang) else {
         return Vec::new();
     };
     metrics.functions.into_iter().map(|f| record_from_metrics(path, f)).collect()

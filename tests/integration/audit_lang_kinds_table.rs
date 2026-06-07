@@ -1,31 +1,6 @@
 use pulse::audit::lang_kinds::{is_skippable_root, skippable_root_kinds};
 use pulse::parse::Language;
 
-const ALL_LANGS: &[Language] = &[
-    Language::Python,
-    Language::TypeScript,
-    Language::JavaScript,
-    Language::Rust,
-    Language::C,
-    Language::Cpp,
-    Language::Java,
-    Language::CSharp,
-    Language::Go,
-    Language::Swift,
-    Language::Zig,
-    Language::Ruby,
-    Language::ObjectiveC,
-    Language::Tcl,
-    Language::Kotlin,
-    Language::Haskell,
-    Language::Lua,
-    Language::R,
-    Language::Php,
-    Language::Cobol,
-    Language::D,
-    Language::Groovy,
-];
-
 #[test]
 fn lang_kinds_returns_slice_for_python() {
     let _ = skippable_root_kinds(Language::Python);
@@ -137,8 +112,11 @@ fn lang_kinds_returns_slice_for_groovy() {
 }
 
 #[test]
-fn lang_kinds_table_has_22_entries_via_iteration() {
-    assert_eq!(ALL_LANGS.len(), 22);
+fn language_all_is_complete_and_ordered() {
+    assert_eq!(Language::ALL.len(), Language::COUNT);
+    for (i, lang) in Language::ALL.iter().enumerate() {
+        assert_eq!(*lang as usize, i, "Language::ALL must list every variant in discriminant order");
+    }
 }
 
 #[test]
@@ -148,7 +126,7 @@ fn lang_kinds_v1_default_empty_for_python() {
 
 #[test]
 fn lang_kinds_v1_default_empty_for_each_language() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(skippable_root_kinds(lang).is_empty(), "{lang:?}");
     }
 }
@@ -160,7 +138,7 @@ fn is_skippable_root_returns_false_for_unknown_kind_python() {
 
 #[test]
 fn is_skippable_root_returns_false_for_unknown_kind_each_language() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(!is_skippable_root(lang, "definitely_not_a_kind"));
     }
 }
@@ -168,7 +146,7 @@ fn is_skippable_root_returns_false_for_unknown_kind_each_language() {
 #[test]
 fn is_skippable_root_returns_false_for_common_function_kinds() {
     let kinds = ["function_definition", "function_declaration", "method_declaration"];
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         for kind in &kinds {
             assert!(!is_skippable_root(lang, kind));
         }
@@ -178,7 +156,7 @@ fn is_skippable_root_returns_false_for_common_function_kinds() {
 #[test]
 fn is_skippable_root_returns_false_for_common_block_kinds() {
     let kinds = ["block", "statement_block", "block_statement", "do_block"];
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         for kind in &kinds {
             assert!(!is_skippable_root(lang, kind));
         }
@@ -187,7 +165,7 @@ fn is_skippable_root_returns_false_for_common_block_kinds() {
 
 #[test]
 fn is_skippable_root_returns_false_for_comment_kinds() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         for kind in &["comment", "line_comment", "block_comment"] {
             assert!(!is_skippable_root(lang, kind));
         }
@@ -196,14 +174,14 @@ fn is_skippable_root_returns_false_for_comment_kinds() {
 
 #[test]
 fn is_skippable_root_handles_empty_string_kind() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(!is_skippable_root(lang, ""));
     }
 }
 
 #[test]
 fn is_skippable_root_handles_unicode_kind_string() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(!is_skippable_root(lang, "δλ_kind"));
     }
 }
@@ -216,8 +194,8 @@ fn lang_kinds_returns_static_slice_lifetime() {
 
 #[test]
 fn lang_kinds_table_distinct_per_language_callable_independently() {
-    for &a in ALL_LANGS {
-        for &b in ALL_LANGS {
+    for &a in &Language::ALL {
+        for &b in &Language::ALL {
             let _ = skippable_root_kinds(a);
             let _ = skippable_root_kinds(b);
         }
@@ -343,7 +321,7 @@ fn lang_kinds_distinct_invocations_yield_same_addresses() {
 
 #[test]
 fn is_skippable_root_returns_consistent_for_all_lang_pairs() {
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         let a = is_skippable_root(lang, "if_statement");
         let b = is_skippable_root(lang, "if_statement");
         assert_eq!(a, b);
@@ -360,7 +338,7 @@ fn is_skippable_root_invariant_under_repeated_calls() {
 #[test]
 fn is_skippable_root_handles_long_kind_string() {
     let long = "a".repeat(1000);
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(!is_skippable_root(lang, &long));
     }
 }
@@ -369,7 +347,7 @@ fn is_skippable_root_handles_long_kind_string() {
 fn lang_kinds_table_indexable_correctly_via_lang_index() {
     use std::collections::HashSet;
     let mut seen = HashSet::new();
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         seen.insert(lang);
     }
     assert_eq!(seen.len(), 22);
@@ -378,7 +356,7 @@ fn lang_kinds_table_indexable_correctly_via_lang_index() {
 #[test]
 fn is_skippable_root_for_anonymous_node_types_returns_false() {
     let kinds = ["(", ")", "{", "}", ";", ","];
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         for kind in &kinds {
             assert!(!is_skippable_root(lang, kind));
         }
@@ -388,7 +366,7 @@ fn is_skippable_root_for_anonymous_node_types_returns_false() {
 #[test]
 fn is_skippable_root_does_not_panic_on_extreme_input() {
     let bad = "🦀💀".repeat(100);
-    for &lang in ALL_LANGS {
+    for &lang in &Language::ALL {
         assert!(!is_skippable_root(lang, &bad));
     }
 }

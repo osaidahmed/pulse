@@ -168,7 +168,7 @@ pub fn abstractness_for_file(path: &Path, lang: Language) -> AbstractnessRecord 
     let Ok(source) = std::fs::read_to_string(path) else {
         return placeholder();
     };
-    let Some(tree) = parse::parse_only(&source, lang) else {
+    let Some(tree) = parse::parse_guarded(&source, lang) else {
         return placeholder();
     };
     let mut counts = TypeCounts::default();

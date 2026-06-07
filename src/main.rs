@@ -159,7 +159,7 @@ fn run_debug(file_path: &str) {
     }
     let lang = parse::detect_language(path).expect("unsupported language");
     let source = std::fs::read_to_string(path).expect("can't read file");
-    let metrics = parse::parse_and_walk(&source, lang).expect("parse failed");
+    let metrics = parse::parse_and_walk_guarded(&source, lang).expect("parse failed");
     eprintln!(
         "Module: {} LOC, {} functions, sum_cc={} declarations={}",
         metrics.module.total_loc,
@@ -202,7 +202,7 @@ fn run_budget(file_path: &str) {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
-    let Some(metrics) = std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang)) else {
+    let Some(metrics) = std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk_guarded(&s, lang)) else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };

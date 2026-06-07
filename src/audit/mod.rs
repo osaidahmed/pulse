@@ -235,7 +235,7 @@ fn edges_for_file(
     typed_files: &[(PathBuf, Language)],
 ) -> Vec<InputEdge> {
     let Ok(source) = std::fs::read_to_string(path) else { return Vec::new() };
-    let Some(tree) = parse::parse_only(&source, lang) else { return Vec::new() };
+    let Some(tree) = parse::parse_guarded(&source, lang) else { return Vec::new() };
     let raws = imports::extract_imports(&tree, &source, lang);
     let mut out: Vec<InputEdge> = Vec::new();
     for raw in raws {

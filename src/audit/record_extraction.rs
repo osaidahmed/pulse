@@ -46,6 +46,6 @@ pub fn for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec
 
 fn walk_one(path: &Path, lang: Language, thresholds: &AuditThresholds) -> Option<WalkOutput> {
     let source = std::fs::read_to_string(path).ok()?;
-    let tree = parse::parse_only(&source, lang)?;
+    let tree = parse::parse_guarded(&source, lang)?;
     Some(walker::extract_records(&tree, &source, lang, path, thresholds))
 }
