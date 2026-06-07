@@ -30,6 +30,38 @@ fn minimal_threshold_override() {
 }
 
 #[test]
+fn package_metrics_thresholds_are_overridable() {
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds.package_metrics]
+        unstable_dep_strength = 0.5
+        god_component_loc_percentile = 0.95
+        max_arch_findings_reported = 10
+        ",
+    )
+    .unwrap();
+    let resolved = config::resolve_base_thresholds(Some(&cfg));
+    let pm = resolved.audit.package_metrics;
+    assert!((pm.unstable_dep_strength - 0.5).abs() < 1e-9);
+    assert!((pm.god_component_loc_percentile - 0.95).abs() < 1e-9);
+    assert_eq!(pm.max_arch_findings_reported, 10);
+    let default_pm = t().audit.package_metrics;
+    assert!((pm.hublike_imbalance_ratio - default_pm.hublike_imbalance_ratio).abs() < 1e-9);
+    assert_eq!(pm.pagerank, default_pm.pagerank, "algorithm internals keep defaults");
+}
+
+#[test]
+fn unknown_package_metrics_key_is_rejected() {
+    let result = toml::from_str::<PulseConfig>(
+        r"
+        [thresholds.package_metrics]
+        bogus_knob = 5
+        ",
+    );
+    assert!(result.is_err(), "unknown package-metrics keys must be rejected");
+}
+
+#[test]
 fn disable_section_parses() {
     let cfg: PulseConfig = toml::from_str(
         r#"

@@ -12,7 +12,9 @@ pub use crate::config_history::{
     HistoryConfig,
 };
 
+mod audit_overrides;
 mod resolve;
+pub use audit_overrides::PackageMetricsConfig;
 pub use resolve::{resolve_base_thresholds, resolve_thresholds};
 
 const CONFIG_FILENAME: &str = ".pulse.toml";
@@ -58,6 +60,8 @@ pub struct ConfigThresholds {
     pub duplication: DuplicationThresholds,
     #[serde(default)]
     pub cpg: CpgConfig,
+    #[serde(default)]
+    pub package_metrics: PackageMetricsConfig,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

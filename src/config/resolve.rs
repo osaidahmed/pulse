@@ -1,7 +1,7 @@
 use crate::parse::Language;
-use crate::thresholds::Thresholds;
+use crate::thresholds::{AuditThresholds, PackageMetricsThresholds, Thresholds};
 
-use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, PulseConfig};
+use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, PackageMetricsConfig, PulseConfig};
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
     let base = Thresholds::default();
@@ -75,9 +75,41 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),
             max_string_match_arms: a.max_string_match_arms.unwrap_or(ba.max_string_match_arms),
         },
-        audit: base.audit,
+        audit: resolve_audit(&base.audit, &o.package_metrics),
         history: base.history,
         cpg: resolve_cpg(&o.cpg, &base.cpg),
+    }
+}
+
+fn resolve_audit(base: &AuditThresholds, pm: &PackageMetricsConfig) -> AuditThresholds {
+    AuditThresholds { package_metrics: resolve_package_metrics(pm, &base.package_metrics), ..*base }
+}
+
+fn resolve_package_metrics(
+    o: &PackageMetricsConfig,
+    base: &PackageMetricsThresholds,
+) -> PackageMetricsThresholds {
+    PackageMetricsThresholds {
+        martin_distance_warning: o.martin_distance_warning.unwrap_or(base.martin_distance_warning),
+        martin_distance_alert: o.martin_distance_alert.unwrap_or(base.martin_distance_alert),
+        include_tests_in_graph: o.include_tests_in_graph.unwrap_or(base.include_tests_in_graph),
+        martin_cycle_min_size: o.martin_cycle_min_size.unwrap_or(base.martin_cycle_min_size),
+        max_cycle_findings_reported: o
+            .max_cycle_findings_reported
+            .unwrap_or(base.max_cycle_findings_reported),
+        max_martin_findings_reported: o
+            .max_martin_findings_reported
+            .unwrap_or(base.max_martin_findings_reported),
+        unstable_dep_strength: o.unstable_dep_strength.unwrap_or(base.unstable_dep_strength),
+        hublike_imbalance_ratio: o.hublike_imbalance_ratio.unwrap_or(base.hublike_imbalance_ratio),
+        god_component_loc_percentile: o
+            .god_component_loc_percentile
+            .unwrap_or(base.god_component_loc_percentile),
+        pagerank: base.pagerank,
+        community: base.community,
+        max_arch_findings_reported: o
+            .max_arch_findings_reported
+            .unwrap_or(base.max_arch_findings_reported),
     }
 }
 
