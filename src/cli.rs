@@ -99,11 +99,11 @@ pub struct HistoryArgs {
     #[arg(long)]
     pub hist: bool,
 
-    /// Flag dependency cycles newly introduced across the analyzed history window (opt-in).
+    /// Flag architectural cycles freshly introduced (catalyst) or worsening (decay) across the history window (opt-in).
     #[arg(long = "arch-trend")]
     pub arch_trend: bool,
 
-    /// Compute and persist JIT edit-risk calibration (LT/AGE percentiles) for the repo.
+    /// Compute and persist JIT edit-risk calibration (LT/AGE percentiles + change-entropy threshold) for the repo.
     #[arg(long = "jit-calibrate")]
     pub jit_calibrate: bool,
 }
