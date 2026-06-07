@@ -1720,7 +1720,7 @@ fn first_write_includes_overall_cc_when_exceeded() {
 }
 
 #[test]
-fn first_write_decision_is_block_json() {
+fn first_write_module_smell_is_advisory_not_blocking() {
     let env = TestEnv::new();
     let path = env.file_path("block_json.py");
     let code = simple_functions(25);
@@ -1728,5 +1728,12 @@ fn first_write_decision_is_block_json() {
     let json = env.write_hook_json(&path);
     let out = env.run_hook(&json);
     let v: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
-    assert_eq!(v["decision"], "block", "should output blocking decision: {out}");
+    assert!(
+        v.get("decision").is_none(),
+        "module-level smells are advisory at edit time, enforced as regressions at stop: {out}"
+    );
+    let ctx = v["hookSpecificOutput"]["additionalContext"]
+        .as_str()
+        .expect("the module smell is surfaced via the advisory channel");
+    assert!(ctx.to_lowercase().contains("too many functions"));
 }

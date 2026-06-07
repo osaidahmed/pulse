@@ -76,13 +76,21 @@ fn is_actionable(smell: Smell) -> bool {
 pub fn format_compact(findings: &[Finding], filename: &str) -> String {
     let mut out: String = findings
         .iter()
-        .map(|f| format_compact_line(f, filename))
+        .map(|f| format_compact_line(f, filename, "error[pulse]"))
         .collect();
     let _ = writeln!(out, "Fix all issues above before proceeding.");
     out
 }
 
-fn format_compact_line(f: &Finding, filename: &str) -> String {
+pub fn format_advisory(findings: &[Finding], filename: &str) -> String {
+    let mut out = String::from("pulse advisory (non-blocking) — consider addressing:\n");
+    for f in findings {
+        out.push_str(&format_compact_line(f, filename, "advisory[pulse]"));
+    }
+    out
+}
+
+fn format_compact_line(f: &Finding, filename: &str, tag: &str) -> String {
     let action = action_for(f.smell, &f.detail);
     let smell_lower = f.smell.as_str().to_lowercase();
     match &f.location {
@@ -90,15 +98,12 @@ fn format_compact_line(f: &Finding, filename: &str) -> String {
             name, start_line, ..
         } => {
             format!(
-                "error[pulse]: {}:{}: {} in `{}` — {}. {}\n",
-                filename, start_line, smell_lower, name, f.detail, action
+                "{}: {}:{}: {} in `{}` — {}. {}\n",
+                tag, filename, start_line, smell_lower, name, f.detail, action
             )
         }
         Location::Module => {
-            format!(
-                "error[pulse]: {}: {} — {}. {}\n",
-                filename, smell_lower, f.detail, action
-            )
+            format!("{}: {}: {} — {}. {}\n", tag, filename, smell_lower, f.detail, action)
         }
     }
 }

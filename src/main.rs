@@ -14,6 +14,7 @@ mod history;
 mod hook;
 mod hook_run;
 mod intensity;
+mod interaction;
 mod module_smells;
 mod naturalness;
 mod output;

@@ -5,6 +5,7 @@ use std::process;
 use std::rc::Rc;
 
 use crate::analyze::{self, AnalysisResultFull};
+use crate::interaction::{tier_for, FindingTier};
 use crate::smells::{self, Finding, Location};
 use crate::{analytics, baselines, config, hook, output, parse, test_detection, thresholds};
 
@@ -59,7 +60,7 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     }
     analytics::log_findings(&h, &findings, &analysis.filename);
-    emit_block(&findings, &analysis);
+    emit_findings(&findings, &analysis);
 }
 
 fn is_ignored_by(cfg_root: Option<&(config::PulseConfig, PathBuf)>, path: &Path) -> bool {
@@ -90,8 +91,26 @@ fn collect_hook_findings(
     findings
 }
 
-fn emit_block(findings: &[Finding], analysis: &AnalysisResultFull) {
+fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull) {
     let t = &analysis.thresholds;
+    let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
+    let (blocking, advisory): (Vec<Finding>, Vec<Finding>) =
+        ranked.into_iter().partition(|f| tier_for(f.smell) == FindingTier::Blocking);
+    let advisory_ctx = (!advisory.is_empty())
+        .then(|| output::format_advisory(&advisory, &analysis.filename));
+    if blocking.is_empty() {
+        emit_advisory_only(advisory_ctx);
+        return;
+    }
+    let reason = build_block_reason(&blocking, analysis, t);
+    emit_decision(&reason, advisory_ctx);
+}
+
+fn build_block_reason(
+    blocking: &[Finding],
+    analysis: &AnalysisResultFull,
+    t: &thresholds::Thresholds,
+) -> String {
     let budget = format!(
         "[budget] fn={}/{} loc={}/{} cc={}/{}",
         analysis.fn_count(),
@@ -101,17 +120,32 @@ fn emit_block(findings: &[Finding], analysis: &AnalysisResultFull) {
         analysis.sum_cc(),
         t.module.file_total_cc,
     );
-    let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
-    let compact = output::format_compact(&ranked, &analysis.filename);
-    let reason = match detect_constraint_conflict(findings, analysis.fn_count(), t) {
+    let compact = output::format_compact(blocking, &analysis.filename);
+    match detect_constraint_conflict(blocking, analysis.fn_count(), t) {
         Some(note) => format!("{}\n{}\n{}", compact.trim(), note, budget),
         None => format!("{}\n{}", compact.trim(), budget),
-    };
-    let decision = serde_json::json!({
-        "decision": "block",
-        "reason": reason.trim()
-    });
+    }
+}
+
+fn emit_decision(reason: &str, advisory_ctx: Option<String>) {
+    let mut decision = serde_json::json!({ "decision": "block", "reason": reason.trim() });
+    if let Some(ctx) = advisory_ctx {
+        decision["hookSpecificOutput"] = advisory_payload(&ctx);
+    }
     println!("{decision}");
+}
+
+fn emit_advisory_only(advisory_ctx: Option<String>) {
+    let Some(ctx) = advisory_ctx else { return };
+    let out = serde_json::json!({ "hookSpecificOutput": advisory_payload(&ctx) });
+    println!("{out}");
+}
+
+fn advisory_payload(ctx: &str) -> serde_json::Value {
+    serde_json::json!({
+        "hookEventName": "PostToolUse",
+        "additionalContext": ctx.trim(),
+    })
 }
 
 fn detect_constraint_conflict(
