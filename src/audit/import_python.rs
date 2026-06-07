@@ -33,9 +33,7 @@ pub fn path_suffix(raw: &str) -> Option<String> {
 
 fn absolute_import(node: Node, source: &str) -> Option<RawImport> {
     let mut cursor = node.walk();
-    let dotted = node
-        .children(&mut cursor)
-        .find(|c| c.is_named() && c.kind() == "dotted_name")?;
+    let dotted = node.children(&mut cursor).find(|c| c.is_named() && c.kind() == "dotted_name")?;
     Some(RawImport { target: node_text(dotted, source), line: line_of(node) })
 }
 

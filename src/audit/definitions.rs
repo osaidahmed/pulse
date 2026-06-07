@@ -22,22 +22,13 @@ pub fn definitions_for_file(path: &Path, lang: Language) -> Vec<DefinitionRecord
     let Some(metrics) = parse::parse_and_walk(&source, lang) else {
         return Vec::new();
     };
-    metrics
-        .functions
-        .into_iter()
-        .map(|f| record_from_metrics(path, f))
-        .collect()
+    metrics.functions.into_iter().map(|f| record_from_metrics(path, f)).collect()
 }
 
 fn record_from_metrics(path: &Path, f: FunctionMetrics) -> DefinitionRecord {
     let bare_name = strip_class_prefix(&f.name, f.class_name.as_deref());
     DefinitionRecord {
-        identity: MethodIdentity {
-            file: path.to_path_buf(),
-            class: f.class_name,
-            name: bare_name,
-            line: f.start_line,
-        },
+        identity: MethodIdentity { file: path.to_path_buf(), class: f.class_name, name: bare_name, line: f.start_line },
         cc: f.cc,
         field_accesses: f.field_accesses,
         foreign_field_accesses: f.foreign_field_accesses,

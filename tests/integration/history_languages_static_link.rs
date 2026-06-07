@@ -28,7 +28,9 @@ fn linked_python() -> Fixture {
     Fixture {
         lang: Language::Python,
         files: vec![(a.clone(), Language::Python), (b.clone(), Language::Python)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -39,7 +41,9 @@ fn unlinked_python() -> Fixture {
     Fixture {
         lang: Language::Python,
         files: vec![(a.clone(), Language::Python), (b.clone(), Language::Python)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -50,7 +54,9 @@ fn linked_typescript() -> Fixture {
     Fixture {
         lang: Language::TypeScript,
         files: vec![(a.clone(), Language::TypeScript), (b.clone(), Language::TypeScript)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -61,7 +67,9 @@ fn unlinked_typescript() -> Fixture {
     Fixture {
         lang: Language::TypeScript,
         files: vec![(a.clone(), Language::TypeScript), (b.clone(), Language::TypeScript)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -72,7 +80,9 @@ fn linked_javascript() -> Fixture {
     Fixture {
         lang: Language::JavaScript,
         files: vec![(a.clone(), Language::JavaScript), (b.clone(), Language::JavaScript)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -83,7 +93,9 @@ fn unlinked_javascript() -> Fixture {
     Fixture {
         lang: Language::JavaScript,
         files: vec![(a.clone(), Language::JavaScript), (b.clone(), Language::JavaScript)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -94,7 +106,9 @@ fn linked_rust() -> Fixture {
     Fixture {
         lang: Language::Rust,
         files: vec![(a.clone(), Language::Rust), (b.clone(), Language::Rust)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -105,7 +119,9 @@ fn unlinked_rust() -> Fixture {
     Fixture {
         lang: Language::Rust,
         files: vec![(a.clone(), Language::Rust), (b.clone(), Language::Rust)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -113,22 +129,14 @@ fn linked_c() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.c", "#include \"b.h\"\nint main() { return 0; }\n");
     let b = write_file(dir.path(), "b.h", "void greet(void);\n");
-    Fixture {
-        lang: Language::C,
-        files: vec![(a.clone(), Language::C), (b.clone(), Language::C)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::C, files: vec![(a.clone(), Language::C), (b.clone(), Language::C)], a, b, extra: dir }
 }
 
 fn unlinked_c() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.c", "int x = 1;\n");
     let b = write_file(dir.path(), "b.c", "int y = 2;\n");
-    Fixture {
-        lang: Language::C,
-        files: vec![(a.clone(), Language::C), (b.clone(), Language::C)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::C, files: vec![(a.clone(), Language::C), (b.clone(), Language::C)], a, b, extra: dir }
 }
 
 fn linked_cpp() -> Fixture {
@@ -138,7 +146,9 @@ fn linked_cpp() -> Fixture {
     Fixture {
         lang: Language::Cpp,
         files: vec![(a.clone(), Language::Cpp), (b.clone(), Language::Cpp)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -149,26 +159,22 @@ fn unlinked_cpp() -> Fixture {
     Fixture {
         lang: Language::Cpp,
         files: vec![(a.clone(), Language::Cpp), (b.clone(), Language::Cpp)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
 fn linked_java() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
-    let a = write_file(
-        dir.path(),
-        "src/main/java/A.java",
-        "import com.foo.B;\nclass A {}\n",
-    );
-    let b = write_file(
-        dir.path(),
-        "src/main/java/com/foo/B.java",
-        "package com.foo;\npublic class B {}\n",
-    );
+    let a = write_file(dir.path(), "src/main/java/A.java", "import com.foo.B;\nclass A {}\n");
+    let b = write_file(dir.path(), "src/main/java/com/foo/B.java", "package com.foo;\npublic class B {}\n");
     Fixture {
         lang: Language::Java,
         files: vec![(a.clone(), Language::Java), (b.clone(), Language::Java)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -179,7 +185,9 @@ fn unlinked_java() -> Fixture {
     Fixture {
         lang: Language::Java,
         files: vec![(a.clone(), Language::Java), (b.clone(), Language::Java)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -190,7 +198,9 @@ fn linked_csharp() -> Fixture {
     Fixture {
         lang: Language::CSharp,
         files: vec![(a.clone(), Language::CSharp), (b.clone(), Language::CSharp)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -201,7 +211,9 @@ fn unlinked_csharp() -> Fixture {
     Fixture {
         lang: Language::CSharp,
         files: vec![(a.clone(), Language::CSharp), (b.clone(), Language::CSharp)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -209,22 +221,14 @@ fn linked_go() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.go", "package main\nimport \"./pkgb\"\nfunc main() {}\n");
     let b = write_file(dir.path(), "pkgb/b.go", "package pkgb\nfunc Bar() {}\n");
-    Fixture {
-        lang: Language::Go,
-        files: vec![(a.clone(), Language::Go), (b.clone(), Language::Go)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::Go, files: vec![(a.clone(), Language::Go), (b.clone(), Language::Go)], a, b, extra: dir }
 }
 
 fn unlinked_go() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.go", "package main\nfunc main() {}\n");
     let b = write_file(dir.path(), "b.go", "package main\nfunc Bar() {}\n");
-    Fixture {
-        lang: Language::Go,
-        files: vec![(a.clone(), Language::Go), (b.clone(), Language::Go)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::Go, files: vec![(a.clone(), Language::Go), (b.clone(), Language::Go)], a, b, extra: dir }
 }
 
 fn linked_swift() -> Fixture {
@@ -234,7 +238,9 @@ fn linked_swift() -> Fixture {
     Fixture {
         lang: Language::Swift,
         files: vec![(a.clone(), Language::Swift), (b.clone(), Language::Swift)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -245,7 +251,9 @@ fn unlinked_swift() -> Fixture {
     Fixture {
         lang: Language::Swift,
         files: vec![(a.clone(), Language::Swift), (b.clone(), Language::Swift)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -256,7 +264,9 @@ fn unlinked_zig() -> Fixture {
     Fixture {
         lang: Language::Zig,
         files: vec![(a.clone(), Language::Zig), (b.clone(), Language::Zig)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -267,7 +277,9 @@ fn linked_ruby() -> Fixture {
     Fixture {
         lang: Language::Ruby,
         files: vec![(a.clone(), Language::Ruby), (b.clone(), Language::Ruby)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -278,7 +290,9 @@ fn unlinked_ruby() -> Fixture {
     Fixture {
         lang: Language::Ruby,
         files: vec![(a.clone(), Language::Ruby), (b.clone(), Language::Ruby)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -289,7 +303,9 @@ fn linked_objc() -> Fixture {
     Fixture {
         lang: Language::ObjectiveC,
         files: vec![(a.clone(), Language::ObjectiveC), (b.clone(), Language::C)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -300,7 +316,9 @@ fn unlinked_objc() -> Fixture {
     Fixture {
         lang: Language::ObjectiveC,
         files: vec![(a.clone(), Language::ObjectiveC), (b.clone(), Language::ObjectiveC)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -311,7 +329,9 @@ fn linked_tcl() -> Fixture {
     Fixture {
         lang: Language::Tcl,
         files: vec![(a.clone(), Language::Tcl), (b.clone(), Language::Tcl)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -322,26 +342,22 @@ fn unlinked_tcl() -> Fixture {
     Fixture {
         lang: Language::Tcl,
         files: vec![(a.clone(), Language::Tcl), (b.clone(), Language::Tcl)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
 fn linked_kotlin() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
-    let a = write_file(
-        dir.path(),
-        "src/main/kotlin/A.kt",
-        "import com.foo.B\nclass A {}\n",
-    );
-    let b = write_file(
-        dir.path(),
-        "src/main/kotlin/com/foo/B.kt",
-        "package com.foo\nclass B\n",
-    );
+    let a = write_file(dir.path(), "src/main/kotlin/A.kt", "import com.foo.B\nclass A {}\n");
+    let b = write_file(dir.path(), "src/main/kotlin/com/foo/B.kt", "package com.foo\nclass B\n");
     Fixture {
         lang: Language::Kotlin,
         files: vec![(a.clone(), Language::Kotlin), (b.clone(), Language::Kotlin)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -352,7 +368,9 @@ fn unlinked_kotlin() -> Fixture {
     Fixture {
         lang: Language::Kotlin,
         files: vec![(a.clone(), Language::Kotlin), (b.clone(), Language::Kotlin)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -363,7 +381,9 @@ fn linked_haskell() -> Fixture {
     Fixture {
         lang: Language::Haskell,
         files: vec![(a.clone(), Language::Haskell), (b.clone(), Language::Haskell)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -374,7 +394,9 @@ fn unlinked_haskell() -> Fixture {
     Fixture {
         lang: Language::Haskell,
         files: vec![(a.clone(), Language::Haskell), (b.clone(), Language::Haskell)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -385,7 +407,9 @@ fn linked_lua() -> Fixture {
     Fixture {
         lang: Language::Lua,
         files: vec![(a.clone(), Language::Lua), (b.clone(), Language::Lua)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -396,7 +420,9 @@ fn unlinked_lua() -> Fixture {
     Fixture {
         lang: Language::Lua,
         files: vec![(a.clone(), Language::Lua), (b.clone(), Language::Lua)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -404,22 +430,14 @@ fn linked_r() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.R", "source('b.R')\nprint('hi')\n");
     let b = write_file(dir.path(), "b.R", "bar <- function() 1\n");
-    Fixture {
-        lang: Language::R,
-        files: vec![(a.clone(), Language::R), (b.clone(), Language::R)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::R, files: vec![(a.clone(), Language::R), (b.clone(), Language::R)], a, b, extra: dir }
 }
 
 fn unlinked_r() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.R", "x <- 1\n");
     let b = write_file(dir.path(), "b.R", "y <- 2\n");
-    Fixture {
-        lang: Language::R,
-        files: vec![(a.clone(), Language::R), (b.clone(), Language::R)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::R, files: vec![(a.clone(), Language::R), (b.clone(), Language::R)], a, b, extra: dir }
 }
 
 fn linked_php() -> Fixture {
@@ -429,7 +447,9 @@ fn linked_php() -> Fixture {
     Fixture {
         lang: Language::Php,
         files: vec![(a.clone(), Language::Php), (b.clone(), Language::Php)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -440,7 +460,9 @@ fn unlinked_php() -> Fixture {
     Fixture {
         lang: Language::Php,
         files: vec![(a.clone(), Language::Php), (b.clone(), Language::Php)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -451,34 +473,26 @@ fn linked_cobol() -> Fixture {
         "a.cbl",
         "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. A.\n       PROCEDURE DIVISION.\n           COPY B.\n       STOP RUN.\n",
     );
-    let b = write_file(
-        dir.path(),
-        "B.cbl",
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. B.\n",
-    );
+    let b = write_file(dir.path(), "B.cbl", "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. B.\n");
     Fixture {
         lang: Language::Cobol,
         files: vec![(a.clone(), Language::Cobol), (b.clone(), Language::Cobol)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
 fn unlinked_cobol() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
-    let a = write_file(
-        dir.path(),
-        "a.cbl",
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. A.\n",
-    );
-    let b = write_file(
-        dir.path(),
-        "b.cbl",
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. B.\n",
-    );
+    let a = write_file(dir.path(), "a.cbl", "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. A.\n");
+    let b = write_file(dir.path(), "b.cbl", "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. B.\n");
     Fixture {
         lang: Language::Cobol,
         files: vec![(a.clone(), Language::Cobol), (b.clone(), Language::Cobol)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -486,40 +500,26 @@ fn linked_d() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.d", "import b;\nvoid main() {}\n");
     let b = write_file(dir.path(), "b.d", "module b;\nvoid bar() {}\n");
-    Fixture {
-        lang: Language::D,
-        files: vec![(a.clone(), Language::D), (b.clone(), Language::D)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::D, files: vec![(a.clone(), Language::D), (b.clone(), Language::D)], a, b, extra: dir }
 }
 
 fn unlinked_d() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let a = write_file(dir.path(), "a.d", "void main() {}\n");
     let b = write_file(dir.path(), "b.d", "void bar() {}\n");
-    Fixture {
-        lang: Language::D,
-        files: vec![(a.clone(), Language::D), (b.clone(), Language::D)],
-        a, b, extra: dir,
-    }
+    Fixture { lang: Language::D, files: vec![(a.clone(), Language::D), (b.clone(), Language::D)], a, b, extra: dir }
 }
 
 fn linked_groovy() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
-    let a = write_file(
-        dir.path(),
-        "src/main/groovy/A.groovy",
-        "import com.foo.B\nclass A {}\n",
-    );
-    let b = write_file(
-        dir.path(),
-        "src/main/groovy/com/foo/B.groovy",
-        "package com.foo\nclass B {}\n",
-    );
+    let a = write_file(dir.path(), "src/main/groovy/A.groovy", "import com.foo.B\nclass A {}\n");
+    let b = write_file(dir.path(), "src/main/groovy/com/foo/B.groovy", "package com.foo\nclass B {}\n");
     Fixture {
         lang: Language::Groovy,
         files: vec![(a.clone(), Language::Groovy), (b.clone(), Language::Groovy)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
@@ -530,68 +530,191 @@ fn unlinked_groovy() -> Fixture {
     Fixture {
         lang: Language::Groovy,
         files: vec![(a.clone(), Language::Groovy), (b.clone(), Language::Groovy)],
-        a, b, extra: dir,
+        a,
+        b,
+        extra: dir,
     }
 }
 
 fn assert_linked(f: Fixture) {
     let graph = build_graph(&f.files, f.extra.path());
-    assert!(
-        directly_linked(&graph, &f.a, &f.b),
-        "{:?}: with-import fixture should detect static link",
-        f.lang
-    );
+    assert!(directly_linked(&graph, &f.a, &f.b), "{:?}: with-import fixture should detect static link", f.lang);
 }
 
 fn assert_not_linked(f: Fixture) {
     let graph = build_graph(&f.files, f.extra.path());
-    assert!(
-        !directly_linked(&graph, &f.a, &f.b),
-        "{:?}: no-import fixture should NOT detect static link",
-        f.lang
-    );
+    assert!(!directly_linked(&graph, &f.a, &f.b), "{:?}: no-import fixture should NOT detect static link", f.lang);
 }
 
-#[test] fn python_with_import_linked() { assert_linked(linked_python()); }
-#[test] fn python_without_import_unlinked() { assert_not_linked(unlinked_python()); }
-#[test] fn typescript_with_import_linked() { assert_linked(linked_typescript()); }
-#[test] fn typescript_without_import_unlinked() { assert_not_linked(unlinked_typescript()); }
-#[test] fn javascript_with_import_linked() { assert_linked(linked_javascript()); }
-#[test] fn javascript_without_import_unlinked() { assert_not_linked(unlinked_javascript()); }
-#[test] fn rust_with_use_linked() { assert_linked(linked_rust()); }
-#[test] fn rust_without_use_unlinked() { assert_not_linked(unlinked_rust()); }
-#[test] fn c_with_include_linked() { assert_linked(linked_c()); }
-#[test] fn c_without_include_unlinked() { assert_not_linked(unlinked_c()); }
-#[test] fn cpp_with_include_linked() { assert_linked(linked_cpp()); }
-#[test] fn cpp_without_include_unlinked() { assert_not_linked(unlinked_cpp()); }
-#[test] fn java_with_import_linked() { assert_linked(linked_java()); }
-#[test] fn java_without_import_unlinked() { assert_not_linked(unlinked_java()); }
-#[test] fn csharp_with_using_linked() { assert_linked(linked_csharp()); }
-#[test] fn csharp_without_using_unlinked() { assert_not_linked(unlinked_csharp()); }
-#[test] fn go_with_import_linked() { assert_linked(linked_go()); }
-#[test] fn go_without_import_unlinked() { assert_not_linked(unlinked_go()); }
-#[test] fn swift_with_import_linked() { assert_linked(linked_swift()); }
-#[test] fn swift_without_import_unlinked() { assert_not_linked(unlinked_swift()); }
-#[test] fn zig_without_atimport_unlinked() { assert_not_linked(unlinked_zig()); }
-#[test] fn ruby_with_require_relative_linked() { assert_linked(linked_ruby()); }
-#[test] fn ruby_without_require_unlinked() { assert_not_linked(unlinked_ruby()); }
-#[test] fn objc_with_import_linked() { assert_linked(linked_objc()); }
-#[test] fn objc_without_import_unlinked() { assert_not_linked(unlinked_objc()); }
-#[test] fn tcl_with_source_linked() { assert_linked(linked_tcl()); }
-#[test] fn tcl_without_source_unlinked() { assert_not_linked(unlinked_tcl()); }
-#[test] fn kotlin_with_import_linked() { assert_linked(linked_kotlin()); }
-#[test] fn kotlin_without_import_unlinked() { assert_not_linked(unlinked_kotlin()); }
-#[test] fn haskell_with_import_linked() { assert_linked(linked_haskell()); }
-#[test] fn haskell_without_import_unlinked() { assert_not_linked(unlinked_haskell()); }
-#[test] fn lua_with_require_linked() { assert_linked(linked_lua()); }
-#[test] fn lua_without_require_unlinked() { assert_not_linked(unlinked_lua()); }
-#[test] fn r_with_source_linked() { assert_linked(linked_r()); }
-#[test] fn r_without_source_unlinked() { assert_not_linked(unlinked_r()); }
-#[test] fn php_with_require_once_linked() { assert_linked(linked_php()); }
-#[test] fn php_without_require_unlinked() { assert_not_linked(unlinked_php()); }
-#[test] fn cobol_with_copy_linked() { assert_linked(linked_cobol()); }
-#[test] fn cobol_without_copy_unlinked() { assert_not_linked(unlinked_cobol()); }
-#[test] fn d_with_import_linked() { assert_linked(linked_d()); }
-#[test] fn d_without_import_unlinked() { assert_not_linked(unlinked_d()); }
-#[test] fn groovy_with_import_linked() { assert_linked(linked_groovy()); }
-#[test] fn groovy_without_import_unlinked() { assert_not_linked(unlinked_groovy()); }
+#[test]
+fn python_with_import_linked() {
+    assert_linked(linked_python());
+}
+#[test]
+fn python_without_import_unlinked() {
+    assert_not_linked(unlinked_python());
+}
+#[test]
+fn typescript_with_import_linked() {
+    assert_linked(linked_typescript());
+}
+#[test]
+fn typescript_without_import_unlinked() {
+    assert_not_linked(unlinked_typescript());
+}
+#[test]
+fn javascript_with_import_linked() {
+    assert_linked(linked_javascript());
+}
+#[test]
+fn javascript_without_import_unlinked() {
+    assert_not_linked(unlinked_javascript());
+}
+#[test]
+fn rust_with_use_linked() {
+    assert_linked(linked_rust());
+}
+#[test]
+fn rust_without_use_unlinked() {
+    assert_not_linked(unlinked_rust());
+}
+#[test]
+fn c_with_include_linked() {
+    assert_linked(linked_c());
+}
+#[test]
+fn c_without_include_unlinked() {
+    assert_not_linked(unlinked_c());
+}
+#[test]
+fn cpp_with_include_linked() {
+    assert_linked(linked_cpp());
+}
+#[test]
+fn cpp_without_include_unlinked() {
+    assert_not_linked(unlinked_cpp());
+}
+#[test]
+fn java_with_import_linked() {
+    assert_linked(linked_java());
+}
+#[test]
+fn java_without_import_unlinked() {
+    assert_not_linked(unlinked_java());
+}
+#[test]
+fn csharp_with_using_linked() {
+    assert_linked(linked_csharp());
+}
+#[test]
+fn csharp_without_using_unlinked() {
+    assert_not_linked(unlinked_csharp());
+}
+#[test]
+fn go_with_import_linked() {
+    assert_linked(linked_go());
+}
+#[test]
+fn go_without_import_unlinked() {
+    assert_not_linked(unlinked_go());
+}
+#[test]
+fn swift_with_import_linked() {
+    assert_linked(linked_swift());
+}
+#[test]
+fn swift_without_import_unlinked() {
+    assert_not_linked(unlinked_swift());
+}
+#[test]
+fn zig_without_atimport_unlinked() {
+    assert_not_linked(unlinked_zig());
+}
+#[test]
+fn ruby_with_require_relative_linked() {
+    assert_linked(linked_ruby());
+}
+#[test]
+fn ruby_without_require_unlinked() {
+    assert_not_linked(unlinked_ruby());
+}
+#[test]
+fn objc_with_import_linked() {
+    assert_linked(linked_objc());
+}
+#[test]
+fn objc_without_import_unlinked() {
+    assert_not_linked(unlinked_objc());
+}
+#[test]
+fn tcl_with_source_linked() {
+    assert_linked(linked_tcl());
+}
+#[test]
+fn tcl_without_source_unlinked() {
+    assert_not_linked(unlinked_tcl());
+}
+#[test]
+fn kotlin_with_import_linked() {
+    assert_linked(linked_kotlin());
+}
+#[test]
+fn kotlin_without_import_unlinked() {
+    assert_not_linked(unlinked_kotlin());
+}
+#[test]
+fn haskell_with_import_linked() {
+    assert_linked(linked_haskell());
+}
+#[test]
+fn haskell_without_import_unlinked() {
+    assert_not_linked(unlinked_haskell());
+}
+#[test]
+fn lua_with_require_linked() {
+    assert_linked(linked_lua());
+}
+#[test]
+fn lua_without_require_unlinked() {
+    assert_not_linked(unlinked_lua());
+}
+#[test]
+fn r_with_source_linked() {
+    assert_linked(linked_r());
+}
+#[test]
+fn r_without_source_unlinked() {
+    assert_not_linked(unlinked_r());
+}
+#[test]
+fn php_with_require_once_linked() {
+    assert_linked(linked_php());
+}
+#[test]
+fn php_without_require_unlinked() {
+    assert_not_linked(unlinked_php());
+}
+#[test]
+fn cobol_with_copy_linked() {
+    assert_linked(linked_cobol());
+}
+#[test]
+fn cobol_without_copy_unlinked() {
+    assert_not_linked(unlinked_cobol());
+}
+#[test]
+fn d_with_import_linked() {
+    assert_linked(linked_d());
+}
+#[test]
+fn d_without_import_unlinked() {
+    assert_not_linked(unlinked_d());
+}
+#[test]
+fn groovy_with_import_linked() {
+    assert_linked(linked_groovy());
+}
+#[test]
+fn groovy_without_import_unlinked() {
+    assert_not_linked(unlinked_groovy());
+}

@@ -5,13 +5,13 @@ use tree_sitter::{Node, Tree};
 use super::counters::count_short_variables;
 use super::shared::{self, GlobalMetricsConfig};
 use super::{
-    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_code_lines, count_distinct_node_kinds, find_child_by_kind, node_text,
-    track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint, count_code_lines,
+    count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 use analysis::{
-    braced_in_wordlist, cmd_name, collect_field_accesses, count_boolean_ops,
-    count_named_consecutive_asserts, count_switch_arms, walk_cogc,
+    braced_in_wordlist, cmd_name, collect_field_accesses, count_boolean_ops, count_named_consecutive_asserts,
+    count_switch_arms, walk_cogc,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["#"];
@@ -34,10 +34,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let total_functions = functions.len() as u32;
     let sum_cc: u32 = functions.iter().map(|f| f.cc).sum();
     let mut cursor = root.walk();
-    let declaration_count = root
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "namespace")
-        .count() as u32;
+    let declaration_count = root.children(&mut cursor).filter(|c| c.kind() == "namespace").count() as u32;
     let module = ModuleMetrics {
         total_loc,
         total_functions,
@@ -67,14 +64,18 @@ fn namespace_eval_body<'a>(ns: Node<'a>, source: &'a str) -> Option<(&'a str, No
     let wl = find_child_by_kind(ns, "word_list")?;
     let mut cursor = wl.walk();
     let words: Vec<Node> = wl.children(&mut cursor).filter(Node::is_named).collect();
-    if words.len() < 3 || node_text(words[0], source) != "eval" { return None; }
-    if words[2].kind() != "braced_word" { return None; }
+    if words.len() < 3 || node_text(words[0], source) != "eval" {
+        return None;
+    }
+    if words[2].kind() != "braced_word" {
+        return None;
+    }
     Some((node_text(words[1], source), words[2]))
 }
 
 fn push_proc(node: Node, source: &str, ns: Option<&str>, fns: &mut Vec<FunctionMetrics>) {
-    let raw = node.child_by_field_name("name")
-        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
+    let raw =
+        node.child_by_field_name("name").map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     let Some(mut m) = build_metrics(node, source, raw.clone()) else { return };
     if let Some(ns_name) = ns {
         m.name = format!("{ns_name}.{raw}");
@@ -95,7 +96,9 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
     let end_line = node.end_position().row as u32 + 1;
     let body = node.child_by_field_name("body");
     let mut s = WalkState::new();
-    if let Some(b) = body { walk_body(b, source, 0, &mut s); }
+    if let Some(b) = body {
+        walk_body(b, source, 0, &mut s);
+    }
     let sh = body.map_or(0, compute_structural_fingerprint);
     let dk = body.map_or(0, count_distinct_node_kinds);
     let sk = body.map_or(0, compute_skeleton_hash);
@@ -107,22 +110,31 @@ fn build_metrics(node: Node, source: &str, name: String) -> Option<FunctionMetri
         a.children(&mut c).filter(|c| matches!(c.kind(), "argument" | "simple_word")).count() as u32
     });
     Some(FunctionMetrics {
-        name, start_line, end_line,
+        name,
+        start_line,
+        end_line,
         loc: end_line.saturating_sub(start_line) + 1,
-        cc: s.cc, cognitive_complexity: s.cogc,
-        max_nesting: s.max_nesting, bump_count: s.bump_count,
+        cc: s.cc,
+        cognitive_complexity: s.cogc,
+        max_nesting: s.max_nesting,
+        bump_count: s.bump_count,
         arg_count,
         compound_condition_count: s.compound_condition_count,
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
-        structural_hash: sh, distinct_node_kinds: dk, skeleton_hash: sk,
-        consecutive_asserts: ca, assert_hash: ah,
-        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
+        structural_hash: sh,
+        distinct_node_kinds: dk,
+        skeleton_hash: sk,
+        consecutive_asserts: ca,
+        assert_hash: ah,
+        primitive_type_count: 0,
+        typed_param_count: 0,
+        max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
- foreign_field_accesses: Vec::new(),
- class_name: None,
- parent_class: None,
+        foreign_field_accesses: Vec::new(),
+        class_name: None,
+        parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["set"])),
         string_match_arms: sma,
         cpg: None,
@@ -154,11 +166,16 @@ fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn handle_exception(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if node.kind() == "try" { handle_try(node, source, depth, s); return; }
+    if node.kind() == "try" {
+        handle_try(node, source, depth, s);
+        return;
+    }
     s.cc += 1;
     s.track_cogc_branch();
     if let Some(b) = find_child_by_kind(node, "braced_word") {
-        if braced_empty(b) { s.empty_catch_count += 1; }
+        if braced_empty(b) {
+            s.empty_catch_count += 1;
+        }
     }
 }
 
@@ -168,7 +185,10 @@ fn dispatch_cmd(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         handle_loop(node, source, depth, s, braced_in_wordlist(node, source).get(3).copied());
         return;
     }
-    if name == "switch" { handle_switch(node, source, depth, s); return; }
+    if name == "switch" {
+        handle_switch(node, source, depth, s);
+        return;
+    }
     walk_wl_bodies(node, source, depth, s);
 }
 
@@ -215,8 +235,12 @@ fn walk_switch_cases(bw: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut child_opt = bw.child(0);
     while let Some(child) = child_opt {
         child_opt = child.next_sibling();
-        if child.kind() != "command" { continue; }
-        if cmd_name(child, source) != "default" { s.cc += 1; }
+        if child.kind() != "command" {
+            continue;
+        }
+        if cmd_name(child, source) != "default" {
+            s.cc += 1;
+        }
         walk_wl_bodies(child, source, depth + 1, s);
     }
 }
@@ -238,11 +262,15 @@ fn handle_try(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn try_on_error(children: &[Node], i: usize, source: &str, depth: u32, s: &mut WalkState) {
-    if i + 1 >= children.len() || children[i + 1].kind() != "error" { return; }
+    if i + 1 >= children.len() || children[i + 1].kind() != "error" {
+        return;
+    }
     s.cc += 1;
     s.track_cogc_branch();
     let Some(hb) = children.iter().skip(i + 2).find(|c| c.kind() == "braced_word") else { return };
-    if braced_empty(*hb) { s.empty_catch_count += 1; }
+    if braced_empty(*hb) {
+        s.empty_catch_count += 1;
+    }
     s.cogc_nesting += 1;
     walk_body(*hb, source, depth, s);
     s.cogc_nesting -= 1;
@@ -271,7 +299,9 @@ fn walk_wl_bodies(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let Some(wl) = find_child_by_kind(node, "word_list") else { return };
     let mut cursor = wl.walk();
     for child in wl.children(&mut cursor) {
-        if child.kind() == "braced_word" { walk_body(child, source, depth, s); }
+        if child.kind() == "braced_word" {
+            walk_body(child, source, depth, s);
+        }
     }
 }
 
@@ -280,7 +310,9 @@ fn last_braced(node: Node) -> Option<Node> {
     let mut c = node.child(0);
     while let Some(child) = c {
         c = child.next_sibling();
-        if child.kind() == "braced_word" { result = Some(child); }
+        if child.kind() == "braced_word" {
+            result = Some(child);
+        }
     }
     result
 }

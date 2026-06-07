@@ -6,10 +6,7 @@ fn run_setup(home: &std::path::Path) -> (String, String) {
         .env("HOME", home)
         .output()
         .expect("failed to run pulse setup");
-    (
-        String::from_utf8(out.stdout).unwrap(),
-        String::from_utf8(out.stderr).unwrap(),
-    )
+    (String::from_utf8(out.stdout).unwrap(), String::from_utf8(out.stderr).unwrap())
 }
 
 fn read_settings(home: &std::path::Path) -> serde_json::Value {
@@ -27,13 +24,7 @@ fn has_command_in_event(settings: &serde_json::Value, event: &str, command: &str
         .as_array()
         .unwrap()
         .iter()
-        .any(|group| {
-            group["hooks"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|h| h["command"].as_str() == Some(command))
-        })
+        .any(|group| group["hooks"].as_array().unwrap().iter().any(|h| h["command"].as_str() == Some(command)))
 }
 
 // ── Settings from scratch ──
@@ -67,11 +58,7 @@ fn setup_merges_with_existing_hooks() {
             }]
         }
     });
-    std::fs::write(
-        claude.join("settings.json"),
-        serde_json::to_string_pretty(&existing).unwrap(),
-    )
-    .unwrap();
+    std::fs::write(claude.join("settings.json"), serde_json::to_string_pretty(&existing).unwrap()).unwrap();
 
     run_setup(dir.path());
 

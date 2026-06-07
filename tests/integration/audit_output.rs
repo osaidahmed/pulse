@@ -61,10 +61,12 @@ fn format_findings_renders_file_count() {
 fn format_findings_caps_locations_at_threshold() {
     let mut th = t().audit;
     th.max_locations_per_finding = 5;
-    let files: Vec<(&str, u32)> = (0..30).map(|i| {
-        let s: &'static str = Box::leak(format!("f{i}.py").into_boxed_str());
-        (s, i as u32)
-    }).collect();
+    let files: Vec<(&str, u32)> = (0..30)
+        .map(|i| {
+            let s: &'static str = Box::leak(format!("f{i}.py").into_boxed_str());
+            (s, i as u32)
+        })
+        .collect();
     let f = finding(7, 30, 30, "x", &files);
     let s = format_findings(&[f], None, &th);
     assert!(s.contains("(25 more)"));
@@ -133,10 +135,7 @@ fn format_findings_json_returns_valid_json() {
 
 #[test]
 fn format_findings_json_array_length_matches_finding_count() {
-    let fs = vec![
-        finding(1, 5, 5, "a", &[("a.py", 1)]),
-        finding(2, 3, 3, "b", &[("b.py", 1)]),
-    ];
+    let fs = vec![finding(1, 5, 5, "a", &[("a.py", 1)]), finding(2, 3, 3, "b", &[("b.py", 1)])];
     let s = format_findings_json(&fs, None);
     let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
     assert_eq!(parsed.as_array().unwrap().len(), 2);
@@ -148,7 +147,16 @@ fn format_findings_json_each_object_has_required_keys() {
     let s = format_findings_json(&[f], None);
     let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
     let obj = &parsed[0];
-    for k in ["kind", "fingerprint", "representative_snippet", "support", "file_count", "idf_score", "action_label", "locations"] {
+    for k in [
+        "kind",
+        "fingerprint",
+        "representative_snippet",
+        "support",
+        "file_count",
+        "idf_score",
+        "action_label",
+        "locations",
+    ] {
         assert!(obj.get(k).is_some(), "missing key {k}");
     }
 }

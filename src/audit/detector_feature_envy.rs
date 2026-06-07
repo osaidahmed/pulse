@@ -6,11 +6,7 @@ use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, FeatureEnvyEvidence, ImportConfidence};
 
-pub fn detect(
-    defs: &[DefinitionRecord],
-    graph: &CallGraph,
-    t: &AuditThresholds,
-) -> Vec<AuditFinding> {
+pub fn detect(defs: &[DefinitionRecord], graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
     let mut findings = Vec::new();
     for (i, def) in defs.iter().enumerate() {
         if def.identity.class.is_none() {
@@ -37,12 +33,7 @@ fn envied_unresolved(f: &AuditFinding) -> u8 {
 }
 
 fn method_index_for(graph: &CallGraph, identity: &MethodIdentity) -> Option<MethodIndex> {
-    graph
-        .registry
-        .methods
-        .iter()
-        .position(|m| m == identity)
-        .map(|i| MethodIndex(i as u32))
+    graph.registry.methods.iter().position(|m| m == identity).map(|i| MethodIndex(i as u32))
 }
 
 fn evaluate_method(
@@ -92,11 +83,7 @@ fn distinct_foreign_targets(foreign: &[(String, String)]) -> u32 {
     foreign.len() as u32
 }
 
-fn count_intra_and_foreign(
-    graph: &CallGraph,
-    idx: MethodIndex,
-    self_class: Option<&str>,
-) -> (u32, u32) {
+fn count_intra_and_foreign(graph: &CallGraph, idx: MethodIndex, self_class: Option<&str>) -> (u32, u32) {
     let outgoing = graph.adjacency.outgoing(idx);
     let mut intra = 0u32;
     let mut foreign = 0u32;
@@ -116,10 +103,7 @@ fn dominant_envied_class(foreign: &[(String, String)]) -> Option<String> {
     for (recv, _) in foreign {
         *counts.entry(recv.as_str()).or_insert(0) += 1;
     }
-    counts
-        .into_iter()
-        .max_by_key(|(k, n)| (*n, std::cmp::Reverse(*k)))
-        .map(|(k, _)| k.to_string())
+    counts.into_iter().max_by_key(|(k, n)| (*n, std::cmp::Reverse(*k))).map(|(k, _)| k.to_string())
 }
 
 fn envy_atfd(f: &AuditFinding) -> u32 {

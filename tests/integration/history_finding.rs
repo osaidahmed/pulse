@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use pulse::history::finding::{
-    variant_info, BlobEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence,
-    HistoryKind, HistoryPillar, HotspotEvidence,
+    variant_info, BlobEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence, HistoryKind,
+    HistoryPillar, HotspotEvidence,
 };
 
 fn drift_kind() -> HistoryKind {
@@ -20,12 +20,7 @@ fn drift_kind() -> HistoryKind {
 }
 
 fn hotspot_kind() -> HistoryKind {
-    HistoryKind::Hotspot(HotspotEvidence {
-        file: PathBuf::from("h.rs"),
-        revisions: 10,
-        sum_cc: 50,
-        score: 500,
-    })
+    HistoryKind::Hotspot(HotspotEvidence { file: PathBuf::from("h.rs"), revisions: 10, sum_cc: 50, score: 500 })
 }
 
 fn ownership_kind() -> HistoryKind {
@@ -85,8 +80,10 @@ fn change_shotgun_dispatches_to_evolution_pillar() {
 fn slugs_are_snake_case_lowercase() {
     for k in [drift_kind(), hotspot_kind(), ownership_kind(), blob_kind(), shotgun_kind()] {
         let slug = variant_info(&k).slug;
-        assert!(slug.chars().all(|c| c.is_ascii_lowercase() || c == '_'),
-            "slug {slug:?} contains non-snake-case chars");
+        assert!(
+            slug.chars().all(|c| c.is_ascii_lowercase() || c == '_'),
+            "slug {slug:?} contains non-snake-case chars"
+        );
     }
 }
 

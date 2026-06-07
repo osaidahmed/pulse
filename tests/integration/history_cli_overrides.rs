@@ -6,10 +6,7 @@ use serde_json::Value;
 use crate::history_common::{build_repo, CommitSpec};
 
 fn pulse(args: &[&str]) -> (String, String, i32) {
-    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(args)
-        .output()
-        .expect("pulse failed");
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse")).args(args).output().expect("pulse failed");
     (
         String::from_utf8(output.stdout).unwrap(),
         String::from_utf8(output.stderr).unwrap(),
@@ -24,7 +21,15 @@ fn pulse_in(repo: &Path, args: &[&str]) -> (String, String, i32) {
 }
 
 fn drift_repo() -> tempfile::TempDir {
-    let authors = ["alice <alice@x>", "bob <bob@x>", "carol <carol@x>", "dave <dave@x>", "eve <eve@x>", "frank <frank@x>", "gina <gina@x>"];
+    let authors = [
+        "alice <alice@x>",
+        "bob <bob@x>",
+        "carol <carol@x>",
+        "dave <dave@x>",
+        "eve <eve@x>",
+        "frank <frank@x>",
+        "gina <gina@x>",
+    ];
     let pair_writes: [[(&'static str, &'static str); 2]; 24] = [
         [("a.py", "x = 1\n"), ("b.py", "y = 1\n")],
         [("a.py", "x = 2\n"), ("b.py", "y = 2\n")],
@@ -87,12 +92,7 @@ fn count_contrib_findings(stdout: &str) -> usize {
 
 fn count_kind(stdout: &str, kind: &str) -> usize {
     let v: Value = serde_json::from_str(stdout).expect("json");
-    v["findings"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|f| f["kind"].as_str() == Some(kind))
-        .count()
+    v["findings"].as_array().unwrap().iter().filter(|f| f["kind"].as_str() == Some(kind)).count()
 }
 
 #[test]
@@ -122,10 +122,8 @@ fn cli_accepts_contributors_top_flag() {
 #[test]
 fn cli_accepts_all_three_top_flags_together() {
     let repo = small_repo();
-    let (stdout, _, code) = pulse_in(
-        repo.path(),
-        &["--co-change-top", "5", "--hotspot-top", "5", "--contributors-top", "5"],
-    );
+    let (stdout, _, code) =
+        pulse_in(repo.path(), &["--co-change-top", "5", "--hotspot-top", "5", "--contributors-top", "5"]);
     assert!(stdout.contains("history:"));
     assert!(code == 0 || code == 1);
 }
@@ -210,10 +208,7 @@ fn cli_top_with_no_value_rejected() {
 #[test]
 fn cli_top_combines_with_max_commits() {
     let repo = drift_repo();
-    let (stdout, _, code) = pulse_in(
-        repo.path(),
-        &["--max-commits", "100", "--hotspot-top", "2"],
-    );
+    let (stdout, _, code) = pulse_in(repo.path(), &["--max-commits", "100", "--hotspot-top", "2"]);
     assert!(stdout.contains("history:"));
     assert!(code == 0 || code == 1);
 }
@@ -221,10 +216,7 @@ fn cli_top_combines_with_max_commits() {
 #[test]
 fn cli_top_combines_with_since() {
     let repo = drift_repo();
-    let (stdout, _, code) = pulse_in(
-        repo.path(),
-        &["--since", "10 years ago", "--hotspot-top", "2"],
-    );
+    let (stdout, _, code) = pulse_in(repo.path(), &["--since", "10 years ago", "--hotspot-top", "2"]);
     assert!(stdout.contains("history:"));
     assert!(code == 0 || code == 1);
 }
@@ -296,10 +288,8 @@ fn cli_top_contrib_summary_reflects_cap() {
 #[test]
 fn cli_top_zero_for_all_three_yields_empty_findings() {
     let repo = drift_repo();
-    let (stdout, _, _) = pulse_in(
-        repo.path(),
-        &["--json", "--co-change-top", "0", "--hotspot-top", "0", "--contributors-top", "0"],
-    );
+    let (stdout, _, _) =
+        pulse_in(repo.path(), &["--json", "--co-change-top", "0", "--hotspot-top", "0", "--contributors-top", "0"]);
     let v: Value = serde_json::from_str(&stdout).unwrap();
     let total = v["summary"]["findings_total"].as_u64().unwrap();
     assert_eq!(total, 0);
@@ -336,14 +326,8 @@ fn hist_flag_is_required_to_surface_evolutionary_smells() {
 #[test]
 fn cli_top_works_with_include_tests_flag_position() {
     let repo = small_repo();
-    let (stdout, _, code) = pulse(&[
-        "history",
-        "--include-tests",
-        "--root",
-        repo.path().to_str().unwrap(),
-        "--hotspot-top",
-        "5",
-    ]);
+    let (stdout, _, code) =
+        pulse(&["history", "--include-tests", "--root", repo.path().to_str().unwrap(), "--hotspot-top", "5"]);
     assert!(stdout.contains("history:"));
     assert!(code == 0 || code == 1);
 }

@@ -22,9 +22,7 @@ pub fn confidence_for_file(
     file: &Path,
     quality: EvidenceQuality,
 ) -> ImportConfidence {
-    file_lang(file).map_or(ImportConfidence::BestEffort, |lang| {
-        named_smell_confidence(lang, quality)
-    })
+    file_lang(file).map_or(ImportConfidence::BestEffort, |lang| named_smell_confidence(lang, quality))
 }
 
 fn penalty(quality: EvidenceQuality) -> u8 {

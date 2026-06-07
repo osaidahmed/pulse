@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -113,9 +112,7 @@ fn nesting_depth_2_for_nested_if() {
 
 #[test]
 fn nesting_depth_tracks_for_in_if() {
-    let out = debug(
-        "def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n",
-    );
+    let out = debug("def f():\n    if x:\n        for i in y:\n            if z:\n                pass\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -227,9 +224,8 @@ fn primitive_obsession_recognizes_int_float_bytes() {
 
 #[test]
 fn lcom4_single_method_class_not_flagged() {
-    let out = check(
-        "class Tiny:\n    def __init__(self):\n        self.x = 1\n    def get(self):\n        return self.x\n",
-    );
+    let out =
+        check("class Tiny:\n    def __init__(self):\n        self.x = 1\n    def get(self):\n        return self.x\n");
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
@@ -722,9 +718,7 @@ fn constructor_reports_over_injection_not_excess_args() {
     assert!(has_smell(&out, "Constructor Over-Injection"));
     // Should say "Constructor Over-Injection", not "Excess Arguments"
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("__init__")).collect();
-    assert!(lines
-        .iter()
-        .any(|l| l.contains("Constructor Over-Injection")));
+    assert!(lines.iter().any(|l| l.contains("Constructor Over-Injection")));
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
 
@@ -798,10 +792,7 @@ class ItemListView:
         return context
 "#,
     );
-    assert!(
-        out.is_empty(),
-        "clean Django view should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean Django view should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -830,10 +821,7 @@ def test_admin_name(admin):
 "#,
     );
     // Small functions, few assertions — nothing should trigger
-    assert!(
-        out.is_empty(),
-        "pytest fixture pattern should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "pytest fixture pattern should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -849,12 +837,7 @@ fn hook_missing_tool_input_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"other_key\": 1}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"other_key\": 1}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -870,12 +853,7 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -933,13 +911,9 @@ fn performance_deeply_nested_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
         code.push_str(&format!("class Service{i}:\n"));
-        code.push_str(&format!(
-            "    def __init__(self):\n        self.data_{i} = []\n\n"
-        ));
+        code.push_str(&format!("    def __init__(self):\n        self.data_{i} = []\n\n"));
         for j in 0..5 {
-            code.push_str(&format!(
-                "    def method_{j}(self):\n        return self.data_{i}\n\n"
-            ));
+            code.push_str(&format!("    def method_{j}(self):\n        return self.data_{i}\n\n"));
         }
     }
     let dir = tempfile::tempdir().unwrap();
@@ -981,41 +955,32 @@ fn cogc_nested_ifs_penalized() {
 
 #[test]
 fn cogc_elif_no_nesting_increase() {
-    let out = debug(
-        "def f(x):\n    if x == 1: pass\n    elif x == 2: pass\n    elif x == 3: pass\n    elif x == 4: pass\n",
-    );
+    let out =
+        debug("def f(x):\n    if x == 1: pass\n    elif x == 2: pass\n    elif x == 3: pass\n    elif x == 4: pass\n");
     assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
 }
 
 #[test]
 fn cogc_else_flat_but_increases_nesting() {
-    let out = debug(
-        "def f(a, b):\n    if a:\n        pass\n    else:\n        if b:\n            pass\n",
-    );
+    let out = debug("def f(a, b):\n    if a:\n        pass\n    else:\n        if b:\n            pass\n");
     assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
 }
 
 #[test]
 fn cogc_for_loop_penalized_by_nesting() {
-    let out = debug(
-        "def f(a):\n    if a:\n        for x in range(10):\n            pass\n",
-    );
+    let out = debug("def f(a):\n    if a:\n        for x in range(10):\n            pass\n");
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
 
 #[test]
 fn cogc_while_penalized_by_nesting() {
-    let out = debug(
-        "def f(x):\n    while x > 0:\n        if x == 5:\n            pass\n        x -= 1\n",
-    );
+    let out = debug("def f(x):\n    while x > 0:\n        if x == 5:\n            pass\n        x -= 1\n");
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
 
 #[test]
 fn cogc_except_penalized_by_nesting() {
-    let out = debug(
-        "def f():\n    try:\n        if True:\n            pass\n    except:\n        pass\n",
-    );
+    let out = debug("def f():\n    try:\n        if True:\n            pass\n    except:\n        pass\n");
     // if at nesting 1 (inside try block) = +2, except at nesting 0 = +1. Total = 3
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
@@ -1037,10 +1002,7 @@ fn cogc_triggers_complex_method_alone() {
     let out = check(
         "def f(a, b, c, d, e):\n    if a:\n        if b:\n            if c:\n                if d:\n                    if e:\n                        pass\n",
     );
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cogc>=15 should trigger Complex Method: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cogc>=15 should trigger Complex Method: {out}");
     assert!(out.contains("cogc="), "should show cogc in detail: {out}");
 }
 
@@ -1049,10 +1011,7 @@ fn cogc_below_threshold_no_smell() {
     let out = check(
         "def f(a, b, c, d):\n    if a:\n        if b:\n            if c:\n                if d:\n                    pass\n",
     );
-    assert!(
-        !has_smell(&out, "Complex Method"),
-        "cogc=10 should not trigger: {out}"
-    );
+    assert!(!has_smell(&out, "Complex Method"), "cogc=10 should not trigger: {out}");
 }
 
 #[test]
@@ -1063,10 +1022,7 @@ fn cogc_god_method_via_cogc() {
         code.push_str(&format!("    x_{i} = {i}\n"));
     }
     let out = check(&code);
-    assert!(
-        has_smell(&out, "God Method"),
-        "cogc>=15 + loc>=50 should be God Method: {out}"
-    );
+    assert!(has_smell(&out, "God Method"), "cogc>=15 + loc>=50 should be God Method: {out}");
 }
 
 // ===========================================================================
@@ -1076,32 +1032,20 @@ fn cogc_god_method_via_cogc() {
 #[test]
 fn empty_except_pass_detected() {
     let out = check("def f():\n    try:\n        risky()\n    except:\n        pass\n");
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "except:pass should be detected: {out}"
-    );
+    assert!(has_smell(&out, "Empty Error Handler"), "except:pass should be detected: {out}");
 }
 
 #[test]
 fn empty_except_bare_detected() {
-    let out = check(
-        "def f():\n    try:\n        risky()\n    except Exception:\n        pass\n",
-    );
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "except with only pass should be detected: {out}"
-    );
+    let out = check("def f():\n    try:\n        risky()\n    except Exception:\n        pass\n");
+    assert!(has_smell(&out, "Empty Error Handler"), "except with only pass should be detected: {out}");
 }
 
 #[test]
 fn non_empty_except_not_detected() {
-    let out = check(
-        "def f():\n    try:\n        risky()\n    except Exception as e:\n        print(e)\n        raise\n",
-    );
-    assert!(
-        !has_smell(&out, "Empty Error Handler"),
-        "except with handling should not be detected: {out}"
-    );
+    let out =
+        check("def f():\n    try:\n        risky()\n    except Exception as e:\n        print(e)\n        raise\n");
+    assert!(!has_smell(&out, "Empty Error Handler"), "except with handling should not be detected: {out}");
 }
 
 #[test]
@@ -1109,14 +1053,8 @@ fn multiple_empty_except_counted() {
     let out = check(
         "def f():\n    try:\n        a()\n    except ValueError:\n        pass\n    except TypeError:\n        pass\n",
     );
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "multiple empty excepts should be detected: {out}"
-    );
-    assert!(
-        out.contains("2 empty catch blocks"),
-        "should count 2: {out}"
-    );
+    assert!(has_smell(&out, "Empty Error Handler"), "multiple empty excepts should be detected: {out}");
+    assert!(out.contains("2 empty catch blocks"), "should count 2: {out}");
 }
 
 #[test]
@@ -1124,34 +1062,20 @@ fn mixed_empty_and_nonempty_except() {
     let out = check(
         "def f():\n    try:\n        a()\n    except ValueError:\n        pass\n    except TypeError:\n        print('handled')\n",
     );
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "at least one empty should trigger: {out}"
-    );
-    assert!(
-        out.contains("1 empty catch block"),
-        "should count only 1: {out}"
-    );
+    assert!(has_smell(&out, "Empty Error Handler"), "at least one empty should trigger: {out}");
+    assert!(out.contains("1 empty catch block"), "should count only 1: {out}");
 }
 
 #[test]
 fn no_try_catch_no_smell() {
     let out = check("def f():\n    return 1\n");
-    assert!(
-        !has_smell(&out, "Empty Error Handler"),
-        "no try/catch should not trigger: {out}"
-    );
+    assert!(!has_smell(&out, "Empty Error Handler"), "no try/catch should not trigger: {out}");
 }
 
 #[test]
 fn except_with_comment_only_detected() {
-    let out = check(
-        "def f():\n    try:\n        risky()\n    except:\n        # TODO: handle this\n        pass\n",
-    );
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "except with only comment+pass should be detected: {out}"
-    );
+    let out = check("def f():\n    try:\n        risky()\n    except:\n        # TODO: handle this\n        pass\n");
+    assert!(has_smell(&out, "Empty Error Handler"), "except with only comment+pass should be detected: {out}");
 }
 
 // ===========================================================================
@@ -1180,7 +1104,8 @@ fn large_method_alert_severity() {
 
 #[test]
 fn global_for_loop_deep_nesting() {
-    let code = "for x in range(10):\n    if a:\n        if b:\n            if c:\n                pass\ndef f():\n    pass\n";
+    let code =
+        "for x in range(10):\n    if a:\n        if b:\n            if c:\n                pass\ndef f():\n    pass\n";
     let out = check(code);
     assert!(has_smell(&out, "Deep Global Nesting"), "global for with deep nesting should trigger: {out}");
 }
@@ -1194,7 +1119,9 @@ fn global_while_loop_deep_nesting() {
 
 #[test]
 fn decorated_class_inside_class_not_function() {
-    let out = debug("class Outer:\n    @some_decorator\n    class Inner:\n        pass\n    def method(self):\n        return 1\n");
+    let out = debug(
+        "class Outer:\n    @some_decorator\n    class Inner:\n        pass\n    def method(self):\n        return 1\n",
+    );
     assert!(out.contains("method"), "should find method: {out}");
 }
 

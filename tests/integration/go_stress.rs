@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -16,9 +15,7 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug(
-        "package main\n\nfunc f(x int) int {\n\tif x > 0 {\n\t} else if x < 0 {\n\t}\n\treturn x\n}\n",
-    );
+    let out = debug("package main\n\nfunc f(x int) int {\n\tif x > 0 {\n\t} else if x < 0 {\n\t}\n\treturn x\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -30,8 +27,7 @@ fn cc_counts_for() {
 
 #[test]
 fn cc_counts_for_range() {
-    let out =
-        debug("package main\n\nfunc f(items []int) {\n\tfor _, v := range items {\n\t\t_ = v\n\t}\n}\n");
+    let out = debug("package main\n\nfunc f(items []int) {\n\tfor _, v := range items {\n\t\t_ = v\n\t}\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -106,21 +102,14 @@ fn cc_chained_boolean() {
 
 #[test]
 fn cc_chained_boolean_4way() {
-    let out =
-        debug("package main\n\nfunc f(a, b, c, d, e bool) {\n\tif a && b || c && d || e {}\n}\n");
+    let out = debug("package main\n\nfunc f(a, b, c, d, e bool) {\n\tif a && b || c && d || e {}\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(6));
 }
 
 #[test]
 fn cc_nested_if_counted_once() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func f(x int) {\n",
-        "\tif x > 0 {\n",
-        "\t\tif x > 1 {}\n",
-        "\t}\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("package main\n\n", "func f(x int) {\n", "\tif x > 0 {\n", "\t\tif x > 1 {}\n", "\t}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -257,27 +246,16 @@ fn cogc_for_loop_nested() {
 
 #[test]
 fn cogc_switch_counted() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func f(x int) {\n",
-        "\tswitch x {\n",
-        "\tcase 1:\n",
-        "\t}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("package main\n\n", "func f(x int) {\n", "\tswitch x {\n", "\tcase 1:\n", "\t}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
 #[test]
 fn cogc_select_counted() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func f(ch chan int) {\n",
-        "\tselect {\n",
-        "\tcase <-ch:\n",
-        "\t}\n",
-        "}\n",
-    ));
+    let out =
+        debug(
+            concat!("package main\n\n", "func f(ch chan int) {\n", "\tselect {\n", "\tcase <-ch:\n", "\t}\n", "}\n",),
+        );
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
@@ -358,13 +336,7 @@ fn nesting_depth_nested() {
 
 #[test]
 fn nesting_depth_sequential_not_accumulated() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func f(a, b bool) {\n",
-        "\tif a {}\n",
-        "\tif b {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("package main\n\n", "func f(a, b bool) {\n", "\tif a {}\n", "\tif b {}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "nesting"), Some(1));
 }
 
@@ -432,17 +404,14 @@ fn args_one() {
 
 #[test]
 fn args_five_at_threshold() {
-    let out = check(
-        "package main\n\nfunc f(a int, b int, c int, d int, e int) {\n\t_ = a + b + c + d + e\n}\n",
-    );
+    let out = check("package main\n\nfunc f(a int, b int, c int, d int, e int) {\n\t_ = a + b + c + d + e\n}\n");
     assert!(!has_smell(&out, "Excess Arguments"));
 }
 
 #[test]
 fn args_six_over_threshold() {
-    let out = check(
-        "package main\n\nfunc f(a int, b int, c int, d int, e int, f2 int) {\n\t_ = a + b + c + d + e + f2\n}\n",
-    );
+    let out =
+        check("package main\n\nfunc f(a int, b int, c int, d int, e int, f2 int) {\n\t_ = a + b + c + d + e + f2\n}\n");
     assert!(has_smell(&out, "Excess Arguments"));
 }
 
@@ -470,9 +439,7 @@ fn args_variadic() {
 
 #[test]
 fn compound_condition_detected() {
-    let out = debug(
-        "package main\n\nfunc f(a, b, c, d bool) {\n\tif a && b || c && d {}\n}\n",
-    );
+    let out = debug("package main\n\nfunc f(a, b, c, d bool) {\n\tif a && b || c && d {}\n}\n");
     let conditions = function_metric(&out, "f", "conditions").unwrap();
     assert!(conditions >= 1, "compound condition should be detected, got: {conditions}");
 }
@@ -835,21 +802,13 @@ fn function_has_no_prefix() {
 
 #[test]
 fn method_has_receiver_type_prefix() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "type Server struct{}\n\n",
-        "func (s *Server) Handle() {}\n",
-    ));
+    let out = debug(concat!("package main\n\n", "type Server struct{}\n\n", "func (s *Server) Handle() {}\n",));
     assert!(out.contains("Server.Handle"), "should be Server.Handle, got: {out}");
 }
 
 #[test]
 fn method_on_pointer_receiver() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "type Config struct{}\n\n",
-        "func (c *Config) Load() {}\n",
-    ));
+    let out = debug(concat!("package main\n\n", "type Config struct{}\n\n", "func (c *Config) Load() {}\n",));
     assert!(out.contains("Config.Load"), "pointer receiver type extracted, got: {out}");
 }
 
@@ -859,25 +818,14 @@ fn method_on_pointer_receiver() {
 
 #[test]
 fn defer_does_not_increment_cc() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func cleanup() {}\n\n",
-        "func f() {\n",
-        "\tdefer cleanup()\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("package main\n\n", "func cleanup() {}\n\n", "func f() {\n", "\tdefer cleanup()\n", "}\n",));
     assert_eq!(function_metric(&out, " f ", "cc"), Some(1));
 }
 
 #[test]
 fn go_statement_does_not_increment_cc() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func handler() {}\n\n",
-        "func f() {\n",
-        "\tgo handler()\n",
-        "}\n",
-    ));
+    let out = debug(concat!("package main\n\n", "func handler() {}\n\n", "func f() {\n", "\tgo handler()\n", "}\n",));
     assert_eq!(function_metric(&out, " f ", "cc"), Some(1));
 }
 
@@ -970,11 +918,7 @@ fn performance_1000_loc() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 200,
-        "took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 200, "took: {}ms", elapsed.as_millis());
 }
 
 #[test]
@@ -983,9 +927,7 @@ fn performance_struct_hierarchy() {
     for i in 0..10 {
         code.push_str(&format!("type S{i} struct {{\n\td{i} int\n}}\n\n"));
         for j in 0..5 {
-            code.push_str(&format!(
-                "func (s *S{i}) M{j}() int {{ return s.d{i} }}\n"
-            ));
+            code.push_str(&format!("func (s *S{i}) M{j}() int {{ return s.d{i} }}\n"));
         }
         code.push('\n');
     }
@@ -998,11 +940,7 @@ fn performance_struct_hierarchy() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 500,
-        "took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
 }
 
 // ===========================================================================
@@ -1021,10 +959,7 @@ fn clean_go_module_not_flagged() {
         "\treturn Config{host: host, port: port}\n",
         "}\n",
     ));
-    assert!(
-        out.is_empty(),
-        "clean Go code should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean Go code should not be flagged, got: {out}");
 }
 
 #[test]
@@ -1195,14 +1130,8 @@ fn empty_function_body() {
 
 #[test]
 fn goroutine_with_closure_not_counted() {
-    let out = debug(concat!(
-        "package main\n\n",
-        "func f() {\n",
-        "\tgo func() {\n",
-        "\t\tif true {}\n",
-        "\t}()\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("package main\n\n", "func f() {\n", "\tgo func() {\n", "\t\tif true {}\n", "\t}()\n", "}\n",));
     // func_literal inside go statement is skipped
     assert_eq!(function_metric(&out, " f ", "cc"), Some(1));
 }
@@ -1219,10 +1148,7 @@ fn interface_type_param_not_primitive() {
         "\t_ = y\n",
         "}\n",
     ));
-    assert!(
-        !has_smell(&out, "Primitive Obsession"),
-        "interface params should not be primitives, got: {out}"
-    );
+    assert!(!has_smell(&out, "Primitive Obsession"), "interface params should not be primitives, got: {out}");
 }
 
 #[test]

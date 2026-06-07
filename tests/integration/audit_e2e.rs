@@ -1,4 +1,3 @@
-
 use crate::audit_common::*;
 use std::process::Command;
 
@@ -22,13 +21,7 @@ fn audit_in_dir(scenario: &str) -> (String, String, i32) {
 
 fn audit_in_dir_json(scenario: &str) -> (String, String, i32) {
     let dir = copy_scenario_to_tempdir(scenario, "python");
-    pulse_audit(&[
-        "--pass",
-        "pattern-mining",
-        "--root",
-        dir.path().to_str().unwrap(),
-        "--json",
-    ])
+    pulse_audit(&["--pass", "pattern-mining", "--root", dir.path().to_str().unwrap(), "--json"])
 }
 
 #[test]
@@ -193,8 +186,8 @@ fn audit_skips_dot_dirs_by_default() {
     let hidden = dir.path().join(".cache");
     std::fs::create_dir(&hidden).unwrap();
     for i in 0..6 {
-        std::fs::write(hidden.join(format!("a{i}.py")),
-            "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
+        std::fs::write(hidden.join(format!("a{i}.py")), "def f(x):\n    if x == 1:\n        return 1\n    return 0\n")
+            .unwrap();
     }
     let (_stdout, _stderr, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0, "hidden dir contents should be skipped");
@@ -206,8 +199,8 @@ fn audit_skips_node_modules() {
     let nm = dir.path().join("node_modules");
     std::fs::create_dir(&nm).unwrap();
     for i in 0..6 {
-        std::fs::write(nm.join(format!("a{i}.py")),
-            "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
+        std::fs::write(nm.join(format!("a{i}.py")), "def f(x):\n    if x == 1:\n        return 1\n    return 0\n")
+            .unwrap();
     }
     let (_stdout, _stderr, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
@@ -219,8 +212,8 @@ fn audit_skips_target_dir() {
     let tgt = dir.path().join("target");
     std::fs::create_dir(&tgt).unwrap();
     for i in 0..6 {
-        std::fs::write(tgt.join(format!("a{i}.py")),
-            "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
+        std::fs::write(tgt.join(format!("a{i}.py")), "def f(x):\n    if x == 1:\n        return 1\n    return 0\n")
+            .unwrap();
     }
     let (_stdout, _stderr, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
@@ -232,8 +225,8 @@ fn audit_recurses_subdirs() {
     let sub = dir.path().join("sub");
     std::fs::create_dir(&sub).unwrap();
     for i in 0..6 {
-        std::fs::write(sub.join(format!("a{i}.py")),
-            "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
+        std::fs::write(sub.join(format!("a{i}.py")), "def f(x):\n    if x == 1:\n        return 1\n    return 0\n")
+            .unwrap();
     }
     let (_stdout, _stderr, _code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
 }
@@ -257,8 +250,7 @@ fn audit_handles_syntax_error_python_without_panic() {
 #[test]
 fn audit_handles_unicode_filenames() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("δ.py"),
-        "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
+    std::fs::write(dir.path().join("δ.py"), "def f(x):\n    if x == 1:\n        return 1\n    return 0\n").unwrap();
     let (_, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
@@ -273,7 +265,8 @@ fn audit_default_has_no_decision_block_json() {
 #[test]
 fn audit_combined_json_pass_root_works() {
     let dir = copy_scenario_to_tempdir("shotgun_media_type", "python");
-    let (stdout, _, code) = pulse_audit(&["--json", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
+    let (stdout, _, code) =
+        pulse_audit(&["--json", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 1);
     let _: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid json");
 }
@@ -322,11 +315,13 @@ fn audit_root_relative_path_resolves() {
         .args(["--root", "python"])
         .current_dir(parent)
         .output()
-        .map(|o| (
-            String::from_utf8(o.stdout).unwrap_or_default(),
-            String::from_utf8(o.stderr).unwrap_or_default(),
-            o.status.code().unwrap_or(-1),
-        ))
+        .map(|o| {
+            (
+                String::from_utf8(o.stdout).unwrap_or_default(),
+                String::from_utf8(o.stderr).unwrap_or_default(),
+                o.status.code().unwrap_or(-1),
+            )
+        })
         .unwrap();
     assert_eq!(code, 0);
 }

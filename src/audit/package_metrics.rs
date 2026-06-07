@@ -50,10 +50,7 @@ fn arch_findings(
 ) -> Vec<AuditFinding> {
     let mut cg = super::components::build(graph, |path| {
         let profile = profile_lookup(path);
-        super::components::MemberMetrics {
-            abstractness: profile.abstractness.abstractness,
-            loc: profile.loc,
-        }
+        super::components::MemberMetrics { abstractness: profile.abstractness.abstractness, loc: profile.loc }
     });
     assign_centrality(&mut cg, thresholds);
     let mut singles = super::arch_smells::unstable_dependencies(&cg, thresholds);
@@ -82,9 +79,8 @@ fn pagerank_params(pm: &PackageMetricsThresholds) -> super::centrality::PageRank
 
 fn file_centrality(graph: &ImportGraph, thresholds: &AuditThresholds) -> Vec<f64> {
     let n = graph.registry.count();
-    let adjacency: Vec<Vec<usize>> = (0..n)
-        .map(|u| graph.adjacency.outgoing(NodeIndex(u as u32)).iter().map(|v| v.0 as usize).collect())
-        .collect();
+    let adjacency: Vec<Vec<usize>> =
+        (0..n).map(|u| graph.adjacency.outgoing(NodeIndex(u as u32)).iter().map(|v| v.0 as usize).collect()).collect();
     super::centrality::pagerank(&adjacency, pagerank_params(&thresholds.package_metrics)).0
 }
 
@@ -167,10 +163,7 @@ fn cycle_findings(
         .collect();
     shaped.sort_by(|a, b| cycle_severity(b).partial_cmp(&cycle_severity(a)).unwrap_or(std::cmp::Ordering::Equal));
     shaped.truncate(thresholds.package_metrics.max_cycle_findings_reported);
-    shaped
-        .into_iter()
-        .map(|s| cycle_finding(graph, s, &centrality, profile_lookup))
-        .collect()
+    shaped.into_iter().map(|s| cycle_finding(graph, s, &centrality, profile_lookup)).collect()
 }
 
 struct ShapedCycle {
@@ -213,30 +206,15 @@ fn cycle_finding(
     let ShapedCycle { scc, shape, max_centrality } = shaped;
     let feedback = feedback_edge(&scc, centrality)
         .map(|(a, b)| (graph.registry.path_of(a).to_path_buf(), graph.registry.path_of(b).to_path_buf()));
-    let members: Vec<PathBuf> = scc
-        .members
-        .iter()
-        .map(|n| graph.registry.path_of(*n).to_path_buf())
-        .collect();
+    let members: Vec<PathBuf> = scc.members.iter().map(|n| graph.registry.path_of(*n).to_path_buf()).collect();
     let edges: Vec<(PathBuf, PathBuf)> = scc
         .edges
         .iter()
-        .map(|(a, b)| {
-            (
-                graph.registry.path_of(*a).to_path_buf(),
-                graph.registry.path_of(*b).to_path_buf(),
-            )
-        })
+        .map(|(a, b)| (graph.registry.path_of(*a).to_path_buf(), graph.registry.path_of(*b).to_path_buf()))
         .collect();
-    let confidence = members
-        .iter()
-        .map(|p| profile_lookup(p).import_confidence)
-        .min()
-        .unwrap_or(ImportConfidence::High);
-    let locations = members
-        .iter()
-        .map(|p| AuditLocation { file: p.clone(), line: 1 })
-        .collect();
+    let confidence =
+        members.iter().map(|p| profile_lookup(p).import_confidence).min().unwrap_or(ImportConfidence::High);
+    let locations = members.iter().map(|p| AuditLocation { file: p.clone(), line: 1 }).collect();
     let support = edges.len() as u32;
     let file_count = members.len() as u32;
     AuditFinding {

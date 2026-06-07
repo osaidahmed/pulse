@@ -79,14 +79,8 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
-        cli::Dispatch::Audit {
-            args,
-            include_tests,
-        } => run_audit_cmd(args, include_tests),
-        cli::Dispatch::History {
-            args,
-            include_tests,
-        } => {
+        cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
+        cli::Dispatch::History { args, include_tests } => {
             history::cmd::run(history::cmd::RunArgs {
                 root: args.root,
                 json: args.json,
@@ -107,10 +101,7 @@ fn dispatch_subcommand(d: cli::Dispatch) {
 }
 
 fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
-    let root = args
-        .root
-        .as_deref()
-        .map_or_else(|| PathBuf::from("."), PathBuf::from);
+    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
     validate_audit_root(&root);
     let cfg_with_root = config::load_config_with_root(&root);
     let (cfg_ref, ignore_base) = match &cfg_with_root {
@@ -132,12 +123,7 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     };
     let findings = audit::run_with_filter(&opts, &thresholds.audit, &filter);
     let rendered = if args.json {
-        audit::output::format_findings_json_filtered(
-            &findings,
-            Some(&root),
-            opts.show_noise,
-            &opts.suppression,
-        )
+        audit::output::format_findings_json_filtered(&findings, Some(&root), opts.show_noise, &opts.suppression)
     } else {
         audit::output::format_findings_filtered(
             &findings,
@@ -167,10 +153,7 @@ fn validate_audit_root(root: &Path) {
 fn run_debug(file_path: &str) {
     let path = Path::new(file_path);
     let cfg = config::load_config(path);
-    if cfg
-        .as_ref()
-        .is_some_and(|c| config::is_ignored_for_file(c, path))
-    {
+    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
         eprintln!("debug: {file_path} — ignored by .pulse.toml");
         return;
     }
@@ -197,8 +180,7 @@ fn run_debug(file_path: &str) {
 
 fn run_check(file_path: &str) {
     let cfg = config::load_config(Path::new(file_path));
-    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::check())
-    else {
+    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::check()) else {
         process::exit(0);
     };
     if result.findings.is_empty() {
@@ -211,10 +193,7 @@ fn run_budget(file_path: &str) {
     let path = Path::new(file_path);
     let cfg = config::load_config(path);
 
-    if cfg
-        .as_ref()
-        .is_some_and(|c| config::is_ignored_for_file(c, path))
-    {
+    if cfg.as_ref().is_some_and(|c| config::is_ignored_for_file(c, path)) {
         eprintln!("budget: {file_path} — ignored by .pulse.toml");
         return;
     }
@@ -223,10 +202,7 @@ fn run_budget(file_path: &str) {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
-    let Some(metrics) = std::fs::read_to_string(path)
-        .ok()
-        .and_then(|s| parse::parse_and_walk(&s, lang))
-    else {
+    let Some(metrics) = std::fs::read_to_string(path).ok().and_then(|s| parse::parse_and_walk(&s, lang)) else {
         eprintln!("budget: {file_path} — unsupported or unreadable");
         return;
     };
@@ -234,31 +210,16 @@ fn run_budget(file_path: &str) {
     let t = config::resolve_thresholds(cfg.as_ref(), lang);
     let fn_count = metrics.functions.len() as u32;
     let fn_room = t.module.file_function_count.saturating_sub(fn_count);
-    let loc_room = t
-        .module
-        .file_loc_warning
-        .saturating_sub(metrics.module.total_loc);
+    let loc_room = t.module.file_loc_warning.saturating_sub(metrics.module.total_loc);
     let cc_room = t.module.file_total_cc.saturating_sub(metrics.module.sum_cc);
 
     eprintln!("budget: {file_path}");
-    eprintln!(
-        "  functions: {fn_count}/{} (room: {fn_room})",
-        t.module.file_function_count
-    );
-    eprintln!(
-        "  LOC:       {}/{} (room: {loc_room})",
-        metrics.module.total_loc, t.module.file_loc_warning
-    );
-    eprintln!(
-        "  total cc:  {}/{} (room: {cc_room})",
-        metrics.module.sum_cc, t.module.file_total_cc
-    );
+    eprintln!("  functions: {fn_count}/{} (room: {fn_room})", t.module.file_function_count);
+    eprintln!("  LOC:       {}/{} (room: {loc_room})", metrics.module.total_loc, t.module.file_loc_warning);
+    eprintln!("  total cc:  {}/{} (room: {cc_room})", metrics.module.sum_cc, t.module.file_total_cc);
     eprintln!(
         "  per-function limits: cc<{}, cogc<{}, loc<{}, args≤{}",
-        t.function.cc_warning,
-        t.function.cogc_warning,
-        t.function.fn_loc_warning,
-        t.function.arg_max
+        t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max
     );
 }
 
@@ -271,34 +232,20 @@ fn run_budget_new() {
     eprintln!("  max total cc:  {}", t.module.file_total_cc);
     eprintln!(
         "  per-function:  cc<{}, cogc<{}, loc<{}, args≤{}",
-        t.function.cc_warning,
-        t.function.cogc_warning,
-        t.function.fn_loc_warning,
-        t.function.arg_max
+        t.function.cc_warning, t.function.cogc_warning, t.function.fn_loc_warning, t.function.arg_max
     );
 }
 
 fn run_check_all(include_tests: bool) {
-    let (cfg, root) = config::load_config_with_root(Path::new("."))
-        .map_or((None, None), |(c, r)| (Some(c), Some(r)));
-    let matcher = cfg
-        .as_ref()
-        .map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
+    let (cfg, root) = config::load_config_with_root(Path::new(".")).map_or((None, None), |(c, r)| (Some(c), Some(r)));
+    let matcher = cfg.as_ref().map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
     let mut total = 0;
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
-        if should_skip_walk_entry(
-            &entry,
-            &path_str,
-            include_tests,
-            matcher.as_ref(),
-            root.as_deref(),
-        ) {
+        if should_skip_walk_entry(&entry, &path_str, include_tests, matcher.as_ref(), root.as_deref()) {
             continue;
         }
-        if let Some(result) =
-            analyze::analyze_file(&path_str, cfg.as_ref(), analyze::ScanOptions::check())
-        {
+        if let Some(result) = analyze::analyze_file(&path_str, cfg.as_ref(), analyze::ScanOptions::check()) {
             if !result.findings.is_empty() {
                 total += result.findings.len();
                 print!("{}", output::format(&result.findings, &result.filename));
@@ -320,9 +267,7 @@ fn should_skip_walk_entry(
     if !include_tests && test_detection::is_test_file(path_str) {
         return true;
     }
-    matcher
-        .zip(root)
-        .is_some_and(|(m, r)| m.matches_file(r, entry))
+    matcher.zip(root).is_some_and(|(m, r)| m.matches_file(r, entry))
 }
 
 fn walk_source_files(dir: &Path) -> Vec<PathBuf> {

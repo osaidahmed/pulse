@@ -55,10 +55,7 @@ fn vendor_outlier_is_flagged() {
     let stats = aggregate_corpus(per_file);
     let verdicts = classify(&stats, &VendorThresholds::DEFAULTS);
     let flagged = flagged_paths(&verdicts);
-    assert!(
-        flagged.contains(&outlier_path),
-        "outlier should be flagged, got: {flagged:?}"
-    );
+    assert!(flagged.contains(&outlier_path), "outlier should be flagged, got: {flagged:?}");
 }
 
 #[test]
@@ -71,10 +68,7 @@ fn small_file_skipped_by_size_gate() {
     let stats = aggregate_corpus(per_file);
     let verdicts = classify(&stats, &VendorThresholds::DEFAULTS);
     let flagged = flagged_paths(&verdicts);
-    assert!(
-        !flagged.contains(&tiny_path),
-        "tiny file below size gate must not be flagged, got: {flagged:?}"
-    );
+    assert!(!flagged.contains(&tiny_path), "tiny file below size gate must not be flagged, got: {flagged:?}");
 }
 
 #[test]
@@ -83,10 +77,7 @@ fn homogeneous_corpus_flags_nothing() {
     let stats = aggregate_corpus(per_file);
     let verdicts = classify(&stats, &VendorThresholds::DEFAULTS);
     let flagged = flagged_paths(&verdicts);
-    assert!(
-        flagged.is_empty(),
-        "homogeneous corpus must not flag anything, got: {flagged:?}"
-    );
+    assert!(flagged.is_empty(), "homogeneous corpus must not flag anything, got: {flagged:?}");
 }
 
 #[test]
@@ -103,10 +94,7 @@ fn structural_cross_entropy_zero_when_distributions_match() {
     let a = build_kind_histogram(&[("identifier", 10), ("call", 5)]);
     let b = build_kind_histogram(&[("identifier", 10), ("call", 5)]);
     let ce = structural_cross_entropy(&a, &b);
-    assert!(
-        ce.abs() < 0.05,
-        "matched distributions should yield ~0 cross-entropy, got {ce}"
-    );
+    assert!(ce.abs() < 0.05, "matched distributions should yield ~0 cross-entropy, got {ce}");
 }
 
 #[test]
@@ -115,14 +103,8 @@ fn structural_cross_entropy_positive_for_divergent_distributions() {
     let b = build_kind_histogram(&[("identifier", 1), ("call", 100)]);
     let ce_ab = structural_cross_entropy(&a, &b);
     let ce_ba = structural_cross_entropy(&b, &a);
-    assert!(
-        ce_ab > 0.5,
-        "divergent A->B cross-entropy must be clearly positive, got {ce_ab}"
-    );
-    assert!(
-        ce_ba > 0.5,
-        "divergent B->A cross-entropy must be clearly positive, got {ce_ba}"
-    );
+    assert!(ce_ab > 0.5, "divergent A->B cross-entropy must be clearly positive, got {ce_ab}");
+    assert!(ce_ba > 0.5, "divergent B->A cross-entropy must be clearly positive, got {ce_ba}");
 }
 
 #[test]
@@ -133,10 +115,7 @@ fn min_features_failed_threshold_strict_ge() {
     let mut strict = VendorThresholds::DEFAULTS;
     strict.min_features_failed = 1_000_000;
     let verdicts = classify(&stats, &strict);
-    assert!(
-        flagged_paths(&verdicts).is_empty(),
-        "with absurdly high min_features_failed nothing flags"
-    );
+    assert!(flagged_paths(&verdicts).is_empty(), "with absurdly high min_features_failed nothing flags");
 
     let mut zero = VendorThresholds::DEFAULTS;
     zero.min_features_failed = 0;

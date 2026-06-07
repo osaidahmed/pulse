@@ -17,33 +17,17 @@ pub fn parse_hook_input() -> Option<HookInput> {
     std::io::stdin().read_to_string(&mut input).ok()?;
     let v: serde_json::Value = serde_json::from_str(&input).ok()?;
 
-    let session_id = v
-        .get("session_id")
-        .and_then(|s| s.as_str())
-        .map(std::string::ToString::to_string);
+    let session_id = v.get("session_id").and_then(|s| s.as_str()).map(std::string::ToString::to_string);
 
     let tool_input = v.get("tool_input")?;
     let file_path = tool_input.get("file_path")?.as_str()?.to_string();
 
-    let old_string = tool_input
-        .get("old_string")
-        .and_then(|v| v.as_str())
-        .map(std::string::ToString::to_string);
-    let new_string = tool_input
-        .get("new_string")
-        .and_then(|v| v.as_str())
-        .map(std::string::ToString::to_string);
+    let old_string = tool_input.get("old_string").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
+    let new_string = tool_input.get("new_string").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
 
     let (edit_range, edit_byte_range) = compute_edit_ranges(tool_input, &file_path);
 
-    Some(HookInput {
-        file_path,
-        edit_range,
-        edit_byte_range,
-        old_string,
-        new_string,
-        session_id,
-    })
+    Some(HookInput { file_path, edit_range, edit_byte_range, old_string, new_string, session_id })
 }
 
 type EditRanges = (Option<(u32, u32)>, Option<(usize, usize)>);
@@ -68,28 +52,18 @@ fn compute_edit_ranges(tool_input: &serde_json::Value, file_path: &str) -> EditR
 
     let start_line = source[..start_byte].matches('\n').count() as u32 + 1;
     let new_lines = new_string.matches('\n').count() as u32;
-    (
-        Some((start_line, start_line + new_lines)),
-        Some((start_byte, start_byte + matched_len)),
-    )
+    (Some((start_line, start_line + new_lines)), Some((start_byte, start_byte + matched_len)))
 }
 
 pub fn filter_by_edit_range(findings: Vec<Finding>, range: Option<(u32, u32)>) -> Vec<Finding> {
     let Some((start, end)) = range else {
-        return findings
-            .into_iter()
-            .filter(|f| !matches!(f.location, Location::Module))
-            .collect();
+        return findings.into_iter().filter(|f| !matches!(f.location, Location::Module)).collect();
     };
 
     findings
         .into_iter()
         .filter(|f| match &f.location {
-            Location::Function {
-                start_line,
-                end_line,
-                ..
-            } => *start_line <= end && *end_line >= start,
+            Location::Function { start_line, end_line, .. } => *start_line <= end && *end_line >= start,
             Location::Module => false,
         })
         .collect()

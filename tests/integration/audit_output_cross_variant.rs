@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use pulse::audit::finding::{
-    AuditFinding, AuditKind, ClassIdentityRef, DivergentChangeEvidence, FeatureEnvyEvidence,
-    GodClassEvidence, ImportConfidence, ParallelInheritanceEvidence, RefusedBequestEvidence,
-    ShotgunSurgeryEvidence,
+    AuditFinding, AuditKind, ClassIdentityRef, DivergentChangeEvidence, FeatureEnvyEvidence, GodClassEvidence,
+    ImportConfidence, ParallelInheritanceEvidence, RefusedBequestEvidence, ShotgunSurgeryEvidence,
 };
 use pulse::audit::output::{format_findings, format_findings_json};
 
@@ -109,14 +108,8 @@ fn god_class_finding() -> AuditFinding {
 fn parallel_finding() -> AuditFinding {
     AuditFinding {
         kind: AuditKind::ParallelInheritance(ParallelInheritanceEvidence {
-            root_a: ClassIdentityRef {
-                file: PathBuf::from("rd.py"),
-                name: "Reader".to_string(),
-            },
-            root_b: ClassIdentityRef {
-                file: PathBuf::from("wr.py"),
-                name: "Writer".to_string(),
-            },
+            root_a: ClassIdentityRef { file: PathBuf::from("rd.py"), name: "Reader".to_string() },
+            root_b: ClassIdentityRef { file: PathBuf::from("wr.py"), name: "Writer".to_string() },
             matched_descendants: vec![
                 ("JsonReader".to_string(), "JsonWriter".to_string()),
                 ("XmlReader".to_string(), "XmlWriter".to_string()),
@@ -191,12 +184,7 @@ fn human_separates_each_finding_with_blank_line() {
 fn json_renders_all_six_named_smell_kinds_as_array() {
     let out = format_findings_json(&all_six(), None);
     let v: serde_json::Value = serde_json::from_str(&out).unwrap();
-    let kinds: Vec<&str> = v
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|e| e["kind"].as_str())
-        .collect();
+    let kinds: Vec<&str> = v.as_array().unwrap().iter().filter_map(|e| e["kind"].as_str()).collect();
     assert_eq!(kinds.len(), 6);
     assert!(kinds.contains(&"ShotgunSurgery"));
     assert!(kinds.contains(&"DivergentChange"));

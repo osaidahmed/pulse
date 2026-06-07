@@ -28,10 +28,7 @@ fn def(
         },
         cc,
         field_accesses: fields.into_iter().map(String::from).collect(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: None,
         is_constructor: is_ctor,
     }
@@ -44,7 +41,10 @@ fn god_evidence(f: &pulse::audit::finding::AuditFinding) -> &GodClassEvidence {
     e
 }
 
-fn detect_with(defs: Vec<DefinitionRecord>, audit_t: &pulse::thresholds::AuditThresholds) -> Vec<pulse::audit::finding::AuditFinding> {
+fn detect_with(
+    defs: Vec<DefinitionRecord>,
+    audit_t: &pulse::thresholds::AuditThresholds,
+) -> Vec<pulse::audit::finding::AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lookup = build_method_idx_lookup(&graph, &defs);
@@ -117,16 +117,7 @@ fn class_with_low_wmc_no_finding() {
 fn class_with_low_atfd_no_finding() {
     let mut defs = Vec::new();
     for i in 0..10 {
-        defs.push(def(
-            "n.py",
-            Some("NoForeign"),
-            &format!("m{i}"),
-            10 + i,
-            10,
-            vec![&format!("f{i}")],
-            vec![],
-            false,
-        ));
+        defs.push(def("n.py", Some("NoForeign"), &format!("m{i}"), 10 + i, 10, vec![&format!("f{i}")], vec![], false));
     }
     let findings = detect_with(defs, &t().audit);
     assert!(findings.is_empty());
@@ -140,7 +131,16 @@ fn empty_inputs_yield_no_findings() {
 
 #[test]
 fn single_method_class_no_finding_due_to_tcc() {
-    let defs = vec![def("a.py", Some("Lone"), "m", 1, 50, vec!["f"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], false)];
+    let defs = vec![def(
+        "a.py",
+        Some("Lone"),
+        "m",
+        1,
+        50,
+        vec!["f"],
+        vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+        false,
+    )];
     let findings = detect_with(defs, &t().audit);
     assert!(findings.is_empty());
 }

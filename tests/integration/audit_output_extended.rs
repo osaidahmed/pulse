@@ -3,14 +3,18 @@ use pulse::audit::output::{format_findings, format_findings_json};
 use pulse::thresholds::Thresholds;
 use std::path::{Path, PathBuf};
 
-fn t() -> Thresholds { Thresholds::default() }
+fn t() -> Thresholds {
+    Thresholds::default()
+}
 
 fn fab(fp: u64, support: u32, files: u32, snippet: &str, locs: &[(&str, u32)]) -> AuditFinding {
     AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: fp },
         representative_snippet: snippet.to_string(),
-        support, file_count: files,
-        idf_score: Some(1.5), action_label: None,
+        support,
+        file_count: files,
+        idf_score: Some(1.5),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -423,11 +427,8 @@ fn output_renders_full_path_when_relative_strip_fails() {
 
 #[test]
 fn output_json_array_contains_object_per_finding() {
-    let fs = vec![
-        fab(1, 5, 5, "a", &[("a.py", 1)]),
-        fab(2, 4, 4, "b", &[("b.py", 1)]),
-        fab(3, 3, 3, "c", &[("c.py", 1)]),
-    ];
+    let fs =
+        vec![fab(1, 5, 5, "a", &[("a.py", 1)]), fab(2, 4, 4, "b", &[("b.py", 1)]), fab(3, 3, 3, "c", &[("c.py", 1)])];
     let s = format_findings_json(&fs, None);
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
     assert_eq!(v.as_array().unwrap().len(), 3);

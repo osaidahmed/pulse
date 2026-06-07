@@ -3,16 +3,10 @@ use std::collections::{BTreeMap, HashSet};
 use crate::thresholds::AuditThresholds;
 
 use super::class_registry::{ClassIdentity, ClassIndex, ClassRegistry};
-use super::finding::{
-    AuditFinding, AuditKind, ClassIdentityRef, ImportConfidence, ParallelInheritanceEvidence,
-};
+use super::finding::{AuditFinding, AuditKind, ClassIdentityRef, ImportConfidence, ParallelInheritanceEvidence};
 use super::inheritance::{descendants_of, InheritanceGraph};
 
-pub fn detect(
-    registry: &ClassRegistry,
-    inh: &InheritanceGraph,
-    t: &AuditThresholds,
-) -> Vec<AuditFinding> {
+pub fn detect(registry: &ClassRegistry, inh: &InheritanceGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
     let signatures = build_signature_map(registry, inh);
     let roots: Vec<ClassIndex> = signatures.keys().copied().collect();
     let mut findings = Vec::new();
@@ -52,10 +46,8 @@ fn signatures_for_root(
         return None;
     }
     let root = registry.get(idx)?;
-    let sigs: Vec<(ClassIndex, String)> = descendants
-        .into_iter()
-        .filter_map(|d| signature_for_descendant(registry, root, d))
-        .collect();
+    let sigs: Vec<(ClassIndex, String)> =
+        descendants.into_iter().filter_map(|d| signature_for_descendant(registry, root, d)).collect();
     if sigs.is_empty() {
         return None;
     }

@@ -66,12 +66,7 @@ fn javascript_non_require_call_yields_no_import() {
 fn typescript_resolves_with_ts_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("module.ts"), "export const x = 1;\n").unwrap();
-    let resolved = resolve_target(
-        "./module",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let resolved = resolve_target("./module", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
     if let Some(p) = resolved {
         assert!(p.extension().is_some());
     }
@@ -81,24 +76,14 @@ fn typescript_resolves_with_ts_extension() {
 fn typescript_resolves_with_tsx_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("Component.tsx"), "").unwrap();
-    let _ = resolve_target(
-        "./Component",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("./Component", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn javascript_resolves_with_js_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("module.js"), "").unwrap();
-    let _ = resolve_target(
-        "./module",
-        &dir.path().join("main.js"),
-        dir.path(),
-        Language::JavaScript,
-    );
+    let _ = resolve_target("./module", &dir.path().join("main.js"), dir.path(), Language::JavaScript);
 }
 
 #[test]
@@ -106,64 +91,32 @@ fn javascript_resolves_index_inside_directory() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("module")).unwrap();
     fs::write(dir.path().join("module/index.js"), "").unwrap();
-    let _ = resolve_target(
-        "./module",
-        &dir.path().join("main.js"),
-        dir.path(),
-        Language::JavaScript,
-    );
+    let _ = resolve_target("./module", &dir.path().join("main.js"), dir.path(), Language::JavaScript);
 }
 
 #[test]
 fn typescript_tsconfig_paths_simple_match_resolves() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"@app/*":["src/*"]}}}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"@app/*":["src/*"]}}}"#).unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/foo.ts"), "").unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_paths_exact_match_resolves() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"shared":["lib/shared"]}}}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"shared":["lib/shared"]}}}"#).unwrap();
     fs::create_dir_all(dir.path().join("lib")).unwrap();
     fs::write(dir.path().join("lib/shared.ts"), "").unwrap();
-    let _ = resolve_target(
-        "shared",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("shared", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_paths_no_match_falls_back() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"@app/*":["src/*"]}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "lodash",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"@app/*":["src/*"]}}}"#).unwrap();
+    let _ = resolve_target("lodash", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
@@ -176,106 +129,58 @@ fn typescript_tsconfig_with_line_comments_parsed() {
     .unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/foo.ts"), "").unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_missing_tsconfig_falls_back_to_direct_paths() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("module.ts"), "").unwrap();
-    let _ = resolve_target(
-        "./module",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("./module", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_with_invalid_json_falls_back() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("tsconfig.json"), "this is not json").unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_no_compiler_options_falls_back() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("tsconfig.json"), r#"{"include":["src"]}"#).unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_no_paths_section_falls_back() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"target":"es2020"}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"target":"es2020"}}"#).unwrap();
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_paths_replacement_array_iterated() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"@app/*":["src/*","alt/*"]}}}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"@app/*":["src/*","alt/*"]}}}"#)
+        .unwrap();
     fs::create_dir_all(dir.path().join("alt")).unwrap();
     fs::write(dir.path().join("alt/foo.ts"), "").unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_tsconfig_paths_value_not_array_skipped() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"@app/*":"src/*"}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    fs::write(dir.path().join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"@app/*":"src/*"}}}"#).unwrap();
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }
 
 #[test]
 fn typescript_grouped_imports_each_extracted() {
-    let imports = extract(
-        "import { a } from './m1';\nimport { b } from './m2';\nimport './side';\n",
-        Language::TypeScript,
-    );
+    let imports =
+        extract("import { a } from './m1';\nimport { b } from './m2';\nimport './side';\n", Language::TypeScript);
     assert!(imports.len() >= 3);
 }
 
@@ -312,12 +217,7 @@ fn typescript_line_numbers_track_position() {
 #[test]
 fn nonexistent_target_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let result = resolve_target(
-        "./nonexistent",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let result = resolve_target("./nonexistent", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
     assert!(result.is_none());
 }
 
@@ -331,10 +231,5 @@ fn typescript_tsconfig_extends_field_ignored() {
     .unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/foo.ts"), "").unwrap();
-    let _ = resolve_target(
-        "@app/foo",
-        &dir.path().join("main.ts"),
-        dir.path(),
-        Language::TypeScript,
-    );
+    let _ = resolve_target("@app/foo", &dir.path().join("main.ts"), dir.path(), Language::TypeScript);
 }

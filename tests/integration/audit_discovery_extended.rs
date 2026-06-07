@@ -3,7 +3,9 @@ use pulse::audit::walker::{ShapeMetrics, SubtreeRecord};
 use pulse::thresholds::Thresholds;
 use std::path::PathBuf;
 
-fn t() -> Thresholds { Thresholds::default() }
+fn t() -> Thresholds {
+    Thresholds::default()
+}
 
 fn rec(fp: u64, file: &str, line: u32, snippet: &str) -> SubtreeRecord {
     SubtreeRecord {
@@ -66,11 +68,8 @@ fn discovery_handles_record_with_zero_line_number() {
 fn discovery_picks_representative_with_most_information() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "y == z"),
-        rec(7, "b.py", 1, "media_type == X.value"),
-        rec(7, "c.py", 1, "p == q"),
-    ];
+    let recs =
+        vec![rec(7, "a.py", 1, "y == z"), rec(7, "b.py", 1, "media_type == X.value"), rec(7, "c.py", 1, "p == q")];
     let clusters = freqt_mine(&recs, &th);
     assert!(clusters[0].representative_snippet.contains("media_type"));
 }
@@ -115,10 +114,7 @@ fn discovery_file_count_distinct_from_support_for_multi_occurrence_in_single_fil
 fn discovery_groups_records_with_same_fp_different_files_correctly() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 4;
-    let recs = vec![
-        rec(7, "a.py", 1, "x"), rec(7, "a.py", 2, "x"),
-        rec(7, "b.py", 1, "x"), rec(7, "b.py", 2, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "x"), rec(7, "a.py", 2, "x"), rec(7, "b.py", 1, "x"), rec(7, "b.py", 2, "x")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].support, 4);
     assert_eq!(clusters[0].file_count, 2);
@@ -142,9 +138,12 @@ fn discovery_returns_clusters_with_unique_fingerprints() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
     let recs = vec![
-        rec(1, "a.py", 1, "x"), rec(1, "b.py", 1, "x"),
-        rec(2, "c.py", 1, "y"), rec(2, "d.py", 1, "y"),
-        rec(3, "e.py", 1, "z"), rec(3, "f.py", 1, "z"),
+        rec(1, "a.py", 1, "x"),
+        rec(1, "b.py", 1, "x"),
+        rec(2, "c.py", 1, "y"),
+        rec(2, "d.py", 1, "y"),
+        rec(3, "e.py", 1, "z"),
+        rec(3, "f.py", 1, "z"),
     ];
     let clusters = freqt_mine(&recs, &th);
     let fps: std::collections::HashSet<u64> = clusters.iter().map(|c| c.fingerprint).collect();
@@ -165,10 +164,7 @@ fn discovery_with_records_having_long_snippets() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
     let long_snippet = "x".repeat(500);
-    let recs = vec![
-        rec(7, "a.py", 1, &long_snippet),
-        rec(7, "b.py", 1, &long_snippet),
-    ];
+    let recs = vec![rec(7, "a.py", 1, &long_snippet), rec(7, "b.py", 1, &long_snippet)];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].representative_snippet, long_snippet);
 }
@@ -187,11 +183,7 @@ fn discovery_ignores_record_count_when_below_threshold_individually() {
 fn discovery_locations_preserved_per_record_not_merged() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 10, "x"),
-        rec(7, "a.py", 20, "x"),
-        rec(7, "a.py", 30, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 10, "x"), rec(7, "a.py", 20, "x"), rec(7, "a.py", 30, "x")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].locations.len(), 3);
 }
@@ -223,11 +215,7 @@ fn discovery_picks_first_non_empty_snippet_when_all_empty_except_one() {
 fn discovery_returns_empty_string_when_all_snippets_empty() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, ""),
-        rec(7, "b.py", 1, ""),
-        rec(7, "c.py", 1, ""),
-    ];
+    let recs = vec![rec(7, "a.py", 1, ""), rec(7, "b.py", 1, ""), rec(7, "c.py", 1, "")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].representative_snippet, "");
 }
@@ -246,11 +234,7 @@ fn discovery_handles_path_with_many_components() {
 fn discovery_stable_under_locations_with_same_path_different_lines() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 100, "x"),
-        rec(7, "a.py", 50, "x"),
-        rec(7, "a.py", 75, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 100, "x"), rec(7, "a.py", 50, "x"), rec(7, "a.py", 75, "x")];
     let r1 = freqt_mine(&recs, &th);
     let r2 = freqt_mine(&recs, &th);
     assert_eq!(r1[0].locations, r2[0].locations);
@@ -260,11 +244,7 @@ fn discovery_stable_under_locations_with_same_path_different_lines() {
 fn discovery_does_not_dedupe_locations_with_same_file_and_line() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "x"),
-        rec(7, "a.py", 1, "x"),
-        rec(7, "a.py", 1, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "x"), rec(7, "a.py", 1, "x"), rec(7, "a.py", 1, "x")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].support, 3);
     assert_eq!(clusters[0].locations.len(), 3);
@@ -338,15 +318,16 @@ fn discovery_locations_total_equal_support_value() {
 fn discovery_with_many_clusters_uses_consistent_ordering_by_fingerprint() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let recs: Vec<_> = (0..100).flat_map(|i| {
-        vec![rec(i, &format!("a{i}.py"), 1, "x"), rec(i, &format!("b{i}.py"), 1, "x")]
-    }).collect();
+    let recs: Vec<_> =
+        (0..100).flat_map(|i| vec![rec(i, &format!("a{i}.py"), 1, "x"), rec(i, &format!("b{i}.py"), 1, "x")]).collect();
     let r1 = freqt_mine(&recs, &th);
     let r2 = freqt_mine(&recs, &th);
     let f1: Vec<u64> = r1.iter().map(|c| c.fingerprint).collect();
     let f2: Vec<u64> = r2.iter().map(|c| c.fingerprint).collect();
-    let mut s1 = f1.clone(); s1.sort_unstable();
-    let mut s2 = f2.clone(); s2.sort_unstable();
+    let mut s1 = f1.clone();
+    s1.sort_unstable();
+    let mut s2 = f2.clone();
+    s2.sort_unstable();
     assert_eq!(s1, s2);
 }
 
@@ -378,10 +359,7 @@ fn discovery_threshold_higher_than_total_records_returns_empty() {
 fn discovery_locations_carry_path_and_line_pair_correctly() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let recs = vec![
-        rec(7, "a.py", 42, "x"),
-        rec(7, "b.py", 137, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 42, "x"), rec(7, "b.py", 137, "x")];
     let clusters = freqt_mine(&recs, &th);
     let locs = &clusters[0].locations;
     let lines: Vec<u32> = locs.iter().map(|(_, l)| *l).collect();
@@ -418,12 +396,7 @@ fn discovery_picks_representative_snippet_max_length() {
 fn discovery_locations_global_order_consistent() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 4;
-    let recs = vec![
-        rec(7, "z.py", 1, "x"),
-        rec(7, "y.py", 1, "x"),
-        rec(7, "x.py", 1, "x"),
-        rec(7, "w.py", 1, "x"),
-    ];
+    let recs = vec![rec(7, "z.py", 1, "x"), rec(7, "y.py", 1, "x"), rec(7, "x.py", 1, "x"), rec(7, "w.py", 1, "x")];
     let clusters = freqt_mine(&recs, &th);
     let paths: Vec<&PathBuf> = clusters[0].locations.iter().map(|(p, _)| p).collect();
     for w in paths.windows(2) {
@@ -470,8 +443,10 @@ fn discovery_with_extreme_fingerprint_values() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
     let recs = vec![
-        rec(0, "a.py", 1, "x"), rec(0, "b.py", 1, "x"),
-        rec(u64::MAX, "c.py", 1, "y"), rec(u64::MAX, "d.py", 1, "y"),
+        rec(0, "a.py", 1, "x"),
+        rec(0, "b.py", 1, "x"),
+        rec(u64::MAX, "c.py", 1, "y"),
+        rec(u64::MAX, "d.py", 1, "y"),
     ];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters.len(), 2);
@@ -482,8 +457,10 @@ fn discovery_handles_close_fingerprints_separately() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
     let recs = vec![
-        rec(0xdead_beef, "a.py", 1, "x"), rec(0xdead_beef, "b.py", 1, "x"),
-        rec(0xdead_bef0, "c.py", 1, "y"), rec(0xdead_bef0, "d.py", 1, "y"),
+        rec(0xdead_beef, "a.py", 1, "x"),
+        rec(0xdead_beef, "b.py", 1, "x"),
+        rec(0xdead_bef0, "c.py", 1, "y"),
+        rec(0xdead_bef0, "d.py", 1, "y"),
     ];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters.len(), 2);
@@ -533,11 +510,7 @@ fn discovery_records_can_have_zero_named_node_count() {
 fn discovery_raw_cluster_fields_consistent() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "alpha"),
-        rec(7, "b.py", 2, "beta_longer"),
-        rec(7, "c.py", 3, "gamma"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "alpha"), rec(7, "b.py", 2, "beta_longer"), rec(7, "c.py", 3, "gamma")];
     let clusters: Vec<RawCluster> = freqt_mine(&recs, &th);
     let c = &clusters[0];
     assert_eq!(c.fingerprint, 7);
@@ -551,9 +524,8 @@ fn discovery_raw_cluster_fields_consistent() {
 fn discovery_produces_no_overlapping_clusters() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let recs: Vec<_> = (0..20).flat_map(|i| {
-        vec![rec(i, &format!("a{i}.py"), 1, "x"), rec(i, &format!("b{i}.py"), 1, "x")]
-    }).collect();
+    let recs: Vec<_> =
+        (0..20).flat_map(|i| vec![rec(i, &format!("a{i}.py"), 1, "x"), rec(i, &format!("b{i}.py"), 1, "x")]).collect();
     let clusters = freqt_mine(&recs, &th);
     let total_records: u32 = clusters.iter().map(|c| c.support).sum();
     assert_eq!(total_records as usize, recs.len());
@@ -612,10 +584,7 @@ fn discovery_huge_path_strings_handled() {
 fn discovery_cluster_sizes_in_total_match_input_size_when_all_above_threshold() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let recs = vec![
-        rec(1, "a.py", 1, "x"), rec(1, "b.py", 1, "x"),
-        rec(2, "c.py", 1, "y"), rec(2, "d.py", 1, "y"),
-    ];
+    let recs = vec![rec(1, "a.py", 1, "x"), rec(1, "b.py", 1, "x"), rec(2, "c.py", 1, "y"), rec(2, "d.py", 1, "y")];
     let clusters = freqt_mine(&recs, &th);
     let total: u32 = clusters.iter().map(|c| c.support).sum();
     assert_eq!(total as usize, recs.len());

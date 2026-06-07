@@ -4,17 +4,15 @@ use super::counters::{count_short_variables, count_string_match_arms, max_same_p
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds,
-    find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["this"];
-const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "long", "short", "byte", "float", "double", "boolean", "char", "void", "String",
-];
+const PRIMITIVE_TYPES: &[&str] =
+    &["int", "long", "short", "byte", "float", "double", "boolean", "char", "void", "String"];
 const NESTING_BRANCH_KINDS: &[&str] = &[
     "if_statement",
     "for_statement",
@@ -77,9 +75,8 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let class_name = find_child_by_kind(class_node, "identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let class_name =
+        find_child_by_kind(class_node, "identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default();
     let parent_class = extract_parent_class_java(class_node, source);
 
     let Some(body) = find_child_by_kind(class_node, "class_body") else {
@@ -133,11 +130,7 @@ struct CallableConfig {
 const METHOD_CONFIG: CallableConfig = CallableConfig { body_kind: "block", fallback_name: "<anonymous>" };
 const CTOR_CONFIG: CallableConfig = CallableConfig { body_kind: "constructor_body", fallback_name: "<constructor>" };
 
-fn analyze_callable(
-    node: Node,
-    source: &str,
-    cfg: &CallableConfig,
-) -> Option<FunctionMetrics> {
+fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<FunctionMetrics> {
     let name = find_child_by_kind(node, "identifier")
         .map_or_else(|| cfg.fallback_name.into(), |n| node_text(n, source).to_string());
 
@@ -145,8 +138,7 @@ fn analyze_callable(
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
-        count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, cfg.body_kind).or_else(|| find_child_by_kind(node, "block"))?;
 
@@ -186,7 +178,13 @@ fn analyze_callable(
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["local_variable_declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_expression", "switch_block_statement_group", &["string_literal"], &[]),
+        string_match_arms: count_string_match_arms(
+            body,
+            "switch_expression",
+            "switch_block_statement_group",
+            &["string_literal"],
+            &[],
+        ),
         cpg: None,
     })
 }
@@ -219,7 +217,9 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
         track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    if kind == "lambda_expression" { return; }
+    if kind == "lambda_expression" {
+        return;
+    }
     for (kinds, handler) in NODE_HANDLERS {
         if kinds.contains(&kind) {
             handler(child, source, depth, s);
@@ -256,9 +256,7 @@ fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn handle_switch_case(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let label_text = find_child_by_kind(child, "switch_label")
-        .map(|l| node_text(l, source))
-        .unwrap_or_default();
+    let label_text = find_child_by_kind(child, "switch_label").map(|l| node_text(l, source)).unwrap_or_default();
     if !label_text.contains("default") {
         s.cc += 1;
     }
@@ -296,9 +294,19 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 if is_catch_body_empty(child, "block", None) {
                     s.empty_catch_count += 1;
                 }
-                shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
+                shared::walk_block_children(
+                    child,
+                    &mut shared::BlockWalkCtx { source, depth, state: s },
+                    "block",
+                    walk_body,
+                );
             }
-            "finally_clause" => shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body),
+            "finally_clause" => shared::walk_block_children(
+                child,
+                &mut shared::BlockWalkCtx { source, depth, state: s },
+                "block",
+                walk_body,
+            ),
             _ => {}
         }
     }
@@ -330,9 +338,8 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut cursor = params.walk();
     let mut count = 0;
     let mut prims: Vec<&str> = Vec::new();
-    for child in params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "formal_parameter" || c.kind() == "spread_parameter")
+    for child in
+        params.children(&mut cursor).filter(|c| c.kind() == "formal_parameter" || c.kind() == "spread_parameter")
     {
         count += 1;
         if let Some(ty) = primitive_type_of(child, source) {

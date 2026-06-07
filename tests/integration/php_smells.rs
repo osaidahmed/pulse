@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -158,10 +157,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -203,7 +199,10 @@ fn deep_nesting_depth_at_least_4() {
 
 #[test]
 fn moderate_nesting_not_flagged() {
-    let out = pulse_check_code("<?php\nfunction f(int $x): int {\n  if ($x > 0) {\n    if ($x > 1) { return $x; }\n  }\n  return 0;\n}\n", "php");
+    let out = pulse_check_code(
+        "<?php\nfunction f(int $x): int {\n  if ($x > 0) {\n    if ($x > 1) { return $x; }\n  }\n  return 0;\n}\n",
+        "php",
+    );
     assert!(!has_smell(&out, "Deep Nested"), "got: {out}");
 }
 
@@ -333,23 +332,23 @@ fn simple_string_not_flagged() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "<?php\nfunction check(int $age, int $score, bool $active): bool {\n",
-        "  if ($age > 18 && $score > 50 && $active) {\n",
-        "    if ($score > 80 || ($age > 25 && $active)) {\n",
-        "      return true;\n",
-        "    }\n",
-        "  }\n",
-        "  if ($age > 65 || $score < 10) {\n",
-        "    return true;\n",
-        "  }\n",
-        "  return false;\n",
-        "}\n",
-    ), "php");
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "<?php\nfunction check(int $age, int $score, bool $active): bool {\n",
+            "  if ($age > 18 && $score > 50 && $active) {\n",
+            "    if ($score > 80 || ($age > 25 && $active)) {\n",
+            "      return true;\n",
+            "    }\n",
+            "  }\n",
+            "  if ($age > 65 || $score < 10) {\n",
+            "    return true;\n",
+            "  }\n",
+            "  return false;\n",
+            "}\n",
+        ),
+        "php",
     );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -366,47 +365,50 @@ fn test_file_analyzed() {
 
 #[test]
 fn code_duplication_inline() {
-    let out = pulse_check_code(concat!(
-        "<?php\nfunction rpt_a(array $data): int {\n",
-        "  $r = 0;\n",
-        "  foreach ($data as $v) {\n    $r += $v;\n  }\n",
-        "  $r = $r * 2;\n  return $r;\n",
-        "}\n\n",
-        "function rpt_b(array $data): int {\n",
-        "  $r = 0;\n",
-        "  foreach ($data as $v) {\n    $r += $v;\n  }\n",
-        "  $r = $r * 2;\n  return $r;\n",
-        "}\n",
-    ), "php");
+    let out = pulse_check_code(
+        concat!(
+            "<?php\nfunction rpt_a(array $data): int {\n",
+            "  $r = 0;\n",
+            "  foreach ($data as $v) {\n    $r += $v;\n  }\n",
+            "  $r = $r * 2;\n  return $r;\n",
+            "}\n\n",
+            "function rpt_b(array $data): int {\n",
+            "  $r = 0;\n",
+            "  foreach ($data as $v) {\n    $r += $v;\n  }\n",
+            "  $r = $r * 2;\n  return $r;\n",
+            "}\n",
+        ),
+        "php",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
 fn nested_conditional_chunks_inline() {
-    let out = pulse_check_code(concat!(
-        "<?php\nfunction validate(array $data): int {\n",
-        "  if (count($data) > 0) {\n",
-        "    if ($data[0] > 0) {\n",
-        "      if ($data[0] > 10) {\n",
-        "        $x = 1;\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  $gap = 1;\n",
-        "  if (count($data) > 5) {\n",
-        "    if ($data[5] > 0) {\n",
-        "      if ($data[5] > 10) {\n",
-        "        $y = 2;\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  return 0;\n",
-        "}\n",
-    ), "php");
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "<?php\nfunction validate(array $data): int {\n",
+            "  if (count($data) > 0) {\n",
+            "    if ($data[0] > 0) {\n",
+            "      if ($data[0] > 10) {\n",
+            "        $x = 1;\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  $gap = 1;\n",
+            "  if (count($data) > 5) {\n",
+            "    if ($data[5] > 0) {\n",
+            "      if ($data[5] > 10) {\n",
+            "        $y = 2;\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  return 0;\n",
+            "}\n",
+        ),
+        "php",
     );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -459,13 +461,15 @@ fn elseif_cc() {
 
 #[test]
 fn foreach_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(array $a): int { foreach ($a as $v) { echo $v; } return 0; }\n", "php");
+    let out =
+        pulse_debug_code("<?php\nfunction f(array $a): int { foreach ($a as $v) { echo $v; } return 0; }\n", "php");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
 #[test]
 fn do_while_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(): int { $i = 0; do { $i++; } while ($i < 10); return $i; }\n", "php");
+    let out =
+        pulse_debug_code("<?php\nfunction f(): int { $i = 0; do { $i++; } while ($i < 10); return $i; }\n", "php");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -477,13 +481,17 @@ fn switch_case_cc() {
 
 #[test]
 fn match_expression_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(int $x): string {\n  return match($x) { 1 => 'a', 2 => 'b', default => 'c' };\n}\n", "php");
+    let out = pulse_debug_code(
+        "<?php\nfunction f(int $x): string {\n  return match($x) { 1 => 'a', 2 => 'b', default => 'c' };\n}\n",
+        "php",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn catch_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(): int { try { return 1; } catch (Exception $e) { return 0; } }\n", "php");
+    let out =
+        pulse_debug_code("<?php\nfunction f(): int { try { return 1; } catch (Exception $e) { return 0; } }\n", "php");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -501,7 +509,8 @@ fn ternary_cc() {
 
 #[test]
 fn construct_is_constructor() {
-    let out = pulse_debug_code("<?php\nclass Foo {\n  public function __construct(int $x) { $this->x = $x; }\n}\n", "php");
+    let out =
+        pulse_debug_code("<?php\nclass Foo {\n  public function __construct(int $x) { $this->x = $x; }\n}\n", "php");
     assert!(out.contains("Foo.__construct"), "got: {out}");
 }
 
@@ -521,13 +530,19 @@ fn heredoc_embedded_block() {
 
 #[test]
 fn boolean_and_or_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(bool $a, bool $b): bool { if ($a && $b) { return true; } return false; }\n", "php");
+    let out = pulse_debug_code(
+        "<?php\nfunction f(bool $a, bool $b): bool { if ($a && $b) { return true; } return false; }\n",
+        "php",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn keyword_and_or_cc() {
-    let out = pulse_debug_code("<?php\nfunction f(bool $a, bool $b): bool { if ($a and $b) { return true; } return false; }\n", "php");
+    let out = pulse_debug_code(
+        "<?php\nfunction f(bool $a, bool $b): bool { if ($a and $b) { return true; } return false; }\n",
+        "php",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -539,7 +554,10 @@ fn arrow_function_scope_boundary() {
 
 #[test]
 fn anonymous_function_scope_boundary() {
-    let out = pulse_debug_code("<?php\nfunction f(): callable { return function(int $x): int { if ($x > 0) { return 1; } return 0; }; }\n", "php");
+    let out = pulse_debug_code(
+        "<?php\nfunction f(): callable { return function(int $x): int { if ($x > 0) { return 1; } return 0; }; }\n",
+        "php",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
@@ -551,7 +569,10 @@ fn namespace_functions_detected() {
 
 #[test]
 fn empty_catch_detected() {
-    let out = pulse_check_code("<?php\nfunction f(): void { try { throw new Exception(); } catch (Exception $e) {} }\n", "php");
+    let out = pulse_check_code(
+        "<?php\nfunction f(): void { try { throw new Exception(); } catch (Exception $e) {} }\n",
+        "php",
+    );
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 

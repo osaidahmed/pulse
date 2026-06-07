@@ -4,26 +4,13 @@ use crate::smells::{Finding, Location, Smell};
 
 pub fn format(findings: &[Finding], filename: &str) -> String {
     let mut out = String::new();
-    let _ = writeln!(
-        out,
-        "pulse: {} issue{} in {}",
-        findings.len(),
-        if findings.len() == 1 { "" } else { "s" },
-        filename
-    );
+    let _ =
+        writeln!(out, "pulse: {} issue{} in {}", findings.len(), if findings.len() == 1 { "" } else { "s" }, filename);
 
     for f in findings {
         match &f.location {
-            Location::Function {
-                name,
-                start_line,
-                end_line,
-            } => {
-                let _ = writeln!(
-                    out,
-                    "  {} (L{}-{}): {} — {}",
-                    name, start_line, end_line, f.smell, f.detail
-                );
+            Location::Function { name, start_line, end_line } => {
+                let _ = writeln!(out, "  {} (L{}-{}): {} — {}", name, start_line, end_line, f.smell, f.detail);
             }
             Location::Module => {
                 let _ = writeln!(out, "  Module: {} — {}", f.smell, f.detail);
@@ -46,11 +33,7 @@ pub fn format_stop(regressions: &[(String, Vec<Finding>)]) -> String {
 }
 
 fn format_stop_finding(out: &mut String, f: &Finding, filename: &str) {
-    let label = if is_actionable(f.smell) {
-        "regression"
-    } else {
-        "threshold crossed"
-    };
+    let label = if is_actionable(f.smell) { "regression" } else { "threshold crossed" };
     let smell_lower = f.smell.as_str().to_lowercase();
     let _ = writeln!(
         out,
@@ -74,10 +57,7 @@ fn is_actionable(smell: Smell) -> bool {
 }
 
 pub fn format_compact(findings: &[Finding], filename: &str) -> String {
-    let mut out: String = findings
-        .iter()
-        .map(|f| format_compact_line(f, filename, "error[pulse]"))
-        .collect();
+    let mut out: String = findings.iter().map(|f| format_compact_line(f, filename, "error[pulse]")).collect();
     let _ = writeln!(out, "Fix all issues above before proceeding.");
     out
 }
@@ -94,13 +74,8 @@ fn format_compact_line(f: &Finding, filename: &str, tag: &str) -> String {
     let action = action_for(f.smell, &f.detail);
     let smell_lower = f.smell.as_str().to_lowercase();
     match &f.location {
-        Location::Function {
-            name, start_line, ..
-        } => {
-            format!(
-                "{}: {}:{}: {} in `{}` — {}. {}\n",
-                tag, filename, start_line, smell_lower, name, f.detail, action
-            )
+        Location::Function { name, start_line, .. } => {
+            format!("{}: {}:{}: {} in `{}` — {}. {}\n", tag, filename, start_line, smell_lower, name, f.detail, action)
         }
         Location::Module => {
             format!("{}: {}: {} — {}. {}\n", tag, filename, smell_lower, f.detail, action)

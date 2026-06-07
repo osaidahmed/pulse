@@ -26,17 +26,11 @@ fn split_stem_ext(name: &str) -> (&str, &str) {
     name.rsplit_once('.').map_or((name, ""), |(s, e)| (s, e))
 }
 
-const TEST_DIRS: &[&str] = &[
-    "/tests/", "/test/", "/__tests__/",
-    "/spec/", "/specs/",
-    "/Tests/", "/Test/", "/Spec/", "/Specs/",
-];
+const TEST_DIRS: &[&str] =
+    &["/tests/", "/test/", "/__tests__/", "/spec/", "/specs/", "/Tests/", "/Test/", "/Spec/", "/Specs/"];
 
-const UNIVERSAL_NAME_PATTERNS: &[&str] = &[
-    "_test.", ".test.", "_tests.", ".tests.",
-    "_spec.", ".spec.", "_specs.", ".specs.",
-    ".e2e.", ".cy.",
-];
+const UNIVERSAL_NAME_PATTERNS: &[&str] =
+    &["_test.", ".test.", "_tests.", ".tests.", "_spec.", ".spec.", "_specs.", ".specs.", ".e2e.", ".cy."];
 
 fn contains_any(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().any(|n| haystack.contains(n))
@@ -58,9 +52,14 @@ fn matches_language_pattern(stem: &str, ext: &str, lang: Language) -> bool {
         Language::Lua => lua_test(stem),
         Language::Tcl => ext == "test",
         Language::Zig | Language::D => stem.starts_with("test_"),
-        Language::Java | Language::CSharp | Language::Kotlin
-        | Language::Swift | Language::Php | Language::ObjectiveC
-        | Language::Groovy | Language::Haskell => camel_test_suffix(stem),
+        Language::Java
+        | Language::CSharp
+        | Language::Kotlin
+        | Language::Swift
+        | Language::Php
+        | Language::ObjectiveC
+        | Language::Groovy
+        | Language::Haskell => camel_test_suffix(stem),
         _ => false,
     }
 }

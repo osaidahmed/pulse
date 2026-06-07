@@ -47,21 +47,13 @@ fn configure_hooks(dir: &Path) -> bool {
         .unwrap_or_else(|| serde_json::json!({}));
 
     let mut changed = false;
-    let hooks = root
-        .as_object_mut()
-        .unwrap()
-        .entry("hooks")
-        .or_insert_with(|| serde_json::json!({}));
+    let hooks = root.as_object_mut().unwrap().entry("hooks").or_insert_with(|| serde_json::json!({}));
     if !hooks.is_object() {
         *hooks = serde_json::json!({});
     }
 
     for &(event, matcher, command) in HOOKS {
-        let groups = hooks
-            .as_object_mut()
-            .unwrap()
-            .entry(event)
-            .or_insert_with(|| serde_json::json!([]));
+        let groups = hooks.as_object_mut().unwrap().entry(event).or_insert_with(|| serde_json::json!([]));
         if ensure_hook_entry(groups, matcher, command) {
             eprintln!("  + configured {event} hook ({command})");
             changed = true;
@@ -135,16 +127,9 @@ fn group_matcher_matches(group: &serde_json::Value, matcher: Option<&str>) -> bo
 }
 
 fn has_pulse_command(group: &serde_json::Value, command: &str) -> bool {
-    group
-        .get("hooks")
-        .and_then(|h| h.as_array())
-        .is_some_and(|hooks| {
-            hooks.iter().any(|h| {
-                h.get("command")
-                    .and_then(|c| c.as_str())
-                    .is_some_and(|c| c == command)
-            })
-        })
+    group.get("hooks").and_then(|h| h.as_array()).is_some_and(|hooks| {
+        hooks.iter().any(|h| h.get("command").and_then(|c| c.as_str()).is_some_and(|c| c == command))
+    })
 }
 
 fn g_hooks_mut(group: &mut serde_json::Value) -> Option<&mut Vec<serde_json::Value>> {
@@ -197,10 +182,7 @@ fn append_md_block(existing: &str, block: &str) -> String {
 fn render_md_block() -> String {
     let body = pulse_instructions();
     let hash = xxh3_64(body.as_bytes());
-    format!(
-        "{MD_START} v={} hash={hash:016x} -->\n{body}{MD_END}\n",
-        env!("CARGO_PKG_VERSION")
-    )
+    format!("{MD_START} v={} hash={hash:016x} -->\n{body}{MD_END}\n", env!("CARGO_PKG_VERSION"))
 }
 
 fn locate_pulse_md(content: &str) -> Option<(usize, usize)> {
@@ -223,9 +205,7 @@ fn locate_legacy_md(content: &str) -> Option<(usize, usize)> {
     if head != 0 && !content[..head].ends_with('\n') {
         return None;
     }
-    let e = content[sig..]
-        .find("\n# ")
-        .map_or(content.len(), |r| sig + r + 1);
+    let e = content[sig..].find("\n# ").map_or(content.len(), |r| sig + r + 1);
     Some((head, e))
 }
 

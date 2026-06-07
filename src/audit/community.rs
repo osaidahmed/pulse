@@ -70,8 +70,7 @@ fn renumber(assignment: &[usize]) -> (Vec<usize>, usize) {
 
 impl<'a> Weighted<'a> {
     fn new(adjacency: &'a [Vec<(usize, f64)>], resolution: f64) -> Self {
-        let degree: Vec<f64> =
-            adjacency.iter().map(|nbrs| nbrs.iter().map(|&(_, w)| w).sum()).collect();
+        let degree: Vec<f64> = adjacency.iter().map(|nbrs| nbrs.iter().map(|&(_, w)| w).sum()).collect();
         let m = degree.iter().sum::<f64>() / 2.0;
         Weighted { adjacency, degree, m, resolution }
     }

@@ -283,10 +283,7 @@ fn multiple_callers_resolve_to_distinct_methods() {
     let calls = calls_for_file(&path, Language::Python);
     let target_calls: Vec<_> = calls.iter().filter(|c| c.call.callee_name == "target").collect();
     assert_eq!(target_calls.len(), 2);
-    let names: Vec<_> = target_calls
-        .iter()
-        .filter_map(|c| c.caller.as_ref().map(|m| &m.name))
-        .collect();
+    let names: Vec<_> = target_calls.iter().filter_map(|c| c.caller.as_ref().map(|m| &m.name)).collect();
     assert!(names.contains(&&"m1".to_string()));
     assert!(names.contains(&&"m2".to_string()));
 }

@@ -5,8 +5,7 @@ use std::path::Path;
 use crate::thresholds::AuditThresholds;
 
 use super::finding::{
-    finding_confidence, kind_label, kind_pillar, AuditFinding, AuditPillar, ImportConfidence,
-    PatternCategory,
+    finding_confidence, kind_label, kind_pillar, AuditFinding, AuditPillar, ImportConfidence, PatternCategory,
 };
 use super::output_grouped::RenderPatternFn;
 
@@ -19,11 +18,7 @@ pub struct PillarCtx<'a> {
 
 pub fn render_pillars(out: &mut String, visible: &[&AuditFinding], ctx: &PillarCtx) {
     for (pillar, name) in PILLAR_ORDER {
-        let group: Vec<&AuditFinding> = visible
-            .iter()
-            .filter(|f| kind_pillar(&f.kind) == *pillar)
-            .copied()
-            .collect();
+        let group: Vec<&AuditFinding> = visible.iter().filter(|f| kind_pillar(&f.kind) == *pillar).copied().collect();
         if !group.is_empty() {
             write_pillar(out, name, &group, *pillar, ctx);
         }
@@ -39,13 +34,7 @@ const PILLAR_ORDER: &[(AuditPillar, &str)] = &[
     (AuditPillar::Patterns, "CROSS-FILE PATTERNS"),
 ];
 
-fn write_pillar(
-    out: &mut String,
-    name: &str,
-    group: &[&AuditFinding],
-    pillar: AuditPillar,
-    ctx: &PillarCtx,
-) {
+fn write_pillar(out: &mut String, name: &str, group: &[&AuditFinding], pillar: AuditPillar, ctx: &PillarCtx) {
     write_section_header(out, name, group);
     let pattern_pillar = matches!(pillar, AuditPillar::Patterns);
     let mut sorted: Vec<&AuditFinding> = group.to_vec();
@@ -82,17 +71,10 @@ fn write_section_header(out: &mut String, name: &str, group: &[&AuditFinding]) {
             _ => low += 1,
         }
     }
-    let _ = writeln!(
-        out,
-        "## {name} ({} findings, {high} high · {medium} medium · {low} low)\n",
-        group.len()
-    );
+    let _ = writeln!(out, "## {name} ({} findings, {high} high · {medium} medium · {low} low)\n", group.len());
 }
 
-fn group_findings<'a, F>(
-    group: &[&'a AuditFinding],
-    key_fn: F,
-) -> Vec<(&'static str, Vec<&'a AuditFinding>)>
+fn group_findings<'a, F>(group: &[&'a AuditFinding], key_fn: F) -> Vec<(&'static str, Vec<&'a AuditFinding>)>
 where
     F: Fn(&AuditFinding) -> &'static str,
 {
@@ -105,5 +87,11 @@ where
         }
         buckets.entry(key).or_default().push(*f);
     }
-    order.into_iter().map(|k| { let v = buckets.remove(k).unwrap_or_default(); (k, v) }).collect()
+    order
+        .into_iter()
+        .map(|k| {
+            let v = buckets.remove(k).unwrap_or_default();
+            (k, v)
+        })
+        .collect()
 }

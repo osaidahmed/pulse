@@ -55,11 +55,7 @@ fn child_with_parent_has_parent_edge() {
 
 #[test]
 fn three_level_chain_descendants() {
-    let defs = vec![
-        def("a.py", "A", None),
-        def("b.py", "B", Some("A")),
-        def("c.py", "C", Some("B")),
-    ];
+    let defs = vec![def("a.py", "A", None), def("b.py", "B", Some("A")), def("c.py", "C", Some("B"))];
     let (reg, inh) = build(defs);
     let a = *reg.by_name.get("A").unwrap().first().unwrap();
     let b = *reg.by_name.get("B").unwrap().first().unwrap();
@@ -72,11 +68,7 @@ fn three_level_chain_descendants() {
 
 #[test]
 fn three_level_chain_ancestors() {
-    let defs = vec![
-        def("a.py", "A", None),
-        def("b.py", "B", Some("A")),
-        def("c.py", "C", Some("B")),
-    ];
+    let defs = vec![def("a.py", "A", None), def("b.py", "B", Some("A")), def("c.py", "C", Some("B"))];
     let (reg, inh) = build(defs);
     let a = *reg.by_name.get("A").unwrap().first().unwrap();
     let b = *reg.by_name.get("B").unwrap().first().unwrap();
@@ -89,10 +81,7 @@ fn three_level_chain_ancestors() {
 
 #[test]
 fn cyclic_inheritance_does_not_loop_forever() {
-    let defs = vec![
-        def("a.py", "A", Some("B")),
-        def("b.py", "B", Some("A")),
-    ];
+    let defs = vec![def("a.py", "A", Some("B")), def("b.py", "B", Some("A"))];
     let (reg, inh) = build(defs);
     let a = *reg.by_name.get("A").unwrap().first().unwrap();
     let descendants = descendants_of(&inh, a);
@@ -101,10 +90,7 @@ fn cyclic_inheritance_does_not_loop_forever() {
 
 #[test]
 fn parent_in_different_file_resolves() {
-    let defs = vec![
-        def("foo.py", "Foo", None),
-        def("bar.py", "Bar", Some("Foo")),
-    ];
+    let defs = vec![def("foo.py", "Foo", None), def("bar.py", "Bar", Some("Foo"))];
     let (reg, inh) = build(defs);
     let foo = *reg.by_name.get("Foo").unwrap().first().unwrap();
     let bar = *reg.by_name.get("Bar").unwrap().first().unwrap();
@@ -113,11 +99,7 @@ fn parent_in_different_file_resolves() {
 
 #[test]
 fn parent_resolves_to_multiple_when_ambiguous() {
-    let defs = vec![
-        def("a.py", "Foo", None),
-        def("b.py", "Foo", None),
-        def("c.py", "Bar", Some("Foo")),
-    ];
+    let defs = vec![def("a.py", "Foo", None), def("b.py", "Foo", None), def("c.py", "Bar", Some("Foo"))];
     let (reg, inh) = build(defs);
     let bar = *reg.by_name.get("Bar").unwrap().first().unwrap();
     assert_eq!(inh.parents(bar).len(), 2);
@@ -159,10 +141,7 @@ fn nonexistent_class_index_returns_empty() {
 
 #[test]
 fn determinism_two_builds_same_edges() {
-    let defs = vec![
-        def("a.py", "A", None),
-        def("b.py", "B", Some("A")),
-    ];
+    let defs = vec![def("a.py", "A", None), def("b.py", "B", Some("A"))];
     let (_, inh1) = build(defs.clone());
     let (_, inh2) = build(defs);
     assert_eq!(inh1.parent_of, inh2.parent_of);

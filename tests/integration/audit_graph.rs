@@ -8,12 +8,7 @@ fn p(s: &str) -> PathBuf {
 }
 
 fn edge(src: &str, dst: &str) -> InputEdge {
-    InputEdge {
-        source: p(src),
-        target: p(dst),
-        source_lang: Language::Rust,
-        target_lang: Language::Rust,
-    }
+    InputEdge { source: p(src), target: p(dst), source_lang: Language::Rust, target_lang: Language::Rust }
 }
 
 fn build(edges: &[InputEdge]) -> ImportGraph {
@@ -58,12 +53,7 @@ fn linear_chain_a_to_b_to_c() {
 
 #[test]
 fn diamond_two_paths_converge() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("a.rs", "c.rs"),
-        edge("b.rs", "d.rs"),
-        edge("c.rs", "d.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("a.rs", "c.rs"), edge("b.rs", "d.rs"), edge("c.rs", "d.rs")]);
     let d = g.registry.lookup(&p("d.rs")).unwrap();
     assert_eq!(g.adjacency.afferent(d), 2);
     assert_eq!(g.adjacency.efferent(d), 0);
@@ -88,11 +78,7 @@ fn two_node_cycle() {
 
 #[test]
 fn three_node_cycle() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "a.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "c.rs"), edge("c.rs", "a.rs")]);
     assert_eq!(g.registry.count(), 3);
     assert_eq!(g.adjacency.edges().len(), 3);
 }
@@ -230,18 +216,14 @@ fn cross_language_edge_records_both_languages() {
 
 #[test]
 fn one_thousand_edges_complete_within_time_budget() {
-    let edges: Vec<InputEdge> = (0..1000)
-        .map(|i| edge(&format!("a{i}.rs"), &format!("b{i}.rs")))
-        .collect();
+    let edges: Vec<InputEdge> = (0..1000).map(|i| edge(&format!("a{i}.rs"), &format!("b{i}.rs"))).collect();
     let g = build(&edges);
     assert_eq!(g.adjacency.edges().len(), 1000);
 }
 
 #[test]
 fn pathological_chain_one_thousand_nodes_completes() {
-    let edges: Vec<InputEdge> = (0..999)
-        .map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1)))
-        .collect();
+    let edges: Vec<InputEdge> = (0..999).map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1))).collect();
     let g = build(&edges);
     assert_eq!(g.registry.count(), 1000);
     assert_eq!(g.adjacency.edges().len(), 999);
@@ -249,9 +231,7 @@ fn pathological_chain_one_thousand_nodes_completes() {
 
 #[test]
 fn pathological_hub_imports_one_thousand() {
-    let edges: Vec<InputEdge> = (0..1000)
-        .map(|i| edge("hub.rs", &format!("p{i}.rs")))
-        .collect();
+    let edges: Vec<InputEdge> = (0..1000).map(|i| edge("hub.rs", &format!("p{i}.rs"))).collect();
     let g = build(&edges);
     let hub = g.registry.lookup(&p("hub.rs")).unwrap();
     assert_eq!(g.adjacency.efferent(hub), 1000);
@@ -259,9 +239,7 @@ fn pathological_hub_imports_one_thousand() {
 
 #[test]
 fn pathological_inverse_hub_one_thousand_imports_one() {
-    let edges: Vec<InputEdge> = (0..1000)
-        .map(|i| edge(&format!("p{i}.rs"), "core.rs"))
-        .collect();
+    let edges: Vec<InputEdge> = (0..1000).map(|i| edge(&format!("p{i}.rs"), "core.rs")).collect();
     let g = build(&edges);
     let core = g.registry.lookup(&p("core.rs")).unwrap();
     assert_eq!(g.adjacency.afferent(core), 1000);

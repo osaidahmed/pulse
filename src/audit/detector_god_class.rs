@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use crate::thresholds::AuditThresholds;
 
 use super::call_graph::MethodIndex;
-use super::class_registry::{
-    class_atfd, class_method_count, class_tcc, class_wmc, ClassIndex, ClassRegistry,
-};
+use super::class_registry::{class_atfd, class_method_count, class_tcc, class_wmc, ClassIndex, ClassRegistry};
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, GodClassEvidence, ImportConfidence};
 
@@ -34,12 +32,8 @@ fn evaluate_class(
     t: &AuditThresholds,
 ) -> Option<AuditFinding> {
     let class = registry.get(idx)?;
-    let cc_lookup = |m: MethodIndex| -> u32 {
-        method_idx_lookup
-            .get(&m)
-            .and_then(|i| defs.get(*i))
-            .map_or(0, |d| d.cc)
-    };
+    let cc_lookup =
+        |m: MethodIndex| -> u32 { method_idx_lookup.get(&m).and_then(|i| defs.get(*i)).map_or(0, |d| d.cc) };
     let wmc = class_wmc(registry, idx, &cc_lookup);
     let foreign_lookup = |m: MethodIndex| -> Vec<(String, String)> {
         method_idx_lookup
@@ -102,12 +96,7 @@ pub fn build_method_idx_lookup(
 ) -> HashMap<MethodIndex, usize> {
     let mut map = HashMap::new();
     for (i, def) in defs.iter().enumerate() {
-        if let Some(j) = graph
-            .registry
-            .methods
-            .iter()
-            .position(|m| m == &def.identity)
-        {
+        if let Some(j) = graph.registry.methods.iter().position(|m| m == &def.identity) {
             map.insert(MethodIndex(j as u32), i);
         }
     }

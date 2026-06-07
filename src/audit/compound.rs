@@ -5,8 +5,7 @@ use crate::thresholds::AuditThresholds;
 
 use super::arch_smells::arch_severity;
 use super::finding::{
-    finding_confidence, kind_slug, AuditFinding, AuditKind, AuditLocation, CompoundEvidence,
-    ImportConfidence,
+    finding_confidence, kind_slug, AuditFinding, AuditKind, AuditLocation, CompoundEvidence, ImportConfidence,
 };
 
 pub fn detect(arch_findings: &[AuditFinding], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
@@ -16,13 +15,9 @@ pub fn detect(arch_findings: &[AuditFinding], thresholds: &AuditThresholds) -> V
             by_component.entry(loc.file.clone()).or_default().push(f);
         }
     }
-    let mut out: Vec<AuditFinding> = by_component
-        .into_iter()
-        .filter_map(|(component, group)| compound_for(component, &group))
-        .collect();
-    out.sort_by(|a, b| {
-        combined_severity(b).partial_cmp(&combined_severity(a)).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let mut out: Vec<AuditFinding> =
+        by_component.into_iter().filter_map(|(component, group)| compound_for(component, &group)).collect();
+    out.sort_by(|a, b| combined_severity(b).partial_cmp(&combined_severity(a)).unwrap_or(std::cmp::Ordering::Equal));
     out.truncate(thresholds.package_metrics.max_arch_findings_reported);
     out
 }
@@ -34,11 +29,7 @@ fn compound_for(component: PathBuf, group: &[&AuditFinding]) -> Option<AuditFind
     if kinds.len() < 2 {
         return None;
     }
-    let confidence = group
-        .iter()
-        .map(|f| finding_confidence(f))
-        .min()
-        .unwrap_or(ImportConfidence::Medium);
+    let confidence = group.iter().map(|f| finding_confidence(f)).min().unwrap_or(ImportConfidence::Medium);
     let evidence = CompoundEvidence {
         component: component.clone(),
         constituent_kinds: kinds.clone(),

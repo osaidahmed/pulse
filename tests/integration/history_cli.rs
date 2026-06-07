@@ -4,10 +4,7 @@ use std::process::Command;
 use crate::history_common::{build_repo, CommitSpec};
 
 fn pulse(args: &[&str]) -> (String, String, i32) {
-    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(args)
-        .output()
-        .expect("pulse failed");
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse")).args(args).output().expect("pulse failed");
     (
         String::from_utf8(output.stdout).unwrap(),
         String::from_utf8(output.stderr).unwrap(),
@@ -68,11 +65,7 @@ fn cli_history_not_a_git_repo_exits_nonzero_with_stderr_message() {
 #[test]
 fn cli_history_zero_commits_repo_clean_exit() {
     let dir = tempfile::tempdir().unwrap();
-    let _ = Command::new("git")
-        .arg("-C")
-        .arg(dir.path())
-        .args(["init", "-q", "-b", "main"])
-        .status();
+    let _ = Command::new("git").arg("-C").arg(dir.path()).args(["init", "-q", "-b", "main"]).status();
     let (stdout, _, code) = pulse(&["history", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0, "empty repo should exit 0");
     assert!(stdout.contains("history:"));

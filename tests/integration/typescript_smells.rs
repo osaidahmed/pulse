@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -7,19 +6,13 @@ const LANG: &str = "typescript";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.ts");
-    assert!(
-        output.is_empty(),
-        "clean TS file should produce no output, got: {output}"
-    );
+    assert!(output.is_empty(), "clean TS file should produce no output, got: {output}");
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_method.ts");
-    assert!(
-        has_smell(&output, "Complex Method"),
-        "should detect complex method, got: {output}"
-    );
+    assert!(has_smell(&output, "Complex Method"), "should detect complex method, got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
@@ -33,10 +26,7 @@ fn complex_method_cc_at_least_9() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.ts");
-    assert!(
-        has_smell(&output, "Deep Nested"),
-        "should detect deep nesting, got: {output}"
-    );
+    assert!(has_smell(&output, "Deep Nested"), "should detect deep nesting, got: {output}");
     assert!(has_function(&output, "deeplyNested"));
 }
 
@@ -49,10 +39,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.ts");
-    assert!(
-        has_smell(&output, "Excess Arguments"),
-        "should detect excess args, got: {output}"
-    );
+    assert!(has_smell(&output, "Excess Arguments"), "should detect excess args, got: {output}");
     assert!(has_function(&output, "createUser"));
 }
 
@@ -75,19 +62,13 @@ fn constructor_over_injection_detected() {
 #[test]
 fn primitive_obsession_detected_in_typescript() {
     let output = run_check(LANG, "excess_args.ts");
-    assert!(
-        has_smell(&output, "Primitive Obsession"),
-        "should detect primitive obsession in TS, got: {output}"
-    );
+    assert!(has_smell(&output, "Primitive Obsession"), "should detect primitive obsession in TS, got: {output}");
 }
 
 #[test]
 fn code_duplication_detected() {
     let output = run_check(LANG, "code_duplication.ts");
-    assert!(
-        has_smell(&output, "Code Duplication"),
-        "should detect duplication in TS, got: {output}"
-    );
+    assert!(has_smell(&output, "Code Duplication"), "should detect duplication in TS, got: {output}");
     assert!(has_function(&output, "processUserReport"));
     assert!(has_function(&output, "processAdminReport"));
     assert!(has_function(&output, "processVendorReport"));
@@ -125,10 +106,7 @@ class KitchenSink {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Low Cohesion"),
-        "should detect low cohesion in TS class, got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Low Cohesion"), "should detect low cohesion in TS class, got: {stdout}");
 }
 
 #[test]
@@ -149,10 +127,7 @@ const handler = (a: string, b: string, c: string, d: string, e: string, f: strin
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Excess Arguments"),
-        "arrow function with 7 args should be flagged, got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Excess Arguments"), "arrow function with 7 args should be flagged, got: {stdout}");
 }
 
 #[test]
@@ -184,10 +159,7 @@ function handleAction(action: string): string {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Complex Method"),
-        "9 switch cases should trigger cc >= 9, got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Complex Method"), "9 switch cases should trigger cc >= 9, got: {stdout}");
 }
 
 #[test]
@@ -201,10 +173,7 @@ fn hook_mode_works_with_ts() {
 fn hook_mode_detects_smells_in_ts() {
     let path = fixtures_dir(LANG).join("complex_method.ts");
     let output = run_hook(path.to_str().unwrap());
-    assert!(
-        !output.is_empty(),
-        "hook on smelly TS file should produce output"
-    );
+    assert!(!output.is_empty(), "hook on smelly TS file should produce output");
 }
 
 #[test]
@@ -244,11 +213,7 @@ fn performance_ts_under_500ms() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 500,
-        "TS analysis should be under 500ms, took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 500, "TS analysis should be under 500ms, took: {}ms", elapsed.as_millis());
 }
 
 // ===========================================================================
@@ -265,20 +230,14 @@ fn deep_nesting_depth_exceeds_4() {
 #[test]
 fn nested_conditional_chunks_detected() {
     let output = run_check(LANG, "bumpy_road.ts");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks"), "got: {output}");
     assert!(has_function(&output, "validateAndProcess"));
 }
 
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.ts");
-    assert!(
-        has_smell(&output, "Large Embedded Block"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
     assert!(has_function(&output, "getActiveUsers"));
 }
 
@@ -314,18 +273,13 @@ fn boolean_operators_increment_cc() {
     let _output = pulse_check_code("function f(): void {\n    if (a && b && c) {}\n}\n", "ts");
     let debug = pulse_debug_code("function f(): void {\n    if (a && b && c) {}\n}\n", "ts");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(
-        cc >= 4,
-        "boolean operators should increment cc, got: {cc}"
-    );
+    assert!(cc >= 4, "boolean operators should increment cc, got: {cc}");
 }
 
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.ts");
-    let has_loc = output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): "));
+    let has_loc = output.lines().any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc);
 }
 
@@ -358,19 +312,13 @@ fn comments_only_file() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("function f(): void {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n}\n", "ts");
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
 fn function_below_cc_boundary_not_flagged() {
     let out = pulse_check_code("function f(): void {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n}\n", "ts");
-    assert!(
-        !has_smell(&out, "Complex Method"),
-        "cc=8 should not trigger, got: {out}"
-    );
+    assert!(!has_smell(&out, "Complex Method"), "cc=8 should not trigger, got: {out}");
 }
 
 #[test]
@@ -488,10 +436,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout
-        .lines()
-        .filter(|l| l.contains("processDataPipeline"))
-        .collect();
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("processDataPipeline")).collect();
     assert!(
         !lines.iter().any(|l| l.contains("Complex Method")),
         "should not separately report Complex Method for a God Method"
@@ -546,10 +491,7 @@ fn complex_conditional_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Complex Conditional") || has_smell(&stdout, "Complex Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Complex Conditional") || has_smell(&stdout, "Complex Method"), "got: {stdout}");
     assert!(has_function(&stdout, "checkEligibility"));
 }
 
@@ -582,10 +524,7 @@ fn simple_check_not_flagged() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        !has_function(&stdout, "simpleCheck"),
-        "simpleCheck should not be flagged"
-    );
+    assert!(!has_function(&stdout, "simpleCheck"), "simpleCheck should not be flagged");
 }
 
 // ===========================================================================
@@ -670,12 +609,15 @@ fn too_many_functions_detected() {
 
 #[test]
 fn decorated_function_analyzed() {
-    let out = pulse_check_code(concat!(
-        "function decorator(target: any) { return target; }\n\n",
-        "function longDeco(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any): any {\n",
-        "    return a;\n",
-        "}\n",
-    ), "ts");
+    let out = pulse_check_code(
+        concat!(
+            "function decorator(target: any) { return target; }\n\n",
+            "function longDeco(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any): any {\n",
+            "    return a;\n",
+            "}\n",
+        ),
+        "ts",
+    );
     assert!(
         has_smell(&out, "Excess Arguments") || has_function(&out, "longDeco"),
         "function with 8 args should be flagged, got: {out}"

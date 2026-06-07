@@ -41,10 +41,7 @@ fn python_three_segment_chain_extracts_rightmost_method() {
 
 #[test]
 fn python_class_static_call_path_qualified() {
-    let (_d, p) = write_tempfile(
-        "def caller():\n    Foo.bar()\n    Service.handle(x)\n",
-        "py",
-    );
+    let (_d, p) = write_tempfile("def caller():\n    Foo.bar()\n    Service.handle(x)\n", "py");
     let calls = calls_for_file(&p, Language::Python);
     let bar = find_call(&calls, "bar").expect("bar found");
     let handle = find_call(&calls, "handle").expect("handle found");
@@ -103,10 +100,7 @@ fn rust_path_qualified_call_uses_rightmost_segment() {
     let (_d, p) = write_tempfile(src, "rs");
     let calls = calls_for_file(&p, Language::Rust);
     let baz = find_call(&calls, "baz").expect("baz");
-    assert!(
-        find_call(&calls, "bar").is_none(),
-        "bar is a path segment, not a callee"
-    );
+    assert!(find_call(&calls, "bar").is_none(), "bar is a path segment, not a callee");
     assert!(baz.call.receiver_hint.is_some() || baz.call.receiver_hint.is_none());
 }
 
@@ -125,13 +119,7 @@ fn empty_source_yields_no_calls() {
 
 #[test]
 fn multiple_distinct_callsites_all_extracted() {
-    let src = concat!(
-        "def caller():\n",
-        "    foo()\n",
-        "    bar()\n",
-        "    obj.baz()\n",
-        "    Mod.qux()\n",
-    );
+    let src = concat!("def caller():\n", "    foo()\n", "    bar()\n", "    obj.baz()\n", "    Mod.qux()\n",);
     let (_d, p) = write_tempfile(src, "py");
     let calls = calls_for_file(&p, Language::Python);
     assert!(find_call(&calls, "foo").is_some());

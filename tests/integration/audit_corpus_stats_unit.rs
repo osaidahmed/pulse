@@ -39,11 +39,7 @@ fn welford_matches_naive_variance_for_random_sequence() {
     }
     let (mean, var) = w.finalize();
     let naive_mean: f64 = xs.iter().map(|v| f64::from(*v)).sum::<f64>() / xs.len() as f64;
-    let naive_var: f64 = xs
-        .iter()
-        .map(|v| (f64::from(*v) - naive_mean).powi(2))
-        .sum::<f64>()
-        / (xs.len() as f64 - 1.0);
+    let naive_var: f64 = xs.iter().map(|v| (f64::from(*v) - naive_mean).powi(2)).sum::<f64>() / (xs.len() as f64 - 1.0);
     assert!((mean - naive_mean).abs() < 1e-9, "mean disagrees");
     assert!((var - naive_var).abs() < 1e-9, "variance disagrees");
 }
@@ -109,8 +105,7 @@ fn kind_histogram_probabilities_sum_to_one_unsmoothed() {
     for kind in &["a", "a", "b", "c", "c", "c"] {
         h.observe(kind);
     }
-    let sum =
-        h.probability("a", false) + h.probability("b", false) + h.probability("c", false);
+    let sum = h.probability("a", false) + h.probability("b", false) + h.probability("c", false);
     assert!((sum - 1.0).abs() < 1e-9, "expected sum=1.0, got {sum}");
 }
 
@@ -180,16 +175,7 @@ fn aggregate_corpus_preserves_per_file_and_sums_project_histogram() {
     let stats = aggregate_corpus(per_file);
     assert_eq!(stats.per_file.len(), 2);
     assert_eq!(stats.project_kind_histogram.total, 5);
-    assert_eq!(
-        stats.project_kind_histogram.counts.get("identifier").copied(),
-        Some(3)
-    );
-    assert_eq!(
-        stats.project_kind_histogram.counts.get("call").copied(),
-        Some(1)
-    );
-    assert_eq!(
-        stats.project_kind_histogram.counts.get("string").copied(),
-        Some(1)
-    );
+    assert_eq!(stats.project_kind_histogram.counts.get("identifier").copied(), Some(3));
+    assert_eq!(stats.project_kind_histogram.counts.get("call").copied(), Some(1));
+    assert_eq!(stats.project_kind_histogram.counts.get("string").copied(), Some(1));
 }

@@ -45,9 +45,7 @@ pub fn write_cycle(
         prefix_rest: "                 ",
         cap: t.max_locations_per_finding,
     };
-    write_capped_list(out, &members_layout, c.members.len(), |i| {
-        display_path(&c.members[i], root)
-    });
+    write_capped_list(out, &members_layout, c.members.len(), |i| display_path(&c.members[i], root));
     let edges_layout = ListLayout {
         prefix_first: "  edges:         ",
         prefix_rest: "                 ",
@@ -59,12 +57,7 @@ pub fn write_cycle(
     });
     let _ = writeln!(out, "  centrality:    {:.4}", c.centrality);
     if let Some((src, dst)) = &c.feedback_edge {
-        let _ = writeln!(
-            out,
-            "  suggested cut: {} -> {}",
-            display_path(src, root),
-            display_path(dst, root)
-        );
+        let _ = writeln!(out, "  suggested cut: {} -> {}", display_path(src, root), display_path(dst, root));
     }
     let _ = writeln!(out, "  confidence:    {}", confidence_str(c.confidence));
     write_action_row(out, action);
@@ -72,15 +65,9 @@ pub fn write_cycle(
 }
 
 pub fn write_zero_edge(out: &mut String, module_count: u32, action: &'static str) {
-    let _ = writeln!(
-        out,
-        "audit: no import edges resolved across {module_count} modules"
-    );
+    let _ = writeln!(out, "audit: no import edges resolved across {module_count} modules");
     let _ = writeln!(out, "  note: per-module distance findings suppressed.");
-    let _ = writeln!(
-        out,
-        "  hint: confirm --root points at the project's source tree."
-    );
+    let _ = writeln!(out, "  hint: confirm --root points at the project's source tree.");
     write_action_row(out, action);
     let _ = writeln!(out);
 }

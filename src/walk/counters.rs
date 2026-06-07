@@ -5,11 +5,7 @@ use super::{find_child_by_kind, node_text};
 const SHORT_VAR_EXEMPT: &[&str] = &["_", "i", "j", "k"];
 
 pub fn max_same_primitive(types: &[&str]) -> u32 {
-    types
-        .iter()
-        .map(|ty| types.iter().filter(|x| *x == ty).count() as u32)
-        .max()
-        .unwrap_or(0)
+    types.iter().map(|ty| types.iter().filter(|x| *x == ty).count() as u32).max().unwrap_or(0)
 }
 
 pub fn count_short_variables(body: Node, source: &str, binding_kinds: &[&str]) -> u32 {
@@ -34,9 +30,15 @@ fn walk_for_short_vars(node: Node, source: &str, kinds: &[&str], count: &mut u32
 }
 
 fn find_first_identifier(node: Node) -> Option<Node> {
-    if let Some(id) = find_child_by_kind(node, "identifier") { return Some(id); }
-    if let Some(id) = find_child_by_kind(node, "simple_identifier") { return Some(id); }
-    if let Some(id) = find_child_by_kind(node, "id") { return Some(id); }
+    if let Some(id) = find_child_by_kind(node, "identifier") {
+        return Some(id);
+    }
+    if let Some(id) = find_child_by_kind(node, "simple_identifier") {
+        return Some(id);
+    }
+    if let Some(id) = find_child_by_kind(node, "id") {
+        return Some(id);
+    }
     let mut cursor = node.walk();
     let result = node.children(&mut cursor).find_map(find_first_identifier);
     result
@@ -86,9 +88,7 @@ fn switch_has_default(switch_node: Node, kinds: &MatchKinds) -> bool {
 
 fn has_kind_in(node: Node, kinds: &[&str]) -> bool {
     let mut cursor = node.walk();
-    let result = node
-        .children(&mut cursor)
-        .any(|child| kinds.contains(&child.kind()) || has_kind_in(child, kinds));
+    let result = node.children(&mut cursor).any(|child| kinds.contains(&child.kind()) || has_kind_in(child, kinds));
     result
 }
 
@@ -124,7 +124,9 @@ fn tally_recursive(node: Node, case_kind: &str, string_kinds: &[&str], count: &m
 }
 
 fn case_has_string(node: &Node, string_kinds: &[&str]) -> bool {
-    if string_kinds.contains(&node.kind()) { return true; }
+    if string_kinds.contains(&node.kind()) {
+        return true;
+    }
     let mut cursor = node.walk();
     let result = node.children(&mut cursor).any(|c| case_has_string(&c, string_kinds));
     result

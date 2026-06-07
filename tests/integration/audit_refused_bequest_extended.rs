@@ -25,10 +25,7 @@ fn def(file: &str, class: &str, name: &str, line: u32, parent: Option<&str>, is_
     }
 }
 
-fn detect_with(
-    defs: Vec<DefinitionRecord>,
-    th: &pulse::thresholds::AuditThresholds,
-) -> Vec<AuditFinding> {
+fn detect_with(defs: Vec<DefinitionRecord>, th: &pulse::thresholds::AuditThresholds) -> Vec<AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lang_lookup = |_: &std::path::Path| -> Option<Language> { None };
@@ -43,9 +40,7 @@ fn rb(f: &AuditFinding) -> &RefusedBequestEvidence {
 }
 
 fn parent_with_n_methods(n: u32) -> Vec<DefinitionRecord> {
-    (1..=n)
-        .map(|i| def("p.py", "Parent", &format!("m{i}"), i, None, false))
-        .collect()
+    (1..=n).map(|i| def("p.py", "Parent", &format!("m{i}"), i, None, false)).collect()
 }
 
 #[test]
@@ -290,10 +285,7 @@ fn multiple_subclasses_one_parent_each_evaluated() {
     defs.push(def("c3.py", "C3", "m3", 10, Some("Parent"), false));
     defs.push(def("c3.py", "C3", "m4", 15, Some("Parent"), false));
     let findings = detect_with(defs, &t().audit);
-    let names: std::collections::BTreeSet<String> = findings
-        .iter()
-        .map(|f| rb(f).subclass_name.clone())
-        .collect();
+    let names: std::collections::BTreeSet<String> = findings.iter().map(|f| rb(f).subclass_name.clone()).collect();
     assert!(names.contains("C1"));
 }
 
@@ -302,14 +294,7 @@ fn stress_50_subclasses_completes() {
     use std::time::Instant;
     let mut defs = parent_with_n_methods(5);
     for i in 0..50 {
-        defs.push(def(
-            &format!("c_{i}.py"),
-            &format!("C{i}"),
-            "m1",
-            1,
-            Some("Parent"),
-            false,
-        ));
+        defs.push(def(&format!("c_{i}.py"), &format!("C{i}"), "m1", 1, Some("Parent"), false));
     }
     let started = Instant::now();
     let findings = detect_with(defs, &t().audit);

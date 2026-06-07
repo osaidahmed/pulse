@@ -1,6 +1,4 @@
-use pulse::config::{
-    combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, PulseConfig,
-};
+use pulse::config::{combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, PulseConfig};
 use pulse::history::thresholds::HistoryThresholds;
 
 fn parse(s: &str) -> PulseConfig {
@@ -54,9 +52,7 @@ fn config_ignore_paths_glob() {
 
 #[test]
 fn config_ignore_paths_multiple() {
-    let cfg = parse(
-        "[history]\nignore_paths = [\"src/a/**\", \"src/b/**\", \"docs/**\"]\n",
-    );
+    let cfg = parse("[history]\nignore_paths = [\"src/a/**\", \"src/b/**\", \"docs/**\"]\n");
     assert_eq!(cfg.history.ignore_paths.len(), 3);
 }
 
@@ -98,9 +94,7 @@ fn config_all_three_max_findings_combined() {
 
 #[test]
 fn config_combined_ignore_and_caps() {
-    let cfg = parse(
-        "[history]\nignore_paths = [\"src/legacy/**\"]\n[history.hotspot]\nmax_findings = 7\n",
-    );
+    let cfg = parse("[history]\nignore_paths = [\"src/legacy/**\"]\n[history.hotspot]\nmax_findings = 7\n");
     assert_eq!(cfg.history.ignore_paths, vec!["src/legacy/**"]);
     assert_eq!(cfg.history.hotspot.max_findings, Some(7));
 }
@@ -163,27 +157,21 @@ fn config_ignore_paths_typo_field_rejected() {
 
 #[test]
 fn config_history_alongside_ignore_section() {
-    let cfg = parse(
-        "[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"docs/**\"]\n",
-    );
+    let cfg = parse("[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"docs/**\"]\n");
     assert_eq!(cfg.ignore.paths, vec!["vendor/**"]);
     assert_eq!(cfg.history.ignore_paths, vec!["docs/**"]);
 }
 
 #[test]
 fn config_history_alongside_audit_section() {
-    let cfg = parse(
-        "[audit]\nhide_categories = [\"x\"]\n[history]\nignore_paths = [\"y\"]\n",
-    );
+    let cfg = parse("[audit]\nhide_categories = [\"x\"]\n[history]\nignore_paths = [\"y\"]\n");
     assert_eq!(cfg.audit.hide_categories, vec!["x"]);
     assert_eq!(cfg.history.ignore_paths, vec!["y"]);
 }
 
 #[test]
 fn config_history_alongside_thresholds() {
-    let cfg = parse(
-        "[thresholds]\ncc_warning = 5\n[history.hotspot]\nmax_findings = 3\n",
-    );
+    let cfg = parse("[thresholds]\ncc_warning = 5\n[history.hotspot]\nmax_findings = 3\n");
     assert_eq!(cfg.thresholds.function.cc_warning, Some(5));
     assert_eq!(cfg.history.hotspot.max_findings, Some(3));
 }
@@ -358,9 +346,7 @@ fn combined_ignore_history_only() {
 
 #[test]
 fn combined_ignore_merges_global_and_history() {
-    let cfg = parse(
-        "[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"docs/**\", \"build/**\"]\n",
-    );
+    let cfg = parse("[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"docs/**\", \"build/**\"]\n");
     let patterns = combined_history_ignore_patterns(Some(&cfg));
     assert_eq!(patterns.len(), 3);
     assert!(patterns.contains(&"vendor/**".to_string()));
@@ -370,18 +356,15 @@ fn combined_ignore_merges_global_and_history() {
 
 #[test]
 fn combined_ignore_preserves_global_first_then_history() {
-    let cfg = parse(
-        "[ignore]\npaths = [\"global/a\", \"global/b\"]\n[history]\nignore_paths = [\"hist/a\", \"hist/b\"]\n",
-    );
+    let cfg =
+        parse("[ignore]\npaths = [\"global/a\", \"global/b\"]\n[history]\nignore_paths = [\"hist/a\", \"hist/b\"]\n");
     let patterns = combined_history_ignore_patterns(Some(&cfg));
     assert_eq!(patterns, vec!["global/a", "global/b", "hist/a", "hist/b"]);
 }
 
 #[test]
 fn combined_ignore_duplicates_are_kept() {
-    let cfg = parse(
-        "[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"vendor/**\"]\n",
-    );
+    let cfg = parse("[ignore]\npaths = [\"vendor/**\"]\n[history]\nignore_paths = [\"vendor/**\"]\n");
     let patterns = combined_history_ignore_patterns(Some(&cfg));
     assert_eq!(patterns.len(), 2);
 }
@@ -429,9 +412,7 @@ fn cli_overrides_is_copy_and_clone() {
 
 #[test]
 fn resolve_history_with_only_two_config_caps_set() {
-    let cfg = parse(
-        "[history.co_change]\nmax_findings = 5\n[history.contributors]\nmax_findings = 6\n",
-    );
+    let cfg = parse("[history.co_change]\nmax_findings = 5\n[history.contributors]\nmax_findings = 6\n");
     let t = resolve_history_thresholds(Some(&cfg), cli(None, None, None));
     assert_eq!(t.co_change.max_findings_reported, 5);
     assert_eq!(t.hotspot.max_findings_reported, defaults_hot());

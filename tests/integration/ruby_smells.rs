@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -96,10 +95,7 @@ fn function_below_cc_boundary_not_flagged() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code(
-        "def f(a, b, c)\n  if a && b && c\n    return true\n  end\n  false\nend\n",
-        "rb",
-    );
+    let debug = pulse_debug_code("def f(a, b, c)\n  if a && b && c\n    return true\n  end\n  false\nend\n", "rb");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {cc}");
 }
@@ -158,10 +154,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -231,10 +224,7 @@ fn embedded_block_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.rb");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
@@ -300,23 +290,23 @@ fn simple_string_not_flagged() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "def check(age, score, active)\n",
-        "  if age > 18 && score > 50 && active\n",
-        "    if score > 80 || (age > 25 && active)\n",
-        "      return true\n",
-        "    end\n",
-        "  end\n",
-        "  if age > 65 || score < 10\n",
-        "    return true\n",
-        "  end\n",
-        "  false\n",
-        "end\n",
-    ), "rb");
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "def check(age, score, active)\n",
+            "  if age > 18 && score > 50 && active\n",
+            "    if score > 80 || (age > 25 && active)\n",
+            "      return true\n",
+            "    end\n",
+            "  end\n",
+            "  if age > 65 || score < 10\n",
+            "    return true\n",
+            "  end\n",
+            "  false\n",
+            "end\n",
+        ),
+        "rb",
     );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -366,22 +356,25 @@ fn hook_nonexistent_file_silent() {
 
 #[test]
 fn case_when_increments_cc() {
-    let out = pulse_check_code(concat!(
-        "def handle(action)\n",
-        "  case action\n",
-        "  when 1 then \"a\"\n",
-        "  when 2 then \"b\"\n",
-        "  when 3 then \"c\"\n",
-        "  when 4 then \"d\"\n",
-        "  when 5 then \"e\"\n",
-        "  when 6 then \"f\"\n",
-        "  when 7 then \"g\"\n",
-        "  when 8 then \"h\"\n",
-        "  when 9 then \"i\"\n",
-        "  else \"?\"\n",
-        "  end\n",
-        "end\n",
-    ), "rb");
+    let out = pulse_check_code(
+        concat!(
+            "def handle(action)\n",
+            "  case action\n",
+            "  when 1 then \"a\"\n",
+            "  when 2 then \"b\"\n",
+            "  when 3 then \"c\"\n",
+            "  when 4 then \"d\"\n",
+            "  when 5 then \"e\"\n",
+            "  when 6 then \"f\"\n",
+            "  when 7 then \"g\"\n",
+            "  when 8 then \"h\"\n",
+            "  when 9 then \"i\"\n",
+            "  else \"?\"\n",
+            "  end\n",
+            "end\n",
+        ),
+        "rb",
+    );
     assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
@@ -415,90 +408,90 @@ fn constructor_over_injection_detected() {
 
 #[test]
 fn for_in_increments_cc() {
-    let debug = pulse_debug_code(
-        "def sum(data)\n  s = 0\n  for v in data\n    s += v\n  end\n  s\nend\n",
-        "rb",
-    );
+    let debug = pulse_debug_code("def sum(data)\n  s = 0\n  for v in data\n    s += v\n  end\n  s\nend\n", "rb");
     let cc = function_metric(&debug, "sum", "cc").unwrap_or(0);
     assert!(cc >= 2, "for should increment cc, got: {cc}");
 }
 
 #[test]
 fn method_attributed_to_class() {
-    let debug = pulse_debug_code(concat!(
-        "class Svc\n",
-        "  def handle(a, b, c, d, e, f, g, h)\n",
-        "    a + b\n",
-        "  end\n",
-        "end\n",
-    ), "rb");
+    let debug = pulse_debug_code(
+        concat!("class Svc\n", "  def handle(a, b, c, d, e, f, g, h)\n", "    a + b\n", "  end\n", "end\n",),
+        "rb",
+    );
     assert!(debug.contains("Svc.handle"), "method should be attributed to class, got: {debug}");
 }
 
 #[test]
 fn code_duplication_inline() {
-    let out = pulse_check_code(concat!(
-        "def rpt_a(data)\n",
-        "  r = 0\n",
-        "  data.each do |v|\n    r += v\n  end\n",
-        "  r = r * 2\n  r\n",
-        "end\n\n",
-        "def rpt_b(data)\n",
-        "  r = 0\n",
-        "  data.each do |v|\n    r += v\n  end\n",
-        "  r = r * 2\n  r\n",
-        "end\n",
-    ), "rb");
+    let out = pulse_check_code(
+        concat!(
+            "def rpt_a(data)\n",
+            "  r = 0\n",
+            "  data.each do |v|\n    r += v\n  end\n",
+            "  r = r * 2\n  r\n",
+            "end\n\n",
+            "def rpt_b(data)\n",
+            "  r = 0\n",
+            "  data.each do |v|\n    r += v\n  end\n",
+            "  r = r * 2\n  r\n",
+            "end\n",
+        ),
+        "rb",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
 fn nested_conditional_chunks_detected() {
-    let out = pulse_check_code(concat!(
-        "def validate(data)\n",
-        "  if data.length > 0\n",
-        "    if data[0] > 0\n",
-        "      if data[0] > 10\n",
-        "        x = 1\n",
-        "      end\n",
-        "    end\n",
-        "  end\n",
-        "  gap = 1\n",
-        "  if data.length > 5\n",
-        "    if data[5] > 0\n",
-        "      if data[5] > 10\n",
-        "        y = 2\n",
-        "      end\n",
-        "    end\n",
-        "  end\n",
-        "  gap2 = 2\n",
-        "  if data.length > 10\n",
-        "    if data[10] > 0\n",
-        "      if data[10] > 10\n",
-        "        z = 3\n",
-        "      end\n",
-        "    end\n",
-        "  end\n",
-        "  0\n",
-        "end\n",
-    ), "rb");
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "def validate(data)\n",
+            "  if data.length > 0\n",
+            "    if data[0] > 0\n",
+            "      if data[0] > 10\n",
+            "        x = 1\n",
+            "      end\n",
+            "    end\n",
+            "  end\n",
+            "  gap = 1\n",
+            "  if data.length > 5\n",
+            "    if data[5] > 0\n",
+            "      if data[5] > 10\n",
+            "        y = 2\n",
+            "      end\n",
+            "    end\n",
+            "  end\n",
+            "  gap2 = 2\n",
+            "  if data.length > 10\n",
+            "    if data[10] > 0\n",
+            "      if data[10] > 10\n",
+            "        z = 3\n",
+            "      end\n",
+            "    end\n",
+            "  end\n",
+            "  0\n",
+            "end\n",
+        ),
+        "rb",
     );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
 fn rescue_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "def f(x)\n",
-        "  begin\n",
-        "    Integer(x)\n",
-        "  rescue ArgumentError\n",
-        "    -1\n",
-        "  end\n",
-        "end\n",
-    ), "rb");
+    let debug = pulse_debug_code(
+        concat!(
+            "def f(x)\n",
+            "  begin\n",
+            "    Integer(x)\n",
+            "  rescue ArgumentError\n",
+            "    -1\n",
+            "  end\n",
+            "end\n",
+        ),
+        "rb",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "rescue should add CC, got: {cc}");
 }

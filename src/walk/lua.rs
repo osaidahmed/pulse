@@ -4,18 +4,12 @@ use super::counters::count_short_variables;
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["--"];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "while_statement",
-    "repeat_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] = &["if_statement", "for_statement", "while_statement", "repeat_statement"];
 const BOOL_OPS: &[&str] = &["and", "or"];
 const BOOL_STOPS: &[&str] = &["block", "function_declaration", "function_definition"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -34,12 +28,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let mut global_max_nesting: u32 = 0;
 
     collect_functions(root, source, &mut functions);
-    shared::collect_global_metrics(
-        root,
-        &mut global_conditional_count,
-        &mut global_max_nesting,
-        &GLOBAL_CFG,
-    );
+    shared::collect_global_metrics(root, &mut global_conditional_count, &mut global_max_nesting, &GLOBAL_CFG);
 
     let total_functions = functions.len() as u32;
     let sum_cc: u32 = functions.iter().map(|f| f.cc).sum();
@@ -113,7 +102,8 @@ fn extract_var_name(node: Node, source: &str) -> String {
 
 fn analyze_named_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let mut cursor = node.walk();
-    let name_node = node.children(&mut cursor)
+    let name_node = node
+        .children(&mut cursor)
         .find(|c| matches!(c.kind(), "identifier" | "method_index_expression" | "dot_index_expression"))?;
     let arg_count = count_parameters(node);
     let (info, class) = extract_fn_identity(name_node, source, arg_count);
@@ -132,11 +122,7 @@ fn analyze_named_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     Some(m)
 }
 
-fn extract_fn_identity<'a>(
-    name_node: Node<'a>,
-    source: &'a str,
-    arg_count: u32,
-) -> (FnInfo, Option<&'a str>) {
+fn extract_fn_identity<'a>(name_node: Node<'a>, source: &'a str, arg_count: u32) -> (FnInfo, Option<&'a str>) {
     match name_node.kind() {
         "method_index_expression" => {
             let table = name_node.child(0).map_or("", |n| node_text(n, source));
@@ -203,7 +189,8 @@ fn build_metrics(node: Node, source: &str, info: FnInfo) -> Option<FunctionMetri
         foreign_field_accesses: Vec::new(),
         class_name: None,
         parent_class: None,
-        short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment_statement", "variable_declaration"])),
+        short_var_count: body
+            .map_or(0, |b| count_short_variables(b, source, &["assignment_statement", "variable_declaration"])),
         string_match_arms: 0,
         cpg: None,
     })
@@ -214,10 +201,7 @@ fn count_parameters(func: Node) -> u32 {
         return 0;
     };
     let mut cursor = params.walk();
-    params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "identifier" || c.kind() == "vararg_expression")
-        .count() as u32
+    params.children(&mut cursor).filter(|c| c.kind() == "identifier" || c.kind() == "vararg_expression").count() as u32
 }
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {

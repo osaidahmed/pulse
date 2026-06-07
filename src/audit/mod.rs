@@ -18,8 +18,6 @@ pub mod confidence;
 pub mod corpus_stats;
 pub mod cycle_shapes;
 pub mod cycles;
-pub mod duplication_clusters;
-pub mod expression_filter;
 pub mod definitions;
 pub mod detector_divergent_change;
 pub mod detector_feature_envy;
@@ -27,9 +25,10 @@ pub mod detector_god_class;
 pub mod detector_parallel_inheritance;
 pub mod detector_refused_bequest;
 pub mod discovery;
+pub mod duplication_clusters;
+pub mod expression_filter;
 pub mod finding;
 pub mod finding_evidence;
-pub mod inheritance;
 pub mod graph;
 pub mod import_call_form;
 pub mod import_command_form;
@@ -39,19 +38,20 @@ pub mod import_php;
 pub mod import_preprocessor;
 pub mod import_python;
 pub mod imports;
+pub mod inheritance;
 pub mod lang_kinds;
 pub mod martin;
 pub mod mdl;
 pub mod named_smells;
 pub mod output;
-pub mod output_grouped;
-pub mod output_helpers;
-pub mod output_named_smells;
-pub mod output_package_metrics;
 pub mod output_advisory;
 pub mod output_arch;
 pub mod output_clones;
+pub mod output_grouped;
+pub mod output_helpers;
+pub mod output_named_smells;
 pub mod output_naturalness;
+pub mod output_package_metrics;
 pub mod output_sections;
 pub mod output_taint;
 pub mod output_vuln_clones;
@@ -113,14 +113,7 @@ pub enum PassChoice {
     All,
 }
 
-const SKIP_DIRS: &[&str] = &[
-    "node_modules",
-    "target",
-    "vendor",
-    "build",
-    "dist",
-    "__pycache__",
-];
+const SKIP_DIRS: &[&str] = &["node_modules", "target", "vendor", "build", "dist", "__pycache__"];
 
 pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let empty = IgnoreMatcher::from_patterns(&[]);
@@ -128,11 +121,7 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
     run_with_filter(opts, thresholds, &filter)
 }
 
-pub fn run_with_filter(
-    opts: &AuditOpts,
-    thresholds: &AuditThresholds,
-    filter: &IgnoreFilter,
-) -> Vec<AuditFinding> {
+pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &IgnoreFilter) -> Vec<AuditFinding> {
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let passes = active_passes(opts.pass);
     let mut findings: Vec<AuditFinding> = Vec::new();
@@ -180,10 +169,7 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<PassChoice> {
     }
 }
 
-fn run_pattern_mining(
-    typed_files: &[(PathBuf, Language)],
-    thresholds: &AuditThresholds,
-) -> Vec<AuditFinding> {
+fn run_pattern_mining(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let bundle = record_extraction::corpus_bundle(typed_files, thresholds);
     let stats = corpus_stats::aggregate_corpus(bundle.features);
     let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
@@ -198,12 +184,7 @@ fn run_pattern_mining(
     let shapes = complexity_floor::shape_index(&filtered);
     let trimmed = complexity_floor::filter_clusters(clusters, &shapes, thresholds.pattern_mining.complexity);
     let expression_only = expression_filter::keep_expression_clusters(trimmed, &bundle.kinds_by_fp);
-    let vocab = bundle
-        .kinds_by_fp
-        .values()
-        .flatten()
-        .collect::<std::collections::HashSet<_>>()
-        .len();
+    let vocab = bundle.kinds_by_fp.values().flatten().collect::<std::collections::HashSet<_>>().len();
     let size_by_fp: std::collections::HashMap<u64, u32> =
         filtered.iter().map(|r| (r.fingerprint, r.named_node_count)).collect();
     let ctx = scoring::ScoringCtx {
@@ -223,10 +204,7 @@ fn run_package_metrics(
     root: &Path,
     thresholds: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let supported_count = typed_files
-        .iter()
-        .filter(|(_, l)| imports::has_extractor(*l))
-        .count();
+    let supported_count = typed_files.iter().filter(|(_, l)| imports::has_extractor(*l)).count();
     if supported_count < MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS {
         return Vec::new();
     }
@@ -241,8 +219,7 @@ fn run_package_metrics(
 }
 
 fn collect_import_edges(typed_files: &[(PathBuf, Language)], root: &Path) -> Vec<InputEdge> {
-    let typed_set: std::collections::HashSet<PathBuf> =
-        typed_files.iter().map(|(p, _)| p.clone()).collect();
+    let typed_set: std::collections::HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let mut edges: Vec<InputEdge> = Vec::new();
     for (path, lang) in typed_files {
         edges.extend(edges_for_file(path, *lang, root, &typed_set, typed_files));
@@ -265,16 +242,8 @@ fn edges_for_file(
         let Some(resolved) = resolve_via_strategies(&raw.target, path, root, lang, typed_set) else {
             continue;
         };
-        let target_lang = typed_files
-            .iter()
-            .find(|(p, _)| p == &resolved)
-            .map_or(lang, |(_, l)| *l);
-        out.push(InputEdge {
-            source: path.to_path_buf(),
-            target: resolved,
-            source_lang: lang,
-            target_lang,
-        });
+        let target_lang = typed_files.iter().find(|(p, _)| p == &resolved).map_or(lang, |(_, l)| *l);
+        out.push(InputEdge { source: path.to_path_buf(), target: resolved, source_lang: lang, target_lang });
     }
     out
 }
@@ -298,32 +267,18 @@ fn build_lang_by_path(typed_files: &[(PathBuf, Language)]) -> std::collections::
     typed_files.iter().map(|(p, l)| (p.clone(), *l)).collect()
 }
 
-fn profile_for_path(
-    path: &Path,
-    lang_by_path: &std::collections::HashMap<PathBuf, Language>,
-) -> ModuleProfile {
+fn profile_for_path(path: &Path, lang_by_path: &std::collections::HashMap<PathBuf, Language>) -> ModuleProfile {
     let lang = lang_by_path.get(path).copied();
     let import_confidence = lang.map_or(finding::ImportConfidence::BestEffort, imports::confidence_for);
     let abstractness = lang.map_or_else(
-        || martin::AbstractnessRecord {
-            abstractness: 0.0,
-            confidence: finding::ImportConfidence::NaAbstraction,
-        },
+        || martin::AbstractnessRecord { abstractness: 0.0, confidence: finding::ImportConfidence::NaAbstraction },
         |l| abstractness::abstractness_for_file(path, l),
     );
     let loc = std::fs::read_to_string(path).map_or(0, |s| s.lines().count() as u32);
-    ModuleProfile {
-        abstractness,
-        import_confidence,
-        loc,
-    }
+    ModuleProfile { abstractness, import_confidence, loc }
 }
 
-pub fn extract_subtrees_for_dir(
-    root: &Path,
-    lang: Language,
-    thresholds: &AuditThresholds,
-) -> Vec<SubtreeRecord> {
+pub fn extract_subtrees_for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec<SubtreeRecord> {
     record_extraction::for_dir(root, lang, thresholds)
 }
 
@@ -354,12 +309,7 @@ pub fn audit_traversal_cap_hit(file_count: usize) -> bool {
     file_count >= MAX_FILES
 }
 
-fn walk_typed_dir(
-    dir: &Path,
-    include_tests: bool,
-    filter: &IgnoreFilter,
-    files: &mut Vec<(PathBuf, Language)>,
-) {
+fn walk_typed_dir(dir: &Path, include_tests: bool, filter: &IgnoreFilter, files: &mut Vec<(PathBuf, Language)>) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
         if files.len() >= MAX_FILES {
@@ -369,12 +319,7 @@ fn walk_typed_dir(
     }
 }
 
-fn descend_or_collect(
-    path: PathBuf,
-    include_tests: bool,
-    filter: &IgnoreFilter,
-    files: &mut Vec<(PathBuf, Language)>,
-) {
+fn descend_or_collect(path: PathBuf, include_tests: bool, filter: &IgnoreFilter, files: &mut Vec<(PathBuf, Language)>) {
     if filter.matches(&path) {
         return;
     }
@@ -393,4 +338,3 @@ fn descend_or_collect(
         files.push((path, lang));
     }
 }
-

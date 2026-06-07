@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("lua");
@@ -15,9 +14,7 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_elseif() {
-    let out = debug(
-        "function f(x)\n    if x > 0 then\n    elseif x < 0 then\n    end\n    return x\nend\n",
-    );
+    let out = debug("function f(x)\n    if x > 0 then\n    elseif x < 0 then\n    end\n    return x\nend\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -59,7 +56,8 @@ fn cc_counts_or() {
 
 #[test]
 fn cc_chained_boolean() {
-    let out = debug("function f(a, b, c)\n    if a and b or c then\n        return true\n    end\n    return false\nend\n");
+    let out =
+        debug("function f(a, b, c)\n    if a and b or c then\n        return true\n    end\n    return false\nend\n");
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {cc}");
 }
@@ -196,7 +194,9 @@ fn nesting_depth_simple() {
 
 #[test]
 fn nesting_depth_nested() {
-    let out = debug("function f(a, b, c)\n    if a then\n        if b then\n            if c then end\n        end\n    end\nend\n");
+    let out = debug(
+        "function f(a, b, c)\n    if a then\n        if b then\n            if c then end\n        end\n    end\nend\n",
+    );
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -250,10 +250,7 @@ fn bumpy_road_two_bumps() {
         "    return x\n",
         "end\n",
     ));
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -371,10 +368,7 @@ fn exact_duplication_detected() {
 
 #[test]
 fn exact_duplication_below_min_loc() {
-    let out = check(concat!(
-        "function a(x)\n    return x + 1\nend\n\n",
-        "function b(x)\n    return x + 1\nend\n",
-    ));
+    let out = check(concat!("function a(x)\n    return x + 1\nend\n\n", "function b(x)\n    return x + 1\nend\n",));
     assert!(!has_smell(&out, "Code Duplication"));
 }
 
@@ -489,9 +483,7 @@ fn lcom4_connected_no_smell() {
 fn lcom4_disconnected() {
     let mut code = String::from("local M = {}\n");
     for i in 0..8 {
-        code.push_str(&format!(
-            "function M:get{i}()\n    return self.field{i}\nend\n"
-        ));
+        code.push_str(&format!("function M:get{i}()\n    return self.field{i}\nend\n"));
     }
     let out = check(&code);
     assert!(has_smell(&out, "Low Cohesion"), "got: {out}");
@@ -499,10 +491,7 @@ fn lcom4_disconnected() {
 
 #[test]
 fn lcom4_single_method_no_smell() {
-    let out = check(concat!(
-        "local M = {}\n",
-        "function M:getA()\n    return self.x\nend\n",
-    ));
+    let out = check(concat!("local M = {}\n", "function M:getA()\n    return self.x\nend\n",));
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
@@ -573,10 +562,7 @@ fn method_has_class_prefix() {
 #[test]
 fn init_is_constructor() {
     let out = debug("local M = {}\nfunction M:init(a, b, c, d, e, g)\nend\n");
-    assert!(
-        out.contains("M.init"),
-        "constructor should be detected, got: {out}"
-    );
+    assert!(out.contains("M.init"), "constructor should be detected, got: {out}");
 }
 
 // ===========================================================================
@@ -738,10 +724,7 @@ fn empty_function_body() {
 
 #[test]
 fn multiple_functions_independent_metrics() {
-    let out = debug(concat!(
-        "function alpha(x)\n    if x then end\nend\n",
-        "function zeta()\nend\n",
-    ));
+    let out = debug(concat!("function alpha(x)\n    if x then end\nend\n", "function zeta()\nend\n",));
     assert_eq!(function_metric(&out, "alpha", "cc"), Some(2));
     assert_eq!(function_metric(&out, "zeta", "cc"), Some(1));
 }

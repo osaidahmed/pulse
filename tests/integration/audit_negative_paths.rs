@@ -12,11 +12,7 @@ fn t() -> Thresholds {
 }
 
 fn pulse_audit(args: &[&str]) -> (String, String, i32) {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("audit")
-        .args(args)
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).arg("audit").args(args).output().unwrap();
     (
         String::from_utf8(out.stdout).unwrap_or_default(),
         String::from_utf8(out.stderr).unwrap_or_default(),
@@ -44,11 +40,7 @@ fn audit_root_with_extremely_long_path_does_not_overflow() {
 #[test]
 fn audit_with_no_arguments_runs_in_current_dir() {
     let dir = tempfile::tempdir().unwrap();
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("audit")
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).arg("audit").current_dir(dir.path()).output().unwrap();
     assert_eq!(out.status.code(), Some(0));
 }
 
@@ -388,18 +380,20 @@ fn freqt_mine_with_zero_min_support_includes_all_clusters() {
     use std::path::PathBuf;
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 0;
-    let records: Vec<SubtreeRecord> = (0..5).map(|i| SubtreeRecord {
-        fingerprint: i,
-        parent_fingerprint: None,
-        file: PathBuf::from("a.py"),
-        line: 1,
-        depth: 5,
-        named_node_count: 8,
-        snippet: "x".to_string(),
-        shape: ShapeMetrics::default(),
-        simhash: 0,
-        loc: 0,
-    }).collect();
+    let records: Vec<SubtreeRecord> = (0..5)
+        .map(|i| SubtreeRecord {
+            fingerprint: i,
+            parent_fingerprint: None,
+            file: PathBuf::from("a.py"),
+            line: 1,
+            depth: 5,
+            named_node_count: 8,
+            snippet: "x".to_string(),
+            shape: ShapeMetrics::default(),
+            simhash: 0,
+            loc: 0,
+        })
+        .collect();
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 5);
 }

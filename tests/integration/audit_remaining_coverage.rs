@@ -87,7 +87,11 @@ fn rb_with_real_python_abstract_parent_skipped() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lang_lookup = |p: &Path| -> Option<Language> {
-        if p.extension()?.to_str()? == "py" { Some(Language::Python) } else { None }
+        if p.extension()?.to_str()? == "py" {
+            Some(Language::Python)
+        } else {
+            None
+        }
     };
     let _ = rb::detect(&registry, &defs, &lang_lookup, &t().audit);
 }
@@ -137,7 +141,11 @@ fn rb_with_real_concrete_python_parent_can_fire() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lang_lookup = |p: &Path| -> Option<Language> {
-        if p.extension()?.to_str()? == "py" { Some(Language::Python) } else { None }
+        if p.extension()?.to_str()? == "py" {
+            Some(Language::Python)
+        } else {
+            None
+        }
     };
     let _ = rb::detect(&registry, &defs, &lang_lookup, &t().audit);
 }
@@ -198,10 +206,7 @@ fn pi_root_with_no_descendants_excluded_from_signature_map() {
 
 #[test]
 fn pi_signatures_all_fail_to_derive_yields_no_pair() {
-    let defs = vec![
-        def("a.py", "Foo", "m", 1, None, false),
-        def("b.py", "Foo", "m", 1, Some("Foo"), false),
-    ];
+    let defs = vec![def("a.py", "Foo", "m", 1, None, false), def("b.py", "Foo", "m", 1, Some("Foo"), false)];
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let inh = build_inheritance_graph(&registry);
@@ -216,35 +221,20 @@ fn python_import_relative_double_dot_handled() {
     fs::write(dir.path().join("pkg/__init__.py"), "").unwrap();
     fs::write(dir.path().join("pkg/sub/__init__.py"), "").unwrap();
     fs::write(dir.path().join("pkg/sibling.py"), "").unwrap();
-    let _ = resolve_target(
-        "..sibling",
-        &dir.path().join("pkg/sub/main.py"),
-        dir.path(),
-        Language::Python,
-    );
+    let _ = resolve_target("..sibling", &dir.path().join("pkg/sub/main.py"), dir.path(), Language::Python);
 }
 
 #[test]
 fn python_import_triple_dot_handled() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("a/b/c")).unwrap();
-    let _ = resolve_target(
-        "...top",
-        &dir.path().join("a/b/c/main.py"),
-        dir.path(),
-        Language::Python,
-    );
+    let _ = resolve_target("...top", &dir.path().join("a/b/c/main.py"), dir.path(), Language::Python);
 }
 
 #[test]
 fn python_import_only_dots_no_module_name() {
     let dir = tempfile::tempdir().unwrap();
-    let _ = resolve_target(
-        "..",
-        &dir.path().join("main.py"),
-        dir.path(),
-        Language::Python,
-    );
+    let _ = resolve_target("..", &dir.path().join("main.py"), dir.path(), Language::Python);
 }
 
 #[test]
@@ -264,12 +254,8 @@ fn python_path_suffix_for_dots_only() {
 #[test]
 fn python_path_suffix_for_dotted_module_resolves() {
     use pulse::audit::imports::resolve_by_suffix;
-    let typed: std::collections::HashSet<PathBuf> = [
-        PathBuf::from("/proj/a/b/c.py"),
-        PathBuf::from("/proj/x/y.py"),
-    ]
-    .into_iter()
-    .collect();
+    let typed: std::collections::HashSet<PathBuf> =
+        [PathBuf::from("/proj/a/b/c.py"), PathBuf::from("/proj/x/y.py")].into_iter().collect();
     let result = resolve_by_suffix("a.b.c", Language::Python, &typed);
     if let Some(p) = result {
         assert!(p.ends_with("c.py"));
@@ -296,24 +282,14 @@ fn python_extract_double_relative_import_node() {
 fn rust_super_path_when_parent_is_root() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("file.rs"), "").unwrap();
-    let _ = resolve_target(
-        "super::file",
-        Path::new("/file.rs"),
-        dir.path(),
-        Language::Rust,
-    );
+    let _ = resolve_target("super::file", Path::new("/file.rs"), dir.path(), Language::Rust);
 }
 
 #[test]
 fn rust_self_path_resolution() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("submod.rs"), "").unwrap();
-    let _ = resolve_target(
-        "self::submod",
-        &dir.path().join("main.rs"),
-        dir.path(),
-        Language::Rust,
-    );
+    let _ = resolve_target("self::submod", &dir.path().join("main.rs"), dir.path(), Language::Rust);
 }
 
 #[test]
@@ -321,12 +297,7 @@ fn rust_crate_path_resolution() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/foo.rs"), "").unwrap();
-    let _ = resolve_target(
-        "crate::foo",
-        &dir.path().join("src/main.rs"),
-        dir.path(),
-        Language::Rust,
-    );
+    let _ = resolve_target("crate::foo", &dir.path().join("src/main.rs"), dir.path(), Language::Rust);
 }
 
 #[test]
@@ -362,24 +333,14 @@ fn go_directory_resolution_for_package_path() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("pkg/foo")).unwrap();
     fs::write(dir.path().join("pkg/foo/file.go"), "").unwrap();
-    let _ = resolve_target(
-        "pkg/foo",
-        &dir.path().join("main.go"),
-        dir.path(),
-        Language::Go,
-    );
+    let _ = resolve_target("pkg/foo", &dir.path().join("main.go"), dir.path(), Language::Go);
 }
 
 #[test]
 fn zig_import_with_relative_path() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("util.zig"), "").unwrap();
-    let _ = resolve_target(
-        "util.zig",
-        &dir.path().join("main.zig"),
-        dir.path(),
-        Language::Zig,
-    );
+    let _ = resolve_target("util.zig", &dir.path().join("main.zig"), dir.path(), Language::Zig);
 }
 
 #[test]
@@ -401,74 +362,37 @@ fn php_use_grouped_handled() {
 #[test]
 fn php_namespace_use_with_trailing_backslash_handled() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#).unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/Foo.php"), "<?php").unwrap();
-    let _ = resolve_target(
-        "App\\Foo",
-        &dir.path().join("src/Other.php"),
-        dir.path(),
-        Language::Php,
-    );
+    let _ = resolve_target("App\\Foo", &dir.path().join("src/Other.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn php_psr4_with_string_value_for_dir() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":"src/lib/"}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "App\\Foo",
-        &dir.path().join("src/Other.php"),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":"src/lib/"}}}"#).unwrap();
+    let _ = resolve_target("App\\Foo", &dir.path().join("src/Other.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn php_psr4_with_non_string_value_skipped() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":42}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "App\\Foo",
-        &dir.path().join("src/Other.php"),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":42}}}"#).unwrap();
+    let _ = resolve_target("App\\Foo", &dir.path().join("src/Other.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn php_psr4_namespace_no_trailing_backslash() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App":"src/"}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "App\\Foo",
-        &dir.path().join("src/Other.php"),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App":"src/"}}}"#).unwrap();
+    let _ = resolve_target("App\\Foo", &dir.path().join("src/Other.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn php_path_suffix_for_namespace() {
     use pulse::audit::imports::resolve_by_suffix;
-    let typed: std::collections::HashSet<PathBuf> =
-        [PathBuf::from("/proj/src/Foo/Bar.php")].into_iter().collect();
+    let typed: std::collections::HashSet<PathBuf> = [PathBuf::from("/proj/src/Foo/Bar.php")].into_iter().collect();
     let result = resolve_by_suffix("Foo\\Bar", Language::Php, &typed);
     if let Some(p) = result {
         assert!(p.ends_with("Bar.php"));

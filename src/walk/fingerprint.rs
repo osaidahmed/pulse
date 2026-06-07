@@ -225,13 +225,17 @@ pub fn count_consecutive_asserts(body: Node, assert_kind: &str) -> u32 {
     let mut gap: u32 = 0;
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
-        if !child.is_named() { continue; }
+        if !child.is_named() {
+            continue;
+        }
         if child.kind() == assert_kind {
             current += 1;
             gap = 0;
         } else {
             gap += 1;
-            if gap > ASSERT_GAP_TOLERANCE { current = 0; }
+            if gap > ASSERT_GAP_TOLERANCE {
+                current = 0;
+            }
         }
         max_consecutive = max_consecutive.max(current);
     }
@@ -242,7 +246,9 @@ pub fn compute_assert_fingerprint(body: Node, assert_kind: &str) -> u64 {
     let mut hasher = fingerprint_hasher();
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
-        if !child.is_named() { continue; }
+        if !child.is_named() {
+            continue;
+        }
         if child.kind() == assert_kind {
             fingerprint_walk(child, &mut hasher);
         }

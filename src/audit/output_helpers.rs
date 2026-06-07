@@ -9,12 +9,7 @@ pub struct ListLayout<'a> {
     pub cap: usize,
 }
 
-pub fn write_capped_list<F: Fn(usize) -> String>(
-    out: &mut String,
-    layout: &ListLayout,
-    total: usize,
-    render: F,
-) {
+pub fn write_capped_list<F: Fn(usize) -> String>(out: &mut String, layout: &ListLayout, total: usize, render: F) {
     let shown = total.min(layout.cap);
     for i in 0..shown {
         let prefix = if i == 0 { layout.prefix_first } else { layout.prefix_rest };
@@ -26,10 +21,7 @@ pub fn write_capped_list<F: Fn(usize) -> String>(
 }
 
 pub fn display_path(file: &Path, root: Option<&Path>) -> String {
-    let rel = root.and_then(|r| file.strip_prefix(r).ok()).map_or_else(
-        || file.to_path_buf(),
-        Path::to_path_buf,
-    );
+    let rel = root.and_then(|r| file.strip_prefix(r).ok()).map_or_else(|| file.to_path_buf(), Path::to_path_buf);
     rel.display().to_string()
 }
 

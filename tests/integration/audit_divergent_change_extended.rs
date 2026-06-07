@@ -384,8 +384,7 @@ fn multiple_classes_same_file_handled_independently() {
         }
     }
     let findings = detect_with(defs, calls, &t().audit);
-    let names: std::collections::BTreeSet<String> =
-        findings.iter().map(|f| evidence(f).class_name.clone()).collect();
+    let names: std::collections::BTreeSet<String> = findings.iter().map(|f| evidence(f).class_name.clone()).collect();
     assert!(names.contains("A"));
     assert!(names.contains("B"));
 }

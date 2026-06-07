@@ -13,10 +13,7 @@ pub fn analyze(cfg: &Cfg, def_use: &[DefUseRecord]) -> Flow {
     let gen = gen_per_node(count, def_use);
     let kill = kill_per_node(count, def_use, &gen);
     let preds = preds_per_node(cfg);
-    Flow {
-        reaching_in: fixpoint(count, &gen, &kill, &preds),
-        reachable: reachable_from(cfg),
-    }
+    Flow { reaching_in: fixpoint(count, &gen, &kill, &preds), reachable: reachable_from(cfg) }
 }
 
 fn gen_per_node(count: usize, def_use: &[DefUseRecord]) -> Vec<Vec<usize>> {
@@ -57,20 +54,14 @@ fn preds_per_node(cfg: &Cfg) -> Vec<Vec<u32>> {
     preds
 }
 
-fn fixpoint(
-    count: usize,
-    gen: &[Vec<usize>],
-    kill: &[HashSet<usize>],
-    preds: &[Vec<u32>],
-) -> Vec<HashSet<usize>> {
+fn fixpoint(count: usize, gen: &[Vec<usize>], kill: &[HashSet<usize>], preds: &[Vec<u32>]) -> Vec<HashSet<usize>> {
     let mut in_sets = vec![HashSet::new(); count];
     let mut out_sets: Vec<HashSet<usize>> = vec![HashSet::new(); count];
     for _ in 0..=count {
         let mut changed = false;
         for node in 0..count {
             let new_in = union_preds(&preds[node], &out_sets);
-            let mut new_out: HashSet<usize> =
-                new_in.iter().copied().filter(|d| !kill[node].contains(d)).collect();
+            let mut new_out: HashSet<usize> = new_in.iter().copied().filter(|d| !kill[node].contains(d)).collect();
             new_out.extend(gen[node].iter().copied());
             if new_in != in_sets[node] || new_out != out_sets[node] {
                 changed = true;

@@ -52,10 +52,7 @@ fn merge_finding(dirs: &[&str], files: u32) -> AuditFinding {
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
-        locations: components
-            .iter()
-            .map(|c| AuditLocation { file: c.clone(), line: 1 })
-            .collect(),
+        locations: components.iter().map(|c| AuditLocation { file: c.clone(), line: 1 }).collect(),
     }
 }
 

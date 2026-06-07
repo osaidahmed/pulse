@@ -6,30 +6,21 @@ use pulse::walk::FunctionMetrics;
 const MIN_NONTRIVIAL_FUNCTIONS: usize = 2;
 
 fn fixture_path(lang_dir: &str, fixture: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("fixtures")
-        .join(lang_dir)
-        .join(fixture)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join(lang_dir).join(fixture)
 }
 
 fn is_nontrivial(f: &FunctionMetrics) -> bool {
-    f.loc > 0
-        && (f.cc > 1 || f.cognitive_complexity > 0 || f.max_nesting > 0)
-        && f.structural_hash != 0
+    f.loc > 0 && (f.cc > 1 || f.cognitive_complexity > 0 || f.max_nesting > 0) && f.structural_hash != 0
 }
 
 fn assert_walker_completeness(lang_dir: &str, fixture: &str) {
     let path = fixture_path(lang_dir, fixture);
-    let source = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-    let lang = detect_language(&path)
-        .unwrap_or_else(|| panic!("detect_language failed for {}", path.display()));
-    let metrics = parse_and_walk(&source, lang)
-        .unwrap_or_else(|| panic!("parse_and_walk failed for {}", path.display()));
+    let source = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let lang = detect_language(&path).unwrap_or_else(|| panic!("detect_language failed for {}", path.display()));
+    let metrics =
+        parse_and_walk(&source, lang).unwrap_or_else(|| panic!("parse_and_walk failed for {}", path.display()));
 
-    let nontrivial: Vec<&FunctionMetrics> =
-        metrics.functions.iter().filter(|f| is_nontrivial(f)).collect();
+    let nontrivial: Vec<&FunctionMetrics> = metrics.functions.iter().filter(|f| is_nontrivial(f)).collect();
 
     assert!(
         nontrivial.len() >= MIN_NONTRIVIAL_FUNCTIONS,

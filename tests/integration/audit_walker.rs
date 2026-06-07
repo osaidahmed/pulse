@@ -1,7 +1,6 @@
-
 use crate::audit_common::*;
-use pulse::audit::walker::{extract_subtrees, SubtreeRecord};
 use pulse::audit::extract_subtrees_for_dir;
+use pulse::audit::walker::{extract_subtrees, SubtreeRecord};
 use pulse::parse::{self, Language};
 use std::path::Path;
 

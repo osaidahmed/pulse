@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("kt");
@@ -147,7 +146,8 @@ fn nesting_when_counts_depth() {
 
 #[test]
 fn nesting_try_if() {
-    let out = debug("class T {\n    fun f(x: Boolean) {\n        try { if (x) {} } catch (e: Exception) {}\n    }\n}\n");
+    let out =
+        debug("class T {\n    fun f(x: Boolean) {\n        try { if (x) {} } catch (e: Exception) {}\n    }\n}\n");
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(n >= 1, "expected nesting >= 1, got: {n}");
 }
@@ -322,7 +322,8 @@ fn constructor_reports_over_injection() {
 
 #[test]
 fn regular_method_reports_excess_not_injection() {
-    let out = check("fun f(a: String, b: String, c: String, d: String, e: String, f: String): String {\n    return a\n}\n");
+    let out =
+        check("fun f(a: String, b: String, c: String, d: String, e: String, f: String): String {\n    return a\n}\n");
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
     assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
@@ -601,10 +602,8 @@ fn output_has_line_numbers() {
 fn issue_count_matches() {
     let out = check("class T {\n    fun f(x: Int): Int {\n        if (x==1) {} else if (x==2) {} else if (x==3) {} else if (x==4) {} else if (x==5) {} else if (x==6) {} else if (x==7) {} else if (x==8) {}\n        return x\n    }\n}\n");
     let first_line = out.lines().next().unwrap_or("");
-    let header_count: usize = first_line
-        .split("issue").next().unwrap_or("0")
-        .trim().rsplit(' ').next().unwrap_or("0")
-        .parse().unwrap_or(0);
+    let header_count: usize =
+        first_line.split("issue").next().unwrap_or("0").trim().rsplit(' ').next().unwrap_or("0").parse().unwrap_or(0);
     let finding_count = out.lines().filter(|l| l.starts_with("  ")).count();
     assert_eq!(header_count, finding_count);
 }

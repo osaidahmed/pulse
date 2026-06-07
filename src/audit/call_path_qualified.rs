@@ -2,20 +2,10 @@ use tree_sitter::Node;
 
 use super::calls::{line_of, node_text, RawCall};
 
-const CALL_KINDS: &[&str] = &[
-    "call_expression",
-    "call",
-    "scoped_call_expression",
-    "qualified_call_expression",
-];
+const CALL_KINDS: &[&str] = &["call_expression", "call", "scoped_call_expression", "qualified_call_expression"];
 
-const QUALIFIED_KINDS: &[&str] = &[
-    "scoped_identifier",
-    "qualified_identifier",
-    "qualified_name",
-    "qualified_type",
-    "namespace_qualifier",
-];
+const QUALIFIED_KINDS: &[&str] =
+    &["scoped_identifier", "qualified_identifier", "qualified_name", "qualified_type", "namespace_qualifier"];
 
 pub fn match_node(node: Node, source: &str) -> Option<RawCall> {
     if !CALL_KINDS.contains(&node.kind()) {
@@ -28,11 +18,7 @@ pub fn match_node(node: Node, source: &str) -> Option<RawCall> {
         return None;
     };
     let (path_segment, name) = split_qualified(qualified, source)?;
-    Some(RawCall {
-        callee_name: name,
-        receiver_hint: Some(path_segment),
-        line: line_of(node),
-    })
+    Some(RawCall { callee_name: name, receiver_hint: Some(path_segment), line: line_of(node) })
 }
 
 #[allow(clippy::manual_find)]

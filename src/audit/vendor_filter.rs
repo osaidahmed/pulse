@@ -15,19 +15,11 @@ pub struct VendorVerdict {
 
 pub fn classify(stats: &CorpusStats, thresholds: &VendorThresholds) -> Vec<VendorVerdict> {
     let dist = Distribution::from(stats);
-    stats
-        .per_file
-        .iter()
-        .map(|f| evaluate_file(f, &dist, &stats.median_kind_histogram, thresholds))
-        .collect()
+    stats.per_file.iter().map(|f| evaluate_file(f, &dist, &stats.median_kind_histogram, thresholds)).collect()
 }
 
 pub fn flagged_paths(verdicts: &[VendorVerdict]) -> std::collections::HashSet<PathBuf> {
-    verdicts
-        .iter()
-        .filter(|v| v.flagged)
-        .map(|v| v.file.clone())
-        .collect()
+    verdicts.iter().filter(|v| v.flagged).map(|v| v.file.clone()).collect()
 }
 
 struct Distribution {
@@ -99,11 +91,7 @@ fn evaluate_file(
     project_hist: &KindHistogram,
     thresholds: &VendorThresholds,
 ) -> VendorVerdict {
-    let mut verdict = VendorVerdict {
-        file: features.file.clone(),
-        flagged: false,
-        failed_features: Vec::new(),
-    };
+    let mut verdict = VendorVerdict { file: features.file.clone(), flagged: false, failed_features: Vec::new() };
     if features.size_bytes < thresholds.min_size_bytes {
         return verdict;
     }
@@ -130,11 +118,21 @@ fn feature_extractors() -> &'static [(&'static str, Extractor)] {
     ]
 }
 
-fn get_mean_id_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 { f.mean_id_len }
-fn get_var_id_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 { f.var_id_len }
-fn get_nodes_per_byte(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 { f.ast_nodes_per_byte }
-fn get_max_line_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 { f64::from(f.max_line_len) }
-fn get_cross_entropy(_f: &PerFileFeatures, _d: &Distribution, ce: f64) -> f64 { ce }
+fn get_mean_id_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 {
+    f.mean_id_len
+}
+fn get_var_id_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 {
+    f.var_id_len
+}
+fn get_nodes_per_byte(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 {
+    f.ast_nodes_per_byte
+}
+fn get_max_line_len(f: &PerFileFeatures, _d: &Distribution, _ce: f64) -> f64 {
+    f64::from(f.max_line_len)
+}
+fn get_cross_entropy(_f: &PerFileFeatures, _d: &Distribution, ce: f64) -> f64 {
+    ce
+}
 
 fn stats_for(name: &str, dist: &Distribution) -> FeatureStats {
     let s = match name {

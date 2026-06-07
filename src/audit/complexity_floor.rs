@@ -23,12 +23,5 @@ pub fn filter_clusters(
     shapes: &HashMap<u64, ShapeMetrics>,
     thresholds: ComplexityFloorThresholds,
 ) -> Vec<RawCluster> {
-    clusters
-        .into_iter()
-        .filter(|c| {
-            shapes
-                .get(&c.fingerprint)
-                .is_some_and(|m| passes_floor(m, thresholds))
-        })
-        .collect()
+    clusters.into_iter().filter(|c| shapes.get(&c.fingerprint).is_some_and(|m| passes_floor(m, thresholds))).collect()
 }

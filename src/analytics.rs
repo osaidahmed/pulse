@@ -30,11 +30,7 @@ pub fn save_session_id(hook: &HookInput) {
 
 pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, functions: &[FunctionMetrics]) {
     let log_path = baselines::baseline_dir().join("findings.jsonl");
-    let Ok(mut file) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log_path)
-    else {
+    let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(log_path) else {
         return;
     };
 
@@ -42,9 +38,7 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, func
 
     for f in findings {
         let (func_name, start_line) = match &f.location {
-            Location::Function {
-                name, start_line, ..
-            } => (Some(name.as_str()), Some(*start_line)),
+            Location::Function { name, start_line, .. } => (Some(name.as_str()), Some(*start_line)),
             Location::Module => (None, None),
         };
         let record = serde_json::json!({
@@ -64,10 +58,9 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, func
 
 fn structural_hash_of(location: &Location, functions: &[FunctionMetrics]) -> Option<u64> {
     match location {
-        Location::Function { name, start_line, .. } => functions
-            .iter()
-            .find(|fm| &fm.name == name && fm.start_line == *start_line)
-            .map(|fm| fm.structural_hash),
+        Location::Function { name, start_line, .. } => {
+            functions.iter().find(|fm| &fm.name == name && fm.start_line == *start_line).map(|fm| fm.structural_hash)
+        }
         Location::Module => None,
     }
 }
@@ -88,11 +81,7 @@ pub fn resolve(
 
     let dir = analytics_dir();
     let _ = std::fs::create_dir_all(&dir);
-    let Ok(mut out) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(dir.join("analytics.jsonl"))
-    else {
+    let Ok(mut out) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("analytics.jsonl")) else {
         return;
     };
 
@@ -165,16 +154,11 @@ fn moved_to_other_file(entry: &serde_json::Value, moved_pool: &HashMap<u64, Hash
         return false;
     };
     let path = canonical(entry.get("path").and_then(|v| v.as_str()).unwrap_or(""));
-    moved_pool
-        .get(&hash)
-        .is_some_and(|files| files.iter().any(|f| f != &path))
+    moved_pool.get(&hash).is_some_and(|files| files.iter().any(|f| f != &path))
 }
 
 fn canonical(path: &str) -> String {
-    std::fs::canonicalize(path)
-        .ok()
-        .and_then(|p| p.to_str().map(String::from))
-        .unwrap_or_else(|| path.to_string())
+    std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(String::from)).unwrap_or_else(|| path.to_string())
 }
 
 fn smell_still_present(entry: &serde_json::Value, current_findings: &[Finding]) -> bool {
@@ -190,13 +174,7 @@ fn smell_still_present(entry: &serde_json::Value, current_findings: &[Finding]) 
     })
 }
 
-fn write_outcome(
-    out: &mut std::fs::File,
-    entry: &serde_json::Value,
-    outcome: &str,
-    session_id: &str,
-    ts: u64,
-) {
+fn write_outcome(out: &mut std::fs::File, entry: &serde_json::Value, outcome: &str, session_id: &str, ts: u64) {
     let record = serde_json::json!({
         "ts": ts,
         "session": session_id,
@@ -211,7 +189,5 @@ fn write_outcome(
 }
 
 fn timestamp_secs() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }

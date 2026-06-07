@@ -2,10 +2,8 @@ use tree_sitter::{Node, Tree};
 
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds,
-    find_child_by_kind, node_text, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState, track_embedded_block,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 const COND_KINDS: &[&str] = &["binary_expression", "parenthesized_expression"];
 
@@ -15,17 +13,29 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const _SELF_NAMES: &[&str] = &[];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64",
-    "uintptr", "float32", "float64", "bool", "string", "byte", "rune", "complex64", "complex128",
+    "int",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+    "uintptr",
+    "float32",
+    "float64",
+    "bool",
+    "string",
+    "byte",
+    "rune",
+    "complex64",
+    "complex128",
     "error",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "expression_switch_statement",
-    "type_switch_statement",
-    "select_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "expression_switch_statement", "type_switch_statement", "select_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
 const BOOL_STOPS: &[&str] = &["block", "function_declaration", "method_declaration", "func_literal"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -71,7 +81,9 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
             "method_declaration" => analyze_method(child, source),
             _ => None,
         };
-        if let Some(m) = analyzed { functions.push(m); }
+        if let Some(m) = analyzed {
+            functions.push(m);
+        }
     }
 }
 
@@ -91,8 +103,16 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
         count_parameters_from_node(node, source);
-    let info = MethodContext { name, arg_count, primitive_type_count, typed_param_count, max_same_primitive_count, field_accesses: Vec::new(),
- foreign_field_accesses: Vec::new(), class_name: None };
+    let info = MethodContext {
+        name,
+        arg_count,
+        primitive_type_count,
+        typed_param_count,
+        max_same_primitive_count,
+        field_accesses: Vec::new(),
+        foreign_field_accesses: Vec::new(),
+        class_name: None,
+    };
     build_metrics(node, source, info)
 }
 
@@ -100,9 +120,7 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
     let mut pl_cursor = node.walk();
     let param_lists: Vec<Node> = node.children(&mut pl_cursor).filter(|c| c.kind() == "parameter_list").collect();
 
-    let receiver_type = param_lists
-        .first()
-        .and_then(|r| extract_receiver_type(*r, source));
+    let receiver_type = param_lists.first().and_then(|r| extract_receiver_type(*r, source));
 
     let method_name = find_child_by_kind(node, "field_identifier")
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
@@ -112,11 +130,8 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
         None => method_name,
     };
 
-    let (arg_count, prim, typed, max_same) = if param_lists.len() >= 2 {
-        count_param_children(param_lists[1], source)
-    } else {
-        (0, 0, 0, 0)
-    };
+    let (arg_count, prim, typed, max_same) =
+        if param_lists.len() >= 2 { count_param_children(param_lists[1], source) } else { (0, 0, 0, 0) };
 
     let self_names: Vec<&str> = param_lists
         .first()
@@ -131,7 +146,16 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
         collect_foreign_field_accesses_for(node, source, &self_names, &mut foreign_field_accesses);
     }
 
-    let info = MethodContext { name, arg_count, primitive_type_count: prim, typed_param_count: typed, max_same_primitive_count: max_same, field_accesses, foreign_field_accesses, class_name: receiver_type };
+    let info = MethodContext {
+        name,
+        arg_count,
+        primitive_type_count: prim,
+        typed_param_count: typed,
+        max_same_primitive_count: max_same,
+        field_accesses,
+        foreign_field_accesses,
+        class_name: receiver_type,
+    };
     build_metrics(node, source, info)
 }
 
@@ -171,7 +195,13 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
         class_name: info.class_name,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["short_var_declaration", "var_declaration"]),
-        string_match_arms: count_string_match_arms(body, "expression_switch_statement", "expression_case", &["interpreted_string_literal", "raw_string_literal"], &["default_case"]),
+        string_match_arms: count_string_match_arms(
+            body,
+            "expression_switch_statement",
+            "expression_case",
+            &["interpreted_string_literal", "raw_string_literal"],
+            &["default_case"],
+        ),
         cpg: None,
     })
 }
@@ -214,7 +244,9 @@ fn dispatch_body_child(child: Node, source: &str, depth: u32, s: &mut WalkState)
         track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    if kind == "func_literal" { return; }
+    if kind == "func_literal" {
+        return;
+    }
     for (kinds, handler) in NODE_HANDLERS {
         if kinds.contains(&kind) {
             handler(child, source, depth, s);
@@ -249,7 +281,9 @@ fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_for_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let Some(block) = find_child_by_kind(node, "block") else { return; };
+    let Some(block) = find_child_by_kind(node, "block") else {
+        return;
+    };
     let saved = s.cogc_nesting;
     s.cogc_nesting += 1;
     walk_body(block, source, depth, s);
@@ -291,7 +325,13 @@ fn walk_if_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 s.track_cogc_branch();
                 count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
                 count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity(child, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
+                shared::check_condition_complexity(
+                    child,
+                    &mut s.compound_condition_count,
+                    COND_KINDS,
+                    BOOL_OPS,
+                    BOOL_STOPS,
+                );
                 walk_if_children(child, source, depth, s);
             }
             _ => {}
@@ -318,8 +358,7 @@ fn walk_case_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     while let Some(child) = child_opt {
         child_opt = child.next_sibling();
         match child.kind() {
-            "expression_case" | "type_case" | "communication_case" | "default_case" | ":"
-            | "case" | "default" => {}
+            "expression_case" | "type_case" | "communication_case" | "default_case" | ":" | "case" | "default" => {}
             _ => walk_body(child, source, depth, s),
         }
     }
@@ -341,8 +380,7 @@ fn count_param_children(params: Node, source: &str) -> (u32, u32, u32, u32) {
         let (n, prim_ty) = match child.kind() {
             "parameter_declaration" => {
                 let mut name_cursor = child.walk();
-                let names =
-                    child.children(&mut name_cursor).filter(|c| c.kind() == "identifier").count() as u32;
+                let names = child.children(&mut name_cursor).filter(|c| c.kind() == "identifier").count() as u32;
                 (names.max(1), primitive_type_of(child, source))
             }
             "variadic_parameter_declaration" => (1, primitive_type_of(child, source)),
@@ -359,12 +397,8 @@ fn count_param_children(params: Node, source: &str) -> (u32, u32, u32, u32) {
 
 fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
     let ti = find_child_by_kind(param, "type_identifier")
-        .or_else(|| {
-            find_child_by_kind(param, "pointer_type").and_then(|p| find_child_by_kind(p, "type_identifier"))
-        })
-        .or_else(|| {
-            find_child_by_kind(param, "slice_type").and_then(|s| find_child_by_kind(s, "type_identifier"))
-        })?;
+        .or_else(|| find_child_by_kind(param, "pointer_type").and_then(|p| find_child_by_kind(p, "type_identifier")))
+        .or_else(|| find_child_by_kind(param, "slice_type").and_then(|s| find_child_by_kind(s, "type_identifier")))?;
     let name = node_text(ti, source);
     PRIMITIVE_TYPES.contains(&name).then_some(name)
 }
@@ -384,8 +418,10 @@ fn count_type_specs(type_decl: Node) -> u32 {
     let mut cursor = type_decl.walk();
     type_decl
         .children(&mut cursor)
-        .filter(|s| s.kind() == "type_spec"
-            && (find_child_by_kind(*s, "struct_type").is_some()
-                || find_child_by_kind(*s, "interface_type").is_some()))
+        .filter(|s| {
+            s.kind() == "type_spec"
+                && (find_child_by_kind(*s, "struct_type").is_some()
+                    || find_child_by_kind(*s, "interface_type").is_some())
+        })
         .count() as u32
 }

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -115,14 +114,8 @@ fn cc_nested_if_counted_once() {
 
 #[test]
 fn cc_case_else_not_counted() {
-    let out = debug(concat!(
-        "def f(x)\n",
-        "  case x\n",
-        "  when 1 then \"a\"\n",
-        "  else \"?\"\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out =
+        debug(concat!("def f(x)\n", "  case x\n", "  when 1 then \"a\"\n", "  else \"?\"\n", "  end\n", "end\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -179,42 +172,23 @@ fn cogc_nested_ifs() {
 
 #[test]
 fn cogc_elsif_no_extra_nesting() {
-    let out = debug(concat!(
-        "def f(x)\n",
-        "  if x == 1\n",
-        "  elsif x == 2\n",
-        "  elsif x == 3\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out =
+        debug(concat!("def f(x)\n", "  if x == 1\n", "  elsif x == 2\n", "  elsif x == 3\n", "  end\n", "end\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "elsif chain should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_else_increases_nesting() {
-    let out = debug(concat!(
-        "def f(x)\n",
-        "  if x > 0\n",
-        "  else\n",
-        "    if x < -10\n",
-        "    end\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out =
+        debug(concat!("def f(x)\n", "  if x > 0\n", "  else\n", "    if x < -10\n", "    end\n", "  end\n", "end\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
 
 #[test]
 fn cogc_case_counted() {
-    let out = debug(concat!(
-        "def f(x)\n",
-        "  case x\n",
-        "  when 1 then nil\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out = debug(concat!("def f(x)\n", "  case x\n", "  when 1 then nil\n", "  end\n", "end\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
@@ -306,15 +280,8 @@ fn nesting_loop_with_if() {
 
 #[test]
 fn nesting_case_depth() {
-    let out = debug(concat!(
-        "def f(x)\n",
-        "  case x\n",
-        "  when 1\n",
-        "    if true\n",
-        "    end\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out =
+        debug(concat!("def f(x)\n", "  case x\n", "  when 1\n", "    if true\n", "    end\n", "  end\n", "end\n",));
     let nesting = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(nesting >= 2, "got: {nesting}");
 }
@@ -338,11 +305,7 @@ fn bumpy_road_two_bumps() {
 
 #[test]
 fn bumpy_road_single_bump_not_flagged() {
-    let out = check(concat!(
-        "def f(a, b)\n",
-        "  if a\n    if b\n      if true\n      end\n    end\n  end\n",
-        "end\n",
-    ));
+    let out = check(concat!("def f(a, b)\n", "  if a\n    if b\n      if true\n      end\n    end\n  end\n", "end\n",));
     assert!(!has_smell(&out, "Nested Conditional Chunks"));
 }
 
@@ -575,12 +538,8 @@ fn typed_param_count_zero() {
 
 #[test]
 fn lcom4_connected_no_smell() {
-    let out = check(concat!(
-        "class S\n",
-        "  def get_x\n    @x\n  end\n",
-        "  def set_x(v)\n    @x = v\n  end\n",
-        "end\n",
-    ));
+    let out =
+        check(concat!("class S\n", "  def get_x\n    @x\n  end\n", "  def set_x(v)\n    @x = v\n  end\n", "end\n",));
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
@@ -677,13 +636,8 @@ fn method_has_class_prefix() {
 
 #[test]
 fn initialize_is_constructor() {
-    let out = debug(concat!(
-        "class Svc\n",
-        "  def initialize(a, b, c, d, e, f)\n",
-        "    @a = a\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out =
+        debug(concat!("class Svc\n", "  def initialize(a, b, c, d, e, f)\n", "    @a = a\n", "  end\n", "end\n",));
     assert!(out.contains("Svc.initialize"), "got: {out}");
 }
 
@@ -746,14 +700,7 @@ fn begin_rescue_ensure() {
 
 #[test]
 fn empty_rescue_detected() {
-    let out = check(concat!(
-        "def f(x)\n",
-        "  begin\n",
-        "    Integer(x)\n",
-        "  rescue\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out = check(concat!("def f(x)\n", "  begin\n", "    Integer(x)\n", "  rescue\n", "  end\n", "end\n",));
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
@@ -793,13 +740,7 @@ fn curly_block_complexity_counts() {
 
 #[test]
 fn module_methods_analyzed() {
-    let out = debug(concat!(
-        "module Helper\n",
-        "  def compute(x)\n",
-        "    x + 1\n",
-        "  end\n",
-        "end\n",
-    ));
+    let out = debug(concat!("module Helper\n", "  def compute(x)\n", "    x + 1\n", "  end\n", "end\n",));
     assert!(out.contains("Helper.compute"), "got: {out}");
 }
 
@@ -894,12 +835,8 @@ fn performance_class_hierarchy() {
 
 #[test]
 fn clean_module_not_flagged() {
-    let out = check(concat!(
-        "class Point\n",
-        "  def add()\n    @x + @y\n  end\n",
-        "end\n",
-        "def helper(x)\n  x + 1\nend\n",
-    ));
+    let out =
+        check(concat!("class Point\n", "  def add()\n    @x + @y\n  end\n", "end\n", "def helper(x)\n  x + 1\nend\n",));
     assert!(out.is_empty(), "got: {out}");
 }
 

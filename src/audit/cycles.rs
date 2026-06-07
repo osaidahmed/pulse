@@ -25,22 +25,15 @@ pub fn find_cycles_with_max_iters(
 ) -> (Vec<Scc>, TarjanDiagnostics) {
     let mut state = TarjanState::new(graph, max_iters);
     state.run();
-    let diag = TarjanDiagnostics {
-        iteration_cap_hit: state.iteration_cap_hit,
-        max_iters: state.max_iters,
-    };
+    let diag = TarjanDiagnostics { iteration_cap_hit: state.iteration_cap_hit, max_iters: state.max_iters };
     (state.into_components(graph, min_size), diag)
 }
 
 #[doc(hidden)]
 pub fn default_max_iters(graph: &ImportGraph) -> usize {
     let n = graph.registry.count();
-    let total_edges: usize = (0..n)
-        .map(|i| graph.adjacency.outgoing(NodeIndex(i as u32)).len())
-        .sum();
-    n.saturating_mul(2)
-        .saturating_add(total_edges)
-        .saturating_add(8)
+    let total_edges: usize = (0..n).map(|i| graph.adjacency.outgoing(NodeIndex(i as u32)).len()).sum();
+    n.saturating_mul(2).saturating_add(total_edges).saturating_add(8)
 }
 
 const NIL: u32 = u32::MAX;
@@ -165,10 +158,7 @@ impl<'g> TarjanState<'g> {
     }
 
     fn into_components(self, graph: &ImportGraph, min_size: u32) -> Vec<Scc> {
-        self.components
-            .into_iter()
-            .filter_map(|members| build_scc(graph, members, min_size))
-            .collect()
+        self.components.into_iter().filter_map(|members| build_scc(graph, members, min_size)).collect()
     }
 }
 

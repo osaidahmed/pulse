@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::finding::{
-    self, BlobEvidence, CatalystEvidence, ChangeShotgunEvidence, DecayEvidence, DriftEvidence,
-    FragmentationEvidence, HistoryFinding, HistoryKind, HistoryPillar, HotspotEvidence,
+    self, BlobEvidence, CatalystEvidence, ChangeShotgunEvidence, DecayEvidence, DriftEvidence, FragmentationEvidence,
+    HistoryFinding, HistoryKind, HistoryPillar, HotspotEvidence,
 };
 
 const PILLAR_ORDER: [(HistoryPillar, &str); 4] = [
@@ -53,22 +53,13 @@ fn pillar_counts(findings: &[HistoryFinding]) -> PillarCounts {
 }
 
 fn pillar_label(p: HistoryPillar) -> &'static str {
-    PILLAR_ORDER
-        .iter()
-        .find(|(pi, _)| *pi == p)
-        .map_or("", |(_, l)| l)
+    PILLAR_ORDER.iter().find(|(pi, _)| *pi == p).map_or("", |(_, l)| l)
 }
 
 fn write_section(out: &mut String, findings: &[HistoryFinding], pillar: HistoryPillar) {
-    let in_section: Vec<&HistoryFinding> = findings
-        .iter()
-        .filter(|f| finding::variant_info(&f.kind).pillar == pillar)
-        .collect();
-    out.push_str(&format!(
-        "{} — {} findings\n",
-        pillar_label(pillar),
-        in_section.len()
-    ));
+    let in_section: Vec<&HistoryFinding> =
+        findings.iter().filter(|f| finding::variant_info(&f.kind).pillar == pillar).collect();
+    out.push_str(&format!("{} — {} findings\n", pillar_label(pillar), in_section.len()));
     if in_section.is_empty() {
         out.push_str("  (none)\n\n");
         return;
@@ -127,11 +118,8 @@ fn render_finding_line(out: &mut String, f: &HistoryFinding) {
 
 fn render_ownership(e: &FragmentationEvidence, out: &mut String) {
     let pct = (e.minor_contributor_pct * 100.0).round() as u32;
-    let authors = if e.top_minor_authors.is_empty() {
-        String::new()
-    } else {
-        format!(" — {}", e.top_minor_authors.join(", "))
-    };
+    let authors =
+        if e.top_minor_authors.is_empty() { String::new() } else { format!(" — {}", e.top_minor_authors.join(", ")) };
     out.push_str(&format!(
         "  {}   total={}, minor={} ({}%){}\n",
         e.file.display(),
@@ -210,13 +198,21 @@ fn hotspot_to_json(e: &HotspotEvidence) -> serde_json::Value {
 }
 
 fn blob_to_json(e: &BlobEvidence) -> serde_json::Value {
-    let fields = [("multi_file_commits", e.multi_file_commits.into()), ("total_multi_file_commits", e.total_multi_file_commits.into()), ("blob_ratio", e.blob_ratio.into())];
+    let fields = [
+        ("multi_file_commits", e.multi_file_commits.into()),
+        ("total_multi_file_commits", e.total_multi_file_commits.into()),
+        ("blob_ratio", e.blob_ratio.into()),
+    ];
     evidence_json("FileBlob", &e.file, &fields)
 }
 
 fn shotgun_to_json(e: &ChangeShotgunEvidence) -> serde_json::Value {
     let pkgs: Vec<String> = e.packages.iter().map(|p| p.display().to_string()).collect();
-    let fields = [("partner_count", e.partner_count.into()), ("package_count", e.package_count.into()), ("packages", pkgs.into())];
+    let fields = [
+        ("partner_count", e.partner_count.into()),
+        ("package_count", e.package_count.into()),
+        ("packages", pkgs.into()),
+    ];
     evidence_json("ChangeShotgun", &e.file, &fields)
 }
 

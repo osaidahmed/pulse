@@ -13,9 +13,7 @@ fn write_tempfile(content: &str, ext: &str) -> (tempfile::TempDir, PathBuf) {
 fn collect_foreign(content: &str, ext: &str, lang: Language) -> Vec<(String, String)> {
     let (_d, path) = write_tempfile(content, ext);
     let defs = definitions_for_file(&path, lang);
-    defs.iter()
-        .flat_map(|d| d.foreign_field_accesses.clone())
-        .collect()
+    defs.iter().flat_map(|d| d.foreign_field_accesses.clone()).collect()
 }
 
 #[test]

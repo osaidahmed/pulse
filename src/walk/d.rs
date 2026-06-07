@@ -4,26 +4,21 @@ use super::counters::{count_short_variables, count_string_match_arms, max_same_p
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*", "/+", "+"];
 const SELF_NAMES: &[&str] = &["this"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "uint", "byte", "ubyte", "short", "ushort", "long", "ulong", "float", "double", "real",
-    "char", "wchar", "dchar", "bool", "size_t", "string", "void",
+    "int", "uint", "byte", "ubyte", "short", "ushort", "long", "ulong", "float", "double", "real", "char", "wchar",
+    "dchar", "bool", "size_t", "string", "void",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement", "for_statement", "foreach_statement",
-    "while_statement", "do_statement", "switch_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "foreach_statement", "while_statement", "do_statement", "switch_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
-const BOOL_STOPS: &[&str] = &[
-    "block_statement", "function_declaration", "class_declaration",
-    "struct_declaration", "function_literal",
-];
+const BOOL_STOPS: &[&str] =
+    &["block_statement", "function_declaration", "class_declaration", "struct_declaration", "function_literal"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     cond: &["if_statement"],
     loops: &["for_statement", "foreach_statement", "while_statement", "do_statement"],
@@ -31,9 +26,7 @@ const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     recurse: &["module_def"],
 };
 const COND_KINDS: &[&str] = &["if_condition"];
-const LOOP_KINDS: &[&str] = &[
-    "for_statement", "foreach_statement", "while_statement", "do_statement",
-];
+const LOOP_KINDS: &[&str] = &["for_statement", "foreach_statement", "while_statement", "do_statement"];
 
 struct ParamInfo {
     args: u32,
@@ -55,10 +48,13 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     count_decls(root, source, &mut dc, &mut sf);
     FileMetrics {
         module: ModuleMetrics {
-            total_loc, total_functions: functions.len() as u32,
+            total_loc,
+            total_functions: functions.len() as u32,
             sum_cc: functions.iter().map(|f| f.cc).sum(),
-            global_conditional_count: gcc, global_max_nesting: gmn,
-            declaration_count: dc, struct_fields: sf,
+            global_conditional_count: gcc,
+            global_max_nesting: gmn,
+            declaration_count: dc,
+            struct_fields: sf,
         },
         functions,
     }
@@ -69,8 +65,7 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, c
     for child in node.children(&mut cursor) {
         let kind = child.kind();
         match kind {
-            "function_declaration" | "constructor" | "destructor"
-            | "class_declaration" | "struct_declaration" => {
+            "function_declaration" | "constructor" | "destructor" | "class_declaration" | "struct_declaration" => {
                 dispatch_member(child, source, kind, fns, class);
             }
             "unittest_declaration" => {
@@ -78,11 +73,20 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, c
                 let Some(body) = find_child_by_kind(child, "block_statement") else { continue };
                 let mut s = WalkState::new();
                 walk_body(body, source, 0, &mut s);
-                fns.push(finish(format!("unittest_L{line}"), child, &s, body, ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 }));
+                fns.push(finish(
+                    format!("unittest_L{line}"),
+                    child,
+                    &s,
+                    body,
+                    ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 },
+                ));
             }
-            "module_declaration" | "import_declaration"
-            | "interface_declaration" | "enum_declaration" => {}
-            _ => { if class.is_none() { collect_functions(child, source, fns, None); } }
+            "module_declaration" | "import_declaration" | "interface_declaration" | "enum_declaration" => {}
+            _ => {
+                if class.is_none() {
+                    collect_functions(child, source, fns, None);
+                }
+            }
         }
     }
 }
@@ -99,15 +103,19 @@ fn dispatch_member(child: Node, source: &str, kind: &str, fns: &mut Vec<Function
         "constructor" | "destructor" => {
             let Some(cn) = class else { return };
             let is_ctor = kind == "constructor";
-            let pi = if is_ctor { count_params(child, source) } else { ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 } };
+            let pi = if is_ctor {
+                count_params(child, source)
+            } else {
+                ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 }
+            };
             let name = if is_ctor { format!("{cn}.this") } else { format!("{cn}.~this") };
             let Some(mut m) = build_fn(child, source, name, pi) else { return };
             m.is_constructor = is_ctor;
             fns.push(m);
         }
         _ => {
-            let cn = find_child_by_kind(child, "identifier")
-                .map(|n| node_text(n, source).to_string()).unwrap_or_default();
+            let cn =
+                find_child_by_kind(child, "identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default();
             if let Some(body) = find_child_by_kind(child, "aggregate_body") {
                 collect_functions(body, source, fns, Some(&cn));
             }
@@ -123,7 +131,6 @@ fn apply_class_ctx(m: &mut FunctionMetrics, node: Node, source: &str, class: Opt
     collect_field_accesses_for(node, source, SELF_NAMES, &mut m.field_accesses);
 
     collect_foreign_field_accesses_for(node, source, SELF_NAMES, &mut m.foreign_field_accesses);
-
 }
 
 fn build_fn(node: Node, source: &str, name: String, pi: ParamInfo) -> Option<FunctionMetrics> {
@@ -141,25 +148,33 @@ fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) ->
     let sl = node.start_position().row as u32 + 1;
     let el = node.end_position().row as u32 + 1;
     FunctionMetrics {
-        name, start_line: sl, end_line: el,
+        name,
+        start_line: sl,
+        end_line: el,
         loc: el.saturating_sub(sl) + 1,
-        cc: s.cc, cognitive_complexity: s.cogc,
-        max_nesting: s.max_nesting, bump_count: s.bump_count,
-        arg_count: pi.args, compound_condition_count: s.compound_condition_count,
-        is_constructor: false, max_embedded_block_loc: s.max_embedded_block_loc,
+        cc: s.cc,
+        cognitive_complexity: s.cogc,
+        max_nesting: s.max_nesting,
+        bump_count: s.bump_count,
+        arg_count: pi.args,
+        compound_condition_count: s.compound_condition_count,
+        is_constructor: false,
+        max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
-        primitive_type_count: pi.primitives, typed_param_count: pi.typed,
+        primitive_type_count: pi.primitives,
+        typed_param_count: pi.typed,
         max_same_primitive_count: pi.max_same,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
- foreign_field_accesses: Vec::new(),
- class_name: None,
- parent_class: None,
-        short_var_count: 0, string_match_arms: 0,
+        foreign_field_accesses: Vec::new(),
+        class_name: None,
+        parent_class: None,
+        short_var_count: 0,
+        string_match_arms: 0,
         cpg: None,
     }
 }
@@ -173,13 +188,20 @@ const SKIP_KINDS: &[&str] = &["function_literal", "scope_guard_statement"];
 
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     let kind = child.kind();
-    if LOOP_KINDS.contains(&kind) { return handle_loop(child, source, depth, s); }
-    if SKIP_KINDS.contains(&kind) { return; }
+    if LOOP_KINDS.contains(&kind) {
+        return handle_loop(child, source, depth, s);
+    }
+    if SKIP_KINDS.contains(&kind) {
+        return;
+    }
     match kind {
         "if_statement" => handle_if(child, source, depth, s),
         "switch_statement" => handle_switch(child, source, depth, s),
         "try_statement" => walk_try(child, source, depth, s),
-        "ternary_expression" => { s.cc += 1; s.track_cogc_branch(); }
+        "ternary_expression" => {
+            s.cc += 1;
+            s.track_cogc_branch();
+        }
         "string_literal" => track_embedded_block(&mut s.max_embedded_block_loc, child),
         _ => walk_body(child, source, depth, s),
     }
@@ -196,7 +218,9 @@ fn walk_if_scopes(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut saw_then = false;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() != "scope_statement" { continue; }
+        if child.kind() != "scope_statement" {
+            continue;
+        }
         if let Some(elif) = find_child_by_kind(child, "if_statement") {
             s.cc += 1;
             s.track_cogc_branch();
@@ -205,7 +229,9 @@ fn walk_if_scopes(node: Node, source: &str, depth: u32, s: &mut WalkState) {
             continue;
         }
         let Some(block) = find_child_by_kind(child, "block_statement") else { continue };
-        if saw_then { s.track_cogc_flat(); }
+        if saw_then {
+            s.track_cogc_flat();
+        }
         saw_then = true;
         let saved = s.cogc_nesting;
         s.cogc_nesting += 1;
@@ -247,8 +273,12 @@ fn walk_cases(block: Node, source: &str, depth: u32, s: &mut WalkState) {
     let mut child_opt = block.child(0);
     while let Some(child) = child_opt {
         child_opt = child.next_sibling();
-        if child.kind() != "case_statement" { continue; }
-        if find_child_by_kind(child, "default").is_none() { s.cc += 1; }
+        if child.kind() != "case_statement" {
+            continue;
+        }
+        if find_child_by_kind(child, "default").is_none() {
+            s.cc += 1;
+        }
         let mut ic = child.walk();
         for gc in child.children(&mut ic) {
             if !matches!(gc.kind(), "case" | "default" | ":" | "expression_list") {
@@ -263,14 +293,20 @@ fn walk_try(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let kids: Vec<Node> = node.children(&mut cursor).collect();
     for child in kids {
         let kind = child.kind();
-        if kind == "catch_statement" { handle_catch(child, source, depth, s); continue; }
+        if kind == "catch_statement" {
+            handle_catch(child, source, depth, s);
+            continue;
+        }
         let block = match kind {
             "scope_statement" => find_child_by_kind(child, "block_statement"),
-            "finally_statement" => find_child_by_kind(child, "scope_statement")
-                .and_then(|sc| find_child_by_kind(sc, "block_statement")),
+            "finally_statement" => {
+                find_child_by_kind(child, "scope_statement").and_then(|sc| find_child_by_kind(sc, "block_statement"))
+            }
             _ => None,
         };
-        if let Some(b) = block { walk_body(b, source, depth, s); }
+        if let Some(b) = block {
+            walk_body(b, source, depth, s);
+        }
     }
 }
 
@@ -283,7 +319,9 @@ fn handle_catch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         return;
     };
     let mut bc = block.walk();
-    if block.children(&mut bc).all(|c| matches!(c.kind(), "{" | "}")) { s.empty_catch_count += 1; }
+    if block.children(&mut bc).all(|c| matches!(c.kind(), "{" | "}")) {
+        s.empty_catch_count += 1;
+    }
     let saved = s.cogc_nesting;
     s.cogc_nesting += 1;
     walk_body(block, source, depth, s);
@@ -298,10 +336,7 @@ fn count_params(node: Node, source: &str) -> ParamInfo {
     let mut a = 0;
     let mut t = 0;
     let mut prims: Vec<&str> = Vec::new();
-    for child in params
-        .children(&mut cursor)
-        .filter(|c| c.kind() == "parameter" || c.kind() == "variadic_parameter")
-    {
+    for child in params.children(&mut cursor).filter(|c| c.kind() == "parameter" || c.kind() == "variadic_parameter") {
         a += 1;
         t += 1;
         if let Some(ty) = d_primitive_type(child, source) {
@@ -346,11 +381,19 @@ fn count_type_fields(type_node: Node, source: &str, sf: &mut Vec<(String, u32)>)
     let mut total: u32 = 0;
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
-        if child.kind() != "variable_declaration" { continue; }
+        if child.kind() != "variable_declaration" {
+            continue;
+        }
         let mut n: u32 = 0;
         let mut vc = child.walk();
-        for gc in child.children(&mut vc) { if gc.kind() == "declarator" { n += 1; } }
+        for gc in child.children(&mut vc) {
+            if gc.kind() == "declarator" {
+                n += 1;
+            }
+        }
         total += if n == 0 { 1 } else { n };
     }
-    if total > 0 { sf.push((name, total)); }
+    if total > 0 {
+        sf.push((name, total));
+    }
 }

@@ -59,11 +59,7 @@ pub struct Adjacency {
 
 impl Adjacency {
     pub fn with_capacity(node_count: usize) -> Self {
-        Self {
-            outgoing: vec![Vec::new(); node_count],
-            incoming: vec![Vec::new(); node_count],
-            edges: Vec::new(),
-        }
+        Self { outgoing: vec![Vec::new(); node_count], incoming: vec![Vec::new(); node_count], edges: Vec::new() }
     }
 
     pub fn insert_unique(&mut self, src: NodeIndex, dst: NodeIndex) -> bool {

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -7,29 +6,20 @@ const LANG: &str = "javascript";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.js");
-    assert!(
-        output.is_empty(),
-        "clean JS file should produce no output, got: {output}"
-    );
+    assert!(output.is_empty(), "clean JS file should produce no output, got: {output}");
 }
 
 #[test]
 fn complex_method_detected() {
     let output = run_check(LANG, "complex_method.js");
-    assert!(
-        has_smell(&output, "Complex Method"),
-        "should detect complex method in JS, got: {output}"
-    );
+    assert!(has_smell(&output, "Complex Method"), "should detect complex method in JS, got: {output}");
     assert!(has_function(&output, "processOrder"));
 }
 
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.js");
-    assert!(
-        has_smell(&output, "Excess Arguments"),
-        "should detect excess args in JS, got: {output}"
-    );
+    assert!(has_smell(&output, "Excess Arguments"), "should detect excess args in JS, got: {output}");
     assert!(has_function(&output, "createUser"));
 }
 
@@ -52,20 +42,13 @@ fn simple_func_not_flagged() {
 fn primitive_obsession_never_triggers_in_javascript() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("many_args.js");
-    std::fs::write(
-        &path,
-        "function f(a, b, c, d, e, f, g, h, i) {\n    return a;\n}\n",
-    )
-    .unwrap();
+    std::fs::write(&path, "function f(a, b, c, d, e, f, g, h, i) {\n    return a;\n}\n").unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        !has_smell(&stdout, "Primitive Obsession"),
-        "JS has no types — should never trigger, got: {stdout}"
-    );
+    assert!(!has_smell(&stdout, "Primitive Obsession"), "JS has no types — should never trigger, got: {stdout}");
 }
 
 #[test]
@@ -105,11 +88,7 @@ fn mjs_extension_supported() {
 fn cjs_extension_supported() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("module.cjs");
-    std::fs::write(
-        &path,
-        "function add(a, b) {\n    return a + b;\n}\nmodule.exports = { add };\n",
-    )
-    .unwrap();
+    std::fs::write(&path, "function add(a, b) {\n    return a + b;\n}\nmodule.exports = { add };\n").unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
@@ -158,10 +137,7 @@ fn moderate_nesting_not_flagged() {
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.js");
-    assert!(
-        has_smell(&output, "Large Embedded Block"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Large Embedded Block"), "got: {output}");
     assert!(has_function(&output, "getActiveUsers"));
 }
 
@@ -197,9 +173,7 @@ fn cc_base_case_is_1() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.js");
-    let has_loc = output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): "));
+    let has_loc = output.lines().any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc);
 }
 
@@ -224,10 +198,7 @@ fn comments_only_file() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("function f() {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n}\n", "js");
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -268,10 +239,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -361,10 +329,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout
-        .lines()
-        .filter(|l| l.contains("processDataPipeline"))
-        .collect();
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("processDataPipeline")).collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -377,10 +342,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
 fn nested_conditional_chunks_detected() {
     let output = run_check(LANG, "deep_nesting.js");
     // deep_nesting fixture may also trigger bumpy road pattern
-    assert!(
-        has_smell(&output, "Deep Nested") || has_smell(&output, "Nested Conditional Chunks"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Deep Nested") || has_smell(&output, "Nested Conditional Chunks"), "got: {output}");
 }
 
 // ===========================================================================
@@ -405,10 +367,7 @@ fn complex_conditional_detected() {
         ),
         "js",
     );
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -528,10 +487,7 @@ fn hook_invalid_json_silent() {
 fn boolean_operators_increment_cc() {
     let debug = pulse_debug_code("function f() {\n    if (a && b && c) {}\n}\n", "js");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
-    assert!(
-        cc >= 4,
-        "boolean operators should increment cc, got: {cc}"
-    );
+    assert!(cc >= 4, "boolean operators should increment cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -552,14 +508,8 @@ fn issue_count_in_header_matches_findings() {
 
 #[test]
 fn decorated_function_analyzed() {
-    let out = pulse_check_code(
-        "function longDeco(a, b, c, d, e, f, g, h) {\n    return a;\n}\n",
-        "js",
-    );
-    assert!(
-        has_smell(&out, "Excess Arguments") || has_function(&out, "longDeco"),
-        "got: {out}"
-    );
+    let out = pulse_check_code("function longDeco(a, b, c, d, e, f, g, h) {\n    return a;\n}\n", "js");
+    assert!(has_smell(&out, "Excess Arguments") || has_function(&out, "longDeco"), "got: {out}");
 }
 
 // ===========================================================================
@@ -676,10 +626,7 @@ fn switch_case_increments_cc() {
         ),
         "js",
     );
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "9 switch cases should trigger cc >= 9, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "9 switch cases should trigger cc >= 9, got: {out}");
 }
 
 // ===========================================================================
@@ -688,14 +635,8 @@ fn switch_case_increments_cc() {
 
 #[test]
 fn arrow_function_analyzed() {
-    let out = pulse_check_code(
-        "const handler = (a, b, c, d, e, f, g) => {\n    return a + b;\n};\n",
-        "js",
-    );
-    assert!(
-        has_smell(&out, "Excess Arguments"),
-        "arrow function with 7 args should be flagged, got: {out}"
-    );
+    let out = pulse_check_code("const handler = (a, b, c, d, e, f, g) => {\n    return a + b;\n};\n", "js");
+    assert!(has_smell(&out, "Excess Arguments"), "arrow function with 7 args should be flagged, got: {out}");
 }
 
 // ===========================================================================

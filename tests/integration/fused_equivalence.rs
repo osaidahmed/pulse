@@ -113,9 +113,7 @@ fn finding_snaps(findings: &[Finding]) -> Vec<FindingSnap> {
 }
 
 fn fixtures_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("fixtures")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures")
 }
 
 fn collect_source_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -173,13 +171,7 @@ fn fused_equivalence_matches_legacy_golden() {
     }
     let raw = std::fs::read_to_string(&golden_path).expect("read golden");
     let golden: Vec<FileSnap> = serde_json::from_str(&raw).expect("parse golden");
-    assert_eq!(
-        live.len(),
-        golden.len(),
-        "golden file-count drift: live {} vs golden {}",
-        live.len(),
-        golden.len()
-    );
+    assert_eq!(live.len(), golden.len(), "golden file-count drift: live {} vs golden {}", live.len(), golden.len());
     for (l, g) in live.iter().zip(&golden) {
         assert_eq!(l, g, "metric/finding drift in fixture: {}", l.path);
     }

@@ -4,32 +4,20 @@ use super::counters::{count_short_variables, count_string_match_arms, max_same_p
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds, find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["this"];
-const PRIMITIVE_TYPES: &[&str] = &[
-    "Int", "Long", "Short", "Byte", "Float", "Double", "Boolean", "Char", "String", "Unit",
-    "Nothing",
-];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_expression",
-    "for_statement",
-    "while_statement",
-    "do_while_statement",
-    "when_expression",
-];
+const PRIMITIVE_TYPES: &[&str] =
+    &["Int", "Long", "Short", "Byte", "Float", "Double", "Boolean", "Char", "String", "Unit", "Nothing"];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_expression", "for_statement", "while_statement", "do_while_statement", "when_expression"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
-const BOOL_STOPS: &[&str] = &[
-    "block",
-    "function_declaration",
-    "class_declaration",
-    "lambda_literal",
-    "anonymous_function",
-];
+const BOOL_STOPS: &[&str] =
+    &["block", "function_declaration", "class_declaration", "lambda_literal", "anonymous_function"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     cond: &["if_expression"],
     loops: &["for_statement", "while_statement", "do_while_statement"],
@@ -37,9 +25,8 @@ const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     recurse: &[],
 };
 const COND_KINDS: &[&str] = &["binary_expression"];
-const WHEN_ENTRY_LEAF: &[&str] = &[
-    "else", "->", "string_literal", "number_literal", "identifier", "binary_expression", ",",
-];
+const WHEN_ENTRY_LEAF: &[&str] =
+    &["else", "->", "string_literal", "number_literal", "identifier", "binary_expression", ","];
 const SCOPE_BOUNDARY: &[&str] = &["lambda_literal", "anonymous_function", "function_declaration"];
 
 pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
@@ -87,9 +74,7 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>) {
 }
 
 fn collect_class_methods(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>) {
-    let cls = find_child_by_kind(node, "identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let cls = find_child_by_kind(node, "identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default();
 
     emit_primary_ctor(node, source, &cls, fns);
 
@@ -115,8 +100,7 @@ fn dispatch_member(child: Node, source: &str, cls: &str, fns: &mut Vec<FunctionM
 }
 
 fn emit_method(child: Node, source: &str, cls: &str, fns: &mut Vec<FunctionMetrics>) {
-    let id = find_child_by_kind(child, "identifier")
-        .map_or("<anonymous>", |n| node_text(n, source));
+    let id = find_child_by_kind(child, "identifier").map_or("<anonymous>", |n| node_text(n, source));
     if let Some(mut m) = analyze_callable(child, source, &format!("{cls}.{id}")) {
         m.class_name = Some(cls.to_string());
         collect_field_accesses_for(child, source, SELF_NAMES, &mut m.field_accesses);
@@ -187,17 +171,33 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
     let sl = ctor.start_position().row as u32 + 1;
     let el = ctor.end_position().row as u32 + 1;
     fns.push(FunctionMetrics {
-        name: format!("{cls}.{cls}"), start_line: sl, end_line: el,
-        loc: el.saturating_sub(sl) + 1, cc: 1, arg_count: cnt, is_constructor: true,
-        primitive_type_count: prim, typed_param_count: typed, max_same_primitive_count: max_same,
+        name: format!("{cls}.{cls}"),
+        start_line: sl,
+        end_line: el,
+        loc: el.saturating_sub(sl) + 1,
+        cc: 1,
+        arg_count: cnt,
+        is_constructor: true,
+        primitive_type_count: prim,
+        typed_param_count: typed,
+        max_same_primitive_count: max_same,
         foreign_field_accesses: Vec::new(),
         class_name: Some(cls.to_string()),
         parent_class: None,
-        cognitive_complexity: 0, max_nesting: 0, bump_count: 0,
-        compound_condition_count: 0, max_embedded_block_loc: 0,
-        structural_hash: 0, distinct_node_kinds: 0, skeleton_hash: 0, consecutive_asserts: 0,
-        assert_hash: 0, empty_catch_count: 0, field_accesses: Vec::new(),
-        short_var_count: 0, string_match_arms: 0,
+        cognitive_complexity: 0,
+        max_nesting: 0,
+        bump_count: 0,
+        compound_condition_count: 0,
+        max_embedded_block_loc: 0,
+        structural_hash: 0,
+        distinct_node_kinds: 0,
+        skeleton_hash: 0,
+        consecutive_asserts: 0,
+        assert_hash: 0,
+        empty_catch_count: 0,
+        field_accesses: Vec::new(),
+        short_var_count: 0,
+        string_match_arms: 0,
         cpg: None,
     });
 }
@@ -241,31 +241,37 @@ fn analyze_callable(node: Node, source: &str, name: &str) -> Option<FunctionMetr
     Some(m)
 }
 
-
 fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> FunctionMetrics {
     let sl = node.start_position().row as u32 + 1;
     let el = node.end_position().row as u32 + 1;
     FunctionMetrics {
-        name: String::new(), start_line: sl, end_line: el,
+        name: String::new(),
+        start_line: sl,
+        end_line: el,
         loc: el.saturating_sub(sl) + 1,
-        cc: s.cc, cognitive_complexity: s.cogc, max_nesting: s.max_nesting,
-        bump_count: s.bump_count, arg_count: 0,
+        cc: s.cc,
+        cognitive_complexity: s.cogc,
+        max_nesting: s.max_nesting,
+        bump_count: s.bump_count,
+        arg_count: 0,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false, max_embedded_block_loc: s.max_embedded_block_loc,
+        is_constructor: false,
+        max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "call_expression"),
         assert_hash: compute_assert_fingerprint(body, "call_expression"),
-        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
-        empty_catch_count: s.empty_catch_count, field_accesses: Vec::new(),
+        primitive_type_count: 0,
+        typed_param_count: 0,
+        max_same_primitive_count: 0,
+        empty_catch_count: s.empty_catch_count,
+        field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
-        string_match_arms: count_string_match_arms(
-            body, "when_expression", "when_entry", &["string_literal"], &[],
-        ),
+        string_match_arms: count_string_match_arms(body, "when_expression", "when_entry", &["string_literal"], &[]),
         cpg: None,
     }
 }
@@ -303,9 +309,7 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_default(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if child.kind() == "binary_expression"
-        && child.children(&mut child.walk()).any(|c| c.kind() == "?:")
-    {
+    if child.kind() == "binary_expression" && child.children(&mut child.walk()).any(|c| c.kind() == "?:") {
         s.cc += 1;
         s.track_cogc_branch();
     } else {
@@ -343,7 +347,13 @@ fn walk_branches(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 s.track_cogc_branch();
                 count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
                 count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity(child, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
+                shared::check_condition_complexity(
+                    child,
+                    &mut s.compound_condition_count,
+                    COND_KINDS,
+                    BOOL_OPS,
+                    BOOL_STOPS,
+                );
                 walk_branches(child, source, depth, s);
                 saw_else = false;
             }
@@ -383,12 +393,7 @@ fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     if is_catch_body_empty(child, "block", None) {
         s.empty_catch_count += 1;
     }
-    shared::walk_block_children(
-        child,
-        &mut shared::BlockWalkCtx { source, depth, state: s },
-        "block",
-        walk_body,
-    );
+    shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
 }
 
 fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
@@ -401,8 +406,8 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut prims: Vec<&str> = Vec::new();
     for child in params.children(&mut cursor).filter(|c| c.kind() == "parameter") {
         count += 1;
-        let has_type = find_child_by_kind(child, "user_type").is_some()
-            || find_child_by_kind(child, "nullable_type").is_some();
+        let has_type =
+            find_child_by_kind(child, "user_type").is_some() || find_child_by_kind(child, "nullable_type").is_some();
         typed += u32::from(has_type);
         if let Some(ty) = primitive_type_of(child, source) {
             prims.push(ty);
@@ -412,11 +417,9 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
 }
 
 fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
-    let ut = find_child_by_kind(param, "user_type").or_else(|| {
-        find_child_by_kind(param, "nullable_type").and_then(|n| find_child_by_kind(n, "user_type"))
-    })?;
+    let ut = find_child_by_kind(param, "user_type")
+        .or_else(|| find_child_by_kind(param, "nullable_type").and_then(|n| find_child_by_kind(n, "user_type")))?;
     let id = find_child_by_kind(ut, "identifier")?;
     let name = &source[id.byte_range()];
     PRIMITIVE_TYPES.contains(&name).then_some(name)
 }
-

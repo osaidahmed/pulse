@@ -1,7 +1,7 @@
 use tree_sitter::Node;
 
-use super::complexity::{check_compound, count_bool_ops, count_cogc_sequences, is_otherwise_guard};
 use super::super::{find_child_by_kind, track_embedded_block, WalkState};
+use super::complexity::{check_compound, count_bool_ops, count_cogc_sequences, is_otherwise_guard};
 
 const SCOPE_BOUNDARY: &[&str] = &["lambda", "lambda_case"];
 
@@ -73,10 +73,22 @@ fn advance_conditional(child: Node, phase: u8, source: &str, depth: u32, s: &mut
     match child.kind() {
         "if" => 1,
         "then" => 2,
-        "else" => { s.track_cogc_flat(); 3 }
-        _ if phase == 1 => { analyze_condition(child, source, s); 2 }
-        _ if phase == 2 => { walk_node(child, source, depth + 1, s); phase }
-        _ if phase == 3 => { walk_else(child, source, depth, s); phase }
+        "else" => {
+            s.track_cogc_flat();
+            3
+        }
+        _ if phase == 1 => {
+            analyze_condition(child, source, s);
+            2
+        }
+        _ if phase == 2 => {
+            walk_node(child, source, depth + 1, s);
+            phase
+        }
+        _ if phase == 3 => {
+            walk_else(child, source, depth, s);
+            phase
+        }
         _ => phase,
     }
 }
@@ -109,7 +121,8 @@ fn walk_case_alternatives(node: Node, source: &str, depth: u32, s: &mut WalkStat
 
 fn is_wildcard_alternative(alt: Node) -> bool {
     let mut cursor = alt.walk();
-    let result = alt.children(&mut cursor)
+    let result = alt
+        .children(&mut cursor)
         .find(|c| !matches!(c.kind(), "match" | "->" | "|" | "guards" | "where" | "local_binds"))
         .is_some_and(|p| p.kind() == "wildcard");
     result
@@ -159,15 +172,23 @@ fn walk_match_rhs(match_node: Node, source: &str, depth: u32, s: &mut WalkState)
 
 fn walk_do_stmts(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     const DO_KINDS: &[&str] = &["exp", "bind", "let", "rec"];
-    for_matching_children(node, |k| DO_KINDS.contains(&k), |child| {
-        walk_body(child, source, depth, s);
-    });
+    for_matching_children(
+        node,
+        |k| DO_KINDS.contains(&k),
+        |child| {
+            walk_body(child, source, depth, s);
+        },
+    );
 }
 
 fn walk_let_in(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    for_matching_children(node, |k| k != "let" && k != "in", |child| {
-        walk_node(child, source, depth, s);
-    });
+    for_matching_children(
+        node,
+        |k| k != "let" && k != "in",
+        |child| {
+            walk_node(child, source, depth, s);
+        },
+    );
 }
 
 fn for_children_of_kind(node: Node, kind: &str, f: impl FnMut(Node)) {

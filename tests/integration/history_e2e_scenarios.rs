@@ -11,25 +11,14 @@ fn t() -> Thresholds {
 }
 
 fn opts(root: PathBuf) -> HistoryOpts {
-    HistoryOpts {
-        root,
-        include_tests: false,
-        since: None,
-        max_commits: None,
-    }
+    HistoryOpts { root, include_tests: false, since: None, max_commits: None }
 }
 
 fn count(findings: &[HistoryFinding], pillar: HistoryPillar) -> usize {
-    findings
-        .iter()
-        .filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar)
-        .count()
+    findings.iter().filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar).count()
 }
 
-fn varied_commits<const N: usize>(
-    pairs: &[(&'static str, &'static str)],
-    n: u32,
-) -> Vec<CommitSpec<'static>> {
+fn varied_commits<const N: usize>(pairs: &[(&'static str, &'static str)], n: u32) -> Vec<CommitSpec<'static>> {
     let mut out = Vec::new();
     for i in 0..n {
         let writes_vec: Vec<(&'static str, &'static str)> = pairs
@@ -39,8 +28,7 @@ fn varied_commits<const N: usize>(
                 (*name, Box::leak(body.into_boxed_str()) as &str)
             })
             .collect();
-        let writes: &'static [(&'static str, &'static str)] =
-            Box::leak(writes_vec.into_boxed_slice());
+        let writes: &'static [(&'static str, &'static str)] = Box::leak(writes_vec.into_boxed_slice());
         out.push(CommitSpec {
             author: "alice <alice@x>",
             message: Box::leak(format!("rev{i}").into_boxed_str()),
@@ -194,10 +182,8 @@ fn e2e_drift_ranks_by_confidence() {
     let mut th = t().history;
     th.co_change.min_support = 1;
     let f = run(&opts(repo.path().to_path_buf()), &th).unwrap();
-    let drift: Vec<&HistoryFinding> = f
-        .iter()
-        .filter(|x| matches!(x.kind, HistoryKind::ArchitecturalDrift(_)))
-        .collect();
+    let drift: Vec<&HistoryFinding> =
+        f.iter().filter(|x| matches!(x.kind, HistoryKind::ArchitecturalDrift(_))).collect();
     assert!(drift.len() >= 2);
     let HistoryKind::ArchitecturalDrift(first) = &drift[0].kind else { panic!() };
     let HistoryKind::ArchitecturalDrift(second) = &drift[1].kind else { panic!() };
@@ -209,11 +195,7 @@ fn e2e_distributed_team_with_dominant_owner_no_ownership_finding() {
     let mut commits = Vec::new();
     for i in 0..50 {
         let body = format!("# alice rev {i}\n");
-        let author = if i % 2 == 0 {
-            "alice <alice@x>"
-        } else {
-            "bob <bob@x>"
-        };
+        let author = if i % 2 == 0 { "alice <alice@x>" } else { "bob <bob@x>" };
         commits.push(CommitSpec {
             author,
             message: Box::leak(format!("rev{i}").into_boxed_str()),
@@ -352,10 +334,8 @@ fn e2e_drift_finding_carries_correct_total_commits() {
     let mut th = t().history;
     th.co_change.min_support = 1;
     let f = run(&opts(repo.path().to_path_buf()), &th).unwrap();
-    let drift: &HistoryFinding = f
-        .iter()
-        .find(|x| matches!(x.kind, HistoryKind::ArchitecturalDrift(_)))
-        .expect("drift finding present");
+    let drift: &HistoryFinding =
+        f.iter().find(|x| matches!(x.kind, HistoryKind::ArchitecturalDrift(_))).expect("drift finding present");
     let HistoryKind::ArchitecturalDrift(e) = &drift.kind else { panic!() };
     assert_eq!(e.commits, 6);
 }
@@ -460,10 +440,7 @@ fn e2e_repo_with_node_modules_skips_them() {
     let repo = build_repo(&[CommitSpec {
         author: "alice <alice@x>",
         message: "init",
-        writes: &[
-            ("a.py", "x = 1\n"),
-            ("node_modules/lib.js", "module.exports = {};\n"),
-        ],
+        writes: &[("a.py", "x = 1\n"), ("node_modules/lib.js", "module.exports = {};\n")],
         deletes: &[],
     }]);
     let result = run(&opts(repo.path().to_path_buf()), &t().history);
@@ -474,11 +451,7 @@ fn e2e_repo_with_node_modules_skips_them() {
 fn e2e_two_authors_50_50_no_ownership_finding() {
     let mut commits = Vec::new();
     for i in 0..50 {
-        let author = if i % 2 == 0 {
-            "alice <alice@x>"
-        } else {
-            "bob <bob@x>"
-        };
+        let author = if i % 2 == 0 { "alice <alice@x>" } else { "bob <bob@x>" };
         let body = format!("x = {i}\n");
         commits.push(CommitSpec {
             author,

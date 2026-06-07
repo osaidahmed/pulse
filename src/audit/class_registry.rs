@@ -30,12 +30,7 @@ impl ClassRegistry {
             let class_idx = ClassIndex(reg.classes.len() as u32);
             reg.by_file_and_name.insert((file.clone(), name.clone()), class_idx);
             reg.by_name.entry(name.clone()).or_default().push(class_idx);
-            reg.classes.push(ClassIdentity {
-                file,
-                name,
-                parent_class: parent,
-                method_indices: methods,
-            });
+            reg.classes.push(ClassIdentity { file, name, parent_class: parent, method_indices: methods });
         }
         reg
     }
@@ -80,21 +75,14 @@ fn group_methods_by_class(
 }
 
 fn lookup_method_idx(reg: &super::call_graph::MethodRegistry, identity: &MethodIdentity) -> Option<MethodIndex> {
-    reg.methods
-        .iter()
-        .position(|m| m == identity)
-        .map(|i| MethodIndex(i as u32))
+    reg.methods.iter().position(|m| m == identity).map(|i| MethodIndex(i as u32))
 }
 
 pub fn class_method_count(reg: &ClassRegistry, idx: ClassIndex) -> u32 {
     reg.methods_in(idx).len() as u32
 }
 
-pub fn class_wmc(
-    reg: &ClassRegistry,
-    idx: ClassIndex,
-    cc_for_method: &impl Fn(MethodIndex) -> u32,
-) -> u32 {
+pub fn class_wmc(reg: &ClassRegistry, idx: ClassIndex, cc_for_method: &impl Fn(MethodIndex) -> u32) -> u32 {
     let mut total: u32 = 0;
     for m in reg.methods_in(idx) {
         total = total.saturating_add(cc_for_method(*m));
@@ -126,7 +114,11 @@ where
     }
     let connected = count_connected_pairs(&field_sets);
     let total = (n * (n - 1) / 2) as u32;
-    if total == 0 { 0.0 } else { f64::from(connected) / f64::from(total) }
+    if total == 0 {
+        0.0
+    } else {
+        f64::from(connected) / f64::from(total)
+    }
 }
 
 fn collect_non_ctor_field_sets<F>(reg: &ClassRegistry, idx: ClassIndex, fields_for: &F) -> Vec<HashSet<String>>

@@ -9,10 +9,7 @@ pub fn t() -> Thresholds {
 }
 
 pub fn audit_fixtures_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("fixtures")
-        .join("audit")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join("audit")
 }
 
 pub fn scenario_path(scenario: &str, lang: &str) -> PathBuf {
@@ -64,8 +61,7 @@ pub struct Expected {
 }
 
 pub fn load_expected(path: &Path) -> Expected {
-    let text = std::fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("can't read {}: {e}", path.display()));
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("can't read {}: {e}", path.display()));
     let mut exp = Expected::default();
     let mut current: Option<ExpectedFinding> = None;
     let mut in_must_include = false;
@@ -141,10 +137,7 @@ fn apply_field(
     in_forbid_files: &mut bool,
 ) {
     if key == "__dash_kind" {
-        *current = Some(ExpectedFinding {
-            kind: strip_quotes(val).to_string(),
-            ..ExpectedFinding::default()
-        });
+        *current = Some(ExpectedFinding { kind: strip_quotes(val).to_string(), ..ExpectedFinding::default() });
         *in_must_include = false;
         *in_forbid_files = false;
         return;
@@ -170,12 +163,7 @@ fn assign_scalar(f: &mut ExpectedFinding, key: &str, val: &str) {
     }
 }
 
-fn apply_list_item(
-    current: &mut Option<ExpectedFinding>,
-    item: &str,
-    in_must_include: bool,
-    in_forbid_files: bool,
-) {
+fn apply_list_item(current: &mut Option<ExpectedFinding>, item: &str, in_must_include: bool, in_forbid_files: bool) {
     let f = current.as_mut().expect("list item outside finding");
     let cleaned = strip_quotes(item).to_string();
     if in_must_include {

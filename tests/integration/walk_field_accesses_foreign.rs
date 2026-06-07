@@ -56,11 +56,7 @@ fn python_foreign_accesses_deduped() {
     let (_dir, path) = write_tempfile(src, "py");
     let defs = definitions_for_file(&path, Language::Python);
     let m = defs.iter().find(|d| d.identity.name == "m").unwrap();
-    let count = m
-        .foreign_field_accesses
-        .iter()
-        .filter(|(r, f)| r == "obj" && f == "x")
-        .count();
+    let count = m.foreign_field_accesses.iter().filter(|(r, f)| r == "obj" && f == "x").count();
     assert_eq!(count, 1, "duplicate (obj, x) pairs should be deduped");
 }
 

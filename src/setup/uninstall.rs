@@ -21,10 +21,7 @@ fn uninstall_hooks(dir: &Path) -> bool {
         return false;
     };
     let mut changed = strip_pulse_hooks(&mut root);
-    if root
-        .as_object_mut()
-        .is_some_and(|o| o.remove(VERSION_KEY).is_some())
-    {
+    if root.as_object_mut().is_some_and(|o| o.remove(VERSION_KEY).is_some()) {
         changed = true;
     }
     if changed {
@@ -41,14 +38,8 @@ fn strip_pulse_hooks(root: &mut serde_json::Value) -> bool {
     };
     let mut changed = false;
     for &(event, _, _) in HOOKS {
-        let removed = hooks
-            .get_mut(event)
-            .and_then(|g| g.as_array_mut())
-            .is_some_and(remove_pulse_from_event);
-        let empty = hooks
-            .get(event)
-            .and_then(|g| g.as_array())
-            .is_some_and(Vec::is_empty);
+        let removed = hooks.get_mut(event).and_then(|g| g.as_array_mut()).is_some_and(remove_pulse_from_event);
+        let empty = hooks.get(event).and_then(|g| g.as_array()).is_some_and(Vec::is_empty);
         if removed {
             changed = true;
         }
@@ -69,18 +60,12 @@ fn remove_pulse_from_event(arr: &mut Vec<serde_json::Value>) -> bool {
         }
     }
     let before = arr.len();
-    arr.retain(|g| {
-        g.get("hooks")
-            .and_then(|h| h.as_array())
-            .is_none_or(|a| !a.is_empty())
-    });
+    arr.retain(|g| g.get("hooks").and_then(|h| h.as_array()).is_none_or(|a| !a.is_empty()));
     changed || arr.len() != before
 }
 
 fn is_pulse_command(hook: &serde_json::Value) -> bool {
-    hook.get("command")
-        .and_then(|c| c.as_str())
-        .is_some_and(|c| HOOKS.iter().any(|&(_, _, cmd)| cmd == c))
+    hook.get("command").and_then(|c| c.as_str()).is_some_and(|c| HOOKS.iter().any(|&(_, _, cmd)| cmd == c))
 }
 
 fn uninstall_claude_md(dir: &Path) -> bool {
@@ -91,11 +76,7 @@ fn uninstall_claude_md(dir: &Path) -> bool {
     let Some((s, e)) = locate_pulse_md(&existing) else {
         return false;
     };
-    let start = if s > 0 && existing[..s].ends_with('\n') {
-        s - 1
-    } else {
-        s
-    };
+    let start = if s > 0 && existing[..s].ends_with('\n') { s - 1 } else { s };
     let cleaned = format!("{}{}", &existing[..start], &existing[e..]);
     let _ = std::fs::write(&path, cleaned);
     eprintln!("  - removed pulse instructions from {}", path.display());

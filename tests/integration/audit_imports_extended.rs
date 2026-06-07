@@ -111,10 +111,7 @@ fn python_double_relative_import_handled() {
 #[test]
 fn python_multiple_imports_each_extracted() {
     let imports = extract("import os\nimport sys\nimport json\n", Language::Python);
-    let names: std::collections::BTreeSet<String> = imports
-        .iter()
-        .map(|i| i.target.clone())
-        .collect();
+    let names: std::collections::BTreeSet<String> = imports.iter().map(|i| i.target.clone()).collect();
     assert!(names.contains("os"));
     assert!(names.contains("sys"));
     assert!(names.contains("json"));
@@ -280,14 +277,8 @@ fn line_numbers_track_source_position_python() {
 #[test]
 fn determinism_same_source_yields_same_imports_two_runs() {
     let source = "import os\nimport sys\nimport json\n";
-    let mut a: Vec<String> = extract(source, Language::Python)
-        .into_iter()
-        .map(|i| i.target)
-        .collect();
-    let mut b: Vec<String> = extract(source, Language::Python)
-        .into_iter()
-        .map(|i| i.target)
-        .collect();
+    let mut a: Vec<String> = extract(source, Language::Python).into_iter().map(|i| i.target).collect();
+    let mut b: Vec<String> = extract(source, Language::Python).into_iter().map(|i| i.target).collect();
     a.sort();
     b.sort();
     assert_eq!(a, b);

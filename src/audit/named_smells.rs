@@ -8,15 +8,9 @@ use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
 use super::call_walker::{calls_for_file, LocatedCall};
 use super::class_registry::ClassRegistry;
 use super::definitions::{definitions_for_file, DefinitionRecord};
-use super::finding::{
-    AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence,
-};
+use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence};
 
-pub fn run(
-    typed_files: &[(PathBuf, Language)],
-    _root: &Path,
-    thresholds: &AuditThresholds,
-) -> Vec<AuditFinding> {
+pub fn run(typed_files: &[(PathBuf, Language)], _root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut definitions = Vec::new();
     let mut calls = Vec::new();
     for (path, lang) in typed_files {
@@ -39,10 +33,7 @@ pub fn run(
     all
 }
 
-fn apply_named_confidence(
-    findings: &mut [AuditFinding],
-    file_lang: &impl Fn(&Path) -> Option<Language>,
-) {
+fn apply_named_confidence(findings: &mut [AuditFinding], file_lang: &impl Fn(&Path) -> Option<Language>) {
     for finding in findings {
         set_named_confidence(&mut finding.kind, file_lang);
     }
@@ -70,12 +61,8 @@ fn set_named_confidence(kind: &mut AuditKind, file_lang: &impl Fn(&Path) -> Opti
     }
 }
 
-fn build_file_lang_lookup(
-    typed_files: &[(PathBuf, Language)],
-) -> impl Fn(&std::path::Path) -> Option<Language> + '_ {
-    move |path: &std::path::Path| -> Option<Language> {
-        typed_files.iter().find(|(p, _)| p == path).map(|(_, l)| *l)
-    }
+fn build_file_lang_lookup(typed_files: &[(PathBuf, Language)]) -> impl Fn(&std::path::Path) -> Option<Language> + '_ {
+    move |path: &std::path::Path| -> Option<Language> { typed_files.iter().find(|(p, _)| p == path).map(|(_, l)| *l) }
 }
 
 fn detect_shotgun_surgery(graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
@@ -98,8 +85,7 @@ fn detect_shotgun_surgery(graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFi
 type CollisionKey = (String, Vec<(String, u32)>);
 
 fn fold_name_collisions(findings: Vec<AuditFinding>) -> Vec<AuditFinding> {
-    let mut groups: std::collections::HashMap<CollisionKey, Vec<AuditFinding>> =
-        std::collections::HashMap::new();
+    let mut groups: std::collections::HashMap<CollisionKey, Vec<AuditFinding>> = std::collections::HashMap::new();
     let mut order: Vec<CollisionKey> = Vec::new();
     for f in findings {
         let key = collision_key(&f);
@@ -124,11 +110,8 @@ fn collision_key(f: &AuditFinding) -> CollisionKey {
     let AuditKind::ShotgunSurgery(e) = &f.kind else {
         return (String::new(), Vec::new());
     };
-    let mut callers: Vec<(String, u32)> = e
-        .caller_samples
-        .iter()
-        .map(|c| (c.file.display().to_string(), c.line))
-        .collect();
+    let mut callers: Vec<(String, u32)> =
+        e.caller_samples.iter().map(|c| (c.file.display().to_string(), c.line)).collect();
     callers.sort();
     callers.dedup();
     (e.method_name.clone(), callers)
@@ -142,10 +125,7 @@ fn merge_collision_group(mut group: Vec<AuditFinding>) -> AuditFinding {
     head_e.name_collision_count = (group.len() as u32) + 1;
     for sibling in group {
         let AuditKind::ShotgunSurgery(e) = sibling.kind else { continue };
-        head_e.additional_definitions.push(AuditLocation {
-            file: e.method_file,
-            line: e.method_line,
-        });
+        head_e.additional_definitions.push(AuditLocation { file: e.method_file, line: e.method_line });
     }
     head
 }
@@ -154,12 +134,7 @@ fn ordering_key(f: &AuditFinding) -> (u32, u32, String, u32) {
     let AuditKind::ShotgunSurgery(e) = &f.kind else {
         return (0, 0, String::new(), 0);
     };
-    (
-        e.changing_classes,
-        e.changing_methods,
-        format!("{}", e.method_file.display()),
-        e.method_line,
-    )
+    (e.changing_classes, e.changing_methods, format!("{}", e.method_file.display()), e.method_line)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -218,13 +193,8 @@ fn evaluate_method(graph: &CallGraph, idx: MethodIndex, t: &AuditThresholds) -> 
     })
 }
 
-fn count_changing_classes(
-    graph: &CallGraph,
-    incoming: &[super::call_graph::CallEdge],
-) -> u32 {
-    distinct_count(incoming, |edge| {
-        graph.registry.get(edge.source).map(caller_bucket)
-    })
+fn count_changing_classes(graph: &CallGraph, incoming: &[super::call_graph::CallEdge]) -> u32 {
+    distinct_count(incoming, |edge| graph.registry.get(edge.source).map(caller_bucket))
 }
 
 fn count_fanout(outgoing: &[super::call_graph::CallEdge]) -> u32 {
@@ -268,10 +238,7 @@ fn collect_caller_samples(
     let mut samples: Vec<AuditLocation> = Vec::new();
     for edge in incoming.iter().take(t.named_smells.max_caller_samples_per_finding) {
         if let Some(caller) = graph.registry.get(edge.source) {
-            samples.push(AuditLocation {
-                file: caller.file.clone(),
-                line: caller.line,
-            });
+            samples.push(AuditLocation { file: caller.file.clone(), line: caller.line });
         }
     }
     samples

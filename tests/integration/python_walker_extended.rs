@@ -60,7 +60,8 @@ fn multi_context_manager_handled() {
 
 #[test]
 fn complex_decorator_chain_handled() {
-    let source = "def deco1(fn):\n    return fn\n\ndef deco2(fn):\n    return fn\n\n@deco1\n@deco2\ndef f():\n    return 1\n";
+    let source =
+        "def deco1(fn):\n    return fn\n\ndef deco2(fn):\n    return fn\n\n@deco1\n@deco2\ndef f():\n    return 1\n";
     let _ = analyze(source);
 }
 
@@ -174,7 +175,8 @@ fn star_args_kwargs_handled() {
 
 #[test]
 fn raise_with_from_handled() {
-    let source = "def f():\n    try:\n        risky()\n    except Exception as e:\n        raise ValueError('bad') from e\n";
+    let source =
+        "def f():\n    try:\n        risky()\n    except Exception as e:\n        raise ValueError('bad') from e\n";
     let _ = analyze(source);
 }
 

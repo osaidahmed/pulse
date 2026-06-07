@@ -43,9 +43,8 @@ const PRIMITIVE_ONLY: &str =
 fn advisory_only_finding_emits_context_without_blocking() {
     let v = run_hook_isolated(PRIMITIVE_ONLY, "adv.py");
     assert!(v.get("decision").is_none(), "an advisory-only edit must not block: {v}");
-    let ctx = v["hookSpecificOutput"]["additionalContext"]
-        .as_str()
-        .expect("advisory finding surfaced as additionalContext");
+    let ctx =
+        v["hookSpecificOutput"]["additionalContext"].as_str().expect("advisory finding surfaced as additionalContext");
     assert!(ctx.contains("advisory[pulse]"));
     assert!(ctx.to_lowercase().contains("primitive obsession"));
 }
@@ -57,13 +56,8 @@ fn blocking_finding_carries_advisory_context_separately() {
     assert_eq!(v["decision"], "block");
     let reason = v["reason"].as_str().expect("block reason present");
     assert!(reason.contains("error[pulse]"), "blocking smell in the reason");
-    assert!(
-        !reason.to_lowercase().contains("primitive obsession"),
-        "advisory smell stays out of the block reason"
-    );
-    let ctx = v["hookSpecificOutput"]["additionalContext"]
-        .as_str()
-        .expect("advisory context alongside the block");
+    assert!(!reason.to_lowercase().contains("primitive obsession"), "advisory smell stays out of the block reason");
+    let ctx = v["hookSpecificOutput"]["additionalContext"].as_str().expect("advisory context alongside the block");
     assert!(ctx.to_lowercase().contains("primitive obsession"));
 }
 

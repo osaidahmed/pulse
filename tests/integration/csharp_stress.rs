@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("cs");
@@ -49,9 +48,7 @@ fn cc_counts_switch_cases() {
 
 #[test]
 fn cc_counts_catch() {
-    let out = debug(
-        "public class T { static void f() { try {} catch (System.Exception e) {} } }",
-    );
+    let out = debug("public class T { static void f() { try {} catch (System.Exception e) {} } }");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -63,27 +60,21 @@ fn cc_counts_ternary() {
 
 #[test]
 fn cc_counts_and() {
-    let out = debug(
-        "public class T { static void f(bool a, bool b) { if (a && b) {} } }",
-    );
+    let out = debug("public class T { static void f(bool a, bool b) { if (a && b) {} } }");
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_or() {
-    let out = debug(
-        "public class T { static void f(bool a, bool b) { if (a || b) {} } }",
-    );
+    let out = debug("public class T { static void f(bool a, bool b) { if (a || b) {} } }");
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(cc >= 2, "got: {cc}");
 }
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug(
-        "public class T { static void f(int x) { if (x == 1) {} else if (x == 2) {} } }",
-    );
+    let out = debug("public class T { static void f(int x) { if (x == 1) {} else if (x == 2) {} } }");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -235,9 +226,7 @@ fn nesting_depth() {
 
 #[test]
 fn args_excess() {
-    let out = debug(
-        "public class T { static void f(int a, int b, int c, int d, int e, int g) {} }",
-    );
+    let out = debug("public class T { static void f(int a, int b, int c, int d, int e, int g) {} }");
     assert_eq!(function_metric(&out, "f", "args"), Some(6));
 }
 
@@ -248,23 +237,13 @@ fn constructor_detected() {
         "    public T(object a, object b, object c, object d, object e, object f, object g, object h, object i) {}\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Constructor Over-Injection"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
 
 #[test]
 fn class_method_naming() {
-    let out = debug(concat!(
-        "public class MyClass {\n",
-        "    public void DoWork() {}\n",
-        "}\n",
-    ));
-    assert!(
-        out.contains("MyClass.DoWork"),
-        "expected ClassName.MethodName format, got: {out}"
-    );
+    let out = debug(concat!("public class MyClass {\n", "    public void DoWork() {}\n", "}\n",));
+    assert!(out.contains("MyClass.DoWork"), "expected ClassName.MethodName format, got: {out}");
 }
 
 #[test]
@@ -276,10 +255,7 @@ fn namespace_methods_found() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        out.contains("Service.Handle"),
-        "method inside namespace should be found, got: {out}"
-    );
+    assert!(out.contains("Service.Handle"), "method inside namespace should be found, got: {out}");
 }
 
 #[test]
@@ -291,10 +267,7 @@ fn empty_catch_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Empty Error Handler"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
@@ -306,10 +279,7 @@ fn non_empty_catch_not_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        !has_smell(&out, "Empty Error Handler"),
-        "non-empty catch should not be flagged, got: {out}"
-    );
+    assert!(!has_smell(&out, "Empty Error Handler"), "non-empty catch should not be flagged, got: {out}");
 }
 
 #[test]
@@ -321,10 +291,7 @@ fn struct_methods_found() {
         "    public int Sum() { return this.X + this.Y; }\n",
         "}\n",
     ));
-    assert!(
-        out.contains("Point.Sum"),
-        "struct methods should be found, got: {out}"
-    );
+    assert!(out.contains("Point.Sum"), "struct methods should be found, got: {out}");
 }
 
 // ===========================================================================
@@ -439,13 +406,8 @@ fn cc_counts_switch_expression_arms() {
 
 #[test]
 fn nesting_depth_simple() {
-    let out = debug(concat!(
-        "public class T {\n",
-        "    static void f() {\n",
-        "        if (true) {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("public class T {\n", "    static void f() {\n", "        if (true) {}\n", "    }\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "nesting"), Some(1));
 }
 
@@ -954,28 +916,15 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 
 #[test]
 fn class_method_has_class_prefix() {
-    let out = debug(concat!(
-        "public class Calculator {\n",
-        "    public int Add(int a, int b) { return a + b; }\n",
-        "}\n",
-    ));
-    assert!(
-        out.contains("Calculator.Add"),
-        "method should be Calculator.Add, got: {out}"
-    );
+    let out =
+        debug(concat!("public class Calculator {\n", "    public int Add(int a, int b) { return a + b; }\n", "}\n",));
+    assert!(out.contains("Calculator.Add"), "method should be Calculator.Add, got: {out}");
 }
 
 #[test]
 fn interface_method_has_prefix() {
-    let out = debug(concat!(
-        "public interface IService {\n",
-        "    int Process(int x) { return x; }\n",
-        "}\n",
-    ));
-    assert!(
-        out.contains("IService.Process"),
-        "method should be IService.Process, got: {out}"
-    );
+    let out = debug(concat!("public interface IService {\n", "    int Process(int x) { return x; }\n", "}\n",));
+    assert!(out.contains("IService.Process"), "method should be IService.Process, got: {out}");
 }
 
 #[test]
@@ -988,14 +937,8 @@ fn nested_class_methods() {
         "    public void OuterWork() {}\n",
         "}\n",
     ));
-    assert!(
-        out.contains("Inner.Work"),
-        "nested class method should be Inner.Work, got: {out}"
-    );
-    assert!(
-        out.contains("Outer.OuterWork"),
-        "outer method should be Outer.OuterWork, got: {out}"
-    );
+    assert!(out.contains("Inner.Work"), "nested class method should be Inner.Work, got: {out}");
+    assert!(out.contains("Outer.OuterWork"), "outer method should be Outer.OuterWork, got: {out}");
 }
 
 // ===========================================================================
@@ -1109,13 +1052,10 @@ fn cc_switch_many_cases() {
 
 #[test]
 fn cc_counts_not_operator() {
-    let out = debug(concat!(
-        "public class T {\n",
-        "    static void f(bool a) {\n",
-        "        if (!a) {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(
+            concat!("public class T {\n", "    static void f(bool a) {\n", "        if (!a) {}\n", "    }\n", "}\n",),
+        );
     let cc = function_metric(&out, "f", "cc").unwrap();
     assert!(cc >= 2, "if(!a) should have cc >= 2, got: {cc}");
 }
@@ -1257,18 +1197,13 @@ fn constructor_reports_injection_not_excess() {
         "}\n",
     ));
     assert!(has_smell(&out, "Constructor Over-Injection"), "got: {out}");
-    let lines: Vec<&str> = out
-        .lines()
-        .filter(|l| l.contains("S(") || l.contains(".S"))
-        .collect();
+    let lines: Vec<&str> = out.lines().filter(|l| l.contains("S(") || l.contains(".S")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
 }
 
 #[test]
 fn regular_method_reports_excess_args() {
-    let out = check(
-        "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
-    );
+    let out = check("public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }");
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
     assert!(!has_smell(&out, "Constructor Over-Injection"), "got: {out}");
 }
@@ -1504,10 +1439,7 @@ fn nested_conditional_chunks_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1516,26 +1448,20 @@ fn nested_conditional_chunks_detected() {
 
 #[test]
 fn output_starts_with_pulse() {
-    let out = check(
-        "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
-    );
+    let out = check("public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }");
     assert!(out.starts_with("pulse:"), "got: {out}");
 }
 
 #[test]
 fn output_has_line_numbers() {
-    let out = check(
-        "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
-    );
+    let out = check("public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }");
     let has_loc = out.lines().any(|l| l.contains("(L") && l.contains("): "));
     assert!(has_loc, "got: {out}");
 }
 
 #[test]
 fn excess_args_count_verified() {
-    let out = debug(
-        "public class T { static void f(int a, int b, int c, int d, int e, int f, int g, int h) {} }",
-    );
+    let out = debug("public class T { static void f(int a, int b, int c, int d, int e, int f, int g, int h) {} }");
     assert_eq!(function_metric(&out, "f", "args"), Some(8));
 }
 
@@ -1647,9 +1573,7 @@ fn performance_class_hierarchy() {
 
 #[test]
 fn issue_count_matches() {
-    let out = check(
-        "public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }",
-    );
+    let out = check("public class T { static void f(int a, int b, int c, int d, int e, int f, int g) {} }");
     let first = out.lines().next().unwrap_or("");
     let findings = out.lines().filter(|l| l.starts_with("  ")).count();
     assert!(first.contains(&format!("{findings} issue")), "got: {out}");

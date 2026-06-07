@@ -22,13 +22,7 @@ pub struct GitOpts<'a> {
 const SENTINEL: &str = "__COMMIT__";
 
 fn git_check_succeeds(root: &Path, args: &[&str]) -> bool {
-    Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(args)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Command::new("git").arg("-C").arg(root).args(args).output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 pub fn is_git_repo(root: &Path) -> bool {
@@ -47,10 +41,7 @@ pub fn collect_commits(opts: &GitOpts) -> Result<Vec<Commit>, HistoryError> {
         return Ok(Vec::new());
     }
     let args = build_log_args(opts);
-    let output = Command::new("git")
-        .args(&args)
-        .output()
-        .map_err(|_| HistoryError::GitNotInstalled)?;
+    let output = Command::new("git").args(&args).output().map_err(|_| HistoryError::GitNotInstalled)?;
     if !output.status.success() {
         return Err(HistoryError::GitFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -62,31 +53,19 @@ pub fn collect_commits(opts: &GitOpts) -> Result<Vec<Commit>, HistoryError> {
 }
 
 pub fn files_at_commit(root: &Path, rev: &str) -> Vec<PathBuf> {
-    let Ok(output) = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["ls-tree", "-r", "--name-only", rev])
-        .output()
+    let Ok(output) = Command::new("git").arg("-C").arg(root).args(["ls-tree", "-r", "--name-only", rev]).output()
     else {
         return Vec::new();
     };
     if !output.status.success() {
         return Vec::new();
     }
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(PathBuf::from)
-        .collect()
+    String::from_utf8_lossy(&output.stdout).lines().map(PathBuf::from).collect()
 }
 
 pub fn file_at_commit(root: &Path, rev: &str, path: &Path) -> Option<String> {
     let spec = format!("{rev}:{}", path.to_string_lossy());
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["show", &spec])
-        .output()
-        .ok()?;
+    let output = Command::new("git").arg("-C").arg(root).args(["show", &spec]).output().ok()?;
     if output.status.success() {
         String::from_utf8(output.stdout).ok()
     } else {
@@ -116,11 +95,7 @@ fn build_log_args(opts: &GitOpts) -> Vec<String> {
 
 pub fn parse_log_output(stdout: &str, max_files: u32) -> Vec<Commit> {
     let split_token = format!("{SENTINEL}\n");
-    stdout
-        .split(split_token.as_str())
-        .skip(1)
-        .filter_map(|chunk| parse_chunk(chunk, max_files))
-        .collect()
+    stdout.split(split_token.as_str()).skip(1).filter_map(|chunk| parse_chunk(chunk, max_files)).collect()
 }
 
 fn parse_chunk(chunk: &str, max_files: u32) -> Option<Commit> {
@@ -128,10 +103,7 @@ fn parse_chunk(chunk: &str, max_files: u32) -> Option<Commit> {
     let hash = lines.next()?.to_string();
     let author = lines.next()?.to_string();
     let timestamp = lines.next()?.parse::<i64>().ok()?;
-    let files: Vec<PathBuf> = lines
-        .filter(|l| !l.trim().is_empty())
-        .map(PathBuf::from)
-        .collect();
+    let files: Vec<PathBuf> = lines.filter(|l| !l.trim().is_empty()).map(PathBuf::from).collect();
     if files.is_empty() || files.len() > max_files as usize {
         return None;
     }

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -84,8 +83,7 @@ fn cc_counts_switch_cases() {
 
 #[test]
 fn cc_nested_if_in_for() {
-    let out =
-        debug("function f(): void {\n    for (const x of y) {\n        if (x) {}\n    }\n}\n");
+    let out = debug("function f(): void {\n    for (const x of y) {\n        if (x) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -405,9 +403,7 @@ fn shallow_global_if_not_flagged() {
 
 #[test]
 fn global_nesting_depth_3_flagged() {
-    let out = check(
-        "if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n",
-    );
+    let out = check("if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n");
     assert!(has_smell(&out, "Deep Global Nesting"));
 }
 
@@ -417,8 +413,9 @@ fn global_nesting_depth_3_flagged() {
 
 #[test]
 fn constructor_reports_over_injection() {
-    let out =
-        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n");
+    let out = check(
+        "class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n",
+    );
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
@@ -426,8 +423,7 @@ fn constructor_reports_over_injection() {
 
 #[test]
 fn regular_function_reports_excess_args() {
-    let out =
-        check("function f(a: any, b: any, c: any, d: any, e: any, f: any, g: any): void {}\n");
+    let out = check("function f(a: any, b: any, c: any, d: any, e: any, f: any, g: any): void {}\n");
     assert!(has_smell(&out, "Excess Arguments"));
     assert!(!has_smell(&out, "Constructor Over-Injection"));
 }
@@ -489,12 +485,7 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"other\": 1}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -524,9 +515,7 @@ fn hook_empty_stdin() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!(
-            "function func{i}(data: any): any {{\n    const r: any = {{}};\n"
-        ));
+        code.push_str(&format!("function func{i}(data: any): any {{\n    const r: any = {{}};\n"));
         for j in 0..18 {
             code.push_str(&format!("    r.f{j} = data.f{j};\n"));
         }
@@ -548,9 +537,7 @@ fn performance_1000_loc() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!(
-            "class Service{i} {{\n    private data{i}: any[] = [];\n"
-        ));
+        code.push_str(&format!("class Service{i} {{\n    private data{i}: any[] = [];\n"));
         for j in 0..5 {
             code.push_str(&format!("    method{j}() {{ return this.data{i}; }}\n"));
         }
@@ -587,10 +574,7 @@ fn cc_counts_not_operator() {
 fn nesting_depth_with_try_catch() {
     let out = debug("function f(): void {\n    try {\n        if (x) {}\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(
-        depth >= 1,
-        "try-catch should add nesting depth, got: {depth}"
-    );
+    assert!(depth >= 1, "try-catch should add nesting depth, got: {depth}");
 }
 
 // ===========================================================================
@@ -825,10 +809,7 @@ fn clean_react_component_not_flagged() {
         "    return items;\n",
         "}\n",
     ));
-    assert!(
-        out.is_empty(),
-        "clean React component should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean React component should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -844,12 +825,7 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -997,8 +973,9 @@ fn overall_function_size_below_threshold_not_flagged() {
 
 #[test]
 fn constructor_reports_injection_not_excess() {
-    let out =
-        check("class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n");
+    let out = check(
+        "class S {\n    constructor(a: any, b: any, c: any, d: any, e: any, f: any, g: any, h: any, i: any) {}\n}\n",
+    );
     assert!(has_smell(&out, "Constructor Over-Injection"));
     let lines: Vec<&str> = out.lines().filter(|l| l.contains("constructor")).collect();
     assert!(!lines.iter().any(|l| l.contains("Excess Arguments")));
@@ -1053,7 +1030,9 @@ fn function_with_excess_embedded_and_deep_nesting() {
 
 #[test]
 fn nesting_try_catch_counts_depth() {
-    let out = debug("function f(): void {\n    try {\n        if (x) {\n            if (y) {}\n        }\n    } catch (e) {}\n}\n");
+    let out = debug(
+        "function f(): void {\n    try {\n        if (x) {\n            if (y) {}\n        }\n    } catch (e) {}\n}\n",
+    );
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(depth >= 2, "try+if+if should be >= 2, got: {depth}");
 }
@@ -1146,44 +1125,27 @@ fn cogc_switch_counted() {
 
 #[test]
 fn cogc_catch_penalized() {
-    let out = debug(concat!(
-        "function f(): void {\n",
-        "    try {\n",
-        "        if (x) {}\n",
-        "    } catch (e) {}\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("function f(): void {\n", "    try {\n", "        if (x) {}\n", "    } catch (e) {}\n", "}\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "try/catch with nested if should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_ternary_counted() {
-    let out = debug(concat!(
-        "function f(): number {\n",
-        "    return a ? 1 : 0;\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f(): number {\n", "    return a ? 1 : 0;\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
-    let out = debug(concat!(
-        "function f(): void {\n",
-        "    if (a && b && c) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f(): void {\n", "    if (a && b && c) {}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(2));
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
-    let out = debug(concat!(
-        "function f(): void {\n",
-        "    if (a && b || c) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f(): void {\n", "    if (a && b || c) {}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
 
@@ -1245,21 +1207,13 @@ fn cogc_below_threshold_no_smell() {
 
 #[test]
 fn empty_catch_detected() {
-    let out = check(concat!(
-        "function f(): void {\n",
-        "    try { risky(); } catch (e) {}\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f(): void {\n", "    try { risky(); } catch (e) {}\n", "}\n",));
     assert!(has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn non_empty_catch_not_detected() {
-    let out = check(concat!(
-        "function f(): void {\n",
-        "    try { risky(); } catch (e) { console.log(e); }\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f(): void {\n", "    try { risky(); } catch (e) { console.log(e); }\n", "}\n",));
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
@@ -1277,22 +1231,13 @@ fn multiple_empty_catches() {
 
 #[test]
 fn no_try_catch_no_smell() {
-    let out = check(concat!(
-        "function f(): void {\n",
-        "    const x = 1;\n",
-        "    return;\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f(): void {\n", "    const x = 1;\n", "    return;\n", "}\n",));
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn catch_with_only_comment_detected() {
-    let out = check(concat!(
-        "function f(): void {\n",
-        "    try { risky(); } catch (e) { /* todo */ }\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f(): void {\n", "    try { risky(); } catch (e) { /* todo */ }\n", "}\n",));
     assert!(has_smell(&out, "Empty Error Handler"));
 }
 

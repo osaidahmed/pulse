@@ -8,15 +8,12 @@ use crate::audit::finding::{kind_slug, AuditFinding, AuditKind, PatternCategory}
 use crate::smells::{self, Finding, Smell};
 
 pub use crate::config_history::{
-    combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides,
-    HistoryConfig,
+    combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, HistoryConfig,
 };
 
 mod audit_overrides;
 mod resolve;
-pub use audit_overrides::{
-    CloneClusterConfig, NaturalnessConfig, PackageMetricsConfig, TaintConfig,
-};
+pub use audit_overrides::{CloneClusterConfig, NaturalnessConfig, PackageMetricsConfig, TaintConfig};
 pub use resolve::{resolve_base_thresholds, resolve_thresholds};
 
 const CONFIG_FILENAME: &str = ".pulse.toml";
@@ -80,7 +77,6 @@ pub struct DuplicationThresholds {
     pub duplication_min_distinct_kinds: Option<u32>,
 }
 
-
 #[derive(Debug, Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct CpgConfig {
@@ -90,7 +86,6 @@ pub struct CpgConfig {
     pub unreachable_code: Option<bool>,
     pub unused_result: Option<bool>,
 }
-
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct FunctionThresholds {
@@ -179,11 +174,7 @@ pub struct AuditSuppression {
 
 impl AuditSuppression {
     pub fn new() -> Self {
-        Self {
-            categories: HashSet::new(),
-            smells: HashSet::new(),
-            patterns: GlobSet::empty(),
-        }
+        Self { categories: HashSet::new(), smells: HashSet::new(), patterns: GlobSet::empty() }
     }
 
     pub fn from_config(cfg: Option<&AuditConfig>) -> Self {
@@ -200,16 +191,8 @@ impl AuditSuppression {
         }
         let patterns = builder.build().unwrap_or_else(|_| GlobSet::empty());
         Self {
-            categories: cfg
-                .hide_categories
-                .iter()
-                .map(|s| s.trim().to_string())
-                .collect(),
-            smells: cfg
-                .hide_smells
-                .iter()
-                .map(|s| s.trim().to_string())
-                .collect(),
+            categories: cfg.hide_categories.iter().map(|s| s.trim().to_string()).collect(),
+            smells: cfg.hide_smells.iter().map(|s| s.trim().to_string()).collect(),
             patterns,
         }
     }
@@ -227,9 +210,7 @@ impl AuditSuppression {
 }
 
 fn pattern_hidden(s: &AuditSuppression, f: &AuditFinding) -> bool {
-    let category_hit = f
-        .pattern_category
-        .is_some_and(|cat| s.categories.contains(PatternCategory::slug(cat)));
+    let category_hit = f.pattern_category.is_some_and(|cat| s.categories.contains(PatternCategory::slug(cat)));
     category_hit || glob_matches_text(&s.patterns, &f.representative_snippet)
 }
 
@@ -254,11 +235,7 @@ fn expand_pattern(raw: &str) -> Vec<String> {
 }
 
 pub fn find_config(start: &Path) -> Option<PathBuf> {
-    let mut dir = if start.is_file() {
-        start.parent()?
-    } else {
-        start
-    };
+    let mut dir = if start.is_file() { start.parent()? } else { start };
     loop {
         let candidate = dir.join(CONFIG_FILENAME);
         if candidate.is_file() {
@@ -299,22 +276,14 @@ pub fn is_ignored_with_root(cfg: &PulseConfig, root: &Path, file_path: &Path) ->
 fn relative_path(root: &Path, file: &Path) -> Option<PathBuf> {
     let canon_root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let canon_file = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
-    canon_file
-        .strip_prefix(&canon_root)
-        .ok()
-        .map(Path::to_path_buf)
+    canon_file.strip_prefix(&canon_root).ok().map(Path::to_path_buf)
 }
 
 pub fn resolve_disabled(config: Option<&PulseConfig>) -> HashSet<Smell> {
     let Some(config) = config else {
         return HashSet::new();
     };
-    config
-        .disable
-        .smells
-        .iter()
-        .filter_map(|s| smells::smell_from_snake_case(s))
-        .collect()
+    config.disable.smells.iter().filter_map(|s| smells::smell_from_snake_case(s)).collect()
 }
 
 pub fn filter_disabled(findings: &mut Vec<Finding>, disabled: &HashSet<Smell>) {

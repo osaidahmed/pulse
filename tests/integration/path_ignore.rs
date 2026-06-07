@@ -1,4 +1,3 @@
-
 use std::path::Path;
 use std::process::Command;
 
@@ -23,26 +22,17 @@ fn many_args_py() -> String {
 }
 
 fn run_check_on(file: &Path) -> String {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(["check", file.to_str().unwrap()])
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).args(["check", file.to_str().unwrap()]).output().unwrap();
     String::from_utf8(out.stdout).unwrap()
 }
 
 fn run_budget_on(file: &Path) -> String {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(["budget", file.to_str().unwrap()])
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).args(["budget", file.to_str().unwrap()]).output().unwrap();
     String::from_utf8(out.stderr).unwrap()
 }
 
 fn run_debug_on(file: &Path) -> String {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(["debug", file.to_str().unwrap()])
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).args(["debug", file.to_str().unwrap()]).output().unwrap();
     String::from_utf8(out.stderr).unwrap()
 }
 
@@ -62,11 +52,7 @@ fn run_hook_on(file: &Path) -> String {
 }
 
 fn run_check_all_in(dir: &Path) -> String {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .current_dir(dir)
-        .args(["-a"])
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).current_dir(dir).args(["-a"]).output().unwrap();
     String::from_utf8(out.stdout).unwrap()
 }
 
@@ -97,10 +83,8 @@ fn ignore_paths_single_pattern_parses() {
 
 #[test]
 fn ignore_paths_multiple_patterns_parse() {
-    let cfg: PulseConfig = toml::from_str(
-        "[ignore]\npaths = [\"vendor/**\", \"third_party/**\", \"*.gen.py\"]\n",
-    )
-    .unwrap();
+    let cfg: PulseConfig =
+        toml::from_str("[ignore]\npaths = [\"vendor/**\", \"third_party/**\", \"*.gen.py\"]\n").unwrap();
     assert_eq!(cfg.ignore.paths.len(), 3);
 }
 

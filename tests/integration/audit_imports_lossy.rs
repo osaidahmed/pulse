@@ -147,7 +147,8 @@ fn tcl_extraction_is_deterministic() {
 
 #[test]
 fn cobol_copy_statement_extracts_word() {
-    let src = "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. P.\n       PROCEDURE DIVISION.\n           COPY FOO.\n";
+    let src =
+        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. P.\n       PROCEDURE DIVISION.\n           COPY FOO.\n";
     let raws = extract(Language::Cobol, src);
     assert!(targets(&raws).contains(&"FOO".to_string()));
 }
@@ -430,10 +431,7 @@ fn python_relative_dot_resolves_against_source_dir() {
 fn php_namespace_resolves_via_psr4_composer_json() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    write_file(
-        &root.join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#,
-    );
+    write_file(&root.join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#);
     write_file(&root.join("src/Foo/Bar.php"), "");
     write_file(&root.join("main.php"), "");
     let source = root.join("main.php");
@@ -480,10 +478,7 @@ fn ts_resolves_to_ts_extension() {
 fn ts_tsconfig_paths_alias_resolved() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    write_file(
-        &root.join("tsconfig.json"),
-        r#"{"compilerOptions":{"paths":{"@/*":["src/*"]}}}"#,
-    );
+    write_file(&root.join("tsconfig.json"), r#"{"compilerOptions":{"paths":{"@/*":["src/*"]}}}"#);
     write_file(&root.join("src/foo.ts"), "");
     write_file(&root.join("main.ts"), "");
     let source = root.join("main.ts");

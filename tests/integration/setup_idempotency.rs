@@ -11,10 +11,7 @@ fn pulse_setup(home: &Path, extra: &[&str]) -> (String, String) {
         .env("HOME", home)
         .output()
         .expect("failed to run pulse setup");
-    (
-        String::from_utf8(out.stdout).unwrap(),
-        String::from_utf8(out.stderr).unwrap(),
-    )
+    (String::from_utf8(out.stdout).unwrap(), String::from_utf8(out.stderr).unwrap())
 }
 
 fn settings_path(home: &Path) -> PathBuf {
@@ -39,10 +36,7 @@ fn setup_writes_marked_block_and_version_sentinel() {
     assert!(md.contains("# Pulse"));
 
     let settings = read(&settings_path(dir.path()));
-    assert!(
-        settings.contains("_pulse_version"),
-        "settings.json carries the version sentinel"
-    );
+    assert!(settings.contains("_pulse_version"), "settings.json carries the version sentinel");
 }
 
 #[test]
@@ -55,11 +49,7 @@ fn setup_idempotent_leaves_files_byte_identical() {
     let (_, stderr) = pulse_setup(dir.path(), &[]);
 
     assert_eq!(read(&md_path(dir.path())), md_first, "md unchanged on re-run");
-    assert_eq!(
-        read(&settings_path(dir.path())),
-        settings_first,
-        "settings unchanged on re-run"
-    );
+    assert_eq!(read(&settings_path(dir.path())), settings_first, "settings unchanged on re-run");
     assert!(
         stderr.contains("already current") && stderr.contains("already configured"),
         "second run reports no-op: {stderr}"
@@ -153,8 +143,7 @@ fn setup_and_uninstall_survive_non_object_settings() {
 
     let (_, err) = pulse_setup(dir.path(), &[]);
     assert!(!err.contains("panic"), "setup must not panic on non-object settings: {err}");
-    let settings: serde_json::Value =
-        serde_json::from_str(&read(&settings_path(dir.path()))).unwrap();
+    let settings: serde_json::Value = serde_json::from_str(&read(&settings_path(dir.path()))).unwrap();
     assert!(settings.is_object(), "settings.json normalized to an object");
     assert!(read(&settings_path(dir.path())).contains("pulse --hook"));
 
@@ -194,11 +183,7 @@ fn uninstall_preserves_foreign_hooks() {
             }]
         }
     });
-    std::fs::write(
-        claude.join("settings.json"),
-        serde_json::to_string_pretty(&existing).unwrap(),
-    )
-    .unwrap();
+    std::fs::write(claude.join("settings.json"), serde_json::to_string_pretty(&existing).unwrap()).unwrap();
 
     pulse_setup(dir.path(), &[]);
     pulse_setup(dir.path(), &["--uninstall"]);
@@ -240,11 +225,7 @@ fn uninstall_restores_claude_md_byte_identical() {
     assert!(read(&md_path(dir.path())).contains(MD_START), "block was added");
 
     pulse_setup(dir.path(), &["--uninstall"]);
-    assert_eq!(
-        read(&md_path(dir.path())),
-        original,
-        "CLAUDE.md byte-identical after uninstall"
-    );
+    assert_eq!(read(&md_path(dir.path())), original, "CLAUDE.md byte-identical after uninstall");
 }
 
 #[test]

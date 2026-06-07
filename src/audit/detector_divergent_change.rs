@@ -4,11 +4,7 @@ use super::call_graph::CallGraph;
 use super::class_registry::{class_cc, class_fanout, class_method_count, ClassIndex, ClassRegistry};
 use super::finding::{AuditFinding, AuditKind, DivergentChangeEvidence, ImportConfidence};
 
-pub fn detect(
-    registry: &ClassRegistry,
-    graph: &CallGraph,
-    t: &AuditThresholds,
-) -> Vec<AuditFinding> {
+pub fn detect(registry: &ClassRegistry, graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
     let mut findings = Vec::new();
     for i in 0..registry.count() {
         let idx = ClassIndex(i as u32);

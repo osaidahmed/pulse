@@ -90,12 +90,7 @@ fn ruby_non_load_method_yields_no_import() {
 fn lua_resolve_target_uses_lua_extension() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("helpers.lua"), "-- helpers").unwrap();
-    let resolved = resolve_target(
-        "helpers",
-        &dir.path().join("main.lua"),
-        dir.path(),
-        Language::Lua,
-    );
+    let resolved = resolve_target("helpers", &dir.path().join("main.lua"), dir.path(), Language::Lua);
     if let Some(p) = resolved {
         assert!(p.extension().is_some());
     }
@@ -105,12 +100,7 @@ fn lua_resolve_target_uses_lua_extension() {
 fn r_resolve_target_uses_r_extension() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("helpers.R"), "# helpers").unwrap();
-    let resolved = resolve_target(
-        "helpers",
-        &dir.path().join("main.R"),
-        dir.path(),
-        Language::R,
-    );
+    let resolved = resolve_target("helpers", &dir.path().join("main.R"), dir.path(), Language::R);
     if let Some(p) = resolved {
         assert!(p.extension().is_some());
     }
@@ -120,24 +110,14 @@ fn r_resolve_target_uses_r_extension() {
 fn r_resolve_target_handles_lowercase_r_extension() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("helpers.r"), "# helpers").unwrap();
-    let _ = resolve_target(
-        "helpers",
-        &dir.path().join("main.R"),
-        dir.path(),
-        Language::R,
-    );
+    let _ = resolve_target("helpers", &dir.path().join("main.R"), dir.path(), Language::R);
 }
 
 #[test]
 fn ruby_resolve_target_uses_rb_extension() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("helpers.rb"), "# helpers").unwrap();
-    let resolved = resolve_target(
-        "helpers",
-        &dir.path().join("main.rb"),
-        dir.path(),
-        Language::Ruby,
-    );
+    let resolved = resolve_target("helpers", &dir.path().join("main.rb"), dir.path(), Language::Ruby);
     if let Some(p) = resolved {
         assert!(p.extension().is_some());
     }
@@ -148,12 +128,7 @@ fn lua_dotted_module_resolution_uses_separator() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join("pkg/sub")).unwrap();
     std::fs::write(dir.path().join("pkg/sub/helpers.lua"), "").unwrap();
-    let _ = resolve_target(
-        "pkg.sub.helpers",
-        &dir.path().join("main.lua"),
-        dir.path(),
-        Language::Lua,
-    );
+    let _ = resolve_target("pkg.sub.helpers", &dir.path().join("main.lua"), dir.path(), Language::Lua);
 }
 
 #[test]
@@ -161,24 +136,14 @@ fn r_dotted_path_resolution_uses_separator() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join("pkg/sub")).unwrap();
     std::fs::write(dir.path().join("pkg/sub/helpers.R"), "").unwrap();
-    let _ = resolve_target(
-        "pkg.sub.helpers",
-        &dir.path().join("main.R"),
-        dir.path(),
-        Language::R,
-    );
+    let _ = resolve_target("pkg.sub.helpers", &dir.path().join("main.R"), dir.path(), Language::R);
 }
 
 #[test]
 fn ruby_path_with_extension_already_in_raw_handled() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("helpers.rb"), "").unwrap();
-    let _ = resolve_target(
-        "helpers.rb",
-        &dir.path().join("main.rb"),
-        dir.path(),
-        Language::Ruby,
-    );
+    let _ = resolve_target("helpers.rb", &dir.path().join("main.rb"), dir.path(), Language::Ruby);
 }
 
 #[test]
@@ -236,36 +201,21 @@ fn lua_require_line_numbers_track_position() {
 #[test]
 fn lua_resolve_with_nonexistent_target_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let result = resolve_target(
-        "nonexistent_module",
-        &dir.path().join("main.lua"),
-        dir.path(),
-        Language::Lua,
-    );
+    let result = resolve_target("nonexistent_module", &dir.path().join("main.lua"), dir.path(), Language::Lua);
     assert!(result.is_none());
 }
 
 #[test]
 fn r_resolve_with_nonexistent_target_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let result = resolve_target(
-        "nonexistent",
-        Path::new(&dir.path().join("main.R")),
-        dir.path(),
-        Language::R,
-    );
+    let result = resolve_target("nonexistent", Path::new(&dir.path().join("main.R")), dir.path(), Language::R);
     assert!(result.is_none());
 }
 
 #[test]
 fn ruby_resolve_with_nonexistent_target_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let result = resolve_target(
-        "nonexistent",
-        Path::new(&dir.path().join("main.rb")),
-        dir.path(),
-        Language::Ruby,
-    );
+    let result = resolve_target("nonexistent", Path::new(&dir.path().join("main.rb")), dir.path(), Language::Ruby);
     assert!(result.is_none());
 }
 

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -390,9 +389,7 @@ fn global_nesting_not_common_in_rust() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!(
-            "fn func{i}(data: &Data) -> Result<(), Error> {{\n"
-        ));
+        code.push_str(&format!("fn func{i}(data: &Data) -> Result<(), Error> {{\n"));
         for j in 0..18 {
             code.push_str(&format!("    let f{j} = data.field{j};\n"));
         }
@@ -414,13 +411,9 @@ fn performance_1000_loc() {
 fn performance_impl_blocks() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!(
-            "struct S{i} {{ data: Vec<i32> }}\nimpl S{i} {{\n"
-        ));
+        code.push_str(&format!("struct S{i} {{ data: Vec<i32> }}\nimpl S{i} {{\n"));
         for j in 0..5 {
-            code.push_str(&format!(
-                "    fn m{j}(&self) -> &[i32] {{ &self.data }}\n"
-            ));
+            code.push_str(&format!("    fn m{j}(&self) -> &[i32] {{ &self.data }}\n"));
         }
         code.push_str("}\n\n");
     }
@@ -699,9 +692,7 @@ fn shallow_global_not_flagged() {
 
 #[test]
 fn function_can_have_multiple_smells() {
-    let mut code = String::from(
-        "fn terrible(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32) {\n",
-    );
+    let mut code = String::from("fn terrible(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32) {\n");
     code.push_str("    let q = r#\"\n");
     for i in 0..embedded_lines_above() {
         code.push_str(&format!("        SELECT field_{i}\n"));
@@ -738,12 +729,7 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"other\": 1}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -759,12 +745,7 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -823,8 +804,7 @@ fn cc_counts_if_let() {
 
 #[test]
 fn nesting_loop_counts_depth() {
-    let out =
-        debug("fn f() {\n    loop {\n        if true {\n            break;\n        }\n    }\n}\n");
+    let out = debug("fn f() {\n    loop {\n        if true {\n            break;\n        }\n    }\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(depth >= 2, "loop+if should be >= 2, got: {depth}");
 }
@@ -923,10 +903,7 @@ fn clean_rust_module_not_flagged() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        out.is_empty(),
-        "clean Rust module should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean Rust module should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -971,10 +948,7 @@ fn cc_match_many_arms() {
         "}\n",
     ));
     let cc = function_metric(&out, "f", "cc").unwrap();
-    assert!(
-        cc >= 9,
-        "8 match arms + base should give cc >= 9, got: {cc}"
-    );
+    assert!(cc >= 9, "8 match arms + base should give cc >= 9, got: {cc}");
 }
 
 // ===========================================================================
@@ -1130,13 +1104,7 @@ fn cogc_match_counted() {
 
 #[test]
 fn cogc_for_loop_nested() {
-    let out = debug(concat!(
-        "fn f(x: i32) {\n",
-        "    if x > 0 {\n",
-        "        for i in 0..10 {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out = debug(concat!("fn f(x: i32) {\n", "    if x > 0 {\n", "        for i in 0..10 {}\n", "    }\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
 

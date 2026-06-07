@@ -1,17 +1,16 @@
 use tree_sitter::Node;
 
-use super::extract_name;
-use super::walk_tree::walk_function_matches;
 use super::super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::super::{
-    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_consecutive_asserts, count_distinct_node_kinds, find_child_by_kind, node_text,
-    FunctionMetrics, WalkState,
+    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint, count_consecutive_asserts,
+    count_distinct_node_kinds, find_child_by_kind, node_text, FunctionMetrics, WalkState,
 };
+use super::extract_name;
+use super::walk_tree::walk_function_matches;
 
 const PRIMITIVE_TYPES: &[&str] = &[
-    "Int", "Integer", "Float", "Double", "Char", "Bool", "String", "Word", "Word8", "Word16",
-    "Word32", "Word64", "Int8", "Int16", "Int32", "Int64",
+    "Int", "Integer", "Float", "Double", "Char", "Bool", "String", "Word", "Word8", "Word16", "Word32", "Word64",
+    "Int8", "Int16", "Int32", "Int64",
 ];
 
 pub fn analyze_function_group(group: &[Node], source: &str, name: &str) -> Option<FunctionMetrics> {
@@ -60,8 +59,7 @@ fn typed_from_signature(func_node: Node, source: &str, name: &str) -> (u32, u32,
         return (0, 0, 0);
     }
     let arg_types = &segments[..segments.len() - 1];
-    let prim_types: Vec<&str> =
-        arg_types.iter().map(|t| t.trim()).filter(|t| PRIMITIVE_TYPES.contains(t)).collect();
+    let prim_types: Vec<&str> = arg_types.iter().map(|t| t.trim()).filter(|t| PRIMITIVE_TYPES.contains(t)).collect();
     (prim_types.len() as u32, arg_types.len() as u32, max_same_primitive(&prim_types))
 }
 
@@ -69,8 +67,7 @@ fn find_sibling_signature<'a>(func_node: Node<'a>, source: &str, name: &str) -> 
     let parent = func_node.parent()?;
     let mut cursor = parent.walk();
     let result = parent.children(&mut cursor).find(|c| {
-        c.kind() == "signature"
-            && find_child_by_kind(*c, "variable").is_some_and(|v| node_text(v, source) == name)
+        c.kind() == "signature" && find_child_by_kind(*c, "variable").is_some_and(|v| node_text(v, source) == name)
     });
     result
 }

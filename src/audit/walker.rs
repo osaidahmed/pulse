@@ -7,7 +7,7 @@ use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 use crate::walk::fingerprint::compute_subtree_fingerprint_seeded;
 
-use super::corpus_stats::{KindHistogram, PerFileFeatures, WelfordIdentifierStats, line_length_stats};
+use super::corpus_stats::{line_length_stats, KindHistogram, PerFileFeatures, WelfordIdentifierStats};
 use super::lang_kinds;
 
 pub type KindIndex = HashMap<u64, Vec<Box<str>>>;
@@ -49,11 +49,7 @@ pub fn extract_records(
     let ctx = WalkCtx { source, lang, file, thresholds };
     let mut state = VisitState::default();
     visit(tree.root_node(), None, &ctx, &mut state);
-    WalkOutput {
-        subtrees: state.out,
-        features: state.accum.finalize(file, source),
-        kinds_by_fp: state.kinds_by_fp,
-    }
+    WalkOutput { subtrees: state.out, features: state.accum.finalize(file, source), kinds_by_fp: state.kinds_by_fp }
 }
 
 pub fn extract_subtrees(
@@ -100,11 +96,7 @@ impl FeatureAccum {
     fn finalize(self, file: &Path, source: &str) -> PerFileFeatures {
         let (mean_id_len, var_id_len) = self.identifiers.finalize();
         let size_bytes = source.len() as u64;
-        let nodes_per_byte = if size_bytes == 0 {
-            0.0
-        } else {
-            self.ast_node_count as f64 / size_bytes as f64
-        };
+        let nodes_per_byte = if size_bytes == 0 { 0.0 } else { self.ast_node_count as f64 / size_bytes as f64 };
         let (max_line_len, median_line_len) = line_length_stats(source);
         PerFileFeatures {
             file: file.to_path_buf(),
@@ -119,12 +111,7 @@ impl FeatureAccum {
     }
 }
 
-fn visit(
-    node: Node,
-    parent_fp: Option<u64>,
-    ctx: &WalkCtx,
-    state: &mut VisitState,
-) {
+fn visit(node: Node, parent_fp: Option<u64>, ctx: &WalkCtx, state: &mut VisitState) {
     let mut next_parent = parent_fp;
     if node.is_named() {
         state.accum.observe(node, ctx.source, ctx.lang);
@@ -233,14 +220,9 @@ fn shape_metrics_for(node: Node, named_count: u32) -> ShapeMetrics {
     let branching = if chain == 0 {
         0.0
     } else {
-        f32::from(u16::try_from(interior).unwrap_or(u16::MAX))
-            / f32::from(u16::try_from(chain).unwrap_or(u16::MAX))
+        f32::from(u16::try_from(interior).unwrap_or(u16::MAX)) / f32::from(u16::try_from(chain).unwrap_or(u16::MAX))
     };
-    ShapeMetrics {
-        distinct_kinds: distinct.len() as u32,
-        branching_factor: branching,
-        linear_chain_len: chain,
-    }
+    ShapeMetrics { distinct_kinds: distinct.len() as u32, branching_factor: branching, linear_chain_len: chain }
 }
 
 fn collect_shape<'a>(node: Node<'a>, distinct: &mut std::collections::HashSet<&'a str>) -> u32 {

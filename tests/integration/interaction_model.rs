@@ -24,12 +24,9 @@ fn function_correctness_smells_block() {
 
 #[test]
 fn false_positive_prone_smells_are_advisory() {
-    for smell in [
-        Smell::PrimitiveObsession,
-        Smell::LargeAssertionBlock,
-        Smell::ShortVariableNames,
-        Smell::StringlyTypedSwitch,
-    ] {
+    for smell in
+        [Smell::PrimitiveObsession, Smell::LargeAssertionBlock, Smell::ShortVariableNames, Smell::StringlyTypedSwitch]
+    {
         assert_eq!(tier_for(smell), FindingTier::Advisory, "{smell:?} should be advisory, not blocking");
     }
 }

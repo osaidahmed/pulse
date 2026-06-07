@@ -23,11 +23,7 @@ pub fn rank(
     findings
 }
 
-fn blob_findings(
-    commits: &[Commit],
-    typed_paths: &HashSet<PathBuf>,
-    t: &HistoryThresholds,
-) -> Vec<HistoryFinding> {
+fn blob_findings(commits: &[Commit], typed_paths: &HashSet<PathBuf>, t: &HistoryThresholds) -> Vec<HistoryFinding> {
     let (per_file, total) = multi_file_participation(commits, t);
     if total == 0 {
         return Vec::new();
@@ -42,10 +38,7 @@ fn blob_findings(
     findings
 }
 
-fn multi_file_participation<'a>(
-    commits: &'a [Commit],
-    t: &HistoryThresholds,
-) -> (HashMap<&'a Path, u32>, u32) {
+fn multi_file_participation<'a>(commits: &'a [Commit], t: &HistoryThresholds) -> (HashMap<&'a Path, u32>, u32) {
     let mut per_file: HashMap<&Path, u32> = HashMap::new();
     let mut total = 0u32;
     for commit in commits {

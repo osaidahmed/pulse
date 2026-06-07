@@ -18,10 +18,7 @@ pub fn file_padding() -> usize {
 }
 
 pub fn fixtures_dir(lang: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("fixtures")
-        .join(lang)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join(lang)
 }
 
 pub fn run_check(lang: &str, fixture: &str) -> String {
@@ -62,12 +59,7 @@ pub fn run_hook(file_path: &str) -> String {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(json.as_bytes())
-                .unwrap();
+            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
             child.wait_with_output()
         })
         .expect("failed to run pulse --hook");
@@ -140,8 +132,12 @@ pub fn args_above() -> usize {
 #[macro_export]
 macro_rules! lang_helpers {
     ($ext:expr) => {
-        fn check(code: &str) -> String { pulse_check_code(code, $ext) }
-        fn debug(code: &str) -> String { pulse_debug_code(code, $ext) }
+        fn check(code: &str) -> String {
+            pulse_check_code(code, $ext)
+        }
+        fn debug(code: &str) -> String {
+            pulse_debug_code(code, $ext)
+        }
     };
 }
 

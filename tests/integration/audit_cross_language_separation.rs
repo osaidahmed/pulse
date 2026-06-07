@@ -4,7 +4,9 @@ use pulse::thresholds::Thresholds;
 use std::collections::HashSet;
 use std::path::Path;
 
-fn t() -> Thresholds { Thresholds::default() }
+fn t() -> Thresholds {
+    Thresholds::default()
+}
 
 fn fps_for(lang: Language, src: &str) -> HashSet<u64> {
     let tree = parse::parse_only(src, lang).unwrap();
@@ -13,66 +15,126 @@ fn fps_for(lang: Language, src: &str) -> HashSet<u64> {
 }
 
 const PAIRS: &[(Language, Language, &str, &str)] = &[
-    (Language::Python, Language::Rust,
+    (
+        Language::Python,
+        Language::Rust,
         "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n"),
-    (Language::Python, Language::JavaScript,
+        "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n",
+    ),
+    (
+        Language::Python,
+        Language::JavaScript,
         "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "function f(x) { if (x === 1) return x; return 0; }\n"),
-    (Language::Python, Language::TypeScript,
+        "function f(x) { if (x === 1) return x; return 0; }\n",
+    ),
+    (
+        Language::Python,
+        Language::TypeScript,
         "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "function f(x: number): number { if (x === 1) return x; return 0; }\n"),
-    (Language::Python, Language::Go,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "package p\nfunc f(x int) int { if x == 1 { return x }; return 0 }\n"),
-    (Language::Python, Language::Java,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n"),
-    (Language::Python, Language::CSharp,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "class A { int F(int x) { if (x == 1) return x; return 0; } }\n"),
-    (Language::Python, Language::Swift,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "func f(x: Int) -> Int { if x == 1 { return x }; return 0 }\n"),
-    (Language::Python, Language::Kotlin,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n"),
-    (Language::Python, Language::Ruby,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n"),
-    (Language::Python, Language::Lua,
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        "function f(x) if x == 1 then return x end return 0 end\n"),
-    (Language::TypeScript, Language::JavaScript,
         "function f(x: number): number { if (x === 1) return x; return 0; }\n",
-        "function f(x) { if (x === 1) return x; return 0; }\n"),
-    (Language::C, Language::Cpp,
-        "int f(int x) { if (x == 1) { return x; } return 0; }\n",
-        "int f(int x) { if (x == 1) { return x; } return 0; }\n"),
-    (Language::Java, Language::CSharp,
-        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n",
-        "class A { int F(int x) { if (x == 1) return x; return 0; } }\n"),
-    (Language::Java, Language::Kotlin,
-        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n",
-        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n"),
-    (Language::Swift, Language::Kotlin,
-        "func f(x: Int) -> Int { if x == 1 { return x }; return 0 }\n",
-        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n"),
-    (Language::Ruby, Language::Python,
-        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n",
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n"),
-    (Language::Php, Language::JavaScript,
-        "<?php function f($x) { if ($x === 1) return $x; return 0; }\n",
-        "function f(x) { if (x === 1) return x; return 0; }\n"),
-    (Language::Go, Language::Rust,
+    ),
+    (
+        Language::Python,
+        Language::Go,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
         "package p\nfunc f(x int) int { if x == 1 { return x }; return 0 }\n",
-        "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n"),
-    (Language::Haskell, Language::Python,
-        "f :: Int -> Int\nf x = if x == 1 then x else 0\n",
-        "def f(x):\n    if x == 1:\n        return x\n    return 0\n"),
-    (Language::Lua, Language::Ruby,
+    ),
+    (
+        Language::Python,
+        Language::Java,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n",
+    ),
+    (
+        Language::Python,
+        Language::CSharp,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+        "class A { int F(int x) { if (x == 1) return x; return 0; } }\n",
+    ),
+    (
+        Language::Python,
+        Language::Swift,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+        "func f(x: Int) -> Int { if x == 1 { return x }; return 0 }\n",
+    ),
+    (
+        Language::Python,
+        Language::Kotlin,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n",
+    ),
+    (
+        Language::Python,
+        Language::Ruby,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n",
+    ),
+    (
+        Language::Python,
+        Language::Lua,
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
         "function f(x) if x == 1 then return x end return 0 end\n",
-        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n"),
+    ),
+    (
+        Language::TypeScript,
+        Language::JavaScript,
+        "function f(x: number): number { if (x === 1) return x; return 0; }\n",
+        "function f(x) { if (x === 1) return x; return 0; }\n",
+    ),
+    (
+        Language::C,
+        Language::Cpp,
+        "int f(int x) { if (x == 1) { return x; } return 0; }\n",
+        "int f(int x) { if (x == 1) { return x; } return 0; }\n",
+    ),
+    (
+        Language::Java,
+        Language::CSharp,
+        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n",
+        "class A { int F(int x) { if (x == 1) return x; return 0; } }\n",
+    ),
+    (
+        Language::Java,
+        Language::Kotlin,
+        "class A { int f(int x) { if (x == 1) return x; return 0; } }\n",
+        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n",
+    ),
+    (
+        Language::Swift,
+        Language::Kotlin,
+        "func f(x: Int) -> Int { if x == 1 { return x }; return 0 }\n",
+        "fun f(x: Int): Int { if (x == 1) return x; return 0 }\n",
+    ),
+    (
+        Language::Ruby,
+        Language::Python,
+        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n",
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+    ),
+    (
+        Language::Php,
+        Language::JavaScript,
+        "<?php function f($x) { if ($x === 1) return $x; return 0; }\n",
+        "function f(x) { if (x === 1) return x; return 0; }\n",
+    ),
+    (
+        Language::Go,
+        Language::Rust,
+        "package p\nfunc f(x int) int { if x == 1 { return x }; return 0 }\n",
+        "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n",
+    ),
+    (
+        Language::Haskell,
+        Language::Python,
+        "f :: Int -> Int\nf x = if x == 1 then x else 0\n",
+        "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
+    ),
+    (
+        Language::Lua,
+        Language::Ruby,
+        "function f(x) if x == 1 then return x end return 0 end\n",
+        "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n",
+    ),
 ];
 
 #[test]
@@ -198,8 +260,7 @@ fn cross_lang_lua_ruby_disjoint() {
 #[test]
 fn cross_lang_all_pairs_disjoint() {
     for (a, b, sa, sb) in PAIRS {
-        assert!(fps_for(*a, sa).is_disjoint(&fps_for(*b, sb)),
-            "pair ({a:?}, {b:?}) collided");
+        assert!(fps_for(*a, sa).is_disjoint(&fps_for(*b, sb)), "pair ({a:?}, {b:?}) collided");
     }
 }
 
@@ -482,7 +543,10 @@ fn cross_lang_swift_optional_distinct_from_typescript_optional() {
 #[test]
 fn cross_lang_kotlin_when_distinct_from_python_match() {
     let k = fps_for(Language::Kotlin, "fun f(x: Int): Int = when (x) { 1 -> 1; else -> 0 }\n");
-    let py = fps_for(Language::Python, "def f(x):\n    match x:\n        case 1:\n            return 1\n        case _:\n            return 0\n");
+    let py = fps_for(
+        Language::Python,
+        "def f(x):\n    match x:\n        case 1:\n            return 1\n        case _:\n            return 0\n",
+    );
     assert!(k.is_disjoint(&py));
 }
 
@@ -513,9 +577,12 @@ fn cross_lang_zero_pairs_collide_under_repeated_walk() {
 fn cross_lang_large_pair_set_consistent_disjoint() {
     let extra: &[(Language, Language, &str, &str)] = &[
         (Language::Cpp, Language::Java, "void f() {}\n", "class A { void f() {} }\n"),
-        (Language::Php, Language::Ruby,
+        (
+            Language::Php,
+            Language::Ruby,
             "<?php function f($x) { if ($x === 1) return $x; return 0; }\n",
-            "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n"),
+            "def f(x)\n  if x == 1\n    return x\n  end\n  0\nend\n",
+        ),
     ];
     for (a, b, sa, sb) in extra {
         assert!(fps_for(*a, sa).is_disjoint(&fps_for(*b, sb)));

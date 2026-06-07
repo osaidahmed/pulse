@@ -66,16 +66,10 @@ impl UnionFind {
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let cands = candidates(typed_files, thresholds);
     let thr = &thresholds.clone_cluster;
-    cluster(&cands, thr)
-        .iter()
-        .map(|group| build_finding(&cands, group, thresholds))
-        .collect()
+    cluster(&cands, thr).iter().map(|group| build_finding(&cands, group, thresholds)).collect()
 }
 
-pub fn cluster_members(
-    typed_files: &[(PathBuf, Language)],
-    thresholds: &AuditThresholds,
-) -> Vec<Vec<CloneMember>> {
+pub fn cluster_members(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<Vec<CloneMember>> {
     let cands = candidates(typed_files, thresholds);
     cluster(&cands, &thresholds.clone_cluster)
         .iter()
@@ -91,8 +85,7 @@ pub fn cluster_members(
 fn candidates(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<Candidate> {
     let bundle = record_extraction::corpus_bundle(typed_files, thresholds);
     let stats = corpus_stats::aggregate_corpus(bundle.features);
-    let flagged =
-        vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
+    let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
     let min_loc = thresholds.clone_cluster.min_loc;
     let mut cands: Vec<Candidate> = bundle
         .subtrees
@@ -132,9 +125,7 @@ fn connect_pairs(cands: &[Candidate], thr: &CloneClusterThresholds, uf: &mut Uni
 }
 
 fn is_clone_pair(a: &Candidate, b: &Candidate, eps: u32) -> bool {
-    a.popcount.abs_diff(b.popcount) <= eps
-        && hamming(a.simhash, b.simhash) <= eps
-        && !same_file_overlap(a, b)
+    a.popcount.abs_diff(b.popcount) <= eps && hamming(a.simhash, b.simhash) <= eps && !same_file_overlap(a, b)
 }
 
 fn components(cands: &[Candidate], uf: &mut UnionFind, min_size: usize) -> Vec<Vec<usize>> {
@@ -143,17 +134,12 @@ fn components(cands: &[Candidate], uf: &mut UnionFind, min_size: usize) -> Vec<V
         let root = uf.find(i);
         by_root.entry(root).or_default().push(i);
     }
-    by_root
-        .into_values()
-        .filter(|group| distinct_locations(cands, group) >= min_size)
-        .collect()
+    by_root.into_values().filter(|group| distinct_locations(cands, group) >= min_size).collect()
 }
 
 fn build_finding(cands: &[Candidate], group: &[usize], thresholds: &AuditThresholds) -> AuditFinding {
-    let mut members: Vec<AuditLocation> = group
-        .iter()
-        .map(|&i| AuditLocation { file: cands[i].file.clone(), line: cands[i].line })
-        .collect();
+    let mut members: Vec<AuditLocation> =
+        group.iter().map(|&i| AuditLocation { file: cands[i].file.clone(), line: cands[i].line }).collect();
     members.sort_by(|a, b| a.file.cmp(&b.file).then(a.line.cmp(&b.line)));
     members.dedup();
     let member_count = members.len() as u32;

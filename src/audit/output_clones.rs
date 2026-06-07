@@ -13,11 +13,7 @@ pub fn write_clone(
     t: &AuditThresholds,
     action: &'static str,
 ) {
-    let _ = writeln!(
-        out,
-        "audit: near-duplicate clones — {} fragments (~{} lines)",
-        e.member_count, e.max_loc
-    );
+    let _ = writeln!(out, "audit: near-duplicate clones — {} fragments (~{} lines)", e.member_count, e.max_loc);
     if !e.representative.is_empty() {
         let _ = writeln!(out, "  representative: {}", e.representative);
     }

@@ -2,11 +2,28 @@ use pulse::audit::lang_kinds::{is_skippable_root, skippable_root_kinds};
 use pulse::parse::Language;
 
 const ALL_LANGS: &[Language] = &[
-    Language::Python, Language::TypeScript, Language::JavaScript, Language::Rust,
-    Language::C, Language::Cpp, Language::Java, Language::CSharp, Language::Go,
-    Language::Swift, Language::Zig, Language::Ruby, Language::ObjectiveC,
-    Language::Tcl, Language::Kotlin, Language::Haskell, Language::Lua,
-    Language::R, Language::Php, Language::Cobol, Language::D, Language::Groovy,
+    Language::Python,
+    Language::TypeScript,
+    Language::JavaScript,
+    Language::Rust,
+    Language::C,
+    Language::Cpp,
+    Language::Java,
+    Language::CSharp,
+    Language::Go,
+    Language::Swift,
+    Language::Zig,
+    Language::Ruby,
+    Language::ObjectiveC,
+    Language::Tcl,
+    Language::Kotlin,
+    Language::Haskell,
+    Language::Lua,
+    Language::R,
+    Language::Php,
+    Language::Cobol,
+    Language::D,
+    Language::Groovy,
 ];
 
 #[test]

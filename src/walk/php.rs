@@ -4,25 +4,34 @@ use super::counters::{count_short_variables, count_string_match_arms, max_same_p
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds, find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block,
-    FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "#", "/*", "*"];
 const SELF_NAMES: &[&str] = &["$this"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "float", "string", "bool", "array", "callable",
-    "iterable", "mixed", "void", "null", "false", "true", "never",
+    "int", "float", "string", "bool", "array", "callable", "iterable", "mixed", "void", "null", "false", "true",
+    "never",
 ];
 const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement", "for_statement", "foreach_statement",
-    "while_statement", "do_statement", "switch_statement", "match_expression",
+    "if_statement",
+    "for_statement",
+    "foreach_statement",
+    "while_statement",
+    "do_statement",
+    "switch_statement",
+    "match_expression",
 ];
 const BOOL_OPS: &[&str] = &["&&", "||", "and", "or"];
 const BOOL_STOPS: &[&str] = &[
-    "compound_statement", "function_definition", "method_declaration",
-    "class_declaration", "arrow_function", "anonymous_function",
+    "compound_statement",
+    "function_definition",
+    "method_declaration",
+    "class_declaration",
+    "arrow_function",
+    "anonymous_function",
 ];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     cond: &["if_statement"],
@@ -54,9 +63,13 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let declaration_count = count_declarations(root);
 
     let module = ModuleMetrics {
-        total_loc, total_functions, sum_cc,
-        global_conditional_count: gcc, global_max_nesting: gmn,
-        declaration_count, struct_fields: Vec::new(),
+        total_loc,
+        total_functions,
+        sum_cc,
+        global_conditional_count: gcc,
+        global_max_nesting: gmn,
+        declaration_count,
+        struct_fields: Vec::new(),
     };
     FileMetrics { functions, module }
 }
@@ -85,9 +98,7 @@ fn collect_type_body(type_node: Node, source: &str, fns: &mut Vec<FunctionMetric
         "enum_declaration" => "enum_declaration_list",
         _ => return,
     };
-    let type_name = find_child_by_kind(type_node, "name")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let type_name = find_child_by_kind(type_node, "name").map(|n| node_text(n, source).to_string()).unwrap_or_default();
     let Some(body) = find_child_by_kind(type_node, bk) else { return };
 
     let mut cursor = body.walk();
@@ -110,7 +121,6 @@ fn add_method(node: Node, source: &str, type_name: &str, fns: &mut Vec<FunctionM
         collect_field_accesses_for(node, source, SELF_NAMES, &mut m.field_accesses);
 
         collect_foreign_field_accesses_for(node, source, SELF_NAMES, &mut m.foreign_field_accesses);
-
     }
     fns.push(m);
 }
@@ -120,8 +130,7 @@ fn count_declarations(root: Node) -> u32 {
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
         match child.kind() {
-            "class_declaration" | "interface_declaration"
-            | "trait_declaration" | "enum_declaration" => count += 1,
+            "class_declaration" | "interface_declaration" | "trait_declaration" | "enum_declaration" => count += 1,
             "namespace_definition" => {
                 if let Some(body) = find_child_by_kind(child, "compound_statement") {
                     count += count_declarations(body);
@@ -136,23 +145,27 @@ fn count_declarations(root: Node) -> u32 {
 // ─── Function analysis ──────────────────────────────────────────────────
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
-    let name = find_child_by_kind(node, "name")
-        .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
+    let name =
+        find_child_by_kind(node, "name").map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
-    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
-        count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
     let body = find_child_by_kind(node, "compound_statement")?;
 
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
     Some(FunctionMetrics {
-        name, start_line, end_line,
+        name,
+        start_line,
+        end_line,
         loc: end_line.saturating_sub(start_line) + 1,
-        cc: s.cc, cognitive_complexity: s.cogc,
-        max_nesting: s.max_nesting, bump_count: s.bump_count,
-        arg_count, compound_condition_count: s.compound_condition_count,
+        cc: s.cc,
+        cognitive_complexity: s.cogc,
+        max_nesting: s.max_nesting,
+        bump_count: s.bump_count,
+        arg_count,
+        compound_condition_count: s.compound_condition_count,
         is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
@@ -160,14 +173,26 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "expression_statement"),
         assert_hash: compute_assert_fingerprint(body, "expression_statement"),
-        primitive_type_count, typed_param_count, max_same_primitive_count,
+        primitive_type_count,
+        typed_param_count,
+        max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
         field_accesses: Vec::new(),
- foreign_field_accesses: Vec::new(),
- class_name: None,
- parent_class: None,
-        short_var_count: count_short_variables(body, source, &["assignment_expression", "augmented_assignment_expression"]),
-        string_match_arms: count_string_match_arms(body, "match_expression", "match_conditional_expression", &["string", "encapsed_string"], &["match_default_expression"]),
+        foreign_field_accesses: Vec::new(),
+        class_name: None,
+        parent_class: None,
+        short_var_count: count_short_variables(
+            body,
+            source,
+            &["assignment_expression", "augmented_assignment_expression"],
+        ),
+        string_match_arms: count_string_match_arms(
+            body,
+            "match_expression",
+            "match_conditional_expression",
+            &["string", "encapsed_string"],
+            &["match_default_expression"],
+        ),
         cpg: None,
     })
 }
@@ -178,9 +203,10 @@ fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut count = 0;
     let mut typed = 0;
     let mut prims: Vec<&str> = Vec::new();
-    for child in params.children(&mut cursor).filter(|c| {
-        matches!(c.kind(), "simple_parameter" | "variadic_parameter" | "property_promotion_parameter")
-    }) {
+    for child in params
+        .children(&mut cursor)
+        .filter(|c| matches!(c.kind(), "simple_parameter" | "variadic_parameter" | "property_promotion_parameter"))
+    {
         count += 1;
         let mut pc = child.walk();
         let type_node = child.children(&mut pc).find(|c| {
@@ -202,7 +228,8 @@ fn is_primitive_type_node(node: Node, source: &str) -> bool {
         "named_type" => PRIMITIVE_TYPES.contains(&node_text(node, source)),
         "optional_type" => {
             let mut c = node.walk();
-            let result = node.children(&mut c)
+            let result = node
+                .children(&mut c)
                 .find(|ch| matches!(ch.kind(), "primitive_type" | "named_type"))
                 .is_some_and(|inner| is_primitive_type_node(inner, source));
             result
@@ -220,20 +247,46 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn route_structured(node: Node, source: &str, depth: u32, s: &mut WalkState) -> bool {
     let kind = node.kind();
-    if kind == "if_statement" { handle_if(node, source, depth, s); return true; }
-    if LOOP_KINDS.contains(&kind) { handle_loop(node, source, depth, s); return true; }
-    if kind == "switch_statement" || kind == "match_expression" { handle_branching(node, source, depth, s); return true; }
-    if kind == "try_statement" { walk_try(node, source, depth, s); return true; }
-    if kind == "catch_clause" { handle_catch(node, source, depth, s); return true; }
+    if kind == "if_statement" {
+        handle_if(node, source, depth, s);
+        return true;
+    }
+    if LOOP_KINDS.contains(&kind) {
+        handle_loop(node, source, depth, s);
+        return true;
+    }
+    if kind == "switch_statement" || kind == "match_expression" {
+        handle_branching(node, source, depth, s);
+        return true;
+    }
+    if kind == "try_statement" {
+        walk_try(node, source, depth, s);
+        return true;
+    }
+    if kind == "catch_clause" {
+        handle_catch(node, source, depth, s);
+        return true;
+    }
     false
 }
 
 fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    if route_structured(node, source, depth, s) { return; }
+    if route_structured(node, source, depth, s) {
+        return;
+    }
     let kind = node.kind();
-    if kind == "conditional_expression" { s.cc += 1; s.track_cogc_branch(); return; }
-    if EMBEDDED_KINDS.contains(&kind) { track_embedded_block(&mut s.max_embedded_block_loc, node); return; }
-    if !SCOPE_BOUNDARY.contains(&kind) { walk_body(node, source, depth, s); }
+    if kind == "conditional_expression" {
+        s.cc += 1;
+        s.track_cogc_branch();
+        return;
+    }
+    if EMBEDDED_KINDS.contains(&kind) {
+        track_embedded_block(&mut s.max_embedded_block_loc, node);
+        return;
+    }
+    if !SCOPE_BOUNDARY.contains(&kind) {
+        walk_body(node, source, depth, s);
+    }
 }
 
 fn track_condition(node: Node, s: &mut WalkState) {
@@ -318,8 +371,12 @@ fn handle_branching(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     let n = block.child_count();
     for i in 0..n {
         let child = block.child(i).unwrap();
-        if !child.is_named() { continue; }
-        if child.kind() == case_kind { s.cc += 1; }
+        if !child.is_named() {
+            continue;
+        }
+        if child.kind() == case_kind {
+            s.cc += 1;
+        }
         walk_body(child, source, depth + 1, s);
     }
     s.cogc_nesting = saved;

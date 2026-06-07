@@ -17,23 +17,12 @@ pub fn count_boolean_ops(node: Node, cc: &mut u32, op_kinds: &[&str], stop_kinds
     });
 }
 
-pub fn count_cogc_sequences(
-    node: Node,
-    cogc: &mut u32,
-    op_kinds: &[&str],
-    stop_kinds: &[&str],
-) {
+pub fn count_cogc_sequences(node: Node, cogc: &mut u32, op_kinds: &[&str], stop_kinds: &[&str]) {
     let mut last_op: Option<&str> = None;
     cogc_walk(node, cogc, &mut last_op, op_kinds, stop_kinds);
 }
 
-fn cogc_walk(
-    node: Node,
-    cogc: &mut u32,
-    last_op: &mut Option<&str>,
-    op_kinds: &[&str],
-    stop_kinds: &[&str],
-) {
+fn cogc_walk(node: Node, cogc: &mut u32, last_op: &mut Option<&str>, op_kinds: &[&str], stop_kinds: &[&str]) {
     let Some(_guard) = super::DepthGuard::enter() else {
         return;
     };
@@ -59,9 +48,7 @@ pub fn check_condition_complexity(
     op_kinds: &[&str],
     stop_kinds: &[&str],
 ) {
-    let cond = cond_kinds
-        .iter()
-        .find_map(|kind| find_child_by_kind(node, kind));
+    let cond = cond_kinds.iter().find_map(|kind| find_child_by_kind(node, kind));
     let Some(cond) = cond else { return };
     let mut ops = 0;
     count_boolean_ops(cond, &mut ops, op_kinds, stop_kinds);
@@ -77,12 +64,7 @@ pub struct GlobalMetricsConfig<'a> {
     pub recurse: &'a [&'a str],
 }
 
-pub fn collect_global_metrics(
-    root: Node,
-    cond_count: &mut u32,
-    max_nesting: &mut u32,
-    cfg: &GlobalMetricsConfig,
-) {
+pub fn collect_global_metrics(root: Node, cond_count: &mut u32, max_nesting: &mut u32, cfg: &GlobalMetricsConfig) {
     let cursor = root.walk();
     let mut child_opt = cursor.node().child(0);
     while let Some(child) = child_opt {
@@ -91,12 +73,7 @@ pub fn collect_global_metrics(
     }
 }
 
-fn dispatch_global_child(
-    child: Node,
-    cond_count: &mut u32,
-    max_nesting: &mut u32,
-    cfg: &GlobalMetricsConfig,
-) {
+fn dispatch_global_child(child: Node, cond_count: &mut u32, max_nesting: &mut u32, cfg: &GlobalMetricsConfig) {
     let kind = child.kind();
     if cfg.cond.contains(&kind) {
         *cond_count += 1;
@@ -195,7 +172,13 @@ fn apply_else_if(child: Node, ctx: &mut BlockWalkCtx, h: &ElseHandlers) {
     ctx.state.track_cogc_branch();
     count_boolean_ops(child, &mut ctx.state.cc, h.cfg.bool_ops, h.cfg.bool_stops);
     count_cogc_sequences(child, &mut ctx.state.cogc, h.cfg.bool_ops, h.cfg.bool_stops);
-    check_condition_complexity(child, &mut ctx.state.compound_condition_count, h.cfg.cond_kinds, h.cfg.bool_ops, h.cfg.bool_stops);
+    check_condition_complexity(
+        child,
+        &mut ctx.state.compound_condition_count,
+        h.cfg.cond_kinds,
+        h.cfg.bool_ops,
+        h.cfg.bool_stops,
+    );
     (h.walk_children)(child, ctx.source, ctx.depth, ctx.state);
 }
 

@@ -16,20 +16,12 @@ fn p(s: &str) -> PathBuf {
 }
 
 fn rust_edge(src: &str, dst: &str) -> InputEdge {
-    InputEdge {
-        source: p(src),
-        target: p(dst),
-        source_lang: Language::Rust,
-        target_lang: Language::Rust,
-    }
+    InputEdge { source: p(src), target: p(dst), source_lang: Language::Rust, target_lang: Language::Rust }
 }
 
 fn high_concrete_profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord {
-            abstractness: 0.0,
-            confidence: ImportConfidence::High,
-        },
+        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
         loc: 0,
     }
@@ -37,10 +29,7 @@ fn high_concrete_profile(_path: &Path) -> ModuleProfile {
 
 fn high_abstract_profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord {
-            abstractness: 1.0,
-            confidence: ImportConfidence::High,
-        },
+        abstractness: AbstractnessRecord { abstractness: 1.0, confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
         loc: 0,
     }
@@ -57,10 +46,7 @@ fn empty_input_emits_zero_edge_finding() {
 fn dag_yields_only_distance_findings_no_cycles() {
     let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "c.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
-    let cycle_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .count();
+    let cycle_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::ImportCycle(_))).count();
     assert_eq!(cycle_count, 0);
 }
 
@@ -68,10 +54,7 @@ fn dag_yields_only_distance_findings_no_cycles() {
 fn two_node_cycle_yields_one_cycle_finding() {
     let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "a.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
-    let cycle_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .count();
+    let cycle_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::ImportCycle(_))).count();
     assert_eq!(cycle_count, 1);
 }
 
@@ -79,10 +62,7 @@ fn two_node_cycle_yields_one_cycle_finding() {
 fn cycle_finding_carries_member_paths() {
     let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "a.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
-    let cycle = findings
-        .iter()
-        .find(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .unwrap();
+    let cycle = findings.iter().find(|f| matches!(f.kind, AuditKind::ImportCycle(_))).unwrap();
     let AuditKind::ImportCycle(c) = &cycle.kind else { panic!() };
     assert_eq!(c.members.len(), 2);
 }
@@ -104,42 +84,25 @@ fn cycle_confidence_inherits_minimum_member_confidence() {
     let findings = run_from_edges(
         &edges,
         |path| {
-            let conf = if path.ends_with("b.rs") {
-                ImportConfidence::Low
-            } else {
-                ImportConfidence::High
-            };
+            let conf = if path.ends_with("b.rs") { ImportConfidence::Low } else { ImportConfidence::High };
             ModuleProfile {
-                abstractness: AbstractnessRecord {
-                    abstractness: 0.0,
-                    confidence: ImportConfidence::High,
-                },
+                abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
                 import_confidence: conf,
                 loc: 0,
             }
         },
         &t().audit,
     );
-    let cycle = findings
-        .iter()
-        .find(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .unwrap();
+    let cycle = findings.iter().find(|f| matches!(f.kind, AuditKind::ImportCycle(_))).unwrap();
     let AuditKind::ImportCycle(c) = &cycle.kind else { panic!() };
     assert_eq!(c.confidence, ImportConfidence::Low);
 }
 
 #[test]
 fn distance_finding_emitted_for_unstable_concrete_module() {
-    let edges = [
-        rust_edge("hub.rs", "a.rs"),
-        rust_edge("hub.rs", "b.rs"),
-        rust_edge("hub.rs", "c.rs"),
-    ];
+    let edges = [rust_edge("hub.rs", "a.rs"), rust_edge("hub.rs", "b.rs"), rust_edge("hub.rs", "c.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
-    let distance_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::DistanceFromMainSequence(_)))
-        .count();
+    let distance_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::DistanceFromMainSequence(_))).count();
     assert!(distance_count >= 1, "concrete unstable modules without abstractness should appear");
 }
 
@@ -163,10 +126,7 @@ fn martin_findings_are_truncated_to_max_reported() {
         edges.push(rust_edge(&format!("dep_{i}.rs"), "core.rs"));
     }
     let findings = run_from_edges(&edges, high_concrete_profile, &th);
-    let distance_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::DistanceFromMainSequence(_)))
-        .count();
+    let distance_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::DistanceFromMainSequence(_))).count();
     assert!(distance_count <= 2);
 }
 
@@ -183,20 +143,13 @@ fn cycle_findings_are_truncated_to_max_reported() {
         rust_edge("f.rs", "e.rs"),
     ];
     let findings = run_from_edges(&edges, high_concrete_profile, &th);
-    let cycle_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .count();
+    let cycle_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::ImportCycle(_))).count();
     assert_eq!(cycle_count, 1);
 }
 
 #[test]
 fn pipeline_is_deterministic_across_runs() {
-    let edges = [
-        rust_edge("a.rs", "b.rs"),
-        rust_edge("b.rs", "c.rs"),
-        rust_edge("c.rs", "a.rs"),
-    ];
+    let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "c.rs"), rust_edge("c.rs", "a.rs")];
     let f1 = run_from_edges(&edges, high_concrete_profile, &t().audit);
     let f2 = run_from_edges(&edges, high_concrete_profile, &t().audit);
     assert_eq!(f1.len(), f2.len());
@@ -239,17 +192,11 @@ fn martin_findings_sorted_by_distance_descending() {
 
 #[test]
 fn distance_finding_has_correct_locations_block() {
-    let edges = [
-        rust_edge("dep1.rs", "rigid.rs"),
-        rust_edge("dep2.rs", "rigid.rs"),
-        rust_edge("dep3.rs", "rigid.rs"),
-    ];
+    let edges = [rust_edge("dep1.rs", "rigid.rs"), rust_edge("dep2.rs", "rigid.rs"), rust_edge("dep3.rs", "rigid.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
     let f = findings
         .iter()
-        .find(|f| {
-            matches!(&f.kind, AuditKind::DistanceFromMainSequence(m) if m.module == p("rigid.rs"))
-        })
+        .find(|f| matches!(&f.kind, AuditKind::DistanceFromMainSequence(m) if m.module == p("rigid.rs")))
         .unwrap();
     assert_eq!(f.locations.len(), 1);
     assert_eq!(f.locations[0].file, p("rigid.rs"));
@@ -258,15 +205,8 @@ fn distance_finding_has_correct_locations_block() {
 
 #[test]
 fn cycle_finding_has_one_location_per_member() {
-    let edges = [
-        rust_edge("a.rs", "b.rs"),
-        rust_edge("b.rs", "c.rs"),
-        rust_edge("c.rs", "a.rs"),
-    ];
+    let edges = [rust_edge("a.rs", "b.rs"), rust_edge("b.rs", "c.rs"), rust_edge("c.rs", "a.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
-    let cycle = findings
-        .iter()
-        .find(|f| matches!(f.kind, AuditKind::ImportCycle(_)))
-        .unwrap();
+    let cycle = findings.iter().find(|f| matches!(f.kind, AuditKind::ImportCycle(_))).unwrap();
     assert_eq!(cycle.locations.len(), 3);
 }

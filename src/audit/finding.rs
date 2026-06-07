@@ -33,8 +33,8 @@ pub enum AuditKind {
 
 pub use super::finding_evidence::{
     CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
-    MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, SplitComponentEvidence,
-    UnstableDepEvidence, VulnCloneEvidence,
+    MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, SplitComponentEvidence, UnstableDepEvidence,
+    VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -194,17 +194,72 @@ struct PatternDescriptor {
 }
 
 const PATTERN_DESCRIPTORS: [PatternDescriptor; 11] = [
-    PatternDescriptor { header: "PRIMITIVE OBSESSION", slug: "primitive_obsession", action: "wrap repeated literals in a typed object", noise: false },
-    PatternDescriptor { header: "CHAINED DICT ACCESS", slug: "chained_dict_access", action: "introduce an intermediate accessor or typed object", noise: false },
-    PatternDescriptor { header: "ENUM VALUE ACCESS", slug: "enum_value_access", action: "consider a dispatch table or polymorphism", noise: false },
-    PatternDescriptor { header: "ATTRIBUTE CHAIN", slug: "attribute_chain", action: "extract a named accessor or shared helper", noise: false },
-    PatternDescriptor { header: "LITERAL REPETITION", slug: "literal_repetition", action: "extract a named constant", noise: false },
-    PatternDescriptor { header: "METHOD CALL", slug: "method_call", action: "consider a shared helper or template method", noise: false },
-    PatternDescriptor { header: "COMPARISON", slug: "comparison", action: "consolidate the comparison behind a named predicate", noise: false },
-    PatternDescriptor { header: "ASSIGNMENT", slug: "assignment", action: "consider a typed config or builder", noise: false },
-    PatternDescriptor { header: "DICT LITERAL", slug: "dict_literal", action: "extract a named factory or schema", noise: false },
-    PatternDescriptor { header: "LIST LITERAL", slug: "list_literal", action: "extract a named constant or factory", noise: false },
-    PatternDescriptor { header: "OTHER STRUCTURAL RECURRENCE", slug: "other", action: "review case-by-case", noise: true },
+    PatternDescriptor {
+        header: "PRIMITIVE OBSESSION",
+        slug: "primitive_obsession",
+        action: "wrap repeated literals in a typed object",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "CHAINED DICT ACCESS",
+        slug: "chained_dict_access",
+        action: "introduce an intermediate accessor or typed object",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "ENUM VALUE ACCESS",
+        slug: "enum_value_access",
+        action: "consider a dispatch table or polymorphism",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "ATTRIBUTE CHAIN",
+        slug: "attribute_chain",
+        action: "extract a named accessor or shared helper",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "LITERAL REPETITION",
+        slug: "literal_repetition",
+        action: "extract a named constant",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "METHOD CALL",
+        slug: "method_call",
+        action: "consider a shared helper or template method",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "COMPARISON",
+        slug: "comparison",
+        action: "consolidate the comparison behind a named predicate",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "ASSIGNMENT",
+        slug: "assignment",
+        action: "consider a typed config or builder",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "DICT LITERAL",
+        slug: "dict_literal",
+        action: "extract a named factory or schema",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "LIST LITERAL",
+        slug: "list_literal",
+        action: "extract a named constant or factory",
+        noise: false,
+    },
+    PatternDescriptor {
+        header: "OTHER STRUCTURAL RECURRENCE",
+        slug: "other",
+        action: "review case-by-case",
+        noise: true,
+    },
 ];
 
 impl PatternCategory {
@@ -470,9 +525,7 @@ pub fn finding_confidence(f: &AuditFinding) -> ImportConfidence {
 }
 
 fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    package_metric_confidence(kind)
-        .or_else(|| named_smell_confidence(kind))
-        .or_else(|| advisory_confidence(kind))
+    package_metric_confidence(kind).or_else(|| named_smell_confidence(kind)).or_else(|| advisory_confidence(kind))
 }
 
 fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
@@ -494,17 +547,27 @@ macro_rules! confidence_lookup {
 }
 
 confidence_lookup!(package_metric_evidence_confidence {
-    DistanceFromMainSequence, ImportCycle, UnstableDependency, HubLikeDependency, GodComponent,
-    CompoundArchSmell, SplitComponent, MoveFile, MergeComponents
+    DistanceFromMainSequence,
+    ImportCycle,
+    UnstableDependency,
+    HubLikeDependency,
+    GodComponent,
+    CompoundArchSmell,
+    SplitComponent,
+    MoveFile,
+    MergeComponents
 });
 
 confidence_lookup!(named_smell_confidence {
-    ShotgunSurgery, DivergentChange, FeatureEnvy, GodClass, ParallelInheritance, RefusedBequest
+    ShotgunSurgery,
+    DivergentChange,
+    FeatureEnvy,
+    GodClass,
+    ParallelInheritance,
+    RefusedBequest
 });
 
-confidence_lookup!(advisory_confidence {
-    InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling
-});
+confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);

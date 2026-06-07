@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -158,10 +157,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -231,10 +227,7 @@ fn embedded_block_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.tcl");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
@@ -300,23 +293,23 @@ fn simple_string_not_flagged() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "proc check {age score active} {\n",
-        "    if {$age > 18 && $score > 50 && $active} {\n",
-        "        if {$score > 80 || ($age > 25 && $active)} {\n",
-        "            return 1\n",
-        "        }\n",
-        "    }\n",
-        "    if {$age > 65 || $score < 10} {\n",
-        "        return 1\n",
-        "    }\n",
-        "    return 0\n",
-        "}\n",
-    ), "tcl");
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "proc check {age score active} {\n",
+            "    if {$age > 18 && $score > 50 && $active} {\n",
+            "        if {$score > 80 || ($age > 25 && $active)} {\n",
+            "            return 1\n",
+            "        }\n",
+            "    }\n",
+            "    if {$age > 65 || $score < 10} {\n",
+            "        return 1\n",
+            "    }\n",
+            "    return 0\n",
+            "}\n",
+        ),
+        "tcl",
     );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -376,92 +369,90 @@ fn hook_nonexistent_file_silent() {
 
 #[test]
 fn if_elseif_else_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "proc f {x} {\n",
-        "    if {$x > 0} {\n",
-        "        return 1\n",
-        "    } elseif {$x < 0} {\n",
-        "        return -1\n",
-        "    } else {\n",
-        "        return 0\n",
-        "    }\n",
-        "}\n",
-    ), "tcl");
+    let debug = pulse_debug_code(
+        concat!(
+            "proc f {x} {\n",
+            "    if {$x > 0} {\n",
+            "        return 1\n",
+            "    } elseif {$x < 0} {\n",
+            "        return -1\n",
+            "    } else {\n",
+            "        return 0\n",
+            "    }\n",
+            "}\n",
+        ),
+        "tcl",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 3, "if+elseif should give cc >= 3, got: {cc}");
 }
 
 #[test]
 fn while_increments_cc() {
-    let debug = pulse_debug_code(
-        "proc f {x} {\n    set n $x\n    while {$n > 0} {\n        incr n -1\n    }\n}\n",
-        "tcl",
-    );
+    let debug =
+        pulse_debug_code("proc f {x} {\n    set n $x\n    while {$n > 0} {\n        incr n -1\n    }\n}\n", "tcl");
     assert_eq!(function_metric(&debug, "f", "cc"), Some(2));
 }
 
 #[test]
 fn foreach_increments_cc() {
-    let debug = pulse_debug_code(
-        "proc f {items} {\n    foreach item $items {\n        puts $item\n    }\n}\n",
-        "tcl",
-    );
+    let debug = pulse_debug_code("proc f {items} {\n    foreach item $items {\n        puts $item\n    }\n}\n", "tcl");
     assert_eq!(function_metric(&debug, "f", "cc"), Some(2));
 }
 
 #[test]
 fn for_command_increments_cc() {
-    let debug = pulse_debug_code(
-        "proc f {} {\n    for {set i 0} {$i < 10} {incr i} {\n        puts $i\n    }\n}\n",
-        "tcl",
-    );
+    let debug =
+        pulse_debug_code("proc f {} {\n    for {set i 0} {$i < 10} {incr i} {\n        puts $i\n    }\n}\n", "tcl");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "for command should add CC, got: {cc}");
 }
 
 #[test]
 fn switch_command_increments_cc() {
-    let out = pulse_check_code(concat!(
-        "proc handle {action} {\n",
-        "    switch $action {\n",
-        "        1 { return \"a\" }\n",
-        "        2 { return \"b\" }\n",
-        "        3 { return \"c\" }\n",
-        "        4 { return \"d\" }\n",
-        "        5 { return \"e\" }\n",
-        "        6 { return \"f\" }\n",
-        "        7 { return \"g\" }\n",
-        "        8 { return \"h\" }\n",
-        "        9 { return \"i\" }\n",
-        "        default { return \"?\" }\n",
-        "    }\n",
-        "}\n",
-    ), "tcl");
+    let out = pulse_check_code(
+        concat!(
+            "proc handle {action} {\n",
+            "    switch $action {\n",
+            "        1 { return \"a\" }\n",
+            "        2 { return \"b\" }\n",
+            "        3 { return \"c\" }\n",
+            "        4 { return \"d\" }\n",
+            "        5 { return \"e\" }\n",
+            "        6 { return \"f\" }\n",
+            "        7 { return \"g\" }\n",
+            "        8 { return \"h\" }\n",
+            "        9 { return \"i\" }\n",
+            "        default { return \"?\" }\n",
+            "    }\n",
+            "}\n",
+        ),
+        "tcl",
+    );
     assert!(has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
 fn catch_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "proc f {x} {\n",
-        "    catch {error \"boom\"} result\n",
-        "}\n",
-    ), "tcl");
+    let debug = pulse_debug_code(concat!("proc f {x} {\n", "    catch {error \"boom\"} result\n", "}\n",), "tcl");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "catch should add CC, got: {cc}");
 }
 
 #[test]
 fn try_on_error_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "proc f {x} {\n",
-        "    try {\n",
-        "        set r [expr {$x / 0}]\n",
-        "    } on error {msg opts} {\n",
-        "        puts $msg\n",
-        "    }\n",
-        "}\n",
-    ), "tcl");
+    let debug = pulse_debug_code(
+        concat!(
+            "proc f {x} {\n",
+            "    try {\n",
+            "        set r [expr {$x / 0}]\n",
+            "    } on error {msg opts} {\n",
+            "        puts $msg\n",
+            "    }\n",
+            "}\n",
+        ),
+        "tcl",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "try on error should add CC, got: {cc}");
 }
@@ -474,40 +465,43 @@ fn global_conditionals_detected() {
 
 #[test]
 fn namespace_methods_analyzed() {
-    let debug = pulse_debug_code(concat!(
-        "namespace eval Svc {\n",
-        "    proc handle {a b c d e f g h} {\n",
-        "        expr {$a + $b}\n",
-        "    }\n",
-        "}\n",
-    ), "tcl");
+    let debug = pulse_debug_code(
+        concat!(
+            "namespace eval Svc {\n",
+            "    proc handle {a b c d e f g h} {\n",
+            "        expr {$a + $b}\n",
+            "    }\n",
+            "}\n",
+        ),
+        "tcl",
+    );
     assert!(debug.contains("Svc.handle"), "method should be attributed to namespace, got: {debug}");
 }
 
 #[test]
 fn code_duplication_inline() {
-    let out = pulse_check_code(concat!(
-        "proc rpt_a {data} {\n",
-        "    set r 0\n",
-        "    foreach v $data {\n        set r [expr {$r + $v}]\n    }\n",
-        "    set r [expr {$r * 2}]\n    return $r\n",
-        "}\n\n",
-        "proc rpt_b {data} {\n",
-        "    set r 0\n",
-        "    foreach v $data {\n        set r [expr {$r + $v}]\n    }\n",
-        "    set r [expr {$r * 2}]\n    return $r\n",
-        "}\n",
-    ), "tcl");
+    let out = pulse_check_code(
+        concat!(
+            "proc rpt_a {data} {\n",
+            "    set r 0\n",
+            "    foreach v $data {\n        set r [expr {$r + $v}]\n    }\n",
+            "    set r [expr {$r * 2}]\n    return $r\n",
+            "}\n\n",
+            "proc rpt_b {data} {\n",
+            "    set r 0\n",
+            "    foreach v $data {\n        set r [expr {$r + $v}]\n    }\n",
+            "    set r [expr {$r * 2}]\n    return $r\n",
+            "}\n",
+        ),
+        "tcl",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
 fn nested_conditional_chunks_detected() {
     let output = run_check(LANG, "bumpy_road.tcl");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Complex Method"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Complex Method"), "got: {output}");
 }
 
 #[test]

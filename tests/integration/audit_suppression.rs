@@ -107,9 +107,6 @@ fn suppression_applies_to_json_output() {
     let supp = cfg(&[], &["shotgun_surgery"], &[]);
     let out = format_findings_json_filtered(&findings, None, false, &supp);
     let parsed: serde_json::Value = serde_json::from_str(&out).expect("valid json");
-    let findings_array = parsed
-        .get("findings")
-        .and_then(|v| v.as_array())
-        .expect("findings array");
+    let findings_array = parsed.get("findings").and_then(|v| v.as_array()).expect("findings array");
     assert!(findings_array.is_empty(), "json should also filter hidden findings");
 }

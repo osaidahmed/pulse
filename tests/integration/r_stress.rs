@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -172,11 +171,7 @@ fn cc_nested_switch() {
 
 #[test]
 fn cc_switch_single_case() {
-    let out = debug(concat!(
-        "f <- function(x) {\n",
-        "  switch(x, a = 1)\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(x) {\n", "  switch(x, a = 1)\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -244,11 +239,7 @@ fn cogc_else_increases_nesting() {
 
 #[test]
 fn cogc_switch_counted() {
-    let out = debug(concat!(
-        "f <- function(x) {\n",
-        "  switch(x, a = 1)\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(x) {\n", "  switch(x, a = 1)\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
@@ -748,32 +739,20 @@ fn global_assignment_operator() {
 
 #[test]
 fn field_access_via_dollar() {
-    let out = debug(concat!(
-        "f <- function(obj) {\n",
-        "  obj$name\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(obj) {\n", "  obj$name\n", "}\n",));
     // Should not crash, $ is traversed
     assert!(out.contains('f'));
 }
 
 #[test]
 fn vectorized_and_no_cc() {
-    let out = debug(concat!(
-        "f <- function(x, y) {\n",
-        "  x & y\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(x, y) {\n", "  x & y\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
 #[test]
 fn do_call_complexity() {
-    let out = debug(concat!(
-        "f <- function(x) {\n",
-        "  do.call(paste, list(x))\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(x) {\n", "  do.call(paste, list(x))\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
@@ -792,20 +771,13 @@ fn lapply_with_anonymous_function() {
 
 #[test]
 fn pipe_operator_traversal() {
-    let out = debug(concat!(
-        "f <- function(x) {\n",
-        "  x |> log() |> round()\n",
-        "}\n",
-    ));
+    let out = debug(concat!("f <- function(x) {\n", "  x |> log() |> round()\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
 #[test]
 fn multiple_assignments() {
-    let out = debug(concat!(
-        "a <- function(x) {\n  x + 1\n}\n",
-        "b <- function(y) {\n  y + 2\n}\n",
-    ));
+    let out = debug(concat!("a <- function(x) {\n  x + 1\n}\n", "b <- function(y) {\n  y + 2\n}\n",));
     assert!(out.contains('a') && out.contains('b'), "got: {out}");
 }
 
@@ -857,10 +829,7 @@ fn performance_many_functions() {
 
 #[test]
 fn clean_code_not_flagged() {
-    let out = check(concat!(
-        "add <- function(a, b) {\n  a + b\n}\n",
-        "helper <- function(x) {\n  x + 1\n}\n",
-    ));
+    let out = check(concat!("add <- function(a, b) {\n  a + b\n}\n", "helper <- function(x) {\n  x + 1\n}\n",));
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -884,10 +853,7 @@ fn empty_function_body() {
 
 #[test]
 fn multiple_functions_independent_metrics() {
-    let out = debug(concat!(
-        "simple <- function() {\n}\n",
-        "complex <- function(x) {\n  if (x) {\n  }\n}\n",
-    ));
+    let out = debug(concat!("simple <- function() {\n}\n", "complex <- function(x) {\n  if (x) {\n  }\n}\n",));
     assert_eq!(function_metric(&out, "simple", "cc"), Some(1));
     assert_eq!(function_metric(&out, "complex", "cc"), Some(2));
 }
@@ -1247,9 +1213,6 @@ fn realistic_global_if_at_top() {
 
 #[test]
 fn realistic_no_global_conditionals_in_clean() {
-    let out = check(concat!(
-        "add <- function(a, b) {\n  a + b\n}\n",
-        "mul <- function(a, b) {\n  a * b\n}\n",
-    ));
+    let out = check(concat!("add <- function(a, b) {\n  a + b\n}\n", "mul <- function(a, b) {\n  a * b\n}\n",));
     assert!(!has_smell(&out, "Global Conditionals"));
 }

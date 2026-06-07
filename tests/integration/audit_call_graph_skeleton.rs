@@ -1,17 +1,10 @@
 use std::path::PathBuf;
 
-use pulse::audit::call_graph::{
-    CallAdjacency, CallEdge, CallGraph, MethodIdentity, MethodIndex, MethodRegistry,
-};
+use pulse::audit::call_graph::{CallAdjacency, CallEdge, CallGraph, MethodIdentity, MethodIndex, MethodRegistry};
 use pulse::audit::finding::ImportConfidence;
 
 fn mk_id(file: &str, class: Option<&str>, name: &str, line: u32) -> MethodIdentity {
-    MethodIdentity {
-        file: PathBuf::from(file),
-        class: class.map(String::from),
-        name: name.to_string(),
-        line,
-    }
+    MethodIdentity { file: PathBuf::from(file), class: class.map(String::from), name: name.to_string(), line }
 }
 
 #[test]
@@ -95,11 +88,7 @@ fn registry_count_tracks_inserts() {
 
 #[test]
 fn registry_from_definitions_sorts_before_interning() {
-    let defs = vec![
-        mk_id("z.py", None, "x", 5),
-        mk_id("a.py", None, "x", 1),
-        mk_id("m.py", None, "x", 3),
-    ];
+    let defs = vec![mk_id("z.py", None, "x", 5), mk_id("a.py", None, "x", 1), mk_id("m.py", None, "x", 3)];
     let reg = MethodRegistry::from_definitions(defs);
     assert_eq!(reg.methods[0].file, PathBuf::from("a.py"));
     assert_eq!(reg.methods[1].file, PathBuf::from("m.py"));
@@ -116,11 +105,7 @@ fn adjacency_with_capacity_pre_sizes_vectors() {
 #[test]
 fn adjacency_insert_populates_both_directions() {
     let mut a = CallAdjacency::with_capacity(2);
-    a.insert(CallEdge {
-        source: MethodIndex(0),
-        target: MethodIndex(1),
-        confidence: ImportConfidence::High,
-    });
+    a.insert(CallEdge { source: MethodIndex(0), target: MethodIndex(1), confidence: ImportConfidence::High });
     assert_eq!(a.outgoing(MethodIndex(0)).len(), 1);
     assert_eq!(a.incoming(MethodIndex(1)).len(), 1);
     assert_eq!(a.outgoing(MethodIndex(1)).len(), 0);
@@ -142,11 +127,7 @@ fn adjacency_incoming_for_unknown_index_is_empty() {
 #[test]
 fn adjacency_self_loop_emitted_correctly() {
     let mut a = CallAdjacency::with_capacity(1);
-    a.insert(CallEdge {
-        source: MethodIndex(0),
-        target: MethodIndex(0),
-        confidence: ImportConfidence::High,
-    });
+    a.insert(CallEdge { source: MethodIndex(0), target: MethodIndex(0), confidence: ImportConfidence::High });
     assert_eq!(a.outgoing(MethodIndex(0)).len(), 1);
     assert_eq!(a.incoming(MethodIndex(0)).len(), 1);
 }
@@ -155,11 +136,7 @@ fn adjacency_self_loop_emitted_correctly() {
 fn adjacency_multiple_edges_to_same_target() {
     let mut a = CallAdjacency::with_capacity(3);
     for src in 0..2u32 {
-        a.insert(CallEdge {
-            source: MethodIndex(src),
-            target: MethodIndex(2),
-            confidence: ImportConfidence::Medium,
-        });
+        a.insert(CallEdge { source: MethodIndex(src), target: MethodIndex(2), confidence: ImportConfidence::Medium });
     }
     assert_eq!(a.incoming(MethodIndex(2)).len(), 2);
 }
@@ -172,11 +149,7 @@ fn empty_call_graph_has_zero_methods() {
 
 #[test]
 fn call_edge_carries_confidence_label() {
-    let e = CallEdge {
-        source: MethodIndex(0),
-        target: MethodIndex(1),
-        confidence: ImportConfidence::Low,
-    };
+    let e = CallEdge { source: MethodIndex(0), target: MethodIndex(1), confidence: ImportConfidence::Low };
     assert_eq!(e.confidence, ImportConfidence::Low);
 }
 
@@ -190,10 +163,7 @@ fn registry_handles_free_function_with_no_class() {
 
 #[test]
 fn registry_determinism_same_input_produces_same_output() {
-    let defs1 = vec![
-        mk_id("a.py", Some("Foo"), "m", 1),
-        mk_id("b.py", Some("Bar"), "m", 2),
-    ];
+    let defs1 = vec![mk_id("a.py", Some("Foo"), "m", 1), mk_id("b.py", Some("Bar"), "m", 2)];
     let defs2 = defs1.clone();
     let r1 = MethodRegistry::from_definitions(defs1);
     let r2 = MethodRegistry::from_definitions(defs2);
@@ -202,10 +172,7 @@ fn registry_determinism_same_input_produces_same_output() {
 
 #[test]
 fn registry_sort_is_stable_for_identical_keys_in_input_order() {
-    let defs = vec![
-        mk_id("a.py", None, "x", 1),
-        mk_id("a.py", None, "y", 2),
-    ];
+    let defs = vec![mk_id("a.py", None, "x", 1), mk_id("a.py", None, "y", 2)];
     let reg = MethodRegistry::from_definitions(defs);
     assert_eq!(reg.methods[0].name, "x");
     assert_eq!(reg.methods[1].name, "y");
@@ -214,11 +181,7 @@ fn registry_sort_is_stable_for_identical_keys_in_input_order() {
 #[test]
 fn adjacency_insert_preserves_edge_confidence() {
     let mut a = CallAdjacency::with_capacity(2);
-    let edge = CallEdge {
-        source: MethodIndex(0),
-        target: MethodIndex(1),
-        confidence: ImportConfidence::BestEffort,
-    };
+    let edge = CallEdge { source: MethodIndex(0), target: MethodIndex(1), confidence: ImportConfidence::BestEffort };
     a.insert(edge);
     assert_eq!(a.outgoing(MethodIndex(0))[0].confidence, ImportConfidence::BestEffort);
 }

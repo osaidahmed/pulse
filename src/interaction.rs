@@ -33,12 +33,8 @@ const BLOCKING: &[Smell] = &[
     Smell::UnreachableCode,
 ];
 
-const ADVISORY: &[Smell] = &[
-    Smell::PrimitiveObsession,
-    Smell::LargeAssertionBlock,
-    Smell::ShortVariableNames,
-    Smell::StringlyTypedSwitch,
-];
+const ADVISORY: &[Smell] =
+    &[Smell::PrimitiveObsession, Smell::LargeAssertionBlock, Smell::ShortVariableNames, Smell::StringlyTypedSwitch];
 
 pub fn tier_for(smell: Smell) -> FindingTier {
     if BLOCKING.contains(&smell) {

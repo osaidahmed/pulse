@@ -53,17 +53,15 @@ fn stress_walker_completes_under_10s_on_one_thousand_functions() {
 
 #[test]
 fn stress_freqt_mine_handles_ten_thousand_records() {
-    let records: Vec<SubtreeRecord> = (0..10_000)
-        .map(|i| fab_record(i % 100, &format!("f{}.py", i % 50), 1, "x"))
-        .collect();
+    let records: Vec<SubtreeRecord> =
+        (0..10_000).map(|i| fab_record(i % 100, &format!("f{}.py", i % 50), 1, "x")).collect();
     let _ = freqt_mine(&records, &t().audit);
 }
 
 #[test]
 fn stress_freqt_mine_completes_under_5s_on_ten_thousand_records() {
-    let records: Vec<SubtreeRecord> = (0..10_000)
-        .map(|i| fab_record(i % 100, &format!("f{}.py", i % 50), 1, "x"))
-        .collect();
+    let records: Vec<SubtreeRecord> =
+        (0..10_000).map(|i| fab_record(i % 100, &format!("f{}.py", i % 50), 1, "x")).collect();
     let start = std::time::Instant::now();
     let _ = freqt_mine(&records, &t().audit);
     assert!(start.elapsed().as_secs() < 5);
@@ -91,7 +89,8 @@ fn stress_audit_directory_with_one_hundred_files() {
         std::fs::write(
             dir.path().join(format!("f{i}.py")),
             "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     let typed = walk_typed_source_files(dir.path(), true);
     assert_eq!(typed.len(), 100);
@@ -104,7 +103,8 @@ fn stress_audit_completes_under_30s_on_one_hundred_files() {
         std::fs::write(
             dir.path().join(format!("f{i}.py")),
             "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     let start = std::time::Instant::now();
     let _ = extract_subtrees_for_dir(dir.path(), Language::Python, &t().audit);
@@ -235,7 +235,8 @@ fn stress_pulse_audit_runs_on_pulse_self_under_60s() {
     let start = std::time::Instant::now();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["audit", "--root", src_dir.to_str().unwrap()])
-        .output().unwrap();
+        .output()
+        .unwrap();
     assert!(start.elapsed().as_secs() < 60, "elapsed: {:?}", start.elapsed());
     let _ = out;
 }
@@ -253,21 +254,21 @@ fn stress_audit_handles_directory_with_500_small_files() {
 
 #[test]
 fn stress_apply_idf_handles_zero_total_files_no_panic() {
-    let clusters: Vec<RawCluster> = (0..100).map(|i| RawCluster {
-        fingerprint: i,
-        support: 5,
-        file_count: 3,
-        representative_snippet: "x".to_string(),
-        locations: vec![(PathBuf::from("a.py"), 1)],
-    }).collect();
+    let clusters: Vec<RawCluster> = (0..100)
+        .map(|i| RawCluster {
+            fingerprint: i,
+            support: 5,
+            file_count: 3,
+            representative_snippet: "x".to_string(),
+            locations: vec![(PathBuf::from("a.py"), 1)],
+        })
+        .collect();
     let _ = apply_idf(clusters, 0, &t().audit);
 }
 
 #[test]
 fn stress_freqt_mine_handles_uniform_fingerprints() {
-    let records: Vec<SubtreeRecord> = (0..5000)
-        .map(|i| fab_record(42, &format!("f{i}.py"), 1, "x"))
-        .collect();
+    let records: Vec<SubtreeRecord> = (0..5000).map(|i| fab_record(42, &format!("f{i}.py"), 1, "x")).collect();
     let clusters = freqt_mine(&records, &t().audit);
     assert_eq!(clusters.len(), 1);
     assert_eq!(clusters[0].support, 5000);
@@ -277,9 +278,7 @@ fn stress_freqt_mine_handles_uniform_fingerprints() {
 fn stress_freqt_mine_handles_all_unique_fingerprints() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let records: Vec<SubtreeRecord> = (0..5000)
-        .map(|i| fab_record(i, "a.py", i as u32, "x"))
-        .collect();
+    let records: Vec<SubtreeRecord> = (0..5000).map(|i| fab_record(i, "a.py", i as u32, "x")).collect();
     let clusters = freqt_mine(&records, &th);
     assert!(clusters.is_empty(), "all unique → no clusters at min_support=2");
 }
@@ -310,13 +309,15 @@ fn stress_apply_idf_handles_max_findings_one() {
     let mut th = t().audit;
     th.pattern_mining.max_findings_reported = 1;
     th.pattern_mining.idiom_suppression_threshold = 1.0;
-    let clusters: Vec<RawCluster> = (0..100).map(|i| RawCluster {
-        fingerprint: i,
-        support: 10,
-        file_count: 3,
-        representative_snippet: "x".to_string(),
-        locations: vec![],
-    }).collect();
+    let clusters: Vec<RawCluster> = (0..100)
+        .map(|i| RawCluster {
+            fingerprint: i,
+            support: 10,
+            file_count: 3,
+            representative_snippet: "x".to_string(),
+            locations: vec![],
+        })
+        .collect();
     let result = apply_idf(clusters, 100, &th);
     assert_eq!(result.len(), 1);
 }
@@ -337,10 +338,9 @@ fn stress_apply_idf_handles_max_locations_one() {
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
-        locations: (0..100).map(|i| pulse::audit::finding::AuditLocation {
-            file: PathBuf::from(format!("f{i}.py")),
-            line: 1,
-        }).collect(),
+        locations: (0..100)
+            .map(|i| pulse::audit::finding::AuditLocation { file: PathBuf::from(format!("f{i}.py")), line: 1 })
+            .collect(),
     };
     let _ = f.locations.len();
     let s = format_findings(std::slice::from_ref(&f), None, &th);
@@ -413,13 +413,15 @@ fn stress_freqt_mine_handles_max_support_threshold() {
 
 #[test]
 fn stress_apply_idf_reproducible_under_random_input_ordering() {
-    let cs1: Vec<RawCluster> = (0..50).map(|i| RawCluster {
-        fingerprint: i,
-        support: 5,
-        file_count: 2,
-        representative_snippet: format!("snippet_{i}"),
-        locations: vec![],
-    }).collect();
+    let cs1: Vec<RawCluster> = (0..50)
+        .map(|i| RawCluster {
+            fingerprint: i,
+            support: 5,
+            file_count: 2,
+            representative_snippet: format!("snippet_{i}"),
+            locations: vec![],
+        })
+        .collect();
     let mut cs2 = cs1.clone();
     cs2.reverse();
     let r1 = apply_idf(cs1, 100, &t().audit);
@@ -476,13 +478,15 @@ fn stress_apply_idf_thousand_clusters_with_truncation() {
     let mut th = t().audit;
     th.pattern_mining.max_findings_reported = 50;
     th.pattern_mining.idiom_suppression_threshold = 1.0;
-    let clusters: Vec<RawCluster> = (0..1000).map(|i| RawCluster {
-        fingerprint: i,
-        support: 10,
-        file_count: 5,
-        representative_snippet: "x".to_string(),
-        locations: vec![],
-    }).collect();
+    let clusters: Vec<RawCluster> = (0..1000)
+        .map(|i| RawCluster {
+            fingerprint: i,
+            support: 10,
+            file_count: 5,
+            representative_snippet: "x".to_string(),
+            locations: vec![],
+        })
+        .collect();
     let result = apply_idf(clusters, 100, &th);
     assert_eq!(result.len(), 50);
 }

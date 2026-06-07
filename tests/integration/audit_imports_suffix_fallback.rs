@@ -10,45 +10,31 @@ fn typed_set<I: IntoIterator<Item = &'static str>>(paths: I) -> HashSet<PathBuf>
 
 #[test]
 fn java_dotted_resolves_via_suffix() {
-    let typed = typed_set([
-        "/repo/src/main/java/com/example/foo/Bar.java",
-        "/repo/src/main/java/com/example/baz/Qux.java",
-    ]);
+    let typed =
+        typed_set(["/repo/src/main/java/com/example/foo/Bar.java", "/repo/src/main/java/com/example/baz/Qux.java"]);
     let resolved = resolve_by_suffix("com.example.foo.Bar", Language::Java, &typed);
-    assert_eq!(
-        resolved,
-        Some(PathBuf::from("/repo/src/main/java/com/example/foo/Bar.java"))
-    );
+    assert_eq!(resolved, Some(PathBuf::from("/repo/src/main/java/com/example/foo/Bar.java")));
 }
 
 #[test]
 fn kotlin_dotted_resolves_via_suffix() {
     let typed = typed_set(["/repo/src/main/kotlin/com/example/Service.kt"]);
     let resolved = resolve_by_suffix("com.example.Service", Language::Kotlin, &typed);
-    assert_eq!(
-        resolved,
-        Some(PathBuf::from("/repo/src/main/kotlin/com/example/Service.kt"))
-    );
+    assert_eq!(resolved, Some(PathBuf::from("/repo/src/main/kotlin/com/example/Service.kt")));
 }
 
 #[test]
 fn csharp_dotted_resolves_via_suffix() {
     let typed = typed_set(["/repo/src/MyApp/Services/Foo.cs"]);
     let resolved = resolve_by_suffix("MyApp.Services.Foo", Language::CSharp, &typed);
-    assert_eq!(
-        resolved,
-        Some(PathBuf::from("/repo/src/MyApp/Services/Foo.cs"))
-    );
+    assert_eq!(resolved, Some(PathBuf::from("/repo/src/MyApp/Services/Foo.cs")));
 }
 
 #[test]
 fn swift_dotted_resolves_via_suffix() {
     let typed = typed_set(["/repo/Sources/App/Network/Client.swift"]);
     let resolved = resolve_by_suffix("App.Network.Client", Language::Swift, &typed);
-    assert_eq!(
-        resolved,
-        Some(PathBuf::from("/repo/Sources/App/Network/Client.swift"))
-    );
+    assert_eq!(resolved, Some(PathBuf::from("/repo/Sources/App/Network/Client.swift")));
 }
 
 #[test]
@@ -68,14 +54,8 @@ fn d_dotted_resolves_via_suffix() {
 #[test]
 fn groovy_dotted_resolves_via_suffix() {
     let typed = typed_set(["/repo/src/main/groovy/com/co/Service.groovy"]);
-    let resolved =
-        resolve_by_suffix("com.co.Service", Language::Groovy, &typed);
-    assert_eq!(
-        resolved,
-        Some(PathBuf::from(
-            "/repo/src/main/groovy/com/co/Service.groovy"
-        ))
-    );
+    let resolved = resolve_by_suffix("com.co.Service", Language::Groovy, &typed);
+    assert_eq!(resolved, Some(PathBuf::from("/repo/src/main/groovy/com/co/Service.groovy")));
 }
 
 #[test]
@@ -89,24 +69,18 @@ fn unsupported_language_returns_none() {
 #[test]
 fn empty_typed_set_returns_none() {
     let typed = HashSet::new();
-    assert!(
-        resolve_by_suffix("com.example.foo.Bar", Language::Java, &typed).is_none()
-    );
+    assert!(resolve_by_suffix("com.example.foo.Bar", Language::Java, &typed).is_none());
 }
 
 #[test]
 fn no_match_returns_none() {
     let typed = typed_set(["/repo/src/main/java/com/example/Other.java"]);
-    assert!(
-        resolve_by_suffix("com.example.foo.Bar", Language::Java, &typed).is_none()
-    );
+    assert!(resolve_by_suffix("com.example.foo.Bar", Language::Java, &typed).is_none());
 }
 
 #[test]
 fn extension_matters_for_suffix() {
-    let typed = typed_set([
-        "/repo/src/com/example/Bar.kt",
-    ]);
+    let typed = typed_set(["/repo/src/com/example/Bar.kt"]);
     assert!(
         resolve_by_suffix("com.example.Bar", Language::Java, &typed).is_none(),
         "Java suffix should not match a .kt file"

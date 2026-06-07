@@ -40,12 +40,7 @@ fn objc_module_import_handled() {
 fn c_resolve_target_with_h_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("helpers.h"), "").unwrap();
-    let resolved = resolve_target(
-        "helpers.h",
-        &dir.path().join("main.c"),
-        dir.path(),
-        Language::C,
-    );
+    let resolved = resolve_target("helpers.h", &dir.path().join("main.c"), dir.path(), Language::C);
     if let Some(p) = resolved {
         assert!(p.ends_with("helpers.h"));
     }
@@ -56,12 +51,7 @@ fn c_resolve_target_with_relative_path() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("subdir")).unwrap();
     fs::write(dir.path().join("subdir/h.h"), "").unwrap();
-    let _ = resolve_target(
-        "subdir/h.h",
-        &dir.path().join("main.c"),
-        dir.path(),
-        Language::C,
-    );
+    let _ = resolve_target("subdir/h.h", &dir.path().join("main.c"), dir.path(), Language::C);
 }
 
 #[test]
@@ -69,59 +59,34 @@ fn c_resolve_target_with_include_dir() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("include")).unwrap();
     fs::write(dir.path().join("include/h.h"), "").unwrap();
-    let _ = resolve_target(
-        "h.h",
-        &dir.path().join("main.c"),
-        dir.path(),
-        Language::C,
-    );
+    let _ = resolve_target("h.h", &dir.path().join("main.c"), dir.path(), Language::C);
 }
 
 #[test]
 fn cpp_resolve_target_with_hpp_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("helpers.hpp"), "").unwrap();
-    let _ = resolve_target(
-        "helpers",
-        &dir.path().join("main.cpp"),
-        dir.path(),
-        Language::Cpp,
-    );
+    let _ = resolve_target("helpers", &dir.path().join("main.cpp"), dir.path(), Language::Cpp);
 }
 
 #[test]
 fn cpp_resolve_target_with_cppm_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("module.cppm"), "").unwrap();
-    let _ = resolve_target(
-        "module",
-        &dir.path().join("main.cpp"),
-        dir.path(),
-        Language::Cpp,
-    );
+    let _ = resolve_target("module", &dir.path().join("main.cpp"), dir.path(), Language::Cpp);
 }
 
 #[test]
 fn objc_resolve_target_with_m_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("helpers.m"), "").unwrap();
-    let _ = resolve_target(
-        "helpers",
-        &dir.path().join("main.m"),
-        dir.path(),
-        Language::ObjectiveC,
-    );
+    let _ = resolve_target("helpers", &dir.path().join("main.m"), dir.path(), Language::ObjectiveC);
 }
 
 #[test]
 fn c_unknown_target_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let result = resolve_target(
-        "missing.h",
-        &dir.path().join("main.c"),
-        dir.path(),
-        Language::C,
-    );
+    let result = resolve_target("missing.h", &dir.path().join("main.c"), dir.path(), Language::C);
     assert!(result.is_none());
 }
 
@@ -130,12 +95,7 @@ fn c_resolve_target_with_src_subdirectory() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/local.h"), "").unwrap();
-    let _ = resolve_target(
-        "local.h",
-        &dir.path().join("src/main.c"),
-        dir.path(),
-        Language::C,
-    );
+    let _ = resolve_target("local.h", &dir.path().join("src/main.c"), dir.path(), Language::C);
 }
 
 #[test]
@@ -162,10 +122,8 @@ fn unsupported_language_for_preprocessor_returns_no_candidates() {
 
 #[test]
 fn multiple_includes_each_extracted() {
-    let imports = extract(
-        "#include \"a.h\"\n#include \"b.h\"\n#include \"c.h\"\nint main() { return 0; }\n",
-        Language::C,
-    );
+    let imports =
+        extract("#include \"a.h\"\n#include \"b.h\"\n#include \"c.h\"\nint main() { return 0; }\n", Language::C);
     let names: std::collections::BTreeSet<String> = imports.iter().map(|i| i.target.clone()).collect();
     assert!(names.contains("a.h"));
     assert!(names.contains("b.h"));
@@ -201,22 +159,12 @@ fn cpp_include_with_subdirectory_path() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir_all(dir.path().join("lib")).unwrap();
     fs::write(dir.path().join("lib/helpers.hpp"), "").unwrap();
-    let _ = resolve_target(
-        "lib/helpers.hpp",
-        &dir.path().join("main.cpp"),
-        dir.path(),
-        Language::Cpp,
-    );
+    let _ = resolve_target("lib/helpers.hpp", &dir.path().join("main.cpp"), dir.path(), Language::Cpp);
 }
 
 #[test]
 fn objc_resolve_target_with_h_extension() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("helpers.h"), "").unwrap();
-    let _ = resolve_target(
-        "helpers",
-        &dir.path().join("main.m"),
-        dir.path(),
-        Language::ObjectiveC,
-    );
+    let _ = resolve_target("helpers", &dir.path().join("main.m"), dir.path(), Language::ObjectiveC);
 }

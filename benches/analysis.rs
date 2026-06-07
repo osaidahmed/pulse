@@ -46,53 +46,37 @@ fn bench_full_pipeline(c: &mut Criterion) {
     for &num_fns in &[10, 30, 100, 300] {
         let code = generate_code(BenchLang::Python, num_fns);
         let lines = code.lines().count();
-        group.bench_with_input(
-            BenchmarkId::new("python", format!("{num_fns}fn_{lines}loc")),
-            &code,
-            |b, code| {
-                b.iter(|| {
-                    let metrics =
-                        parse::parse_and_walk(black_box(code), parse::Language::Python).unwrap();
-                    let t = Thresholds::default();
-                    smells::detect(&metrics, code, &t)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("python", format!("{num_fns}fn_{lines}loc")), &code, |b, code| {
+            b.iter(|| {
+                let metrics = parse::parse_and_walk(black_box(code), parse::Language::Python).unwrap();
+                let t = Thresholds::default();
+                smells::detect(&metrics, code, &t)
+            });
+        });
     }
 
     for &num_fns in &[10, 30, 100, 300] {
         let code = generate_code(BenchLang::TypeScript, num_fns);
         let lines = code.lines().count();
-        group.bench_with_input(
-            BenchmarkId::new("typescript", format!("{num_fns}fn_{lines}loc")),
-            &code,
-            |b, code| {
-                b.iter(|| {
-                    let metrics =
-                        parse::parse_and_walk(black_box(code), parse::Language::TypeScript)
-                            .unwrap();
-                    let t = Thresholds::default();
-                    smells::detect(&metrics, code, &t)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("typescript", format!("{num_fns}fn_{lines}loc")), &code, |b, code| {
+            b.iter(|| {
+                let metrics = parse::parse_and_walk(black_box(code), parse::Language::TypeScript).unwrap();
+                let t = Thresholds::default();
+                smells::detect(&metrics, code, &t)
+            });
+        });
     }
 
     for &num_fns in &[10, 30, 100, 300] {
         let code = generate_code(BenchLang::Rust, num_fns);
         let lines = code.lines().count();
-        group.bench_with_input(
-            BenchmarkId::new("rust", format!("{num_fns}fn_{lines}loc")),
-            &code,
-            |b, code| {
-                b.iter(|| {
-                    let metrics =
-                        parse::parse_and_walk(black_box(code), parse::Language::Rust).unwrap();
-                    let t = Thresholds::default();
-                    smells::detect(&metrics, code, &t)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("rust", format!("{num_fns}fn_{lines}loc")), &code, |b, code| {
+            b.iter(|| {
+                let metrics = parse::parse_and_walk(black_box(code), parse::Language::Rust).unwrap();
+                let t = Thresholds::default();
+                smells::detect(&metrics, code, &t)
+            });
+        });
     }
 
     group.finish();
@@ -107,18 +91,14 @@ fn bench_parse_vs_analysis(c: &mut Criterion) {
     group.bench_function("parse_only_100fn", |b| {
         b.iter(|| {
             let mut parser = tree_sitter::Parser::new();
-            parser
-                .set_language(&tree_sitter_python::LANGUAGE.into())
-                .unwrap();
+            parser.set_language(&tree_sitter_python::LANGUAGE.into()).unwrap();
             parser.parse(black_box(&code), None).unwrap()
         });
     });
 
     group.bench_function("walk_and_detect_100fn", |b| {
         let mut parser = tree_sitter::Parser::new();
-        parser
-            .set_language(&tree_sitter_python::LANGUAGE.into())
-            .unwrap();
+        parser.set_language(&tree_sitter_python::LANGUAGE.into()).unwrap();
         let tree = parser.parse(&code, None).unwrap();
         b.iter(|| {
             let metrics = pulse::walk::python::walk(black_box(&tree), &code);
@@ -137,18 +117,13 @@ fn bench_scaling(c: &mut Criterion) {
     for &num_fns in &[1, 5, 10, 50, 100, 200, 500] {
         let code = generate_code(BenchLang::Python, num_fns);
         let lines = code.lines().count();
-        group.bench_with_input(
-            BenchmarkId::new("loc", lines),
-            &code,
-            |b, code| {
-                b.iter(|| {
-                    let metrics =
-                        parse::parse_and_walk(black_box(code), parse::Language::Python).unwrap();
-                    let t = Thresholds::default();
-                    smells::detect(&metrics, code, &t)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("loc", lines), &code, |b, code| {
+            b.iter(|| {
+                let metrics = parse::parse_and_walk(black_box(code), parse::Language::Python).unwrap();
+                let t = Thresholds::default();
+                smells::detect(&metrics, code, &t)
+            });
+        });
     }
 
     group.finish();

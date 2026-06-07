@@ -8,10 +8,7 @@ use crate::history_common::{build_repo, CommitSpec};
 fn pulse_in(repo: &Path, args: &[&str]) -> (String, String, i32) {
     let mut all = vec!["history", "--root", repo.to_str().unwrap()];
     all.extend(args);
-    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(&all)
-        .output()
-        .expect("pulse failed");
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse")).args(&all).output().expect("pulse failed");
     (
         String::from_utf8(output.stdout).unwrap(),
         String::from_utf8(output.stderr).unwrap(),
@@ -185,11 +182,7 @@ fn history_ignore_dir_glob_skips_all_files_under_dir() {
     let repo = repo_with_directory_layout();
     write_config(repo.path(), "[history]\nignore_paths = [\"legacy/**\"]\n");
     let (stdout, _, _) = pulse_in(repo.path(), &["--json"]);
-    for files in [
-        hotspot_files_in_json(&stdout),
-        drift_files_in_json(&stdout),
-        contrib_files_in_json(&stdout),
-    ] {
+    for files in [hotspot_files_in_json(&stdout), drift_files_in_json(&stdout), contrib_files_in_json(&stdout)] {
         assert!(!files.iter().any(|f| f.contains("legacy/")), "legacy/ leaked: {files:?}");
     }
 }
@@ -224,16 +217,9 @@ fn history_ignore_glob_double_star_only_under_dir() {
 #[test]
 fn history_ignore_multiple_dirs() {
     let repo = repo_with_directory_layout();
-    write_config(
-        repo.path(),
-        "[history]\nignore_paths = [\"legacy/**\", \"generated/**\"]\n",
-    );
+    write_config(repo.path(), "[history]\nignore_paths = [\"legacy/**\", \"generated/**\"]\n");
     let (stdout, _, _) = pulse_in(repo.path(), &["--json"]);
-    for files in [
-        hotspot_files_in_json(&stdout),
-        drift_files_in_json(&stdout),
-        contrib_files_in_json(&stdout),
-    ] {
+    for files in [hotspot_files_in_json(&stdout), drift_files_in_json(&stdout), contrib_files_in_json(&stdout)] {
         assert!(!files.iter().any(|f| f.contains("legacy/")));
         assert!(!files.iter().any(|f| f.contains("generated/")));
     }
@@ -275,16 +261,9 @@ fn history_ignore_empty_array_is_noop() {
 #[test]
 fn history_ignore_combines_with_global_ignore() {
     let repo = repo_with_directory_layout();
-    write_config(
-        repo.path(),
-        "[ignore]\npaths = [\"legacy/**\"]\n[history]\nignore_paths = [\"generated/**\"]\n",
-    );
+    write_config(repo.path(), "[ignore]\npaths = [\"legacy/**\"]\n[history]\nignore_paths = [\"generated/**\"]\n");
     let (stdout, _, _) = pulse_in(repo.path(), &["--json"]);
-    for files in [
-        hotspot_files_in_json(&stdout),
-        drift_files_in_json(&stdout),
-        contrib_files_in_json(&stdout),
-    ] {
+    for files in [hotspot_files_in_json(&stdout), drift_files_in_json(&stdout), contrib_files_in_json(&stdout)] {
         assert!(!files.iter().any(|f| f.contains("legacy/")));
         assert!(!files.iter().any(|f| f.contains("generated/")));
     }
@@ -347,10 +326,7 @@ fn history_ignore_then_cli_top_combined() {
 #[test]
 fn history_config_cap_via_toml_only() {
     let repo = repo_with_six_pairs();
-    write_config(
-        repo.path(),
-        "[history.co_change]\nmax_findings = 0\n",
-    );
+    write_config(repo.path(), "[history.co_change]\nmax_findings = 0\n");
     let (stdout, _, _) = pulse_in(repo.path(), &["--json"]);
     let v: Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(v["summary"]["by_pillar"]["drift"].as_u64().unwrap(), 0);
@@ -368,10 +344,7 @@ fn history_config_cap_hotspot_only() {
 #[test]
 fn history_config_cap_contributors_only() {
     let repo = repo_with_six_pairs();
-    write_config(
-        repo.path(),
-        "[history.contributors]\nmax_findings = 0\n",
-    );
+    write_config(repo.path(), "[history.contributors]\nmax_findings = 0\n");
     let (stdout, _, _) = pulse_in(repo.path(), &["--json"]);
     let v: Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(v["summary"]["by_pillar"]["ownership"].as_u64().unwrap(), 0);

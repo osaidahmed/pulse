@@ -57,22 +57,14 @@ fn extract_bare<'a>(callsite: Node<'a>, parent: Node<'a>, source: &'a str) -> Op
     if callsite.kind() != "identifier" && callsite.kind() != "name" {
         return None;
     }
-    Some(RawCall {
-        callee_name: node_text(callsite, source).to_string(),
-        receiver_hint: None,
-        line: line_of(parent),
-    })
+    Some(RawCall { callee_name: node_text(callsite, source).to_string(), receiver_hint: None, line: line_of(parent) })
 }
 
 fn extract_from_invocation<'a>(node: Node<'a>, source: &'a str) -> Option<RawCall> {
     extract_via_fields(node, node, source)
 }
 
-fn extract_via_fields<'a>(
-    field_owner: Node<'a>,
-    line_owner: Node<'a>,
-    source: &'a str,
-) -> Option<RawCall> {
+fn extract_via_fields<'a>(field_owner: Node<'a>, line_owner: Node<'a>, source: &'a str) -> Option<RawCall> {
     let name_node = field_first(field_owner, NAME_FIELDS)?;
     let recv = field_first(field_owner, RECEIVER_FIELDS);
     Some(RawCall {

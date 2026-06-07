@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -17,9 +16,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_methods.d");
-    assert!(output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -60,10 +57,7 @@ fn comments_only_file() {
 
 #[test]
 fn simple_function_not_flagged() {
-    let out = pulse_check_code(
-        "int add(int a, int b) {\n    return a + b;\n}\n",
-        "d",
-    );
+    let out = pulse_check_code("int add(int a, int b) {\n    return a + b;\n}\n", "d");
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -73,10 +67,7 @@ fn simple_function_not_flagged() {
 
 #[test]
 fn cc_base_case_is_1() {
-    let debug = pulse_debug_code(
-        "int add(int a, int b) {\n    return a + b;\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("int add(int a, int b) {\n    return a + b;\n}\n", "d");
     let cc = function_metric(&debug, "add", "cc").unwrap_or(99);
     assert_eq!(cc, 1);
 }
@@ -99,10 +90,7 @@ fn function_at_cc_boundary_flagged() {
         ),
         "d",
     );
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -276,19 +264,13 @@ fn embedded_block_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.d");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.d");
-    assert!(
-        has_smell(&output, "Low Cohesion") || has_smell(&output, "Code Duplication"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Low Cohesion") || has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
@@ -350,10 +332,7 @@ fn hook_nonexistent_file_silent() {
 
 #[test]
 fn foreach_increments_cc() {
-    let debug = pulse_debug_code(
-        "void f(int[] data) {\n    foreach (item; data) {}\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("void f(int[] data) {\n    foreach (item; data) {}\n}\n", "d");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
@@ -380,75 +359,51 @@ fn try_catch_increments_cc() {
 
 #[test]
 fn class_method_name_prefixed() {
-    let debug = pulse_debug_code(
-        "class Foo {\n    void bar() {\n        int x = 1;\n    }\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("class Foo {\n    void bar() {\n        int x = 1;\n    }\n}\n", "d");
     assert!(debug.contains("Foo.bar"), "got: {debug}");
 }
 
 #[test]
 fn struct_method_name_prefixed() {
-    let debug = pulse_debug_code(
-        "struct Point {\n    void draw() {\n        int x = 1;\n    }\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("struct Point {\n    void draw() {\n        int x = 1;\n    }\n}\n", "d");
     assert!(debug.contains("Point.draw"), "got: {debug}");
 }
 
 #[test]
 fn constructor_detected() {
-    let debug = pulse_debug_code(
-        "class Foo {\n    this(int x) {\n        int y = x;\n    }\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("class Foo {\n    this(int x) {\n        int y = x;\n    }\n}\n", "d");
     assert!(debug.contains("Foo.this"), "got: {debug}");
 }
 
 #[test]
 fn destructor_detected() {
-    let debug = pulse_debug_code(
-        "class Foo {\n    ~this() {\n        int x = 0;\n    }\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("class Foo {\n    ~this() {\n        int x = 0;\n    }\n}\n", "d");
     assert!(debug.contains("Foo.~this"), "got: {debug}");
 }
 
 #[test]
 fn unittest_block_detected() {
-    let debug = pulse_debug_code(
-        "unittest {\n    int x = 1;\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("unittest {\n    int x = 1;\n}\n", "d");
     assert!(debug.contains("unittest_L"), "got: {debug}");
 }
 
 #[test]
 fn scope_guard_no_cc() {
-    let debug = pulse_debug_code(
-        "void f() {\n    scope(exit) int x = 1;\n    int y = 2;\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("void f() {\n    scope(exit) int x = 1;\n    int y = 2;\n}\n", "d");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(99);
     assert_eq!(cc, 1, "scope guard should not add cc, got: {cc}");
 }
 
 #[test]
 fn do_while_increments_cc() {
-    let debug = pulse_debug_code(
-        "void f(int x) {\n    do {\n        x = x + 1;\n    } while (x < 10);\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("void f(int x) {\n    do {\n        x = x + 1;\n    } while (x < 10);\n}\n", "d");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
 
 #[test]
 fn while_increments_cc() {
-    let debug = pulse_debug_code(
-        "void f(int x) {\n    while (x > 0) {\n        x = x - 1;\n    }\n}\n",
-        "d",
-    );
+    let debug = pulse_debug_code("void f(int x) {\n    while (x > 0) {\n        x = x - 1;\n    }\n}\n", "d");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
@@ -481,10 +436,8 @@ fn analysis_completes_under_500ms() {
 
 #[test]
 fn empty_catch_detected() {
-    let out = pulse_check_code(
-        "void f() {\n    try {\n        int x = 1;\n    } catch (Exception e) {\n    }\n}\n",
-        "d",
-    );
+    let out =
+        pulse_check_code("void f() {\n    try {\n        int x = 1;\n    } catch (Exception e) {\n    }\n}\n", "d");
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 

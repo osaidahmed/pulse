@@ -5,20 +5,12 @@ fn typed_params(decls: &[String]) -> String {
 }
 
 fn rust_fn(types: &[&str]) -> String {
-    let params: Vec<String> = types
-        .iter()
-        .enumerate()
-        .map(|(i, ty)| format!("a{i}: {ty}"))
-        .collect();
+    let params: Vec<String> = types.iter().enumerate().map(|(i, ty)| format!("a{i}: {ty}")).collect();
     format!("fn f({}) {{}}\n", typed_params(&params))
 }
 
 fn py_fn(types: &[&str]) -> String {
-    let params: Vec<String> = types
-        .iter()
-        .enumerate()
-        .map(|(i, ty)| format!("a{i}: {ty}"))
-        .collect();
+    let params: Vec<String> = types.iter().enumerate().map(|(i, ty)| format!("a{i}: {ty}")).collect();
     format!("def f({}):\n    pass\n", typed_params(&params))
 }
 
@@ -108,12 +100,9 @@ fn py_switch(default: bool) -> String {
 
 #[test]
 fn stringly_typed_switch_fires_without_default() {
-    for (code, ext) in [
-        (rust_switch(false), "rs"),
-        (go_switch(false), "go"),
-        (ts_switch(false), "ts"),
-        (py_switch(false), "py"),
-    ] {
+    for (code, ext) in
+        [(rust_switch(false), "rs"), (go_switch(false), "go"), (ts_switch(false), "ts"), (py_switch(false), "py")]
+    {
         assert!(
             has_smell(&pulse_check_code(&code, ext), "Stringly-Typed"),
             "{ext} string switch without a default should fire, got: {code}"
@@ -123,12 +112,9 @@ fn stringly_typed_switch_fires_without_default() {
 
 #[test]
 fn stringly_typed_switch_suppressed_with_default() {
-    for (code, ext) in [
-        (rust_switch(true), "rs"),
-        (go_switch(true), "go"),
-        (ts_switch(true), "ts"),
-        (py_switch(true), "py"),
-    ] {
+    for (code, ext) in
+        [(rust_switch(true), "rs"), (go_switch(true), "go"), (ts_switch(true), "ts"), (py_switch(true), "py")]
+    {
         assert!(
             !has_smell(&pulse_check_code(&code, ext), "Stringly-Typed"),
             "{ext} string switch with a default is a closed domain, got: {code}"
@@ -137,8 +123,7 @@ fn stringly_typed_switch_suppressed_with_default() {
 }
 
 fn rust_ctor(types: &[&str]) -> String {
-    let params: Vec<String> =
-        types.iter().enumerate().map(|(i, ty)| format!("a{i}: {ty}")).collect();
+    let params: Vec<String> = types.iter().enumerate().map(|(i, ty)| format!("a{i}: {ty}")).collect();
     format!("struct S {{}}\nimpl S {{\n    fn new({}) -> Self {{ S {{}} }}\n}}\n", params.join(", "))
 }
 
@@ -191,7 +176,8 @@ fn has_exact_duplication(code: &str, ext: &str) -> bool {
     findings.iter().any(|f| f.smell == pulse::smells::Smell::CodeDuplication)
 }
 
-const TRIVIAL_CLONE_RS: &str = "fn alpha() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\nfn beta() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\n";
+const TRIVIAL_CLONE_RS: &str =
+    "fn alpha() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\nfn beta() {\n    {}\n    {}\n    {}\n    {}\n    {}\n}\n";
 
 const RICH_CLONE_RS: &str = "fn gamma(n: i32) -> i32 {\n    let mut total = n;\n    for i in total..n {\n        if i > total {\n            total += i;\n        }\n    }\n    total\n}\nfn delta(n: i32) -> i32 {\n    let mut total = n;\n    for i in total..n {\n        if i > total {\n            total += i;\n        }\n    }\n    total\n}\n";
 

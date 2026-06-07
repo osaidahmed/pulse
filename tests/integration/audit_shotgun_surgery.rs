@@ -91,12 +91,7 @@ fn calls_pointing_at_target(callers_per_class: usize, classes: usize) -> Vec<Loc
 fn defs_with_target_outgoing(target_fanout: usize) -> Vec<DefinitionRecord> {
     let mut defs = vec![def("target.py", Some("Target"), "handle", 1)];
     for i in 0..target_fanout {
-        defs.push(def(
-            &format!("dep_{i}.py"),
-            Some(&format!("Dep{i}")),
-            &format!("dep_method_{i}"),
-            5,
-        ));
+        defs.push(def(&format!("dep_{i}.py"), Some(&format!("Dep{i}")), &format!("dep_method_{i}"), 5));
     }
     defs
 }
@@ -104,23 +99,12 @@ fn defs_with_target_outgoing(target_fanout: usize) -> Vec<DefinitionRecord> {
 fn calls_target_invokes_deps(fanout: usize) -> Vec<LocatedCall> {
     let mut out = Vec::new();
     for i in 0..fanout {
-        out.push(call(
-            "target.py",
-            Some("Target"),
-            "handle",
-            1,
-            &format!("dep_method_{i}"),
-            Some(&format!("Dep{i}")),
-        ));
+        out.push(call("target.py", Some("Target"), "handle", 1, &format!("dep_method_{i}"), Some(&format!("Dep{i}"))));
     }
     out
 }
 
-fn full_shotgun_setup(
-    classes: u32,
-    methods_per_class: u32,
-    fanout: u32,
-) -> (Vec<DefinitionRecord>, Vec<LocatedCall>) {
+fn full_shotgun_setup(classes: u32, methods_per_class: u32, fanout: u32) -> (Vec<DefinitionRecord>, Vec<LocatedCall>) {
     let mut defs = defs_with_target_and_callers(methods_per_class as usize, classes as usize);
     defs.extend(defs_with_target_outgoing(fanout as usize).into_iter().skip(1));
     let mut calls = calls_pointing_at_target(methods_per_class as usize, classes as usize);
@@ -186,10 +170,7 @@ fn no_finding_when_only_fanout_above_threshold() {
 
 #[test]
 fn no_finding_for_isolated_methods() {
-    let defs = vec![
-        def("a.py", Some("A"), "m1", 1),
-        def("b.py", Some("B"), "m2", 2),
-    ];
+    let defs = vec![def("a.py", Some("A"), "m1", 1), def("b.py", Some("B"), "m2", 2)];
     let findings = run_from_inputs(defs, Vec::new(), &t().audit);
     assert!(findings.is_empty());
 }
@@ -208,12 +189,7 @@ fn confidence_drops_to_medium_for_unique_name_no_class_hint() {
     let mut calls = Vec::new();
     for c in 0..7 {
         for m in 0..3 {
-            defs.push(def(
-                &format!("caller_{c}.py"),
-                Some(&format!("Class{c}")),
-                &format!("m_{m}"),
-                10,
-            ));
+            defs.push(def(&format!("caller_{c}.py"), Some(&format!("Class{c}")), &format!("m_{m}"), 10));
             calls.push(call(
                 &format!("caller_{c}.py"),
                 Some(&format!("Class{c}")),
@@ -263,7 +239,14 @@ fn findings_truncated_to_max_named_smell_findings() {
         for i in 0..7 {
             let dep_name = format!("d{k}_{i}");
             defs.push(def(&format!("d{k}_{i}.py"), Some(&format!("D{k}_{i}")), &dep_name, 5));
-            calls.push(call(&format!("t{k}.py"), Some(&format!("T{k}")), &target_name, 1, &dep_name, Some(&format!("D{k}_{i}"))));
+            calls.push(call(
+                &format!("t{k}.py"),
+                Some(&format!("T{k}")),
+                &target_name,
+                1,
+                &dep_name,
+                Some(&format!("D{k}_{i}")),
+            ));
         }
     }
     let mut audit_t = t().audit;
@@ -291,7 +274,14 @@ fn findings_sorted_by_cc_desc_then_cm_desc() {
         for i in 0..7 {
             let dep_name = format!("d{k}_{i}");
             defs.push(def(&format!("d{k}_{i}.py"), Some(&format!("D{k}_{i}")), &dep_name, 5));
-            calls.push(call(&format!("t{k}.py"), Some(&format!("T{k}")), &target_name, 1, &dep_name, Some(&format!("D{k}_{i}"))));
+            calls.push(call(
+                &format!("t{k}.py"),
+                Some(&format!("T{k}")),
+                &target_name,
+                1,
+                &dep_name,
+                Some(&format!("D{k}_{i}")),
+            ));
         }
     }
     let findings = run_from_inputs(defs, calls, &t().audit);
@@ -314,11 +304,7 @@ fn calls_with_no_caller_are_dropped() {
     for c in 0..7 {
         defs.push(def(&format!("c{c}.py"), Some(&format!("C{c}")), &format!("m{c}"), 10));
         calls.push(LocatedCall {
-            call: RawCall {
-                callee_name: "h".to_string(),
-                receiver_hint: Some("T".to_string()),
-                line: 11,
-            },
+            call: RawCall { callee_name: "h".to_string(), receiver_hint: Some("T".to_string()), line: 11 },
             caller: None,
             file: PathBuf::from(format!("c{c}.py")),
         });
@@ -337,15 +323,19 @@ fn calls_with_no_matching_definition_dropped() {
 
 #[test]
 fn ambiguous_name_resolves_to_low_confidence() {
-    let mut defs = vec![
-        def("a.py", Some("A"), "shared_name", 1),
-        def("b.py", Some("B"), "shared_name", 1),
-    ];
+    let mut defs = vec![def("a.py", Some("A"), "shared_name", 1), def("b.py", Some("B"), "shared_name", 1)];
     let mut calls = Vec::new();
     for c in 0..7 {
         for m in 0..3 {
             defs.push(def(&format!("c{c}.py"), Some(&format!("Caller{c}")), &format!("m{m}"), 10));
-            calls.push(call(&format!("c{c}.py"), Some(&format!("Caller{c}")), &format!("m{m}"), 10, "shared_name", None));
+            calls.push(call(
+                &format!("c{c}.py"),
+                Some(&format!("Caller{c}")),
+                &format!("m{m}"),
+                10,
+                "shared_name",
+                None,
+            ));
         }
     }
     for i in 0..7 {
@@ -362,42 +352,22 @@ fn ambiguous_name_resolves_to_low_confidence() {
 
 #[test]
 fn self_receiver_resolves_within_caller_class() {
-    let mut defs = vec![
-        def("self.py", Some("Foo"), "helper", 1),
-        def("self.py", Some("Foo"), "caller_a", 5),
-    ];
+    let mut defs = vec![def("self.py", Some("Foo"), "helper", 1), def("self.py", Some("Foo"), "caller_a", 5)];
     for k in 1..15u32 {
         defs.push(def(&format!("c{k}.py"), Some(&format!("Foo{k}")), "helper", 1));
     }
-    let calls = vec![call(
-        "self.py",
-        Some("Foo"),
-        "caller_a",
-        5,
-        "helper",
-        Some("self"),
-    )];
+    let calls = vec![call("self.py", Some("Foo"), "caller_a", 5, "helper", Some("self"))];
     let findings = run_from_inputs(defs, calls, &t().audit);
     let _ = findings;
 }
 
 #[test]
 fn cls_receiver_resolves_within_caller_class() {
-    let mut defs = vec![
-        def("self.py", Some("Foo"), "factory", 1),
-        def("self.py", Some("Foo"), "caller", 5),
-    ];
+    let mut defs = vec![def("self.py", Some("Foo"), "factory", 1), def("self.py", Some("Foo"), "caller", 5)];
     for k in 1..15u32 {
         defs.push(def(&format!("c{k}.py"), Some(&format!("Other{k}")), "factory", 1));
     }
-    let calls = vec![call(
-        "self.py",
-        Some("Foo"),
-        "caller",
-        5,
-        "factory",
-        Some("cls"),
-    )];
+    let calls = vec![call("self.py", Some("Foo"), "caller", 5, "factory", Some("cls"))];
     let findings = run_from_inputs(defs, calls, &t().audit);
     let _ = findings;
 }
@@ -474,20 +444,10 @@ fn same_class_name_in_different_files_counts_as_distinct_callers() {
     let mut defs = vec![target];
     let mut calls = Vec::new();
     for i in 0..7 {
-        let caller_def = def(
-            &format!("caller_{i}.py"),
-            Some("SameClassName"),
-            &format!("method_{i}"),
-            10,
-        );
+        let caller_def = def(&format!("caller_{i}.py"), Some("SameClassName"), &format!("method_{i}"), 10);
         defs.push(caller_def.clone());
         for j in 0..3 {
-            let extra = def(
-                &format!("caller_{i}.py"),
-                Some("SameClassName"),
-                &format!("extra_{i}_{j}"),
-                20 + j,
-            );
+            let extra = def(&format!("caller_{i}.py"), Some("SameClassName"), &format!("extra_{i}_{j}"), 20 + j);
             calls.push(call(
                 &format!("caller_{i}.py"),
                 Some("SameClassName"),
@@ -513,11 +473,7 @@ fn same_class_name_in_different_files_counts_as_distinct_callers() {
     let findings = run_from_inputs(defs, calls, &t().audit);
     assert!(!findings.is_empty(), "7 distinct files w/ same class name should be 7 distinct callers");
     let e = shotgun_evidence(&findings[0]);
-    assert!(
-        e.changing_classes >= 7,
-        "expected CC>=7 (file-scoped buckets), got {}",
-        e.changing_classes
-    );
+    assert!(e.changing_classes >= 7, "expected CC>=7 (file-scoped buckets), got {}", e.changing_classes);
 }
 
 #[test]
@@ -528,12 +484,7 @@ fn name_collision_fold_merges_identical_caller_sets() {
         defs.push(def(&format!("{}.py", p.to_lowercase()), Some(p), "search", 1));
     }
     for i in 0..12 {
-        defs.push(def(
-            &format!("caller_{i}.py"),
-            Some(&format!("Caller{i}")),
-            &format!("use_search_{i}"),
-            10,
-        ));
+        defs.push(def(&format!("caller_{i}.py"), Some(&format!("Caller{i}")), &format!("use_search_{i}"), 10));
     }
     for i in 0..7 {
         defs.push(def(&format!("dep_{i}.py"), Some(&format!("Dep{i}")), &format!("dep_{i}"), 5));
@@ -562,15 +513,8 @@ fn name_collision_fold_merges_identical_caller_sets() {
         }
     }
     let findings = run_from_inputs(defs, calls, &t().audit);
-    let shotgun: Vec<_> = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_)))
-        .collect();
-    assert_eq!(
-        shotgun.len(),
-        1,
-        "three same-name definitions with identical callers should fold into one finding"
-    );
+    let shotgun: Vec<_> = findings.iter().filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_))).collect();
+    assert_eq!(shotgun.len(), 1, "three same-name definitions with identical callers should fold into one finding");
     let e = shotgun_evidence(shotgun[0]);
     assert_eq!(e.name_collision_count, 3, "fold marker should record 3 definitions");
     assert_eq!(e.additional_definitions.len(), 2, "two sibling definitions retained");

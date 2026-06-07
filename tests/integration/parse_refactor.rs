@@ -82,12 +82,9 @@ fn walk_only_matches_parse_and_walk_for_each_language() {
         assert!(combined.is_some() && tree.is_some(), "parse failed for {lang:?}");
         let split = parse::walk_only(tree.as_ref().unwrap(), src, *lang);
         let combined = combined.unwrap();
-        assert_eq!(combined.functions.len(), split.functions.len(),
-            "function count mismatch for {lang:?}");
-        assert_eq!(combined.module.total_loc, split.module.total_loc,
-            "loc mismatch for {lang:?}");
-        assert_eq!(combined.module.sum_cc, split.module.sum_cc,
-            "cc mismatch for {lang:?}");
+        assert_eq!(combined.functions.len(), split.functions.len(), "function count mismatch for {lang:?}");
+        assert_eq!(combined.module.total_loc, split.module.total_loc, "loc mismatch for {lang:?}");
+        assert_eq!(combined.module.sum_cc, split.module.sum_cc, "cc mismatch for {lang:?}");
     }
 }
 

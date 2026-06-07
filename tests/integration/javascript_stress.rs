@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -104,7 +103,9 @@ fn nesting_2_nested_if() {
 
 #[test]
 fn nesting_3_for_if_for() {
-    let out = debug("function f() {\n    if (x) {\n        for (const i of y) {\n            if (z) {}\n        }\n    }\n}\n");
+    let out = debug(
+        "function f() {\n    if (x) {\n        for (const i of y) {\n            if (z) {}\n        }\n    }\n}\n",
+    );
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -333,9 +334,7 @@ fn declarations_above_threshold() {
 
 #[test]
 fn global_nesting_3_flagged() {
-    let out = check(
-        "if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n",
-    );
+    let out = check("if (a) {\n    if (b) {\n        if (c) {\n            const x = 1;\n        }\n    }\n}\n");
     assert!(has_smell(&out, "Deep Global Nesting"));
 }
 
@@ -408,9 +407,7 @@ fn multiple_smells_same_function() {
 fn performance_1000_loc() {
     let mut code = String::new();
     for i in 0..50 {
-        code.push_str(&format!(
-            "function func{i}(data) {{\n    const r = {{}};\n"
-        ));
+        code.push_str(&format!("function func{i}(data) {{\n    const r = {{}};\n"));
         for j in 0..18 {
             code.push_str(&format!("    r.f{j} = data.f{j};\n"));
         }
@@ -483,10 +480,7 @@ fn cc_switch_many_cases() {
 fn nesting_try_catch_counts_depth() {
     let out = debug("function f() {\n    try {\n        if (x) {}\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(
-        depth >= 1,
-        "try-catch should contribute nesting, got: {depth}"
-    );
+    assert!(depth >= 1, "try-catch should contribute nesting, got: {depth}");
 }
 
 // ===========================================================================
@@ -495,8 +489,7 @@ fn nesting_try_catch_counts_depth() {
 
 #[test]
 fn lcom4_single_method_not_flagged() {
-    let out =
-        check("class T {\n    constructor() { this.x = 1; }\n    get() { return this.x; }\n}\n");
+    let out = check("class T {\n    constructor() { this.x = 1; }\n    get() { return this.x; }\n}\n");
     assert!(!has_smell(&out, "Low Cohesion"));
 }
 
@@ -742,10 +735,7 @@ fn clean_express_handler_not_flagged() {
         "    res.json(users);\n",
         "}\n",
     ));
-    assert!(
-        out.is_empty(),
-        "clean Express handler should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean Express handler should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -761,12 +751,7 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"other\": 1}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -782,12 +767,7 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -817,9 +797,7 @@ fn hook_empty_stdin() {
 fn performance_class_hierarchy() {
     let mut code = String::new();
     for i in 0..10 {
-        code.push_str(&format!(
-            "class Service{i} {{\n    constructor() {{ this.data{i} = []; }}\n"
-        ));
+        code.push_str(&format!("class Service{i} {{\n    constructor() {{ this.data{i} = []; }}\n"));
         for j in 0..5 {
             code.push_str(&format!("    method{j}() {{ return this.data{i}; }}\n"));
         }
@@ -903,7 +881,8 @@ fn args_with_destructured_defaults() {
 
 #[test]
 fn nesting_deep_try_catch() {
-    let out = debug("function f() {\n    try {\n        if (x) {\n            if (y) {}\n        }\n    } catch (e) {}\n}\n");
+    let out =
+        debug("function f() {\n    try {\n        if (x) {\n            if (y) {}\n        }\n    } catch (e) {}\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(depth >= 2, "try+if+if should be >= 2, got: {depth}");
 }
@@ -1059,14 +1038,8 @@ fn cogc_else_if_no_nesting() {
 
 #[test]
 fn cogc_else_increases_nesting() {
-    let out = debug(concat!(
-        "function f() {\n",
-        "    if (a) {}\n",
-        "    else {\n",
-        "        if (b) {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("function f() {\n", "    if (a) {}\n", "    else {\n", "        if (b) {}\n", "    }\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(4));
 }
 
@@ -1098,44 +1071,26 @@ fn cogc_switch_counted() {
 
 #[test]
 fn cogc_catch_penalized() {
-    let out = debug(concat!(
-        "function f() {\n",
-        "    try {\n",
-        "        if (x) {}\n",
-        "    } catch (e) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f() {\n", "    try {\n", "        if (x) {}\n", "    } catch (e) {}\n", "}\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "try/catch with nested if should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_ternary_counted() {
-    let out = debug(concat!(
-        "function f() {\n",
-        "    return a ? 1 : 0;\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f() {\n", "    return a ? 1 : 0;\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(1));
 }
 
 #[test]
 fn cogc_boolean_single_sequence() {
-    let out = debug(concat!(
-        "function f() {\n",
-        "    if (a && b && c) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f() {\n", "    if (a && b && c) {}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(2));
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
-    let out = debug(concat!(
-        "function f() {\n",
-        "    if (a && b || c) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("function f() {\n", "    if (a && b || c) {}\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "cogc"), Some(3));
 }
 
@@ -1197,53 +1152,34 @@ fn cogc_below_threshold_no_smell() {
 
 #[test]
 fn empty_catch_detected() {
-    let out = check(concat!(
-        "function f() {\n",
-        "    try { risky(); } catch (e) {}\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f() {\n", "    try { risky(); } catch (e) {}\n", "}\n",));
     assert!(has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn non_empty_catch_not_detected() {
-    let out = check(concat!(
-        "function f() {\n",
-        "    try { risky(); } catch (e) { console.log(e); }\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f() {\n", "    try { risky(); } catch (e) { console.log(e); }\n", "}\n",));
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn multiple_empty_catches() {
-    let out = check(concat!(
-        "function f() {\n",
-        "    try { a(); } catch (e) {}\n",
-        "    try { b(); } catch (e) {}\n",
-        "}\n",
-    ));
+    let out =
+        check(
+            concat!("function f() {\n", "    try { a(); } catch (e) {}\n", "    try { b(); } catch (e) {}\n", "}\n",),
+        );
     assert!(has_smell(&out, "Empty Error Handler"));
     assert!(out.contains("2 empty catch blocks"), "should report count=2, got: {out}");
 }
 
 #[test]
 fn no_try_catch_no_smell() {
-    let out = check(concat!(
-        "function f() {\n",
-        "    const x = 1;\n",
-        "    return;\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f() {\n", "    const x = 1;\n", "    return;\n", "}\n",));
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn catch_with_only_comment_detected() {
-    let out = check(concat!(
-        "function f() {\n",
-        "    try { risky(); } catch (e) { /* todo */ }\n",
-        "}\n",
-    ));
+    let out = check(concat!("function f() {\n", "    try { risky(); } catch (e) { /* todo */ }\n", "}\n",));
     assert!(has_smell(&out, "Empty Error Handler"));
 }

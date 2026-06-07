@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("m");
@@ -15,41 +14,32 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n    } else if (x < 0) {\n    }\n}\n@end\n",
-    );
+    let out =
+        debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n    } else if (x < 0) {\n    }\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_for() {
-    let out = debug(
-        "@implementation X\n- (void)f {\n    for (int i = 0; i < 10; i++) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f {\n    for (int i = 0; i < 10; i++) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_for_in() {
-    let out = debug(
-        "@implementation X\n- (void)f:(NSArray *)items {\n    for (id obj in items) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(NSArray *)items {\n    for (id obj in items) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_while() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    while (x > 0) { x--; }\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    while (x > 0) { x--; }\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_do_while() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    do { x--; } while (x > 0);\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    do { x--; } while (x > 0);\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
@@ -72,58 +62,44 @@ fn cc_counts_switch_cases() {
 
 #[test]
 fn cc_counts_ternary() {
-    let out = debug(
-        "@implementation X\n- (int)f:(int)x {\n    return x > 0 ? 1 : 0;\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (int)f:(int)x {\n    return x > 0 ? 1 : 0;\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
 #[test]
 fn cc_counts_logical_and() {
-    let out = debug(
-        "@implementation X\n- (void)f:(BOOL)a b:(BOOL)b {\n    if (a && b) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(BOOL)a b:(BOOL)b {\n    if (a && b) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_logical_or() {
-    let out = debug(
-        "@implementation X\n- (void)f:(BOOL)a b:(BOOL)b {\n    if (a || b) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(BOOL)a b:(BOOL)b {\n    if (a || b) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_mixed_boolean() {
-    let out = debug(
-        "@implementation X\n- (void)f:(BOOL)a b:(BOOL)b c:(BOOL)c {\n    if (a && b || c) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(BOOL)a b:(BOOL)b c:(BOOL)c {\n    if (a && b || c) {}\n}\n@end\n");
     let cc = function_metric(&out, "X.f", "cc").unwrap_or(0);
     assert!(cc >= 4, "cc={cc}");
 }
 
 #[test]
 fn cc_multiple_if_accumulates() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n    if (x > 1) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n    if (x > 1) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_nested_if_accumulates() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_catch_increments() {
-    let out = debug(
-        "@implementation X\n- (void)f {\n    @try {} @catch (NSException *e) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f {\n    @try {} @catch (NSException *e) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cc"), Some(2));
 }
 
@@ -169,17 +145,13 @@ fn nesting_flat() {
 
 #[test]
 fn nesting_single_if() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "nesting"), Some(1));
 }
 
 #[test]
 fn nesting_double() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "nesting"), Some(2));
 }
 
@@ -262,9 +234,7 @@ fn args_one() {
 
 #[test]
 fn args_two() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x y:(int)y {\n    NSLog(@\"%d %d\", x, y);\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x y:(int)y {\n    NSLog(@\"%d %d\", x, y);\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "args"), Some(2));
 }
 
@@ -311,9 +281,7 @@ fn args_init_constructor() {
 
 #[test]
 fn args_class_method() {
-    let out = debug(
-        "@implementation X\n+ (void)doStuff:(int)a b:(int)b {\n    NSLog(@\"hi\");\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n+ (void)doStuff:(int)a b:(int)b {\n    NSLog(@\"hi\");\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.doStuff", "args"), Some(2));
 }
 
@@ -479,17 +447,13 @@ fn single_class_counted() {
 
 #[test]
 fn multiple_classes_counted() {
-    let out = debug(
-        "@implementation A\n- (void)f {}\n@end\n@implementation B\n- (void)g {}\n@end\n",
-    );
+    let out = debug("@implementation A\n- (void)f {}\n@end\n@implementation B\n- (void)g {}\n@end\n");
     assert!(out.contains("declarations=2"), "got: {out}");
 }
 
 #[test]
 fn protocol_counted() {
-    let out = debug(
-        "@protocol P <NSObject>\n- (void)didFinish;\n@end\n@implementation X\n- (void)f {}\n@end\n",
-    );
+    let out = debug("@protocol P <NSObject>\n- (void)didFinish;\n@end\n@implementation X\n- (void)f {}\n@end\n");
     assert!(out.contains("declarations=2"), "got: {out}");
 }
 
@@ -531,10 +495,7 @@ fn god_method_subsumes() {
     let out = check(&code);
     assert!(has_smell(&out, "God Method"));
     let god_lines: Vec<&str> = out.lines().filter(|l| l.contains("X.god")).collect();
-    assert!(
-        !god_lines.iter().any(|l| l.contains("Complex Method")),
-        "got: {god_lines:?}"
-    );
+    assert!(!god_lines.iter().any(|l| l.contains("Complex Method")), "got: {god_lines:?}");
 }
 
 #[test]
@@ -582,9 +543,7 @@ fn large_file_under_500ms() {
 fn many_methods_under_500ms() {
     let mut code = String::from("@implementation X\n");
     for i in 0..50 {
-        code.push_str(&format!(
-            "- (void)m{i}:(int)x {{\n    if (x > 0) {{ NSLog(@\"a\"); }}\n}}\n"
-        ));
+        code.push_str(&format!("- (void)m{i}:(int)x {{\n    if (x > 0) {{ NSLog(@\"a\"); }}\n}}\n"));
     }
     code.push_str("@end\n");
     let start = std::time::Instant::now();
@@ -666,17 +625,13 @@ fn non_empty_catch_not_flagged() {
 
 #[test]
 fn class_method_plus() {
-    let out = debug(
-        "@implementation X\n+ (instancetype)shared {\n    static X *s = nil;\n    return s;\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n+ (instancetype)shared {\n    static X *s = nil;\n    return s;\n}\n@end\n");
     assert!(out.contains("X.shared"), "got: {out}");
 }
 
 #[test]
 fn instance_method_minus() {
-    let out = debug(
-        "@implementation X\n- (void)doWork {\n    NSLog(@\"work\");\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)doWork {\n    NSLog(@\"work\");\n}\n@end\n");
     assert!(out.contains("X.doWork"), "got: {out}");
 }
 
@@ -931,17 +886,13 @@ fn cogc_flat_is_zero() {
 
 #[test]
 fn cogc_single_if() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {}\n}\n@end\n");
     assert_eq!(function_metric(&out, "X.f", "cogc"), Some(1));
 }
 
 #[test]
 fn cogc_nested_if_increments_more() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n        if (x > 1) {}\n    }\n}\n@end\n");
     let cogc = function_metric(&out, "X.f", "cogc").unwrap_or(0);
     // Outer if: 1, inner if: 1 + 1 (nesting) = 2, total = 3
     assert!(cogc >= 3, "cogc={cogc}");
@@ -949,9 +900,7 @@ fn cogc_nested_if_increments_more() {
 
 #[test]
 fn cogc_else_adds_flat() {
-    let out = debug(
-        "@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n    } else {\n    }\n}\n@end\n",
-    );
+    let out = debug("@implementation X\n- (void)f:(int)x {\n    if (x > 0) {\n    } else {\n    }\n}\n@end\n");
     let cogc = function_metric(&out, "X.f", "cogc").unwrap_or(0);
     // if: 1, else: 1 (flat), total = 2
     assert_eq!(cogc, 2);

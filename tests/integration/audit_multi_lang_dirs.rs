@@ -3,11 +3,7 @@ use pulse::parse::Language;
 use std::process::Command;
 
 fn pulse_audit(args: &[&str]) -> (String, String, i32) {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("audit")
-        .args(args)
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).arg("audit").args(args).output().unwrap();
     (
         String::from_utf8(out.stdout).unwrap_or_default(),
         String::from_utf8(out.stderr).unwrap_or_default(),
@@ -140,13 +136,12 @@ fn audit_cli_finds_clusters_in_repeated_typescript_files() {
         std::fs::write(
             dir.path().join(format!("f{i}.ts")),
             "function process(x: number): number { if (x === 1) { return x; } return 0; }\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     for i in 0..6 {
-        std::fs::write(
-            dir.path().join(format!("decoy{i}.ts")),
-            format!("export const NAME = \"unique{i}\";\n"),
-        ).unwrap();
+        std::fs::write(dir.path().join(format!("decoy{i}.ts")), format!("export const NAME = \"unique{i}\";\n"))
+            .unwrap();
     }
     let (stdout, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(code == 0 || code == 1);
@@ -160,13 +155,12 @@ fn audit_cli_finds_clusters_in_repeated_rust_files() {
         std::fs::write(
             dir.path().join(format!("f{i}.rs")),
             "fn process(x: i32) -> i32 { if x == 1 { return x; } 0 }\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     for i in 0..6 {
-        std::fs::write(
-            dir.path().join(format!("decoy{i}.rs")),
-            format!("pub const NAME{i}: &str = \"unique\";\n"),
-        ).unwrap();
+        std::fs::write(dir.path().join(format!("decoy{i}.rs")), format!("pub const NAME{i}: &str = \"unique\";\n"))
+            .unwrap();
     }
     let (stdout, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(code == 0 || code == 1);
@@ -180,13 +174,11 @@ fn audit_cli_finds_clusters_in_repeated_go_files() {
         std::fs::write(
             dir.path().join(format!("f{i}.go")),
             "package p\nfunc process(x int) int { if x == 1 { return x }; return 0 }\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     for i in 0..6 {
-        std::fs::write(
-            dir.path().join(format!("d{i}.go")),
-            format!("package p\nconst N{i} = \"unique\"\n"),
-        ).unwrap();
+        std::fs::write(dir.path().join(format!("d{i}.go")), format!("package p\nconst N{i} = \"unique\"\n")).unwrap();
     }
     let (_, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);
     assert!(code == 0 || code == 1);
@@ -207,9 +199,10 @@ fn walk_typed_handles_files_with_python_and_typescript_in_subdir() {
 fn audit_cli_handles_each_supported_extension() {
     use std::collections::HashSet;
     let dir = tempfile::tempdir().unwrap();
-    let exts = ["py", "ts", "js", "rs", "c", "cpp", "java", "cs", "go",
-                "swift", "zig", "rb", "tcl", "kt", "hs", "lua", "r", "php",
-                "d", "groovy"];
+    let exts = [
+        "py", "ts", "js", "rs", "c", "cpp", "java", "cs", "go", "swift", "zig", "rb", "tcl", "kt", "hs", "lua", "r",
+        "php", "d", "groovy",
+    ];
     let mut count = 0;
     let mut langs = HashSet::new();
     for (i, ext) in exts.iter().enumerate() {
@@ -594,13 +587,12 @@ fn audit_finds_clusters_only_within_same_language() {
         std::fs::write(
             dir.path().join(format!("py{i}.py")),
             "def f(x):\n    if x == 1:\n        return x\n    return 0\n",
-        ).unwrap();
+        )
+        .unwrap();
     }
     for i in 0..6 {
-        std::fs::write(
-            dir.path().join(format!("rs{i}.rs")),
-            "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n",
-        ).unwrap();
+        std::fs::write(dir.path().join(format!("rs{i}.rs")), "fn f(x: i32) -> i32 { if x == 1 { return x; } 0 }\n")
+            .unwrap();
     }
     let _ = walk_typed_source_files(dir.path(), true);
     let (_, _, code) = pulse_audit(&["--root", dir.path().to_str().unwrap()]);

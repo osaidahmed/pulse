@@ -66,7 +66,8 @@ fn java_var_inference_handled() {
 
 #[test]
 fn java_lambda_expressions_handled() {
-    let source = "import java.util.function.Function;\n\nclass M {\n    Function<Integer,Integer> doubler = x -> x * 2;\n}\n";
+    let source =
+        "import java.util.function.Function;\n\nclass M {\n    Function<Integer,Integer> doubler = x -> x * 2;\n}\n";
     let _ = analyze(source, Language::Java);
 }
 
@@ -192,6 +193,7 @@ fn rust_match_with_guards_handled() {
 
 #[test]
 fn rust_closure_with_captures_handled() {
-    let source = "fn make_counter() -> impl FnMut() -> i32 {\n    let mut count = 0;\n    move || { count += 1; count }\n}\n";
+    let source =
+        "fn make_counter() -> impl FnMut() -> i32 {\n    let mut count = 0;\n    move || { count += 1; count }\n}\n";
     let _ = analyze(source, Language::Rust);
 }

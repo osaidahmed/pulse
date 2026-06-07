@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use pulse::audit::finding::{
-    AuditFinding, AuditKind, DivergentChangeEvidence, ImportConfidence,
-};
+use pulse::audit::finding::{AuditFinding, AuditKind, DivergentChangeEvidence, ImportConfidence};
 use pulse::audit::output::{format_findings, format_findings_json};
 
 use crate::audit_common::t;
@@ -80,11 +78,7 @@ fn human_renders_each_confidence_label() {
 fn human_strips_root_prefix() {
     let mut e = sample(ImportConfidence::Medium);
     e.class_file = PathBuf::from("/tmp/proj/svc.py");
-    let out = format_findings(
-        &[finding_with(e)],
-        Some(std::path::Path::new("/tmp/proj")),
-        &t().audit,
-    );
+    let out = format_findings(&[finding_with(e)], Some(std::path::Path::new("/tmp/proj")), &t().audit);
     assert!(out.contains("svc.py"));
     assert!(!out.contains("/tmp/proj/svc.py"));
 }
@@ -158,10 +152,7 @@ fn json_emits_confidence_label() {
 fn json_strips_root_prefix() {
     let mut e = sample(ImportConfidence::Medium);
     e.class_file = PathBuf::from("/tmp/proj/svc.py");
-    let out = format_findings_json(
-        &[finding_with(e)],
-        Some(std::path::Path::new("/tmp/proj")),
-    );
+    let out = format_findings_json(&[finding_with(e)], Some(std::path::Path::new("/tmp/proj")));
     let v: serde_json::Value = serde_json::from_str(&out).unwrap();
     assert_eq!(v[0]["class_file"], "svc.py");
 }

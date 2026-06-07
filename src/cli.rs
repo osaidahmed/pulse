@@ -29,13 +29,9 @@ pub enum SubCmd {
         uninstall: bool,
     },
     /// Analyze a single file (or use -a for whole project).
-    Check {
-        file: Option<String>,
-    },
+    Check { file: Option<String> },
     /// Dump raw per-function metrics for a file.
-    Debug {
-        file: String,
-    },
+    Debug { file: String },
     /// Report threshold budgets for a file or for new files.
     Budget {
         file: Option<String>,
@@ -157,7 +153,9 @@ fn dispatch_subcmd(sub: SubCmd, all: bool, include_tests: bool) -> Dispatch {
         SubCmd::Setup { uninstall } => Dispatch::Setup { uninstall },
         SubCmd::Check { file } => fileful_dispatch(file, all, Dispatch::Check, || Dispatch::CheckAll { include_tests }),
         SubCmd::Debug { file } => Dispatch::Debug(file),
-        SubCmd::Budget { file, new } => fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None)),
+        SubCmd::Budget { file, new } => {
+            fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None))
+        }
         SubCmd::Audit(args) => Dispatch::Audit { args, include_tests },
         SubCmd::History(args) => Dispatch::History { args, include_tests },
     }

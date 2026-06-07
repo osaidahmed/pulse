@@ -13,8 +13,7 @@ pub fn build_graph(typed_files: &[(PathBuf, Language)], root: &Path) -> ImportGr
 pub fn directly_linked(graph: &ImportGraph, a: &Path, b: &Path) -> bool {
     let Some(a_idx) = graph.registry.lookup(a) else { return false };
     let Some(b_idx) = graph.registry.lookup(b) else { return false };
-    graph.adjacency.outgoing(a_idx).contains(&b_idx)
-        || graph.adjacency.outgoing(b_idx).contains(&a_idx)
+    graph.adjacency.outgoing(a_idx).contains(&b_idx) || graph.adjacency.outgoing(b_idx).contains(&a_idx)
 }
 
 fn collect_edges(typed_files: &[(PathBuf, Language)], root: &Path) -> Vec<InputEdge> {
@@ -41,16 +40,8 @@ fn edges_for_file(
         let Some(resolved) = resolve_one(&raw.target, path, root, lang, typed_set) else {
             continue;
         };
-        let target_lang = typed_files
-            .iter()
-            .find(|(p, _)| p == &resolved)
-            .map_or(lang, |(_, l)| *l);
-        out.push(InputEdge {
-            source: path.to_path_buf(),
-            target: resolved,
-            source_lang: lang,
-            target_lang,
-        });
+        let target_lang = typed_files.iter().find(|(p, _)| p == &resolved).map_or(lang, |(_, l)| *l);
+        out.push(InputEdge { source: path.to_path_buf(), target: resolved, source_lang: lang, target_lang });
     }
     out
 }

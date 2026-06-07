@@ -84,17 +84,11 @@ fn parent_is_abstract(
     record.abstractness >= 0.5
 }
 
-fn count_non_ctor_methods(
-    registry: &ClassRegistry,
-    idx: ClassIndex,
-    defs: &[DefinitionRecord],
-) -> u32 {
+fn count_non_ctor_methods(registry: &ClassRegistry, idx: ClassIndex, defs: &[DefinitionRecord]) -> u32 {
     let Some(class) = registry.get(idx) else { return 0 };
     let mut count: u32 = 0;
     for def in defs {
-        if def.identity.class.as_deref() == Some(&class.name)
-            && def.identity.file == class.file
-            && !def.is_constructor
+        if def.identity.class.as_deref() == Some(&class.name) && def.identity.file == class.file && !def.is_constructor
         {
             count = count.saturating_add(1);
         }
@@ -117,9 +111,7 @@ fn method_names(registry: &ClassRegistry, defs: &[DefinitionRecord], idx: ClassI
     let Some(class) = registry.get(idx) else { return HashSet::new() };
     let mut names = HashSet::new();
     for def in defs {
-        if def.identity.class.as_deref() == Some(&class.name)
-            && def.identity.file == class.file
-            && !def.is_constructor
+        if def.identity.class.as_deref() == Some(&class.name) && def.identity.file == class.file && !def.is_constructor
         {
             names.insert(def.identity.name.clone());
         }

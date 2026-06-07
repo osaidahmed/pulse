@@ -387,15 +387,22 @@ fn fingerprint_kwargs_param_distinct_from_args_param() {
 
 #[test]
 fn fingerprint_class_with_three_methods_distinct_from_two() {
-    let a = fp_of_first("class C:\n    def a(self): pass\n    def b(self): pass\n    def c(self): pass\n", Language::Python, "class_definition");
-    let b = fp_of_first("class C:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
+    let a = fp_of_first(
+        "class C:\n    def a(self): pass\n    def b(self): pass\n    def c(self): pass\n",
+        Language::Python,
+        "class_definition",
+    );
+    let b =
+        fp_of_first("class C:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
     assert_ne!(a, b);
 }
 
 #[test]
 fn fingerprint_two_classes_with_same_method_count_share_hash() {
-    let a = fp_of_first("class A:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
-    let b = fp_of_first("class B:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
+    let a =
+        fp_of_first("class A:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
+    let b =
+        fp_of_first("class B:\n    def a(self): pass\n    def b(self): pass\n", Language::Python, "class_definition");
     assert_eq!(a, b);
 }
 
@@ -574,15 +581,31 @@ fn fingerprint_python_match_distinct_from_if() {
 
 #[test]
 fn fingerprint_two_match_with_same_arity_share_hash() {
-    let a = fp_of_first("match x:\n    case 1:\n        pass\n    case 2:\n        pass\n", Language::Python, "match_statement");
-    let b = fp_of_first("match y:\n    case 1:\n        pass\n    case 2:\n        pass\n", Language::Python, "match_statement");
+    let a = fp_of_first(
+        "match x:\n    case 1:\n        pass\n    case 2:\n        pass\n",
+        Language::Python,
+        "match_statement",
+    );
+    let b = fp_of_first(
+        "match y:\n    case 1:\n        pass\n    case 2:\n        pass\n",
+        Language::Python,
+        "match_statement",
+    );
     assert_eq!(a, b);
 }
 
 #[test]
 fn fingerprint_match_with_three_cases_distinct_from_two() {
-    let a = fp_of_first("match x:\n    case 1:\n        pass\n    case 2:\n        pass\n    case 3:\n        pass\n", Language::Python, "match_statement");
-    let b = fp_of_first("match x:\n    case 1:\n        pass\n    case 2:\n        pass\n", Language::Python, "match_statement");
+    let a = fp_of_first(
+        "match x:\n    case 1:\n        pass\n    case 2:\n        pass\n    case 3:\n        pass\n",
+        Language::Python,
+        "match_statement",
+    );
+    let b = fp_of_first(
+        "match x:\n    case 1:\n        pass\n    case 2:\n        pass\n",
+        Language::Python,
+        "match_statement",
+    );
     assert_ne!(a, b);
 }
 

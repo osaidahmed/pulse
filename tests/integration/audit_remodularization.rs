@@ -89,10 +89,7 @@ fn directory_split_across_communities_is_flagged() {
 
 #[test]
 fn stray_file_in_foreign_community_is_flagged_for_move() {
-    let edges = clique(
-        &["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "stray/x.rs"],
-        None,
-    );
+    let edges = clique(&["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "stray/x.rs"], None);
 
     let moves = move_files(&edges);
     let stray = moves
@@ -108,10 +105,7 @@ fn stray_file_in_foreign_community_is_flagged_for_move() {
 
 #[test]
 fn cohesive_minority_is_not_relocated_piecemeal() {
-    let edges = clique(
-        &["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "helpers/x.rs", "helpers/y.rs"],
-        None,
-    );
+    let edges = clique(&["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs", "helpers/x.rs", "helpers/y.rs"], None);
     assert!(
         move_files(&edges).is_empty(),
         "a cohesive multi-file minority is a secondary cluster, not piecemeal strays"
@@ -121,10 +115,7 @@ fn cohesive_minority_is_not_relocated_piecemeal() {
 #[test]
 fn community_inside_one_directory_has_no_moves() {
     let edges = clique(&["core/a.rs", "core/b.rs", "core/c.rs", "core/d.rs"], None);
-    assert!(
-        move_files(&edges).is_empty(),
-        "a community wholly inside one directory needs no relocation"
-    );
+    assert!(move_files(&edges).is_empty(), "a community wholly inside one directory needs no relocation");
 }
 
 #[test]
@@ -148,10 +139,7 @@ fn directories_in_distinct_communities_are_not_merged() {
     let mut edges = clique(&["core/a.rs", "core/b.rs"], None);
     edges.extend(clique(&["util/p.rs", "util/q.rs"], None));
 
-    assert!(
-        merge_components(&edges).is_empty(),
-        "directories that form separate communities must not be merged"
-    );
+    assert!(merge_components(&edges).is_empty(), "directories that form separate communities must not be merged");
 }
 
 #[test]
@@ -160,8 +148,5 @@ fn cohesive_directories_are_not_flagged() {
     edges.extend(clique(&["util/p.rs", "util/q.rs", "util/r.rs", "util/s.rs"], None));
     edges.push(edge("core/a.rs", "util/p.rs"));
 
-    assert!(
-        split_components(&edges).is_empty(),
-        "directories whose files share one community need no split"
-    );
+    assert!(split_components(&edges).is_empty(), "directories whose files share one community need no split");
 }

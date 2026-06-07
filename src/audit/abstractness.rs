@@ -15,96 +15,150 @@ struct AbstractnessProfile {
 }
 
 const PROFILE_TABLE: &[(Language, AbstractnessProfile)] = &[
-    (Language::Java, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration", "enum_declaration", "record_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::CSharp, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration", "record_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Kotlin, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration", "object_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Swift, AbstractnessProfile {
-        abstract_kinds: &["protocol_declaration"],
-        concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Rust, AbstractnessProfile {
-        abstract_kinds: &["trait_item"],
-        concrete_kinds: &["struct_item", "enum_item", "union_item"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Go, AbstractnessProfile {
-        abstract_kinds: &["interface_type"],
-        concrete_kinds: &["struct_type", "type_declaration"],
-        confidence: ImportConfidence::Medium,
-    }),
-    (Language::Haskell, AbstractnessProfile {
-        abstract_kinds: &["class_declaration"],
-        concrete_kinds: &["data_type_declaration", "newtype_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::TypeScript, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration", "abstract_class_declaration"],
-        concrete_kinds: &["class_declaration", "type_alias_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::JavaScript, AbstractnessProfile {
-        abstract_kinds: &[],
-        concrete_kinds: &["class_declaration"],
-        confidence: ImportConfidence::BestEffort,
-    }),
-    (Language::Php, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Ruby, AbstractnessProfile {
-        abstract_kinds: &["module"],
-        concrete_kinds: &["class"],
-        confidence: ImportConfidence::Medium,
-    }),
-    (Language::Python, AbstractnessProfile {
-        abstract_kinds: &[],
-        concrete_kinds: &["class_definition"],
-        confidence: ImportConfidence::Medium,
-    }),
-    (Language::ObjectiveC, AbstractnessProfile {
-        abstract_kinds: &["protocol_declaration"],
-        concrete_kinds: &["class_implementation", "class_interface"],
-        confidence: ImportConfidence::Medium,
-    }),
-    (Language::D, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration"],
-        confidence: ImportConfidence::High,
-    }),
-    (Language::Groovy, AbstractnessProfile {
-        abstract_kinds: &["interface_declaration"],
-        concrete_kinds: &["class_declaration", "enum_declaration"],
-        confidence: ImportConfidence::Medium,
-    }),
-    (Language::Cpp, AbstractnessProfile {
-        abstract_kinds: &[],
-        concrete_kinds: &["class_specifier", "struct_specifier"],
-        confidence: ImportConfidence::BestEffort,
-    }),
-    (Language::C, AbstractnessProfile {
-        abstract_kinds: &[],
-        concrete_kinds: &["struct_specifier", "union_specifier", "enum_specifier"],
-        confidence: ImportConfidence::BestEffort,
-    }),
-    (Language::Zig, AbstractnessProfile {
-        abstract_kinds: &[],
-        concrete_kinds: &["struct_declaration"],
-        confidence: ImportConfidence::BestEffort,
-    }),
+    (
+        Language::Java,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration", "enum_declaration", "record_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::CSharp,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration", "record_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Kotlin,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration", "object_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Swift,
+        AbstractnessProfile {
+            abstract_kinds: &["protocol_declaration"],
+            concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Rust,
+        AbstractnessProfile {
+            abstract_kinds: &["trait_item"],
+            concrete_kinds: &["struct_item", "enum_item", "union_item"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Go,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_type"],
+            concrete_kinds: &["struct_type", "type_declaration"],
+            confidence: ImportConfidence::Medium,
+        },
+    ),
+    (
+        Language::Haskell,
+        AbstractnessProfile {
+            abstract_kinds: &["class_declaration"],
+            concrete_kinds: &["data_type_declaration", "newtype_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::TypeScript,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration", "abstract_class_declaration"],
+            concrete_kinds: &["class_declaration", "type_alias_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::JavaScript,
+        AbstractnessProfile {
+            abstract_kinds: &[],
+            concrete_kinds: &["class_declaration"],
+            confidence: ImportConfidence::BestEffort,
+        },
+    ),
+    (
+        Language::Php,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Ruby,
+        AbstractnessProfile {
+            abstract_kinds: &["module"],
+            concrete_kinds: &["class"],
+            confidence: ImportConfidence::Medium,
+        },
+    ),
+    (
+        Language::Python,
+        AbstractnessProfile {
+            abstract_kinds: &[],
+            concrete_kinds: &["class_definition"],
+            confidence: ImportConfidence::Medium,
+        },
+    ),
+    (
+        Language::ObjectiveC,
+        AbstractnessProfile {
+            abstract_kinds: &["protocol_declaration"],
+            concrete_kinds: &["class_implementation", "class_interface"],
+            confidence: ImportConfidence::Medium,
+        },
+    ),
+    (
+        Language::D,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration", "struct_declaration", "enum_declaration"],
+            confidence: ImportConfidence::High,
+        },
+    ),
+    (
+        Language::Groovy,
+        AbstractnessProfile {
+            abstract_kinds: &["interface_declaration"],
+            concrete_kinds: &["class_declaration", "enum_declaration"],
+            confidence: ImportConfidence::Medium,
+        },
+    ),
+    (
+        Language::Cpp,
+        AbstractnessProfile {
+            abstract_kinds: &[],
+            concrete_kinds: &["class_specifier", "struct_specifier"],
+            confidence: ImportConfidence::BestEffort,
+        },
+    ),
+    (
+        Language::C,
+        AbstractnessProfile {
+            abstract_kinds: &[],
+            concrete_kinds: &["struct_specifier", "union_specifier", "enum_specifier"],
+            confidence: ImportConfidence::BestEffort,
+        },
+    ),
+    (
+        Language::Zig,
+        AbstractnessProfile {
+            abstract_kinds: &[],
+            concrete_kinds: &["struct_declaration"],
+            confidence: ImportConfidence::BestEffort,
+        },
+    ),
 ];
 
 pub fn abstractness_for_file(path: &Path, lang: Language) -> AbstractnessRecord {
@@ -122,24 +176,15 @@ pub fn abstractness_for_file(path: &Path, lang: Language) -> AbstractnessRecord 
     if counts.total() == 0 {
         return placeholder();
     }
-    AbstractnessRecord {
-        abstractness: counts.ratio(),
-        confidence: profile.confidence,
-    }
+    AbstractnessRecord { abstractness: counts.ratio(), confidence: profile.confidence }
 }
 
 fn profile_for_lang(lang: Language) -> Option<AbstractnessProfile> {
-    PROFILE_TABLE
-        .iter()
-        .find(|(l, _)| *l == lang)
-        .map(|(_, p)| *p)
+    PROFILE_TABLE.iter().find(|(l, _)| *l == lang).map(|(_, p)| *p)
 }
 
 fn placeholder() -> AbstractnessRecord {
-    AbstractnessRecord {
-        abstractness: 0.0,
-        confidence: ImportConfidence::NaAbstraction,
-    }
+    AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::NaAbstraction }
 }
 
 #[derive(Default)]

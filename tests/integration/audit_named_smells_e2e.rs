@@ -11,7 +11,8 @@ fn run_audit_named_smells(scenario: &str, lang: &str) -> Vec<pulse::audit::findi
         root: dir.clone(),
         pass: Some(PassChoice::NamedSmells),
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let filter = IgnoreFilter::new(&matcher, &dir);
@@ -21,10 +22,7 @@ fn run_audit_named_smells(scenario: &str, lang: &str) -> Vec<pulse::audit::findi
 #[test]
 fn shotgun_surgery_calls_python_fixture_finds_handle() {
     let findings = run_audit_named_smells("shotgun_surgery_calls", "python");
-    let shotgun: Vec<_> = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_)))
-        .collect();
+    let shotgun: Vec<_> = findings.iter().filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_))).collect();
     assert!(!shotgun.is_empty(), "expected at least one ShotgunSurgery finding");
     let any_handle = shotgun.iter().any(|f| {
         let AuditKind::ShotgunSurgery(e) = &f.kind else { return false };
@@ -38,7 +36,11 @@ fn shotgun_surgery_finding_has_high_or_medium_confidence() {
     let findings = run_audit_named_smells("shotgun_surgery_calls", "python");
     let handle = findings.iter().find_map(|f| {
         let AuditKind::ShotgunSurgery(e) = &f.kind else { return None };
-        if e.method_name == "handle" { Some(e) } else { None }
+        if e.method_name == "handle" {
+            Some(e)
+        } else {
+            None
+        }
     });
     assert!(handle.is_some());
 }
@@ -59,9 +61,6 @@ fn shotgun_surgery_finding_has_caller_samples() {
 #[test]
 fn clean_small_python_produces_no_named_smells() {
     let findings = run_audit_named_smells("clean_small", "python");
-    let shotgun_count = findings
-        .iter()
-        .filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_)))
-        .count();
+    let shotgun_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::ShotgunSurgery(_))).count();
     assert_eq!(shotgun_count, 0);
 }

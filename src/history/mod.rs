@@ -1,17 +1,17 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-pub mod thresholds;
-pub mod git;
-pub mod edges;
-pub mod co_change;
-pub mod hotspots;
-pub mod contributors;
-pub mod hist_smells;
-pub mod finding;
-pub mod output;
-pub mod cmd;
 pub mod arch_trend;
+pub mod cmd;
+pub mod co_change;
+pub mod contributors;
+pub mod edges;
+pub mod finding;
+pub mod git;
+pub mod hist_smells;
+pub mod hotspots;
+pub mod output;
+pub mod thresholds;
 
 use finding::HistoryFinding;
 use thresholds::HistoryThresholds;
@@ -53,11 +53,7 @@ pub fn run_with_filter(
         max_commit_files: t.max_commit_files,
     };
     let commits_rel = git::collect_commits(&git_opts)?;
-    let typed_files = crate::audit::walk_typed_source_files_filtered(
-        &opts.root,
-        opts.include_tests,
-        filter,
-    );
+    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let commits = absolutize_commits(commits_rel, &opts.root);
     let typed_paths: HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let graph = edges::build_graph(&typed_files, &opts.root);

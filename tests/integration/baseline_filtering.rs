@@ -1,4 +1,3 @@
-
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -9,6 +8,7 @@ fn run_pulse(args: &[&str], baseline: &Path, stdin: &str) -> String {
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(args)
         .env("PULSE_BASELINE_DIR", baseline)
+        .current_dir(std::env::temp_dir())
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -51,7 +51,9 @@ impl Env {
         Self { _dir: dir, bl, path }
     }
 
-    fn file(&self) -> &str { self.path.to_str().unwrap() }
+    fn file(&self) -> &str {
+        self.path.to_str().unwrap()
+    }
 
     fn edit(&self, old: &str, new: &str) -> String {
         run_pulse(&["--hook"], self.bl.path(), &hook_json(self.file(), Some(old), Some(new)))
@@ -77,7 +79,9 @@ fn preexisting_smells_silent_on_noop_edit() {
     assert!(e.edit("return a", "return a").is_empty(), "py excess args");
     // Python complex method
     let mut code = String::from("def big(x):\n");
-    for i in 0..10 { code.push_str(&format!("    if x > {i}:\n        pass\n")); }
+    for i in 0..10 {
+        code.push_str(&format!("    if x > {i}:\n        pass\n"));
+    }
     code.push_str("    y = 1\n    return x\n");
     let e = Env::new("cc.py", &code);
     assert!(e.edit("y = 1", "y = 1").is_empty(), "py complex method");
@@ -104,17 +108,20 @@ fn new_excess_args_reported_across_languages() {
         "function f(a: number, b: number, c: number, d: number, e: number, f2: number, g: number, h: number): number { return a; }");
     assert!(out.contains("excess arguments"), "TypeScript: {out}");
     // Rust
-    let e = Env::new("t.rs",
-        "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }\n");
-    let out = e.edit("fn f(a: i32) -> i32 { a }",
-        "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }");
+    let e = Env::new("t.rs", "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }\n");
+    let out = e.edit(
+        "fn f(a: i32) -> i32 { a }",
+        "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, f2: i32, g: i32, h: i32) -> i32 { a }",
+    );
     assert!(out.contains("excess arguments"), "Rust: {out}");
 }
 
 #[test]
 fn worsened_cc_reported() {
     let mut code = String::from("def f(x):\n");
-    for i in 0..10 { code.push_str(&format!("    if x > {i}:\n        pass\n")); }
+    for i in 0..10 {
+        code.push_str(&format!("    if x > {i}:\n        pass\n"));
+    }
     code.push_str("    if x > 99:\n        pass\n    return x\n");
     let e = Env::new("t.py", &code);
     let out = e.edit("    return x", "    if x > 99:\n        pass\n    return x");
@@ -136,8 +143,7 @@ fn write_mode_reports_all_new_findings() {
 fn second_edit_uses_original_baseline() {
     let e = Env::new("t.py", "def f(a, b, c, d, e, f, g, h):\n    return a\n");
     // Overwrite with post-edit content, baseline captures pre-edit via old_string
-    let out1 = e.edit(
-        "def f(a, b):\n    return a + b", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let out1 = e.edit("def f(a, b):\n    return a + b", "def f(a, b, c, d, e, f, g, h):\n    return a");
     assert!(!out1.is_empty(), "first edit introducing smell should report");
     let out2 = e.edit("return a", "return a");
     assert!(!out2.is_empty(), "second edit should still report (baseline was clean)");
@@ -145,12 +151,14 @@ fn second_edit_uses_original_baseline() {
 
 #[test]
 fn only_newly_smelly_function_in_mixed_file() {
-    let e = Env::new("t.py", concat!(
-        "def func_a(a, b, c, d, e, f, g, h):\n    return a\n\n",
-        "def func_b(a, b, c, d, e, f, g, h):\n    return a\n",
-    ));
-    let out = e.edit(
-        "def func_b(a, b):\n    return a", "def func_b(a, b, c, d, e, f, g, h):\n    return a");
+    let e = Env::new(
+        "t.py",
+        concat!(
+            "def func_a(a, b, c, d, e, f, g, h):\n    return a\n\n",
+            "def func_b(a, b, c, d, e, f, g, h):\n    return a\n",
+        ),
+    );
+    let out = e.edit("def func_b(a, b):\n    return a", "def func_b(a, b, c, d, e, f, g, h):\n    return a");
     assert!(out.contains("func_b"), "new func_b smell should appear, got: {out}");
     assert!(!out.contains("func_a"), "preexisting func_a should NOT appear, got: {out}");
 }
@@ -251,7 +259,9 @@ fn stop_blocks_on_module_regression() {
     let e = Env::new("g.py", "def f():\n    return 1\nM = 1\n");
     e.edit("M = 1", "M = 2");
     let mut big = String::from("def f():\n    return 1\nM = 2\n");
-    for i in 0..(Thresholds::default().module.file_loc_warning as usize + 20) { big.push_str(&format!("x_{i} = {i}\n")); }
+    for i in 0..(Thresholds::default().module.file_loc_warning as usize + 20) {
+        big.push_str(&format!("x_{i} = {i}\n"));
+    }
     std::fs::write(&e.path, &big).unwrap();
     let out = e.stop();
     assert!(out.contains("file too large"), "should report regression, got: {out}");

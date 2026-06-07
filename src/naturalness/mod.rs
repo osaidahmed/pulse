@@ -116,12 +116,7 @@ fn is_comment(kind: &str) -> bool {
     kind.contains("comment")
 }
 
-fn flag_outliers(
-    docs: &[FnDoc],
-    model: &NgramModel,
-    nthr: &NaturalnessThresholds,
-    out: &mut Vec<AuditFinding>,
-) {
+fn flag_outliers(docs: &[FnDoc], model: &NgramModel, nthr: &NaturalnessThresholds, out: &mut Vec<AuditFinding>) {
     let min_tokens = nthr.min_fn_tokens as usize;
     let scored: Vec<(usize, f64)> = docs
         .iter()

@@ -2,30 +2,23 @@ use tree_sitter::{Node, Tree};
 
 use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
-    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
-    ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds, ElseBranchCfg,
+    ElseHandlers, GlobalMetricsConfig,
 };
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds,
-    find_child_by_kind, node_text, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState, track_embedded_block,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["self"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32",
-    "f64", "bool", "char", "str", "String",
+    "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64", "bool",
+    "char", "str", "String",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_expression",
-    "for_expression",
-    "while_expression",
-    "loop_expression",
-    "match_expression",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_expression", "for_expression", "while_expression", "loop_expression", "match_expression"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
 const BOOL_STOPS: &[&str] = &["block", "function_item", "closure_expression"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -123,9 +116,7 @@ fn extract_impl_type_name(impl_node: Node, source: &str) -> String {
     if let Some(type_node) = impl_node.child_by_field_name("type") {
         return node_text(type_node, source).to_string();
     }
-    find_child_by_kind(impl_node, "type_identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default()
+    find_child_by_kind(impl_node, "type_identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default()
 }
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
@@ -136,8 +127,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
-        count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, "block")?;
     let mut s = WalkState::new();
@@ -157,7 +147,13 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         consecutive_asserts = count_consecutive_asserts(body, "expression_statement");
         assert_hash = compute_assert_fingerprint(body, "expression_statement");
         short_var_count = count_short_variables(body, source, &["let_declaration"]);
-        string_match_arms = count_string_match_arms(body, "match_expression", "match_arm", &["string_literal", "raw_string_literal"], &[]);
+        string_match_arms = count_string_match_arms(
+            body,
+            "match_expression",
+            "match_arm",
+            &["string_literal", "raw_string_literal"],
+            &[],
+        );
     }
     let cpg = super::cpg_for(body, node, source, &crate::cpg::RUST);
 
@@ -203,7 +199,13 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 s.track_cogc_branch();
                 count_boolean_ops(child, &mut s.cc, BOOL_OPS, BOOL_STOPS);
                 count_cogc_sequences(child, &mut s.cogc, BOOL_OPS, BOOL_STOPS);
-                shared::check_condition_complexity(child, &mut s.compound_condition_count, COND_KINDS, BOOL_OPS, BOOL_STOPS);
+                shared::check_condition_complexity(
+                    child,
+                    &mut s.compound_condition_count,
+                    COND_KINDS,
+                    BOOL_OPS,
+                    BOOL_STOPS,
+                );
                 walk_children(child, source, depth + 1, s);
             }
             "for_expression" | "while_expression" | "loop_expression" => {
@@ -264,17 +266,9 @@ const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
     bool_stops: BOOL_STOPS,
 };
 
-const BRANCH_HANDLERS: BranchHandlers = BranchHandlers {
-    kinds: &BRANCH_KINDS,
-    walk_body,
-    walk_else: walk_else_clause,
-};
+const BRANCH_HANDLERS: BranchHandlers = BranchHandlers { kinds: &BRANCH_KINDS, walk_body, walk_else: walk_else_clause };
 
-const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
-    cfg: &ELSE_CFG,
-    walk_body,
-    walk_children,
-};
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers { cfg: &ELSE_CFG, walk_body, walk_children };
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_branches(node, &mut BlockWalkCtx { source, depth, state: s }, &BRANCH_HANDLERS);
@@ -318,9 +312,7 @@ fn primitive_type_of<'a>(param_node: Node, source: &'a str) -> Option<&'a str> {
 fn find_type_leaf(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
     // cursor must outlive the iterator — binding extends the borrow
-    let result = node
-        .children(&mut cursor)
-        .find(|c| c.kind() == "type_identifier" || c.kind() == "primitive_type");
+    let result = node.children(&mut cursor).find(|c| c.kind() == "type_identifier" || c.kind() == "primitive_type");
     result
 }
 
@@ -330,9 +322,7 @@ fn has_self_param(func_node: Node) -> bool {
     };
     let mut cursor = params.walk();
     // cursor must outlive the iterator — binding extends the borrow
-    let result = params
-        .children(&mut cursor)
-        .any(|c| c.kind() == "self_parameter");
+    let result = params.children(&mut cursor).any(|c| c.kind() == "self_parameter");
     result
 }
 
@@ -350,9 +340,13 @@ fn count_declarations_and_fields(root: Node, source: &str) -> (u32, Vec<(String,
                     let mut c = fdl.walk();
                     fdl.children(&mut c).filter(|n| n.kind() == "field_declaration").count() as u32
                 });
-                if fields > 0 { struct_fields.push((name, fields)); }
+                if fields > 0 {
+                    struct_fields.push((name, fields));
+                }
             }
-            "enum_item" | "trait_item" | "type_item" => { decl_count += 1; }
+            "enum_item" | "trait_item" | "type_item" => {
+                decl_count += 1;
+            }
             _ => {}
         }
     }

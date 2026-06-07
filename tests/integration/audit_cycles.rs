@@ -14,12 +14,7 @@ fn p(s: &str) -> PathBuf {
 }
 
 fn edge(src: &str, dst: &str) -> InputEdge {
-    InputEdge {
-        source: p(src),
-        target: p(dst),
-        source_lang: Language::Rust,
-        target_lang: Language::Rust,
-    }
+    InputEdge { source: p(src), target: p(dst), source_lang: Language::Rust, target_lang: Language::Rust }
 }
 
 fn build(edges: &[InputEdge]) -> ImportGraph {
@@ -44,12 +39,7 @@ fn dag_has_no_cycles() {
 
 #[test]
 fn diamond_has_no_cycles() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("a.rs", "c.rs"),
-        edge("b.rs", "d.rs"),
-        edge("c.rs", "d.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("a.rs", "c.rs"), edge("b.rs", "d.rs"), edge("c.rs", "d.rs")]);
     assert!(cycles(&g).is_empty());
 }
 
@@ -63,11 +53,7 @@ fn two_node_cycle_returns_one_scc_size_two() {
 
 #[test]
 fn three_node_cycle_returns_one_scc_size_three() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "a.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "c.rs"), edge("c.rs", "a.rs")]);
     let result = cycles(&g);
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].members.len(), 3);
@@ -75,24 +61,14 @@ fn three_node_cycle_returns_one_scc_size_three() {
 
 #[test]
 fn two_disjoint_cycles_returns_two_sccs() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "a.rs"),
-        edge("c.rs", "d.rs"),
-        edge("d.rs", "c.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "a.rs"), edge("c.rs", "d.rs"), edge("d.rs", "c.rs")]);
     let result = cycles(&g);
     assert_eq!(result.len(), 2);
 }
 
 #[test]
 fn nested_cycle_collapses_to_single_scc() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "a.rs"),
-        edge("b.rs", "a.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "c.rs"), edge("c.rs", "a.rs"), edge("b.rs", "a.rs")]);
     let result = cycles(&g);
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].members.len(), 3);
@@ -115,11 +91,7 @@ fn cycle_min_size_three_skips_two_node_cycle() {
 
 #[test]
 fn cycle_min_size_three_keeps_three_node_cycle() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "a.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "c.rs"), edge("c.rs", "a.rs")]);
     let result = find_cycles(&g, 3);
     assert_eq!(result.len(), 1);
 }
@@ -133,17 +105,10 @@ fn isolated_nodes_are_not_in_sccs() {
 
 #[test]
 fn scc_member_order_is_path_alphabetical() {
-    let g = build(&[
-        edge("z_late.rs", "a_first.rs"),
-        edge("a_first.rs", "m_mid.rs"),
-        edge("m_mid.rs", "z_late.rs"),
-    ]);
+    let g = build(&[edge("z_late.rs", "a_first.rs"), edge("a_first.rs", "m_mid.rs"), edge("m_mid.rs", "z_late.rs")]);
     let result = cycles(&g);
-    let paths: Vec<_> = result[0]
-        .members
-        .iter()
-        .map(|n| g.registry.path_of(*n).to_string_lossy().into_owned())
-        .collect();
+    let paths: Vec<_> =
+        result[0].members.iter().map(|n| g.registry.path_of(*n).to_string_lossy().into_owned()).collect();
     let mut sorted = paths.clone();
     sorted.sort();
     assert_eq!(paths, sorted);
@@ -151,11 +116,7 @@ fn scc_member_order_is_path_alphabetical() {
 
 #[test]
 fn scc_edges_only_include_intra_member_edges() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "a.rs"),
-        edge("a.rs", "outside.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "a.rs"), edge("a.rs", "outside.rs")]);
     let result = cycles(&g);
     assert_eq!(result[0].edges.len(), 2);
 }
@@ -179,9 +140,7 @@ fn complete_graph_k4_returns_one_scc_of_size_four() {
 
 #[test]
 fn iterative_tarjan_handles_ten_thousand_node_chain_without_stack_overflow() {
-    let edges: Vec<InputEdge> = (0..9_999)
-        .map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1)))
-        .collect();
+    let edges: Vec<InputEdge> = (0..9_999).map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1))).collect();
     let g = build(&edges);
     let result = cycles(&g);
     assert!(result.is_empty());
@@ -189,9 +148,7 @@ fn iterative_tarjan_handles_ten_thousand_node_chain_without_stack_overflow() {
 
 #[test]
 fn maximum_size_cycle_one_thousand_nodes() {
-    let mut edges: Vec<InputEdge> = (0..999)
-        .map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1)))
-        .collect();
+    let mut edges: Vec<InputEdge> = (0..999).map(|i| edge(&format!("n{i}.rs"), &format!("n{}.rs", i + 1))).collect();
     edges.push(edge("n999.rs", "n0.rs"));
     let g = build(&edges);
     let result = cycles(&g);
@@ -201,12 +158,7 @@ fn maximum_size_cycle_one_thousand_nodes() {
 
 #[test]
 fn butterfly_two_cycles_share_one_node() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "a.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "b.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "a.rs"), edge("b.rs", "c.rs"), edge("c.rs", "b.rs")]);
     let result = cycles(&g);
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].members.len(), 3);
@@ -214,35 +166,22 @@ fn butterfly_two_cycles_share_one_node() {
 
 #[test]
 fn cycles_with_external_referrer_does_not_inflate_scc() {
-    let g = build(&[
-        edge("ext.rs", "a.rs"),
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "a.rs"),
-    ]);
+    let g = build(&[edge("ext.rs", "a.rs"), edge("a.rs", "b.rs"), edge("b.rs", "a.rs")]);
     let result = cycles(&g);
     assert_eq!(result[0].members.len(), 2);
 }
 
 #[test]
 fn cycles_with_external_destination_does_not_inflate_scc() {
-    let g = build(&[
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "a.rs"),
-        edge("a.rs", "ext.rs"),
-    ]);
+    let g = build(&[edge("a.rs", "b.rs"), edge("b.rs", "a.rs"), edge("a.rs", "ext.rs")]);
     let result = cycles(&g);
     assert_eq!(result[0].members.len(), 2);
 }
 
 #[test]
 fn cycles_are_deterministic_across_runs() {
-    let input = [
-        edge("a.rs", "b.rs"),
-        edge("b.rs", "c.rs"),
-        edge("c.rs", "a.rs"),
-        edge("d.rs", "e.rs"),
-        edge("e.rs", "d.rs"),
-    ];
+    let input =
+        [edge("a.rs", "b.rs"), edge("b.rs", "c.rs"), edge("c.rs", "a.rs"), edge("d.rs", "e.rs"), edge("e.rs", "d.rs")];
     let g1 = build(&input);
     let g2 = build(&input);
     let r1 = cycles(&g1);
@@ -291,16 +230,10 @@ fn empty_min_size_zero_is_treated_as_zero_or_one_no_panic() {
 
 #[test]
 fn path_lookup_after_cycle_returns_member_paths() {
-    let g = build(&[
-        edge("foo.rs", "bar.rs"),
-        edge("bar.rs", "foo.rs"),
-    ]);
+    let g = build(&[edge("foo.rs", "bar.rs"), edge("bar.rs", "foo.rs")]);
     let result = cycles(&g);
-    let names: Vec<_> = result[0]
-        .members
-        .iter()
-        .map(|n| g.registry.path_of(*n).to_string_lossy().into_owned())
-        .collect();
+    let names: Vec<_> =
+        result[0].members.iter().map(|n| g.registry.path_of(*n).to_string_lossy().into_owned()).collect();
     assert!(names.contains(&"foo.rs".to_string()));
     assert!(names.contains(&"bar.rs".to_string()));
 }

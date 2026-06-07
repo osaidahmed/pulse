@@ -1,10 +1,7 @@
 use std::process::Command;
 
 fn pulse(args: &[&str]) -> (String, String, i32) {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(args)
-        .output()
-        .expect("pulse failed to spawn");
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).args(args).output().expect("pulse failed to spawn");
     (
         String::from_utf8(out.stdout).unwrap_or_default(),
         String::from_utf8(out.stderr).unwrap_or_default(),
@@ -13,11 +10,8 @@ fn pulse(args: &[&str]) -> (String, String, i32) {
 }
 
 fn pulse_in_dir(args: &[&str], cwd: &std::path::Path) -> (String, String, i32) {
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("pulse failed to spawn");
+    let out =
+        Command::new(env!("CARGO_BIN_EXE_pulse")).args(args).current_dir(cwd).output().expect("pulse failed to spawn");
     (
         String::from_utf8(out.stdout).unwrap_or_default(),
         String::from_utf8(out.stderr).unwrap_or_default(),
@@ -29,10 +23,7 @@ fn pulse_in_dir(args: &[&str], cwd: &std::path::Path) -> (String, String, i32) {
 fn version_long_flag_exits_zero_with_correct_version() {
     let (stdout, _stderr, code) = pulse(&["--version"]);
     assert_eq!(code, 0);
-    assert!(
-        stdout.contains(env!("CARGO_PKG_VERSION")),
-        "stdout should contain version, got: {stdout}",
-    );
+    assert!(stdout.contains(env!("CARGO_PKG_VERSION")), "stdout should contain version, got: {stdout}",);
     assert!(stdout.starts_with("pulse "), "got: {stdout}");
 }
 
@@ -48,8 +39,7 @@ fn help_long_flag_exits_zero() {
     let (stdout, _stderr, code) = pulse(&["--help"]);
     assert_eq!(code, 0, "got code {code}");
     let combined = stdout.to_lowercase();
-    assert!(combined.contains("usage") || combined.contains("commands"),
-        "help should describe usage, got: {stdout}");
+    assert!(combined.contains("usage") || combined.contains("commands"), "help should describe usage, got: {stdout}");
 }
 
 #[test]
@@ -64,8 +54,7 @@ fn audit_subcommand_help_exits_zero() {
     let (stdout, _stderr, code) = pulse(&["audit", "--help"]);
     assert_eq!(code, 0);
     let lower = stdout.to_lowercase();
-    assert!(lower.contains("audit") || lower.contains("usage"),
-        "audit help should mention audit/usage, got: {stdout}");
+    assert!(lower.contains("audit") || lower.contains("usage"), "audit help should mention audit/usage, got: {stdout}");
 }
 
 #[test]
@@ -104,7 +93,8 @@ fn audit_subcommand_with_json_flag_emits_array() {
 #[test]
 fn audit_subcommand_with_valid_pass_runs() {
     let dir = tempfile::tempdir().unwrap();
-    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
+    let (_stdout, _stderr, code) =
+        pulse(&["audit", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
 
@@ -118,21 +108,16 @@ fn audit_subcommand_with_root_flag_uses_directory() {
 #[test]
 fn audit_subcommand_with_combined_flags_runs() {
     let dir = tempfile::tempdir().unwrap();
-    let (_stdout, _stderr, code) = pulse(&[
-        "audit",
-        "--json",
-        "--pass",
-        "pattern-mining",
-        "--root",
-        dir.path().to_str().unwrap(),
-    ]);
+    let (_stdout, _stderr, code) =
+        pulse(&["audit", "--json", "--pass", "pattern-mining", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
 
 #[test]
 fn audit_subcommand_pass_accepts_package_metrics() {
     let dir = tempfile::tempdir().unwrap();
-    let (_stdout, _stderr, code) = pulse(&["audit", "--pass", "package-metrics", "--root", dir.path().to_str().unwrap()]);
+    let (_stdout, _stderr, code) =
+        pulse(&["audit", "--pass", "package-metrics", "--root", dir.path().to_str().unwrap()]);
     assert_eq!(code, 0);
 }
 
@@ -230,8 +215,7 @@ fn check_missing_file_exits_zero_silently() {
 #[test]
 fn check_dash_a_finds_smells_in_dir() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("s.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("s.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _stderr, code) = pulse_in_dir(&["check", "-a"], dir.path());
     assert_eq!(code, 1, "smelly dir → exit 1");
     assert!(stdout.contains("Excess Arguments"));
@@ -240,8 +224,7 @@ fn check_dash_a_finds_smells_in_dir() {
 #[test]
 fn check_double_dash_all_works() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("s.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("s.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _stderr, code) = pulse_in_dir(&["check", "--all"], dir.path());
     assert_eq!(code, 1);
     assert!(stdout.contains("Excess Arguments"));
@@ -250,8 +233,7 @@ fn check_double_dash_all_works() {
 #[test]
 fn bare_dash_a_alias_works() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("s.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("s.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _stderr, code) = pulse_in_dir(&["-a"], dir.path());
     assert_eq!(code, 1);
     assert!(stdout.contains("Excess Arguments"));
@@ -260,8 +242,7 @@ fn bare_dash_a_alias_works() {
 #[test]
 fn bare_double_dash_all_alias_works() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("s.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("s.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _stderr, code) = pulse_in_dir(&["--all"], dir.path());
     assert_eq!(code, 1);
     assert!(stdout.contains("Excess Arguments"));
@@ -270,8 +251,7 @@ fn bare_double_dash_all_alias_works() {
 #[test]
 fn check_a_short_t_includes_test_files() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("test_foo.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("test_foo.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout_no_t, _, _) = pulse_in_dir(&["check", "-a"], dir.path());
     assert!(stdout_no_t.is_empty(), "test files skipped by default");
     let (stdout_with_t, _, code_with_t) = pulse_in_dir(&["check", "-a", "-t"], dir.path());
@@ -282,8 +262,7 @@ fn check_a_short_t_includes_test_files() {
 #[test]
 fn check_a_long_include_tests_works() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("test_foo.py"),
-        "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::fs::write(dir.path().join("test_foo.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _, code) = pulse_in_dir(&["check", "-a", "--include-tests"], dir.path());
     assert_eq!(code, 1);
     assert!(stdout.contains("Excess Arguments"));
@@ -321,13 +300,8 @@ fn budget_new_writes_thresholds_to_stderr() {
 #[test]
 fn setup_subcommand_runs_and_exits_zero() {
     let dir = tempfile::tempdir().unwrap();
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("setup")
-        .env("HOME", dir.path())
-        .output()
-        .unwrap();
-    assert_eq!(out.status.code(), Some(0), "setup must exit 0; stderr: {}",
-        String::from_utf8_lossy(&out.stderr));
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).arg("setup").env("HOME", dir.path()).output().unwrap();
+    assert_eq!(out.status.code(), Some(0), "setup must exit 0; stderr: {}", String::from_utf8_lossy(&out.stderr));
 }
 
 #[test]

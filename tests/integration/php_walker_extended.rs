@@ -66,7 +66,8 @@ fn enum_declaration_handled() {
 
 #[test]
 fn class_with_traits_handled() {
-    let source = "<?php\ntrait Greeter {\n    public function hello() { return 'hi'; }\n}\nclass M {\n    use Greeter;\n}\n";
+    let source =
+        "<?php\ntrait Greeter {\n    public function hello() { return 'hi'; }\n}\nclass M {\n    use Greeter;\n}\n";
     let _ = analyze(source);
 }
 
@@ -122,7 +123,8 @@ fn static_method_handled() {
 
 #[test]
 fn while_and_do_while_loops_handled() {
-    let source = "<?php\nfunction f($n) {\n    $i = 0;\n    while ($i < $n) { $i++; }\n    do { $i--; } while ($i > 0);\n}\n";
+    let source =
+        "<?php\nfunction f($n) {\n    $i = 0;\n    while ($i < $n) { $i++; }\n    do { $i--; } while ($i > 0);\n}\n";
     let _ = analyze(source);
 }
 

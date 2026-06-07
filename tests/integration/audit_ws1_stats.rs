@@ -47,11 +47,7 @@ fn locality_entropy_empty_is_zero() {
 
 #[test]
 fn file_counts_groups_occurrences_by_file() {
-    let locs = vec![
-        (PathBuf::from("a.rs"), 1),
-        (PathBuf::from("a.rs"), 5),
-        (PathBuf::from("b.rs"), 2),
-    ];
+    let locs = vec![(PathBuf::from("a.rs"), 1), (PathBuf::from("a.rs"), 5), (PathBuf::from("b.rs"), 2)];
     let mut counts = file_counts(&locs);
     counts.sort_unstable();
     assert_eq!(counts, vec![1, 2]);
@@ -93,10 +89,7 @@ fn p_values_neutral_with_too_few_edges() {
 
 #[test]
 fn confidence_resolved_in_file_keeps_base() {
-    assert_eq!(
-        named_smell_confidence(Language::Rust, EvidenceQuality::ResolvedInFile),
-        ImportConfidence::High
-    );
+    assert_eq!(named_smell_confidence(Language::Rust, EvidenceQuality::ResolvedInFile), ImportConfidence::High);
 }
 
 #[test]
@@ -110,8 +103,5 @@ fn confidence_downgrades_by_evidence_quality() {
 
 #[test]
 fn confidence_floors_at_best_effort() {
-    assert_eq!(
-        named_smell_confidence(Language::C, EvidenceQuality::Heuristic),
-        ImportConfidence::BestEffort
-    );
+    assert_eq!(named_smell_confidence(Language::C, EvidenceQuality::Heuristic), ImportConfidence::BestEffort);
 }

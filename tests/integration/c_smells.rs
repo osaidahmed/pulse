@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -80,9 +79,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_method.c");
-    assert!(output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -127,10 +124,7 @@ fn void_param_is_zero_args() {
 #[test]
 fn function_at_cc_boundary_flagged() {
     let out = pulse_check_code("int f(void) {\n    if (a) {}\n    if (b) {}\n    if (c) {}\n    if (d) {}\n    if (e) {}\n    if (f) {}\n    if (g) {}\n    if (h) {}\n    return 0;\n}\n", "c");
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -166,10 +160,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -259,10 +250,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout
-        .lines()
-        .filter(|l| l.contains("process_data_pipeline"))
-        .collect();
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("process_data_pipeline")).collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -289,10 +277,7 @@ fn complex_conditional_detected() {
         ),
         "c",
     );
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -386,10 +371,7 @@ fn hook_invalid_json_silent() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code(
-        "void f(int a, int b, int c) {\n    if (a && b && c) {}\n}\n",
-        "c",
-    );
+    let debug = pulse_debug_code("void f(int a, int b, int c) {\n    if (a && b && c) {}\n}\n", "c");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {cc}");
 }
@@ -519,10 +501,7 @@ fn switch_case_increments_cc() {
         ),
         "c",
     );
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "9 switch cases should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "9 switch cases should trigger, got: {out}");
 }
 
 // ===========================================================================
@@ -561,10 +540,7 @@ fn nested_conditional_chunks_detected() {
         ),
         "c",
     );
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -631,10 +607,7 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Overall Function Size"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 // ===========================================================================

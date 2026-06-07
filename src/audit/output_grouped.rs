@@ -37,9 +37,7 @@ pub fn render(
     }
 }
 
-fn group_by_category<'a>(
-    patterns: &[&'a AuditFinding],
-) -> BTreeMap<u8, Vec<&'a AuditFinding>> {
+fn group_by_category<'a>(patterns: &[&'a AuditFinding]) -> BTreeMap<u8, Vec<&'a AuditFinding>> {
     let mut groups: BTreeMap<u8, Vec<&AuditFinding>> = BTreeMap::new();
     for p in patterns {
         let cat = p.pattern_category.unwrap_or(PatternCategory::Other);
@@ -55,10 +53,7 @@ fn write_group(
     t: &AuditThresholds,
     render_pattern: RenderPatternFn,
 ) {
-    let header = group[0]
-        .pattern_category
-        .unwrap_or(PatternCategory::Other)
-        .header();
+    let header = group[0].pattern_category.unwrap_or(PatternCategory::Other).header();
     let _ = writeln!(out, "## {} ({} patterns)\n", header, group.len());
     for p in group {
         render_pattern(out, p, root, t);

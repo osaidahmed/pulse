@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -11,10 +10,7 @@ const LANG: &str = "python";
 #[test]
 fn clean_file_produces_no_output() {
     let output = run_check(LANG, "clean.py");
-    assert!(
-        output.is_empty(),
-        "clean file should produce no output, got: {output}"
-    );
+    assert!(output.is_empty(), "clean file should produce no output, got: {output}");
 }
 
 // ===========================================================================
@@ -46,19 +42,20 @@ fn complex_method_cc_at_least_9() {
 #[test]
 fn large_method_detected() {
     let mut code = String::from("def build_report(data):\n");
-    for i in 0..fn_padding() { code.push_str(&format!("    x_{i} = {i}\n")); }
+    for i in 0..fn_padding() {
+        code.push_str(&format!("    x_{i} = {i}\n"));
+    }
     code.push_str("    return x_0\n");
     let out = pulse_check_code(&code, "py");
-    assert!(
-        has_smell(&out, "Large Method") || has_smell(&out, "God Method"),
-        "should detect large method, got: {out}"
-    );
+    assert!(has_smell(&out, "Large Method") || has_smell(&out, "God Method"), "should detect large method, got: {out}");
 }
 
 #[test]
 fn large_method_loc_exceeds_threshold() {
     let mut code = String::from("def build_report(data):\n");
-    for i in 0..fn_padding() { code.push_str(&format!("    x_{i} = {i}\n")); }
+    for i in 0..fn_padding() {
+        code.push_str(&format!("    x_{i} = {i}\n"));
+    }
     code.push_str("    return x_0\n");
     let debug = pulse_debug_code(&code, "py");
     let loc = function_metric(&debug, "build_report", "loc").unwrap_or(0);
@@ -72,10 +69,7 @@ fn large_method_loc_exceeds_threshold() {
 #[test]
 fn god_method_detected() {
     let output = run_check(LANG, "brain_method.py");
-    assert!(
-        has_smell(&output, "God Method"),
-        "should detect god method, got: {output}"
-    );
+    assert!(has_smell(&output, "God Method"), "should detect god method, got: {output}");
     assert!(has_function(&output, "process_data_pipeline"));
 }
 
@@ -93,10 +87,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
     let output = run_check(LANG, "brain_method.py");
     assert!(has_smell(&output, "God Method"));
     // When God Method is detected, Complex Method and Large Method should NOT appear for same function
-    let lines: Vec<&str> = output
-        .lines()
-        .filter(|l| l.contains("process_data_pipeline"))
-        .collect();
+    let lines: Vec<&str> = output.lines().filter(|l| l.contains("process_data_pipeline")).collect();
     assert!(
         !lines.iter().any(|l| l.contains("Complex Method")),
         "should not separately report Complex Method for a God Method"
@@ -114,10 +105,7 @@ fn god_method_not_reported_as_separate_complex_and_large() {
 #[test]
 fn nested_conditional_chunks_detected() {
     let output = run_check(LANG, "bumpy_road.py");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks"),
-        "should detect nested conditional chunks, got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks"), "should detect nested conditional chunks, got: {output}");
     assert!(has_function(&output, "validate_and_process"));
 }
 
@@ -135,10 +123,7 @@ fn nested_conditional_chunks_bump_count() {
 #[test]
 fn deep_nesting_detected() {
     let output = run_check(LANG, "deep_nesting.py");
-    assert!(
-        has_smell(&output, "Deep Nested"),
-        "should detect deep nesting, got: {output}"
-    );
+    assert!(has_smell(&output, "Deep Nested"), "should detect deep nesting, got: {output}");
     assert!(has_function(&output, "deeply_nested"));
 }
 
@@ -152,10 +137,7 @@ fn deep_nesting_depth_exceeds_4() {
 #[test]
 fn moderate_nesting_not_flagged() {
     let output = run_check(LANG, "deep_nesting.py");
-    assert!(
-        !has_function(&output, "moderately_nested"),
-        "moderate nesting should not be flagged"
-    );
+    assert!(!has_function(&output, "moderately_nested"), "moderate nesting should not be flagged");
 }
 
 // ===========================================================================
@@ -175,10 +157,7 @@ fn complex_conditional_detected() {
 #[test]
 fn simple_check_not_flagged() {
     let output = run_check(LANG, "complex_conditional.py");
-    assert!(
-        !has_function(&output, "simple_check"),
-        "simple_check should not be flagged"
-    );
+    assert!(!has_function(&output, "simple_check"), "simple_check should not be flagged");
 }
 
 // ===========================================================================
@@ -188,10 +167,7 @@ fn simple_check_not_flagged() {
 #[test]
 fn excess_args_detected() {
     let output = run_check(LANG, "excess_args.py");
-    assert!(
-        has_smell(&output, "Excess Arguments"),
-        "should detect excess args, got: {output}"
-    );
+    assert!(has_smell(&output, "Excess Arguments"), "should detect excess args, got: {output}");
     assert!(has_function(&output, "create_user"));
 }
 
@@ -205,10 +181,7 @@ fn excess_args_count_is_correct() {
 #[test]
 fn simple_func_not_flagged() {
     let output = run_check(LANG, "excess_args.py");
-    assert!(
-        !has_function(&output, "simple_func"),
-        "simple_func should not be flagged"
-    );
+    assert!(!has_function(&output, "simple_func"), "simple_func should not be flagged");
 }
 
 // ===========================================================================
@@ -229,10 +202,7 @@ fn constructor_over_injection_detected() {
 fn constructor_args_exclude_self() {
     let debug = run_debug(LANG, "excess_args.py");
     let args = function_metric(&debug, "UserService.__init__", "args").unwrap_or(0);
-    assert_eq!(
-        args, 9,
-        "constructor args should be 9 (excluding self), got: {args}"
-    );
+    assert_eq!(args, 9, "constructor args should be 9 (excluding self), got: {args}");
 }
 
 // ===========================================================================
@@ -242,20 +212,14 @@ fn constructor_args_exclude_self() {
 #[test]
 fn embedded_block_detected() {
     let output = run_check(LANG, "embedded_block.py");
-    assert!(
-        has_smell(&output, "Large Embedded Block"),
-        "should detect embedded block, got: {output}"
-    );
+    assert!(has_smell(&output, "Large Embedded Block"), "should detect embedded block, got: {output}");
     assert!(has_function(&output, "get_active_users"));
 }
 
 #[test]
 fn simple_query_not_flagged() {
     let output = run_check(LANG, "embedded_block.py");
-    assert!(
-        !has_function(&output, "simple_query"),
-        "simple_query should not be flagged"
-    );
+    assert!(!has_function(&output, "simple_query"), "simple_query should not be flagged");
 }
 
 // ===========================================================================
@@ -265,10 +229,7 @@ fn simple_query_not_flagged() {
 #[test]
 fn global_conditionals_detected() {
     let output = run_check(LANG, "global_conditionals.py");
-    assert!(
-        has_smell(&output, "Global Conditionals"),
-        "should detect global conditionals, got: {output}"
-    );
+    assert!(has_smell(&output, "Global Conditionals"), "should detect global conditionals, got: {output}");
 }
 
 // ===========================================================================
@@ -278,21 +239,17 @@ fn global_conditionals_detected() {
 #[test]
 fn file_too_large_detected() {
     let mut code = String::new();
-    for i in 0..file_padding() { code.push_str(&format!("x_{i} = {i}\n")); }
+    for i in 0..file_padding() {
+        code.push_str(&format!("x_{i} = {i}\n"));
+    }
     let out = pulse_check_code(&code, "py");
-    assert!(
-        has_smell(&out, "File Too Large"),
-        "should detect file too large, got: {out}"
-    );
+    assert!(has_smell(&out, "File Too Large"), "should detect file too large, got: {out}");
 }
 
 #[test]
 fn too_many_functions_detected() {
     let output = run_check(LANG, "file_too_large.py");
-    assert!(
-        has_smell(&output, "Too Many Functions"),
-        "should detect too many functions, got: {output}"
-    );
+    assert!(has_smell(&output, "Too Many Functions"), "should detect too many functions, got: {output}");
 }
 
 // ===========================================================================
@@ -303,20 +260,14 @@ fn too_many_functions_detected() {
 fn hook_clean_file_is_silent() {
     let path = fixtures_dir(LANG).join("clean.py");
     let output = run_hook(path.to_str().unwrap());
-    assert!(
-        output.is_empty(),
-        "hook on clean file should be silent, got: {output}"
-    );
+    assert!(output.is_empty(), "hook on clean file should be silent, got: {output}");
 }
 
 #[test]
 fn hook_smelly_file_produces_output() {
     let path = fixtures_dir(LANG).join("brain_method.py");
     let output = run_hook(path.to_str().unwrap());
-    assert!(
-        !output.is_empty(),
-        "hook on smelly file should produce output"
-    );
+    assert!(!output.is_empty(), "hook on smelly file should produce output");
     assert!(has_smell(&output, "god method"));
 }
 
@@ -363,10 +314,7 @@ fn cc_base_case_is_1() {
 fn method_arg_count_excludes_self() {
     let debug = run_debug(LANG, "clean.py");
     let args = function_metric(&debug, "Calculator.add", "args").unwrap_or(99);
-    assert_eq!(
-        args, 1,
-        "method arg count should exclude self, got: {args}"
-    );
+    assert_eq!(args, 1, "method arg count should exclude self, got: {args}");
 }
 
 #[test]
@@ -374,10 +322,7 @@ fn boolean_operators_increment_cc() {
     let debug = run_debug(LANG, "complex_conditional.py");
     let cc = function_metric(&debug, "check_eligibility", "cc").unwrap_or(0);
     // 1 base + 2 if-statements + boolean operators from conditions
-    assert!(
-        cc >= 7,
-        "boolean operators should increment cc, got: {cc}"
-    );
+    assert!(cc >= 7, "boolean operators should increment cc, got: {cc}");
 }
 
 // ===========================================================================
@@ -394,22 +339,14 @@ fn output_starts_with_pulse_prefix() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "brain_method.py");
-    let has_location = output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): "));
-    assert!(
-        has_location,
-        "should contain function locations with line numbers"
-    );
+    let has_location = output.lines().any(|l| l.contains("(L") && l.contains("): "));
+    assert!(has_location, "should contain function locations with line numbers");
 }
 
 #[test]
 fn output_has_module_prefix() {
     let output = run_check(LANG, "file_too_large.py");
-    assert!(
-        output.contains("Module:"),
-        "module smells should have 'Module:' prefix"
-    );
+    assert!(output.contains("Module:"), "module smells should have 'Module:' prefix");
 }
 
 #[test]
@@ -417,10 +354,7 @@ fn issue_count_in_header_matches_findings() {
     let output = run_check(LANG, "excess_args.py");
     let first_line = output.lines().next().unwrap_or("");
     let finding_lines = output.lines().filter(|l| l.starts_with("  ")).count();
-    assert!(
-        first_line.contains(&format!("{finding_lines} issue")),
-        "header should report correct issue count"
-    );
+    assert!(first_line.contains(&format!("{finding_lines} issue")), "header should report correct issue count");
 }
 
 // ===========================================================================
@@ -455,11 +389,8 @@ fn comments_only_file() {
 fn decorated_function_analyzed() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("deco.py");
-    std::fs::write(
-        &path,
-        "def d(f):\n    return f\n\n@d\ndef long_deco(a, b, c, d, e, f, g, h):\n    return a\n",
-    )
-    .unwrap();
+    std::fs::write(&path, "def d(f):\n    return f\n\n@d\ndef long_deco(a, b, c, d, e, f, g, h):\n    return a\n")
+        .unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
         .output()
@@ -488,10 +419,7 @@ fn function_at_threshold_boundary_is_flagged() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Complex Method"),
-        "cc=9 should trigger Complex Method, got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Complex Method"), "cc=9 should trigger Complex Method, got: {stdout}");
 }
 
 #[test]
@@ -525,19 +453,12 @@ fn analysis_completes_under_500ms() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 500,
-        "should complete under 500ms, took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 500, "should complete under 500ms, took: {}ms", elapsed.as_millis());
 }
 
 #[test]
 fn empty_except_detected_python() {
-    let out = pulse_check_code(
-        "def f():\n    try:\n        x = 1\n    except Exception:\n        pass\n",
-        "py",
-    );
+    let out = pulse_check_code("def f():\n    try:\n        x = 1\n    except Exception:\n        pass\n", "py");
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 

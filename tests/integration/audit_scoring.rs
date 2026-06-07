@@ -1,4 +1,3 @@
-
 use crate::audit_common::*;
 use pulse::audit::discovery::RawCluster;
 use pulse::audit::finding::AuditKind;
@@ -11,9 +10,7 @@ fn cluster(fp: u64, support: u32, file_count: u32, snippet: &str) -> RawCluster 
         support,
         file_count,
         representative_snippet: snippet.to_string(),
-        locations: (0..support)
-            .map(|i| (PathBuf::from(format!("f{}.py", i % file_count)), 1))
-            .collect(),
+        locations: (0..support).map(|i| (PathBuf::from(format!("f{}.py", i % file_count)), 1)).collect(),
     }
 }
 

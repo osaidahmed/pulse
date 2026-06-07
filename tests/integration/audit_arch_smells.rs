@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use pulse::audit::finding::{
-    AuditKind, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, ImportConfidence,
-    UnstableDepEvidence,
+    AuditKind, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
 };
 use pulse::audit::graph::InputEdge;
 use pulse::audit::martin::AbstractnessRecord;
@@ -56,10 +55,7 @@ fn hub_likes(edges: &[InputEdge]) -> Vec<HubLikeEvidence> {
         .collect()
 }
 
-fn god_components(
-    edges: &[InputEdge],
-    loc_of: impl Fn(&Path) -> u32 + Copy,
-) -> Vec<GodComponentEvidence> {
+fn god_components(edges: &[InputEdge], loc_of: impl Fn(&Path) -> u32 + Copy) -> Vec<GodComponentEvidence> {
     run_from_edges(edges, |p| profile_with_loc(p, loc_of), &t().audit)
         .into_iter()
         .filter_map(|f| match f.kind {
@@ -79,10 +75,7 @@ fn compounds(edges: &[InputEdge]) -> Vec<CompoundEvidence> {
         .collect()
 }
 
-fn compounds_with_loc(
-    edges: &[InputEdge],
-    loc_of: impl Fn(&Path) -> u32 + Copy,
-) -> Vec<CompoundEvidence> {
+fn compounds_with_loc(edges: &[InputEdge], loc_of: impl Fn(&Path) -> u32 + Copy) -> Vec<CompoundEvidence> {
     run_from_edges(edges, |p| profile_with_loc(p, loc_of), &t().audit)
         .into_iter()
         .filter_map(|f| match f.kind {
@@ -140,12 +133,8 @@ fn stable_dependencies_are_not_flagged() {
 
 #[test]
 fn single_dependency_is_not_flagged() {
-    let edges = [
-        edge("x/m.rs", "s/m.rs"),
-        edge("s/m.rs", "u1/m.rs"),
-        edge("u1/m.rs", "a/m.rs"),
-        edge("u1/m.rs", "b/m.rs"),
-    ];
+    let edges =
+        [edge("x/m.rs", "s/m.rs"), edge("s/m.rs", "u1/m.rs"), edge("u1/m.rs", "a/m.rs"), edge("u1/m.rs", "b/m.rs")];
     let uds = unstable_deps(&edges);
     assert!(!uds.iter().any(|e| e.component.as_path() == Path::new("s")));
 }
@@ -182,23 +171,15 @@ fn unbalanced_component_is_not_a_hub() {
 
 #[test]
 fn uniform_ring_has_no_hub() {
-    let edges = [
-        edge("a/m.rs", "b/m.rs"),
-        edge("b/m.rs", "c/m.rs"),
-        edge("c/m.rs", "d/m.rs"),
-        edge("d/m.rs", "a/m.rs"),
-    ];
+    let edges =
+        [edge("a/m.rs", "b/m.rs"), edge("b/m.rs", "c/m.rs"), edge("c/m.rs", "d/m.rs"), edge("d/m.rs", "a/m.rs")];
     assert!(hub_likes(&edges).is_empty(), "a uniform ring has no hub");
 }
 
 #[test]
 fn flags_oversized_component_against_the_loc_distribution() {
-    let edges = [
-        edge("g/m.rs", "a/m.rs"),
-        edge("g/m.rs", "b/m.rs"),
-        edge("g/m.rs", "c/m.rs"),
-        edge("g/m.rs", "d/m.rs"),
-    ];
+    let edges =
+        [edge("g/m.rs", "a/m.rs"), edge("g/m.rs", "b/m.rs"), edge("g/m.rs", "c/m.rs"), edge("g/m.rs", "d/m.rs")];
     let gods = god_components(&edges, |p| if p.starts_with("g") { 900 } else { 100 });
     assert_eq!(gods.len(), 1, "only the outlier component is a god component");
     let g = &gods[0];
@@ -211,25 +192,15 @@ fn flags_oversized_component_against_the_loc_distribution() {
 
 #[test]
 fn uniform_component_sizes_have_no_god_component() {
-    let edges = [
-        edge("g/m.rs", "a/m.rs"),
-        edge("g/m.rs", "b/m.rs"),
-        edge("g/m.rs", "c/m.rs"),
-        edge("g/m.rs", "d/m.rs"),
-    ];
-    assert!(
-        god_components(&edges, |_| 200).is_empty(),
-        "uniformly-sized components yield no outlier"
-    );
+    let edges =
+        [edge("g/m.rs", "a/m.rs"), edge("g/m.rs", "b/m.rs"), edge("g/m.rs", "c/m.rs"), edge("g/m.rs", "d/m.rs")];
+    assert!(god_components(&edges, |_| 200).is_empty(), "uniformly-sized components yield no outlier");
 }
 
 #[test]
 fn single_component_is_not_a_god_component() {
     let edges = [edge("src/a.rs", "src/b.rs")];
-    assert!(
-        god_components(&edges, |_| 5000).is_empty(),
-        "a single component has no distribution to stand out from"
-    );
+    assert!(god_components(&edges, |_| 5000).is_empty(), "a single component has no distribution to stand out from");
 }
 
 #[test]

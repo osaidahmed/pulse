@@ -16,10 +16,7 @@ pub struct RawCluster {
 
 pub fn freqt_mine(records: &[SubtreeRecord], thresholds: &AuditThresholds) -> Vec<RawCluster> {
     let groups = group_by_fingerprint(records);
-    groups
-        .into_iter()
-        .filter_map(|(fp, idx)| materialize(fp, &idx, records, thresholds))
-        .collect()
+    groups.into_iter().filter_map(|(fp, idx)| materialize(fp, &idx, records, thresholds)).collect()
 }
 
 pub fn closed_mine(
@@ -49,12 +46,7 @@ impl ClosureIndex {
     fn observe(&mut self, record: &SubtreeRecord) {
         *self.support_by_fp.entry(record.fingerprint).or_insert(0) += 1;
         if let Some(parent) = record.parent_fingerprint {
-            *self
-                .parent_counts
-                .entry(record.fingerprint)
-                .or_default()
-                .entry(parent)
-                .or_insert(0) += 1;
+            *self.parent_counts.entry(record.fingerprint).or_default().entry(parent).or_insert(0) += 1;
         }
     }
 
@@ -115,10 +107,7 @@ fn pick_representative(indices: &[usize], records: &[SubtreeRecord]) -> String {
 }
 
 fn collect_locations(indices: &[usize], records: &[SubtreeRecord]) -> Vec<(PathBuf, u32)> {
-    let mut locs: Vec<(PathBuf, u32)> = indices
-        .iter()
-        .map(|&i| (records[i].file.clone(), records[i].line))
-        .collect();
+    let mut locs: Vec<(PathBuf, u32)> = indices.iter().map(|&i| (records[i].file.clone(), records[i].line)).collect();
     locs.sort();
     locs
 }

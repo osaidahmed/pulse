@@ -15,12 +15,7 @@ fn p(s: &str) -> PathBuf {
 }
 
 fn edge(src: &str, dst: &str) -> InputEdge {
-    InputEdge {
-        source: p(src),
-        target: p(dst),
-        source_lang: Language::Rust,
-        target_lang: Language::Rust,
-    }
+    InputEdge { source: p(src), target: p(dst), source_lang: Language::Rust, target_lang: Language::Rust }
 }
 
 fn build(edges: &[InputEdge]) -> ImportGraph {
@@ -188,10 +183,7 @@ fn compute_takes_min_of_import_and_abstractness_confidence() {
 fn compute_min_confidence_handles_na_abstraction_lower_than_low() {
     let g = build(&[edge("a.rs", "b.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let abs_na = AbstractnessRecord {
-        abstractness: 0.0,
-        confidence: ImportConfidence::NaAbstraction,
-    };
+    let abs_na = AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::NaAbstraction };
     let m = compute(&g, a, abs_na, ImportConfidence::Low, &t().audit);
     assert_eq!(m.confidence, ImportConfidence::NaAbstraction);
 }
@@ -311,11 +303,7 @@ fn compute_for_concrete_stable_module_classifies_alert() {
 
 #[test]
 fn compute_records_afferent_and_efferent_counts() {
-    let g = build(&[
-        edge("dep1.rs", "core.rs"),
-        edge("dep2.rs", "core.rs"),
-        edge("core.rs", "util.rs"),
-    ]);
+    let g = build(&[edge("dep1.rs", "core.rs"), edge("dep2.rs", "core.rs"), edge("core.rs", "util.rs")]);
     let core = g.registry.lookup(&p("core.rs")).unwrap();
     let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &t().audit);
     assert_eq!(m.afferent, 2);

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -16,9 +15,7 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug(
-        "fn f(x: i32) i32 {\n    if (x > 0) {\n    } else if (x < 0) {\n    }\n    return x;\n}\n",
-    );
+    let out = debug("fn f(x: i32) i32 {\n    if (x > 0) {\n    } else if (x < 0) {\n    }\n    return x;\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -63,13 +60,15 @@ fn cc_counts_orelse() {
 
 #[test]
 fn cc_counts_and() {
-    let out = debug("fn f(a: bool, b: bool) bool {\n    if (a and b) {\n        return true;\n    }\n    return false;\n}\n");
+    let out =
+        debug("fn f(a: bool, b: bool) bool {\n    if (a and b) {\n        return true;\n    }\n    return false;\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_or() {
-    let out = debug("fn f(a: bool, b: bool) bool {\n    if (a or b) {\n        return true;\n    }\n    return false;\n}\n");
+    let out =
+        debug("fn f(a: bool, b: bool) bool {\n    if (a or b) {\n        return true;\n    }\n    return false;\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -126,7 +125,8 @@ fn cc_combined_catch_and_orelse() {
 
 #[test]
 fn cc_if_with_else() {
-    let out = debug("fn f(x: i32) i32 {\n    if (x > 0) {\n        return 1;\n    } else {\n        return 0;\n    }\n}\n");
+    let out =
+        debug("fn f(x: i32) i32 {\n    if (x > 0) {\n        return 1;\n    } else {\n        return 0;\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -196,7 +196,8 @@ fn cogc_switch_counted() {
 
 #[test]
 fn cogc_boolean_single_sequence() {
-    let out = debug("fn f(a: bool, b: bool) bool {\n    if (a and b) {\n        return true;\n    }\n    return false;\n}\n");
+    let out =
+        debug("fn f(a: bool, b: bool) bool {\n    if (a and b) {\n        return true;\n    }\n    return false;\n}\n");
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
     assert!(cogc >= 2, "got: {cogc}");
 }
@@ -338,7 +339,9 @@ fn args_five_at_threshold() {
 
 #[test]
 fn args_six_over_threshold() {
-    let out = check("fn f(a: i32, b: i32, c: i32, d: i32, e: i32, g: i32) void { _ = a; _ = b; _ = c; _ = d; _ = e; _ = g; }\n");
+    let out = check(
+        "fn f(a: i32, b: i32, c: i32, d: i32, e: i32, g: i32) void { _ = a; _ = b; _ = c; _ = d; _ = e; _ = g; }\n",
+    );
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
@@ -437,10 +440,7 @@ fn exact_duplication_detected() {
 
 #[test]
 fn exact_duplication_below_min_loc() {
-    let out = check(concat!(
-        "fn a(x: i32) i32 {\n    return x;\n}\n",
-        "fn b(x: i32) i32 {\n    return x;\n}\n",
-    ));
+    let out = check(concat!("fn a(x: i32) i32 {\n    return x;\n}\n", "fn b(x: i32) i32 {\n    return x;\n}\n",));
     assert!(!has_smell(&out, "Code Duplication"));
 }
 
@@ -713,11 +713,7 @@ fn function_has_no_prefix() {
 
 #[test]
 fn method_has_struct_type_prefix() {
-    let out = debug(concat!(
-        "const Svc = struct {\n",
-        "    pub fn handle(self: Svc) void { _ = self; }\n",
-        "};\n",
-    ));
+    let out = debug(concat!("const Svc = struct {\n", "    pub fn handle(self: Svc) void { _ = self; }\n", "};\n",));
     assert!(out.contains("Svc.handle"), "got: {out}");
 }
 
@@ -754,23 +750,14 @@ fn orelse_increments_cc() {
 
 #[test]
 fn test_decl_analyzed() {
-    let out = debug(concat!(
-        "const std = @import(\"std\");\n",
-        "test \"my test\" {\n",
-        "    if (true) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("const std = @import(\"std\");\n", "test \"my test\" {\n", "    if (true) {}\n", "}\n",));
     assert!(out.contains("test_my_test"), "got: {out}");
 }
 
 #[test]
 fn test_decl_name_has_test_prefix() {
-    let out = debug(concat!(
-        "const std = @import(\"std\");\n",
-        "test \"some feature\" {\n",
-        "    if (true) {}\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("const std = @import(\"std\");\n", "test \"some feature\" {\n", "    if (true) {}\n", "}\n",));
     assert!(out.contains("test_some_feature"), "got: {out}");
 }
 
@@ -870,11 +857,7 @@ fn performance_1000_loc() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 200,
-        "took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 200, "took: {}ms", elapsed.as_millis());
 }
 
 #[test]
@@ -885,9 +868,7 @@ fn performance_struct_hierarchy() {
     for i in 0..10 {
         code.push_str(&format!("const S{i} = struct {{\n    x: i32,\n"));
         for j in 0..5 {
-            code.push_str(&format!(
-                "    pub fn m{j}(self: S{i}) i32 {{ return self.x + {j}; }}\n"
-            ));
+            code.push_str(&format!("    pub fn m{j}(self: S{i}) i32 {{ return self.x + {j}; }}\n"));
         }
         code.push_str("};\n\n");
     }
@@ -898,11 +879,7 @@ fn performance_struct_hierarchy() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 500,
-        "took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
 }
 
 // ===========================================================================
@@ -946,12 +923,7 @@ fn empty_function_body() {
 
 #[test]
 fn multiple_functions_independent_metrics() {
-    let out = debug(concat!(
-        "fn simple() void {}\n",
-        "fn complex(x: bool) void {\n",
-        "    if (x) {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("fn simple() void {}\n", "fn complex(x: bool) void {\n", "    if (x) {}\n", "}\n",));
     assert_eq!(function_metric(&out, "simple", "cc"), Some(1));
     assert_eq!(function_metric(&out, "complex", "cc"), Some(2));
 }

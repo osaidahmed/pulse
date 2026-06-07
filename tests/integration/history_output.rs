@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use pulse::history::finding::{
-    CatalystEvidence, DecayEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding,
-    HistoryKind, HotspotEvidence,
+    CatalystEvidence, DecayEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind, HotspotEvidence,
 };
 
 fn catalyst(members: &[&str]) -> HistoryFinding {
@@ -140,11 +139,7 @@ fn ownership_finding_renders_total_minor_pct() {
 
 #[test]
 fn mixed_findings_produce_all_three_sections() {
-    let findings = vec![
-        drift("a.rs", "b.rs", 5),
-        hotspot("h.rs", 4, 10),
-        ownership("o.rs", 8, 5),
-    ];
+    let findings = vec![drift("a.rs", "b.rs", 5), hotspot("h.rs", 4, 10), ownership("o.rs", 8, 5)];
     let out = format_findings(&findings, None);
     assert!(out.contains("architectural drift"));
     assert!(out.contains("hotspots"));
@@ -170,12 +165,8 @@ fn json_summary_findings_total_matches_array_len() {
 
 #[test]
 fn json_by_pillar_breakdown_correct() {
-    let findings = vec![
-        drift("a.rs", "b.rs", 3),
-        drift("c.rs", "d.rs", 4),
-        hotspot("h.rs", 5, 5),
-        ownership("o.rs", 8, 5),
-    ];
+    let findings =
+        vec![drift("a.rs", "b.rs", 3), drift("c.rs", "d.rs", 4), hotspot("h.rs", 5, 5), ownership("o.rs", 8, 5)];
     let json_str = format_findings_json(&findings, None);
     let v: serde_json::Value = serde_json::from_str(&json_str).unwrap();
     assert_eq!(v["summary"]["by_pillar"]["drift"], 2);

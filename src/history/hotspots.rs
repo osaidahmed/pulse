@@ -7,19 +7,12 @@ use super::finding::{HistoryFinding, HistoryKind, HotspotEvidence};
 use super::git::Commit;
 use super::thresholds::HistoryThresholds;
 
-pub fn rank(
-    commits: &[Commit],
-    typed_files: &[(PathBuf, Language)],
-    t: &HistoryThresholds,
-) -> Vec<HistoryFinding> {
+pub fn rank(commits: &[Commit], typed_files: &[(PathBuf, Language)], t: &HistoryThresholds) -> Vec<HistoryFinding> {
     let revisions = revisions_per_file(commits);
-    let lang_lookup: HashMap<PathBuf, Language> =
-        typed_files.iter().map(|(p, l)| (p.clone(), *l)).collect();
+    let lang_lookup: HashMap<PathBuf, Language> = typed_files.iter().map(|(p, l)| (p.clone(), *l)).collect();
     let mut findings: Vec<HistoryFinding> = revisions
         .into_iter()
-        .filter(|(p, count)| {
-            *count >= t.hotspot.min_revisions && lang_lookup.contains_key(p)
-        })
+        .filter(|(p, count)| *count >= t.hotspot.min_revisions && lang_lookup.contains_key(p))
         .filter_map(|(path, revs)| build_hotspot(&path, revs, &lang_lookup, t))
         .collect();
     sort_hotspot_findings(&mut findings);
@@ -40,12 +33,7 @@ fn build_hotspot(
         return None;
     }
     Some(HistoryFinding {
-        kind: HistoryKind::Hotspot(HotspotEvidence {
-            file: path.to_path_buf(),
-            revisions: revs,
-            sum_cc: cc,
-            score,
-        }),
+        kind: HistoryKind::Hotspot(HotspotEvidence { file: path.to_path_buf(), revisions: revs, sum_cc: cc, score }),
         action_label: None,
     })
 }

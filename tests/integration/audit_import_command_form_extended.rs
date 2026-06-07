@@ -94,8 +94,7 @@ fn non_tcl_non_cobol_languages_unaffected_by_command_form() {
 fn tcl_multiple_source_commands_each_extracted() {
     let source = "source first.tcl\nsource second.tcl\n";
     let imports = extract(source, Language::Tcl);
-    let names: std::collections::BTreeSet<String> =
-        imports.iter().map(|i| i.target.clone()).collect();
+    let names: std::collections::BTreeSet<String> = imports.iter().map(|i| i.target.clone()).collect();
     assert!(names.contains("first.tcl") || names.contains("second.tcl"));
 }
 

@@ -42,15 +42,9 @@ impl MethodRegistry {
 
     pub fn intern(&mut self, identity: MethodIdentity) -> MethodIndex {
         let idx = MethodIndex(self.methods.len() as u32);
-        self.by_name
-            .entry(identity.name.clone())
-            .or_default()
-            .push(idx);
+        self.by_name.entry(identity.name.clone()).or_default().push(idx);
         if let Some(class) = identity.class.clone() {
-            self.by_class_name
-                .entry((class, identity.name.clone()))
-                .or_default()
-                .push(idx);
+            self.by_class_name.entry((class, identity.name.clone())).or_default().push(idx);
         }
         self.methods.push(identity);
         idx
@@ -69,9 +63,7 @@ impl MethodRegistry {
     }
 
     pub fn lookup_by_class_and_name(&self, class: &str, name: &str) -> &[MethodIndex] {
-        self.by_class_name
-            .get(&(class.to_string(), name.to_string()))
-            .map_or(&[][..], Vec::as_slice)
+        self.by_class_name.get(&(class.to_string(), name.to_string())).map_or(&[][..], Vec::as_slice)
     }
 }
 
@@ -83,10 +75,7 @@ pub struct CallAdjacency {
 
 impl CallAdjacency {
     pub fn with_capacity(n: usize) -> Self {
-        Self {
-            outgoing: vec![Vec::new(); n],
-            incoming: vec![Vec::new(); n],
-        }
+        Self { outgoing: vec![Vec::new(); n], incoming: vec![Vec::new(); n] }
     }
 
     pub fn insert(&mut self, edge: CallEdge) {
@@ -133,20 +122,12 @@ fn insert_resolved(reg: &MethodRegistry, call: &LocatedCall, adj: &mut CallAdjac
     let Some(caller_idx) = find_caller_index(reg, caller) else { return };
     let resolved = resolve_targets(reg, call, caller);
     for (target_idx, confidence) in resolved {
-        adj.insert(CallEdge {
-            source: caller_idx,
-            target: target_idx,
-            confidence,
-        });
+        adj.insert(CallEdge { source: caller_idx, target: target_idx, confidence });
     }
 }
 
 fn find_caller_index(reg: &MethodRegistry, caller: &MethodIdentity) -> Option<MethodIndex> {
-    reg.methods
-        .iter()
-        .enumerate()
-        .find(|(_, m)| *m == caller)
-        .map(|(i, _)| MethodIndex(i as u32))
+    reg.methods.iter().enumerate().find(|(_, m)| *m == caller).map(|(i, _)| MethodIndex(i as u32))
 }
 
 fn resolve_targets(
@@ -158,11 +139,7 @@ fn resolve_targets(
     if let Some(class) = receiver_class {
         let exact = reg.lookup_by_class_and_name(&class, &call.call.callee_name);
         if !exact.is_empty() {
-            let conf = if exact.len() == 1 {
-                ImportConfidence::High
-            } else {
-                ImportConfidence::Medium
-            };
+            let conf = if exact.len() == 1 { ImportConfidence::High } else { ImportConfidence::Medium };
             return exact.iter().map(|i| (*i, conf)).collect();
         }
     }
@@ -170,11 +147,7 @@ fn resolve_targets(
     if by_name.is_empty() {
         return Vec::new();
     }
-    let confidence = if by_name.len() == 1 {
-        ImportConfidence::Medium
-    } else {
-        ImportConfidence::Low
-    };
+    let confidence = if by_name.len() == 1 { ImportConfidence::Medium } else { ImportConfidence::Low };
     by_name.iter().map(|i| (*i, confidence)).collect()
 }
 

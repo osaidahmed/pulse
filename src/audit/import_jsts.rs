@@ -37,9 +37,7 @@ fn extensions_for(lang: Language) -> &'static [&'static str] {
 
 fn import_statement_target(node: Node, source: &str) -> Option<RawImport> {
     let mut cursor = node.walk();
-    let string_node = node
-        .children(&mut cursor)
-        .find(|c| c.is_named() && c.kind() == "string")?;
+    let string_node = node.children(&mut cursor).find(|c| c.is_named() && c.kind() == "string")?;
     let target = literal_text_of(string_node, source)?;
     Some(RawImport { target, line: line_of(node) })
 }
@@ -58,13 +56,9 @@ fn call_expression_target(node: Node, source: &str) -> Option<RawImport> {
 
 fn string_arg_text(node: Node, source: &str) -> Option<String> {
     let mut node_cursor = node.walk();
-    let args = node
-        .children(&mut node_cursor)
-        .find(|c| c.is_named() && c.kind() == "arguments")?;
+    let args = node.children(&mut node_cursor).find(|c| c.is_named() && c.kind() == "arguments")?;
     let mut arg_cursor = args.walk();
-    let string_node = args
-        .children(&mut arg_cursor)
-        .find(|c| c.is_named() && c.kind() == "string")?;
+    let string_node = args.children(&mut arg_cursor).find(|c| c.is_named() && c.kind() == "string")?;
     literal_text_of(string_node, source)
 }
 
@@ -99,10 +93,7 @@ fn tsconfig_path_mappings(raw: &str, project_root: &Path, exts: &[&str]) -> Vec<
     let Ok(json) = serde_json::from_str::<serde_json::Value>(&strip_json_comments(&text)) else {
         return Vec::new();
     };
-    let Some(map) = json
-        .pointer("/compilerOptions/paths")
-        .and_then(|v| v.as_object())
-    else {
+    let Some(map) = json.pointer("/compilerOptions/paths").and_then(|v| v.as_object()) else {
         return Vec::new();
     };
     let mut out: Vec<PathBuf> = Vec::new();
@@ -143,10 +134,7 @@ fn strip_json_comments(text: &str) -> String {
     out
 }
 
-fn consume_line_comment(
-    chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    out: &mut String,
-) {
+fn consume_line_comment(chars: &mut std::iter::Peekable<std::str::Chars<'_>>, out: &mut String) {
     for c in chars.by_ref() {
         if c == '\n' {
             out.push('\n');

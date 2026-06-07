@@ -32,7 +32,10 @@ fn parallel_evidence(f: &pulse::audit::finding::AuditFinding) -> &ParallelInheri
     e
 }
 
-fn detect_with(defs: Vec<DefinitionRecord>, audit_t: &pulse::thresholds::AuditThresholds) -> Vec<pulse::audit::finding::AuditFinding> {
+fn detect_with(
+    defs: Vec<DefinitionRecord>,
+    audit_t: &pulse::thresholds::AuditThresholds,
+) -> Vec<pulse::audit::finding::AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let inh = build_inheritance_graph(&registry);
@@ -150,10 +153,7 @@ fn single_class_no_findings() {
 
 #[test]
 fn cyclic_inheritance_does_not_panic() {
-    let defs = vec![
-        def("a.py", "A", Some("B")),
-        def("b.py", "B", Some("A")),
-    ];
+    let defs = vec![def("a.py", "A", Some("B")), def("b.py", "B", Some("A"))];
     let _findings = detect_with(defs, &t().audit);
 }
 

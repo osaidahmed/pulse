@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -28,12 +27,8 @@ fn hook_with_edit(file_path: &str, old: &str, new: &str) -> String {
     let json = format!(
         r#"{{"tool_input":{{"file_path":"{}","old_string":"{}","new_string":"{}"}}}}"#,
         file_path.replace('\\', "\\\\").replace('"', "\\\""),
-        old.replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('\n', "\\n"),
-        new.replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('\n', "\\n"),
+        old.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"),
+        new.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"),
     );
     let baseline_dir = tempfile::tempdir().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
@@ -45,12 +40,7 @@ fn hook_with_edit(file_path: &str, old: &str, new: &str) -> String {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(json.as_bytes())
-                .unwrap();
+            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
             child.wait_with_output()
         })
         .expect("failed to run pulse --hook");
@@ -78,11 +68,7 @@ fn edit_that_worsens_function_reports_it() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("worsen.py");
     write_borderline_function(&path, true);
-    let out = hook_with_edit(
-        path.to_str().unwrap(),
-        "    return x",
-        "    if x > 7:\n        pass\n    return x",
-    );
+    let out = hook_with_edit(path.to_str().unwrap(), "    return x", "    if x > 7:\n        pass\n    return x");
     assert!(has_function(&out, "process"), "worsening should report it, got: {out}");
 }
 
@@ -91,10 +77,7 @@ fn edit_outside_smelly_function_skips_it() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(path.to_str().unwrap(), "import json", "import json");
     // Line 3 is far from process_order (L58-111)
-    assert!(
-        !has_function(&out, "process_order"),
-        "editing imports should not report process_order, got: {out}"
-    );
+    assert!(!has_function(&out, "process_order"), "editing imports should not report process_order, got: {out}");
 }
 
 #[test]
@@ -102,14 +85,8 @@ fn module_findings_excluded_from_hook_output() {
     let path = fixtures_dir("python").join("production_service.py");
     let out = hook_with_edit(path.to_str().unwrap(), "import json", "import json");
     // Module-level findings should NOT appear in hook output (handled by Stop hook)
-    assert!(
-        !has_smell(&out, "Low Cohesion"),
-        "module findings should not appear in hook output, got: {out}"
-    );
-    assert!(
-        !has_smell(&out, "Code Duplication"),
-        "module findings should not appear in hook output, got: {out}"
-    );
+    assert!(!has_smell(&out, "Low Cohesion"), "module findings should not appear in hook output, got: {out}");
+    assert!(!has_smell(&out, "Code Duplication"), "module findings should not appear in hook output, got: {out}");
 }
 
 // ===========================================================================
@@ -119,53 +96,35 @@ fn module_findings_excluded_from_hook_output() {
 #[test]
 fn hook_output_is_json_block_decision() {
     let path = fixtures_dir("python").join("production_service.py");
-    let out = hook_with_edit(
-        path.to_str().unwrap(),
-        "def process_order",
-        "def process_order",
-    );
+    let out = hook_with_edit(path.to_str().unwrap(), "def process_order", "def process_order");
     if out.is_empty() {
         return;
     }
-    let parsed: serde_json::Value = serde_json::from_str(out.trim())
-        .expect("hook output should be valid JSON");
+    let parsed: serde_json::Value = serde_json::from_str(out.trim()).expect("hook output should be valid JSON");
     assert_eq!(
         parsed.get("decision").and_then(|v| v.as_str()),
         Some("block"),
         "should have decision: block, got: {out}"
     );
     let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
-    assert!(
-        reason.contains("error[pulse]:"),
-        "reason should contain error[pulse]:, got: {reason}"
-    );
+    assert!(reason.contains("error[pulse]:"), "reason should contain error[pulse]:, got: {reason}");
 }
 
 #[test]
 fn hook_output_contains_error_prefix() {
     let path = fixtures_dir("python").join("production_service.py");
-    let out = hook_with_edit(
-        path.to_str().unwrap(),
-        "def process_order",
-        "def process_order",
-    );
+    let out = hook_with_edit(path.to_str().unwrap(), "def process_order", "def process_order");
     if out.is_empty() {
         return;
     }
-    assert!(
-        out.contains("error[pulse]:"),
-        "output should contain error[pulse]: prefix: {out}"
-    );
+    assert!(out.contains("error[pulse]:"), "output should contain error[pulse]: prefix: {out}");
 }
 
 #[test]
 fn check_mode_still_multiline() {
     let out = run_check("python", "production_service.py");
     let lines = out.trim().lines().count();
-    assert!(
-        lines > 3,
-        "check mode should be multi-line verbose, got {lines} lines"
-    );
+    assert!(lines > 3, "check mode should be multi-line verbose, got {lines} lines");
 }
 
 // ===========================================================================
@@ -212,10 +171,7 @@ fn write_mode_reports_all() {
     let path = dir.path().join("new.py");
     std::fs::write(
         &path,
-        concat!(
-            "def a(x, y, z, w, a, b, c, d):\n    return x\n\n",
-            "def b(x, y, z, w, a, b, c, d):\n    return x\n",
-        ),
+        concat!("def a(x, y, z, w, a, b, c, d):\n    return x\n\n", "def b(x, y, z, w, a, b, c, d):\n    return x\n",),
     )
     .unwrap();
     let out = hook_write_mode(path.to_str().unwrap());

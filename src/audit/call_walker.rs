@@ -48,11 +48,7 @@ pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {
     let Some(tree) = parse::parse_only(&source, lang) else {
         return Vec::new();
     };
-    let ctx = CallCtx {
-        source: &source,
-        lang,
-        path,
-    };
+    let ctx = CallCtx { source: &source, lang, path };
     let mut out = Vec::new();
     let mut stack: Vec<EnclosingFrame> = Vec::new();
     visit(tree.root_node(), &ctx, &mut stack, &mut out);
@@ -71,12 +67,7 @@ struct EnclosingFrame {
     method: Option<MethodIdentity>,
 }
 
-fn visit(
-    node: Node,
-    ctx: &CallCtx,
-    stack: &mut Vec<EnclosingFrame>,
-    out: &mut Vec<LocatedCall>,
-) {
+fn visit(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>, out: &mut Vec<LocatedCall>) {
     let pushed_class = maybe_push_class(node, ctx.source, stack);
     let pushed_method = maybe_push_method(node, ctx.source, ctx.path, stack);
     collect_calls_at(node, ctx, stack, out);
@@ -92,20 +83,11 @@ fn visit(
     }
 }
 
-fn collect_calls_at(
-    node: Node,
-    ctx: &CallCtx,
-    stack: &[EnclosingFrame],
-    out: &mut Vec<LocatedCall>,
-) {
+fn collect_calls_at(node: Node, ctx: &CallCtx, stack: &[EnclosingFrame], out: &mut Vec<LocatedCall>) {
     let raw_calls = single_node_calls(node, ctx.source, ctx.lang);
     let caller = stack.iter().rev().find_map(|f| f.method.clone());
     for raw in raw_calls {
-        out.push(LocatedCall {
-            call: raw,
-            caller: caller.clone(),
-            file: ctx.path.to_path_buf(),
-        });
+        out.push(LocatedCall { call: raw, caller: caller.clone(), file: ctx.path.to_path_buf() });
     }
 }
 
@@ -126,23 +108,13 @@ fn maybe_push_class(node: Node, source: &str, stack: &mut Vec<EnclosingFrame>) -
     true
 }
 
-fn maybe_push_method(
-    node: Node,
-    source: &str,
-    path: &Path,
-    stack: &mut Vec<EnclosingFrame>,
-) -> bool {
+fn maybe_push_method(node: Node, source: &str, path: &Path, stack: &mut Vec<EnclosingFrame>) -> bool {
     if !FUNCTION_KINDS.contains(&node.kind()) {
         return false;
     }
     let name = identifier_in(node, source).unwrap_or_else(|| "<anonymous>".to_string());
     let class = stack.iter().rev().find_map(|f| f.class.clone());
-    let identity = MethodIdentity {
-        file: path.to_path_buf(),
-        class,
-        name,
-        line: node.start_position().row as u32 + 1,
-    };
+    let identity = MethodIdentity { file: path.to_path_buf(), class, name, line: node.start_position().row as u32 + 1 };
     stack.push(EnclosingFrame { class: None, method: Some(identity) });
     true
 }
@@ -150,7 +122,10 @@ fn maybe_push_method(
 fn identifier_in(node: Node, source: &str) -> Option<String> {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if matches!(child.kind(), "identifier" | "type_identifier" | "name" | "field_identifier" | "property_identifier") {
+        if matches!(
+            child.kind(),
+            "identifier" | "type_identifier" | "name" | "field_identifier" | "property_identifier"
+        ) {
             return Some(source[child.byte_range()].to_string());
         }
     }

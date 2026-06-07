@@ -16,23 +16,14 @@ fn cyclic_repo() -> tempfile::TempDir {
         CommitSpec {
             author: "alice <alice@x>",
             message: "introduce a->b->c->a cycle",
-            writes: &[
-                ("pkg/a.py", "import pkg.b\n"),
-                ("pkg/b.py", "import pkg.c\n"),
-                ("pkg/c.py", "import pkg.a\n"),
-            ],
+            writes: &[("pkg/a.py", "import pkg.b\n"), ("pkg/b.py", "import pkg.c\n"), ("pkg/c.py", "import pkg.a\n")],
             deletes: &[],
         },
     ])
 }
 
 fn opts_for(repo: &tempfile::TempDir) -> HistoryOpts {
-    HistoryOpts {
-        root: repo.path().to_path_buf(),
-        include_tests: true,
-        since: None,
-        max_commits: None,
-    }
+    HistoryOpts { root: repo.path().to_path_buf(), include_tests: true, since: None, max_commits: None }
 }
 
 fn has_catalyst(findings: &[pulse::history::finding::HistoryFinding]) -> bool {
@@ -44,10 +35,7 @@ fn catalyst_flags_a_newly_introduced_cycle() {
     let repo = cyclic_repo();
     let t = HistoryThresholds { arch_trend: true, ..HistoryThresholds::default() };
     let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
-    assert!(
-        has_catalyst(&findings),
-        "expected a catalyst warning for the freshly-introduced cycle"
-    );
+    assert!(has_catalyst(&findings), "expected a catalyst warning for the freshly-introduced cycle");
 }
 
 #[test]
@@ -56,11 +44,7 @@ fn decay_flags_a_growing_cycle() {
         CommitSpec {
             author: "alice <alice@x>",
             message: "a->b->c->a cycle",
-            writes: &[
-                ("pkg/a.py", "import pkg.b\n"),
-                ("pkg/b.py", "import pkg.c\n"),
-                ("pkg/c.py", "import pkg.a\n"),
-            ],
+            writes: &[("pkg/a.py", "import pkg.b\n"), ("pkg/b.py", "import pkg.c\n"), ("pkg/c.py", "import pkg.a\n")],
             deletes: &[],
         },
         CommitSpec {
@@ -88,10 +72,7 @@ fn catalyst_is_silent_without_the_flag() {
     let repo = cyclic_repo();
     let t = HistoryThresholds::default();
     let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
-    assert!(
-        !has_catalyst(&findings),
-        "catalyst must stay opt-in behind --arch-trend"
-    );
+    assert!(!has_catalyst(&findings), "catalyst must stay opt-in behind --arch-trend");
 }
 
 #[test]
@@ -105,9 +86,7 @@ fn reconstructs_import_edges_at_a_commit() {
 
     let edges = edges_at_commit(repo.path(), "HEAD");
     assert!(
-        edges
-            .iter()
-            .any(|e| e.source.ends_with("pkg/a.py") && e.target.ends_with("pkg/b.py")),
+        edges.iter().any(|e| e.source.ends_with("pkg/a.py") && e.target.ends_with("pkg/b.py")),
         "expected a reconstructed pkg/a.py -> pkg/b.py edge, got: {edges:?}"
     );
 }
@@ -130,15 +109,9 @@ fn reflects_historical_state_not_the_worktree() {
     ]);
 
     let head = edges_at_commit(repo.path(), "HEAD");
-    assert!(
-        head.iter().any(|e| e.source.ends_with("pkg/a.py") && e.target.ends_with("pkg/b.py")),
-        "HEAD has the edge"
-    );
+    assert!(head.iter().any(|e| e.source.ends_with("pkg/a.py") && e.target.ends_with("pkg/b.py")), "HEAD has the edge");
     let parent = edges_at_commit(repo.path(), "HEAD~1");
-    assert!(
-        !parent.iter().any(|e| e.source.ends_with("pkg/a.py")),
-        "the parent commit predates the import edge"
-    );
+    assert!(!parent.iter().any(|e| e.source.ends_with("pkg/a.py")), "the parent commit predates the import edge");
 }
 
 #[test]

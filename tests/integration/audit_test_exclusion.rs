@@ -16,12 +16,7 @@ fn write(path: &Path, content: &str) {
 fn collect_relative_paths(root: &Path, include_tests: bool) -> Vec<String> {
     let mut out: Vec<String> = walk_typed_source_files(root, include_tests)
         .into_iter()
-        .map(|(p, _)| {
-            p.strip_prefix(root)
-                .unwrap_or(&p)
-                .to_string_lossy()
-                .into_owned()
-        })
+        .map(|(p, _)| p.strip_prefix(root).unwrap_or(&p).to_string_lossy().into_owned())
         .collect();
     out.sort();
     out
@@ -92,10 +87,7 @@ fn walk_skips_specs_dir() {
 fn walk_skips_double_underscore_tests_dir() {
     let dir = tempfile::tempdir().unwrap();
     write(&dir.path().join("src/utils.ts"), "export const f = () => 1;\n");
-    write(
-        &dir.path().join("src/__tests__/utils.ts"),
-        "test('f', () => {});\n",
-    );
+    write(&dir.path().join("src/__tests__/utils.ts"), "test('f', () => {});\n");
 
     let collected = collect_relative_paths(dir.path(), false);
     assert_eq!(collected, vec!["src/utils.ts".to_string()]);
@@ -122,10 +114,7 @@ fn audit_run_excludes_tests_by_default() {
         write(&dir.path().join(format!("src/mod_{i}.py")), pattern);
     }
     for i in 0..7 {
-        write(
-            &dir.path().join(format!("src/decoy_{i}.py")),
-            &format!("def unique_{i}():\n    return {i} * 2\n"),
-        );
+        write(&dir.path().join(format!("src/decoy_{i}.py")), &format!("def unique_{i}():\n    return {i} * 2\n"));
     }
     write(&dir.path().join("tests/test_mod.py"), pattern);
 
@@ -133,7 +122,8 @@ fn audit_run_excludes_tests_by_default() {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: false, show_noise: false,
+        include_tests: false,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings = pulse::audit::run(&opts, &Thresholds::default().audit);
@@ -142,10 +132,7 @@ fn audit_run_excludes_tests_by_default() {
     for f in &findings {
         for loc in &f.locations {
             let s = loc.file.to_string_lossy();
-            assert!(
-                !s.contains("/tests/") && !s.contains("/test/"),
-                "test path leaked into findings: {s}"
-            );
+            assert!(!s.contains("/tests/") && !s.contains("/test/"), "test path leaked into findings: {s}");
         }
     }
 }
@@ -169,27 +156,23 @@ fn audit_run_with_include_tests_picks_up_test_files() {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: false, show_noise: false,
+        include_tests: false,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings_default = pulse::audit::run(&opts_default, &Thresholds::default().audit);
-    assert!(
-        findings_default.is_empty(),
-        "single src file shouldn't cluster — tests should be excluded"
-    );
+    assert!(findings_default.is_empty(), "single src file shouldn't cluster — tests should be excluded");
 
     let opts_with = AuditOpts {
         root: dir.path().to_path_buf(),
         pass: None,
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings_with = pulse::audit::run(&opts_with, &Thresholds::default().audit);
-    assert!(
-        !findings_with.is_empty(),
-        "with --include-tests, the matching test files should produce a cluster"
-    );
+    assert!(!findings_with.is_empty(), "with --include-tests, the matching test files should produce a cluster");
 }
 
 #[test]
@@ -199,14 +182,8 @@ fn audit_extract_subtrees_for_dir_includes_tests() {
     write(&dir.path().join("src/a.py"), pattern);
     write(&dir.path().join("tests/test_a.py"), pattern);
 
-    let recs = pulse::audit::extract_subtrees_for_dir(
-        dir.path(),
-        Language::Python,
-        &Thresholds::default().audit,
-    );
-    let has_test = recs
-        .iter()
-        .any(|r| r.file.to_string_lossy().contains("/tests/"));
+    let recs = pulse::audit::extract_subtrees_for_dir(dir.path(), Language::Python, &Thresholds::default().audit);
+    let has_test = recs.iter().any(|r| r.file.to_string_lossy().contains("/tests/"));
     assert!(
         has_test,
         "extract_subtrees_for_dir is the public API used by callers that already have their own filtering — should NOT exclude tests internally"
@@ -222,12 +199,7 @@ fn cli_audit_default_excludes_tests_dir_in_walk() {
     }
     write(&dir.path().join("tests/test_dup.py"), pattern);
 
-    let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("audit")
-        .arg("--root")
-        .arg(dir.path())
-        .output()
-        .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_pulse")).arg("audit").arg("--root").arg(dir.path()).output().unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap_or_default();
     assert!(
         !stdout.contains("/tests/") && !stdout.contains("test_dup.py"),
@@ -254,17 +226,9 @@ fn cli_audit_include_tests_flag_short_form_overrides_default() {
     let dir = tempfile::tempdir().unwrap();
     build_dir_for_cli_flag_test(dir.path());
 
-    let default_out = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .arg("audit")
-        .arg("--root")
-        .arg(dir.path())
-        .output()
-        .unwrap();
-    assert_eq!(
-        default_out.status.code().unwrap_or(-1),
-        0,
-        "without -t, single src file produces no findings"
-    );
+    let default_out =
+        Command::new(env!("CARGO_BIN_EXE_pulse")).arg("audit").arg("--root").arg(dir.path()).output().unwrap();
+    assert_eq!(default_out.status.code().unwrap_or(-1), 0, "without -t, single src file produces no findings");
 
     let with_out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .arg("-t")
@@ -273,11 +237,7 @@ fn cli_audit_include_tests_flag_short_form_overrides_default() {
         .arg(dir.path())
         .output()
         .unwrap();
-    assert_eq!(
-        with_out.status.code().unwrap_or(-1),
-        1,
-        "with -t, the matching test files cluster and trigger exit 1"
-    );
+    assert_eq!(with_out.status.code().unwrap_or(-1), 1, "with -t, the matching test files cluster and trigger exit 1");
 }
 
 #[test]

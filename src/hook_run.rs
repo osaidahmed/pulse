@@ -13,11 +13,7 @@ const CHECKPOINT_INTERVAL: u32 = 5;
 const CHECKPOINT_INTERVAL_NEW: u32 = 2;
 
 fn is_checkpoint(edit_count: u32) -> bool {
-    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW {
-        CHECKPOINT_INTERVAL_NEW
-    } else {
-        CHECKPOINT_INTERVAL
-    };
+    let interval = if edit_count <= CHECKPOINT_INTERVAL_NEW { CHECKPOINT_INTERVAL_NEW } else { CHECKPOINT_INTERVAL };
     edit_count.is_multiple_of(interval)
 }
 
@@ -49,8 +45,7 @@ pub fn run_hook(h: hook::HookInput) {
     };
     let edit_count = baselines::increment_edit_count(&h.file_path);
     let scope = edit_scope_for(&h, edit_count);
-    let Some(analysis) =
-        analyze::analyze_source(&h.file_path, &source, lang, cfg, analyze::ScanOptions::hook(scope))
+    let Some(analysis) = analyze::analyze_source(&h.file_path, &source, lang, cfg, analyze::ScanOptions::hook(scope))
     else {
         process::exit(0);
     };
@@ -75,12 +70,8 @@ fn collect_hook_findings(
 ) -> Vec<Finding> {
     let func_baseline = baselines::load_function_baseline(&h.file_path);
 
-    let func_findings: Vec<Finding> = analysis
-        .findings
-        .iter()
-        .filter(|f| !matches!(f.location, Location::Module))
-        .cloned()
-        .collect();
+    let func_findings: Vec<Finding> =
+        analysis.findings.iter().filter(|f| !matches!(f.location, Location::Module)).cloned().collect();
 
     let mut findings: Vec<Finding> = hook::filter_by_edit_range(func_findings, h.edit_range)
         .into_iter()
@@ -96,8 +87,7 @@ fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull) {
     let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
     let (blocking, advisory): (Vec<Finding>, Vec<Finding>) =
         ranked.into_iter().partition(|f| tier_for(f.smell) == FindingTier::Blocking);
-    let advisory_ctx = (!advisory.is_empty())
-        .then(|| output::format_advisory(&advisory, &analysis.filename));
+    let advisory_ctx = (!advisory.is_empty()).then(|| output::format_advisory(&advisory, &analysis.filename));
     if blocking.is_empty() {
         emit_advisory_only(advisory_ctx);
         return;
@@ -106,11 +96,7 @@ fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull) {
     emit_decision(&reason, advisory_ctx);
 }
 
-fn build_block_reason(
-    blocking: &[Finding],
-    analysis: &AnalysisResultFull,
-    t: &thresholds::Thresholds,
-) -> String {
+fn build_block_reason(blocking: &[Finding], analysis: &AnalysisResultFull, t: &thresholds::Thresholds) -> String {
     let budget = format!(
         "[budget] fn={}/{} loc={}/{} cc={}/{}",
         analysis.fn_count(),
@@ -148,20 +134,14 @@ fn advisory_payload(ctx: &str) -> serde_json::Value {
     })
 }
 
-fn detect_constraint_conflict(
-    findings: &[Finding],
-    fn_count: u32,
-    t: &thresholds::Thresholds,
-) -> Option<&'static str> {
+fn detect_constraint_conflict(findings: &[Finding], fn_count: u32, t: &thresholds::Thresholds) -> Option<&'static str> {
     let fn_tight = fn_count + 2 >= t.module.file_function_count;
-    let has_cc_finding = findings.iter().any(|f| {
-        matches!(
-            f.smell,
-            smells::Smell::ComplexMethod | smells::Smell::GodMethod
-        )
-    });
+    let has_cc_finding =
+        findings.iter().any(|f| matches!(f.smell, smells::Smell::ComplexMethod | smells::Smell::GodMethod));
     if fn_tight && has_cc_finding {
-        return Some("[conflict] fn count and per-function complexity are both constrained — merge only low-cc functions");
+        return Some(
+            "[conflict] fn count and per-function complexity are both constrained — merge only low-cc functions",
+        );
     }
     None
 }
@@ -193,20 +173,16 @@ fn collect_module_findings(
 }
 
 pub fn run_stop() {
-    let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt"))
-    else {
+    let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt")) else {
         return;
     };
 
     let cfg = config::load_config(Path::new("."));
-    let memo: RefCell<HashMap<String, Option<Rc<AnalysisResultFull>>>> =
-        RefCell::new(HashMap::new());
+    let memo: RefCell<HashMap<String, Option<Rc<AnalysisResultFull>>>> = RefCell::new(HashMap::new());
     let analyze = |p: &str| -> Option<Rc<AnalysisResultFull>> {
         memo.borrow_mut()
             .entry(p.to_string())
-            .or_insert_with(|| {
-                analyze::analyze_file(p, cfg.as_ref(), analyze::ScanOptions::hook(None)).map(Rc::new)
-            })
+            .or_insert_with(|| analyze::analyze_file(p, cfg.as_ref(), analyze::ScanOptions::hook(None)).map(Rc::new))
             .clone()
     };
 
@@ -216,9 +192,7 @@ pub fn run_stop() {
             continue;
         }
         let analysis = analyze(file_path);
-        if let Some((filename, regressions)) =
-            detect_regressions(file_path, cfg.as_ref(), analysis.as_deref())
-        {
+        if let Some((filename, regressions)) = detect_regressions(file_path, cfg.as_ref(), analysis.as_deref()) {
             all_regressions.push((filename, regressions));
         }
     }
@@ -259,10 +233,7 @@ fn build_move_pool<F: Fn(&str) -> Option<Rc<AnalysisResultFull>>>(
 }
 
 fn canonical(path: &str) -> String {
-    std::fs::canonicalize(path)
-        .ok()
-        .and_then(|p| p.to_str().map(String::from))
-        .unwrap_or_else(|| path.to_string())
+    std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(String::from)).unwrap_or_else(|| path.to_string())
 }
 
 fn detect_regressions(

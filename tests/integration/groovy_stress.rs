@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("groovy");
@@ -87,7 +86,9 @@ fn cc_or() {
 
 #[test]
 fn cc_chained_boolean() {
-    let d = debug("class T { boolean f(boolean a, boolean b, boolean c) { if (a && b || c) { return true } return false } }\n");
+    let d = debug(
+        "class T { boolean f(boolean a, boolean b, boolean c) { if (a && b || c) { return true } return false } }\n",
+    );
     assert_eq!(function_metric(&d, "f", "cc"), Some(4));
 }
 
@@ -170,13 +171,7 @@ fn cc_switch_many_cases() {
 
 #[test]
 fn cc_not_operator() {
-    let d = debug(concat!(
-        "class T {\n",
-        "  void f(boolean a) {\n",
-        "    if (!a) {}\n",
-        "  }\n",
-        "}\n",
-    ));
+    let d = debug(concat!("class T {\n", "  void f(boolean a) {\n", "    if (!a) {}\n", "  }\n", "}\n",));
     let cc = function_metric(&d, "f", "cc").unwrap();
     assert!(cc >= 2, "got: {cc}");
 }
@@ -316,14 +311,18 @@ fn cogc_switch_counted() {
 
 #[test]
 fn cogc_boolean_single_sequence() {
-    let d = debug("class T { boolean f(boolean a, boolean b, boolean c) { if (a && b && c) { return true } return false } }\n");
+    let d = debug(
+        "class T { boolean f(boolean a, boolean b, boolean c) { if (a && b && c) { return true } return false } }\n",
+    );
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
     assert_eq!(cogc, 2, "if=1 + 1 sequence, got: {cogc}");
 }
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
-    let d = debug("class T { boolean f(boolean a, boolean b, boolean c) { if (a && b || c) { return true } return false } }\n");
+    let d = debug(
+        "class T { boolean f(boolean a, boolean b, boolean c) { if (a && b || c) { return true } return false } }\n",
+    );
     let cogc = function_metric(&d, "f", "cogc").unwrap_or(0);
     assert_eq!(cogc, 3, "if=1 + 2 sequences, got: {cogc}");
 }
@@ -624,11 +623,7 @@ fn nested_class_methods_stress() {
 
 #[test]
 fn interface_method_has_prefix() {
-    let d = debug(concat!(
-        "interface IService {\n",
-        "  int process(int x)\n",
-        "}\n",
-    ));
+    let d = debug(concat!("interface IService {\n", "  int process(int x)\n", "}\n",));
     // Interfaces with no body won't produce metrics but should not crash
     assert!(!d.is_empty(), "got: {d}");
 }
@@ -819,7 +814,9 @@ fn duplication_mixed_test_and_prod_flagged() {
 
 #[test]
 fn compound_condition_two_ops() {
-    let d = debug("class T { boolean f(int a, int b, int c) { if (a > 0 && b > 0 || c > 0) { return true } return false } }\n");
+    let d = debug(
+        "class T { boolean f(int a, int b, int c) { if (a > 0 && b > 0 || c > 0) { return true } return false } }\n",
+    );
     let cc_count = function_metric(&d, "f", "conditions").unwrap_or(0);
     assert!(cc_count >= 1, "got: {cc_count}");
 }
@@ -853,12 +850,7 @@ fn primitive_obsession_complex_types_not_flagged() {
 
 #[test]
 fn lcom4_single_method_not_flagged() {
-    let out = check(concat!(
-        "class T {\n",
-        "  int x\n",
-        "  int get() { return this.x }\n",
-        "}\n",
-    ));
+    let out = check(concat!("class T {\n", "  int x\n", "  int get() { return this.x }\n", "}\n",));
     assert!(!has_smell(&out, "Low Cohesion"), "got: {out}");
 }
 
@@ -1102,10 +1094,7 @@ fn nested_conditional_chunks_detected() {
         "  }\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -1114,9 +1103,7 @@ fn nested_conditional_chunks_detected() {
 
 #[test]
 fn multiple_smells_same_function() {
-    let mut code = String::from(
-        "class T {\n  void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n",
-    );
+    let mut code = String::from("class T {\n  void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
     code.push_str("    for (int i = 0; i < a; i++) {\n");
     code.push_str("      if (i > 0) {\n");
     code.push_str("        for (int j = 0; j < b; j++) {\n");
@@ -1234,7 +1221,8 @@ fn performance_1000_loc() {
     let start = std::time::Instant::now();
     let _ = std::process::Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
 }
@@ -1255,7 +1243,8 @@ fn performance_class_hierarchy() {
     let start = std::time::Instant::now();
     let _ = std::process::Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() < 500, "took: {}ms", elapsed.as_millis());
 }
@@ -1283,10 +1272,7 @@ fn global_conditional_detected() {
         "  }\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Global Conditionals") || has_smell(&out, "Deep Global Nesting"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Global Conditionals") || has_smell(&out, "Deep Global Nesting"), "got: {out}");
 }
 
 // ===========================================================================

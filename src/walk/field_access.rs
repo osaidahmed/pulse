@@ -20,12 +20,7 @@ const FIELD_ACCESS_KINDS: &[&str] = &[
 const SELF_OBJ_KINDS: &[&str] = &["identifier", "this", "self", "this_expression", "variable_name"];
 const FIELD_NAME_KINDS: &[&str] = &["identifier", "property_identifier", "field_identifier", "name"];
 
-pub fn collect_field_accesses_for(
-    func_node: Node,
-    source: &str,
-    self_names: &[&str],
-    fields: &mut Vec<String>,
-) {
+pub fn collect_field_accesses_for(func_node: Node, source: &str, self_names: &[&str], fields: &mut Vec<String>) {
     visit_field_accesses(func_node, source, self_names, fields, try_extract_field);
     fields.sort();
     fields.dedup();
@@ -40,10 +35,8 @@ pub fn collect_foreign_field_accesses_for(
     let mut raw: Vec<(String, String)> = Vec::new();
     visit_field_accesses(func_node, source, self_names, &mut raw, try_extract_foreign);
     let scope = super::scope::build_scope_table(func_node, source);
-    let unique: std::collections::BTreeSet<(String, String)> = raw
-        .into_iter()
-        .map(|(recv, field)| (scope.get(&recv).cloned().unwrap_or(recv), field))
-        .collect();
+    let unique: std::collections::BTreeSet<(String, String)> =
+        raw.into_iter().map(|(recv, field)| (scope.get(&recv).cloned().unwrap_or(recv), field)).collect();
     foreign.extend(unique);
 }
 
@@ -78,18 +71,10 @@ fn try_extract_field(child: Node, source: &str, self_names: &[&str]) -> Option<S
     if !self_names.contains(&obj) {
         return None;
     }
-    children
-        .iter()
-        .rev()
-        .find(|n| FIELD_NAME_KINDS.contains(&n.kind()))
-        .map(|n| node_text(*n, source).to_string())
+    children.iter().rev().find(|n| FIELD_NAME_KINDS.contains(&n.kind())).map(|n| node_text(*n, source).to_string())
 }
 
-fn try_extract_foreign(
-    child: Node,
-    source: &str,
-    self_names: &[&str],
-) -> Option<(String, String)> {
+fn try_extract_foreign(child: Node, source: &str, self_names: &[&str]) -> Option<(String, String)> {
     let mut attr_cursor = child.walk();
     let children: Vec<_> = child.children(&mut attr_cursor).collect();
     if children.len() < 2 {

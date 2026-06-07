@@ -91,10 +91,7 @@ fn rust_imports_stable_under_whitespace() {
 #[test]
 fn rust_imports_stable_under_comments() {
     let a = extract(Language::Rust, "use foo::bar;\nuse baz;\n");
-    let b = extract(
-        Language::Rust,
-        "// header comment\nuse foo::bar;\n// inline\nuse baz; // tail\n",
-    );
+    let b = extract(Language::Rust, "// header comment\nuse foo::bar;\n// inline\nuse baz; // tail\n");
     assert_eq!(targets(&a), targets(&b));
 }
 

@@ -54,9 +54,8 @@ fn is_call_kind(kind: &str) -> bool {
 
 fn first_string_arg(node: Node, source: &str) -> Option<String> {
     let mut node_cursor = node.walk();
-    let args = node
-        .children(&mut node_cursor)
-        .find(|c| c.is_named() && matches!(c.kind(), "arguments" | "argument_list"))?;
+    let args =
+        node.children(&mut node_cursor).find(|c| c.is_named() && matches!(c.kind(), "arguments" | "argument_list"))?;
     let mut arg_cursor = args.walk();
     for child in args.children(&mut arg_cursor) {
         if let Some(text) = string_descend(child, source) {

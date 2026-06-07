@@ -23,8 +23,7 @@ fn first_named_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 
 fn fingerprint_of_first(src: &str, kind: &str) -> u64 {
     let tree = parse_python(src);
-    let node = first_named_child(tree.root_node(), kind)
-        .unwrap_or_else(|| panic!("no {kind} in source"));
+    let node = first_named_child(tree.root_node(), kind).unwrap_or_else(|| panic!("no {kind} in source"));
     fingerprint::compute_subtree_fingerprint(node)
 }
 

@@ -12,15 +12,8 @@ pub struct CorpusBundle {
     pub kinds_by_fp: KindIndex,
 }
 
-pub fn corpus_bundle(
-    typed: &[(PathBuf, Language)],
-    thresholds: &AuditThresholds,
-) -> CorpusBundle {
-    let mut bundle = CorpusBundle {
-        subtrees: Vec::new(),
-        features: Vec::new(),
-        kinds_by_fp: KindIndex::default(),
-    };
+pub fn corpus_bundle(typed: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> CorpusBundle {
+    let mut bundle = CorpusBundle { subtrees: Vec::new(), features: Vec::new(), kinds_by_fp: KindIndex::default() };
     for (path, lang) in typed {
         if let Some(output) = walk_one(path, *lang, thresholds) {
             bundle.subtrees.extend(output.subtrees);
@@ -41,30 +34,17 @@ pub fn records_and_features(
     (bundle.subtrees, bundle.features)
 }
 
-pub fn records_only(
-    typed: &[(PathBuf, Language)],
-    thresholds: &AuditThresholds,
-) -> Vec<SubtreeRecord> {
+pub fn records_only(typed: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<SubtreeRecord> {
     records_and_features(typed, thresholds).0
 }
 
-pub fn for_dir(
-    root: &Path,
-    lang: Language,
-    thresholds: &AuditThresholds,
-) -> Vec<SubtreeRecord> {
-    let typed: Vec<(PathBuf, Language)> = super::walk_typed_source_files(root, true)
-        .into_iter()
-        .filter(|(_, l)| *l == lang)
-        .collect();
+pub fn for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec<SubtreeRecord> {
+    let typed: Vec<(PathBuf, Language)> =
+        super::walk_typed_source_files(root, true).into_iter().filter(|(_, l)| *l == lang).collect();
     records_only(&typed, thresholds)
 }
 
-fn walk_one(
-    path: &Path,
-    lang: Language,
-    thresholds: &AuditThresholds,
-) -> Option<WalkOutput> {
+fn walk_one(path: &Path, lang: Language, thresholds: &AuditThresholds) -> Option<WalkOutput> {
     let source = std::fs::read_to_string(path).ok()?;
     let tree = parse::parse_only(&source, lang)?;
     Some(walker::extract_records(&tree, &source, lang, path, thresholds))

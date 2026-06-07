@@ -9,13 +9,7 @@ use pulse::audit::finding::{AuditFinding, AuditKind, FeatureEnvyEvidence, Import
 
 use crate::audit_common::t;
 
-fn def(
-    file: &str,
-    class: Option<&str>,
-    name: &str,
-    line: u32,
-    foreign: Vec<(&str, &str)>,
-) -> DefinitionRecord {
+fn def(file: &str, class: Option<&str>, name: &str, line: u32, foreign: Vec<(&str, &str)>) -> DefinitionRecord {
     DefinitionRecord {
         identity: MethodIdentity {
             file: PathBuf::from(file),
@@ -25,10 +19,7 @@ fn def(
         },
         cc: 1,
         field_accesses: Vec::new(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: None,
         is_constructor: false,
     }
@@ -69,14 +60,9 @@ fn boundary_atfd_strictly_greater() {
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B"))];
-    assert!(
-        detect_with(vec![m, other], calls, &t().audit).is_empty(),
-        "atfd=5 not > 5"
-    );
+    assert!(detect_with(vec![m, other], calls, &t().audit).is_empty(), "atfd=5 not > 5");
 
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B"))];
@@ -85,9 +71,7 @@ fn boundary_atfd_strictly_greater() {
 
 #[test]
 fn boundary_foreign_ratio_strictly_greater() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign.clone());
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let intra = def("a.py", Some("A"), "intra", 5, vec![]);
@@ -104,9 +88,7 @@ fn boundary_foreign_ratio_strictly_greater() {
 
 #[test]
 fn just_above_ratio_emits_finding() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign.clone());
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let intra = def("a.py", Some("A"), "intra", 5, vec![]);
@@ -137,9 +119,7 @@ fn atfd_at_threshold_with_high_ratio_no_finding() {
 
 #[test]
 fn zero_total_calls_no_finding_even_with_high_atfd() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let findings = detect_with(vec![m], Vec::new(), &t().audit);
     assert!(findings.is_empty());
@@ -147,9 +127,7 @@ fn zero_total_calls_no_finding_even_with_high_atfd() {
 
 #[test]
 fn free_function_excluded_from_detection() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("free.py", None, "f", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B"))];
@@ -159,18 +137,11 @@ fn free_function_excluded_from_detection() {
 
 #[test]
 fn dominant_envied_class_picks_max_count() {
-    let foreign = vec![
-        ("bar", "x"), ("bar", "y"), ("bar", "z"),
-        ("bar", "w"), ("bar", "v"), ("bar", "u"),
-        ("baz", "p"),
-    ];
+    let foreign =
+        vec![("bar", "x"), ("bar", "y"), ("bar", "z"), ("bar", "w"), ("bar", "v"), ("bar", "u"), ("baz", "p")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let bar = def("b.py", Some("Bar"), "do", 1, vec![]);
-    let calls = vec![
-        call_to(&m, "do", Some("Bar")),
-        call_to(&m, "do", Some("Bar")),
-        call_to(&m, "do", Some("Bar")),
-    ];
+    let calls = vec![call_to(&m, "do", Some("Bar")), call_to(&m, "do", Some("Bar")), call_to(&m, "do", Some("Bar"))];
     let findings = detect_with(vec![m, bar], calls, &t().audit);
     assert!(!findings.is_empty());
     let envied = envy(&findings[0]).envied_class.clone().unwrap();
@@ -179,9 +150,7 @@ fn dominant_envied_class_picks_max_count() {
 
 #[test]
 fn confidence_label_is_medium_by_default() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -192,9 +161,7 @@ fn confidence_label_is_medium_by_default() {
 
 #[test]
 fn evidence_includes_method_identity() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("location.py", Some("Cls"), "the_method", 42, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -213,15 +180,20 @@ fn sort_by_atfd_descending() {
     let mut calls = Vec::new();
     for atfd in [6u32, 9, 7, 12] {
         let foreign: Vec<(&str, &str)> = (0..atfd as usize)
-            .map(|i| {
-                
-                match i {
-                    0 => ("b", "f0"), 1 => ("b", "f1"), 2 => ("b", "f2"),
-                    3 => ("b", "f3"), 4 => ("b", "f4"), 5 => ("b", "f5"),
-                    6 => ("b", "f6"), 7 => ("b", "f7"), 8 => ("b", "f8"),
-                    9 => ("b", "f9"), 10 => ("b", "f10"), 11 => ("b", "f11"),
-                    _ => ("b", "fN"),
-                }
+            .map(|i| match i {
+                0 => ("b", "f0"),
+                1 => ("b", "f1"),
+                2 => ("b", "f2"),
+                3 => ("b", "f3"),
+                4 => ("b", "f4"),
+                5 => ("b", "f5"),
+                6 => ("b", "f6"),
+                7 => ("b", "f7"),
+                8 => ("b", "f8"),
+                9 => ("b", "f9"),
+                10 => ("b", "f10"),
+                11 => ("b", "f11"),
+                _ => ("b", "fN"),
             })
             .collect();
         let m_name = format!("m_atfd_{atfd}");
@@ -246,9 +218,7 @@ fn empty_inputs_no_findings_no_panic() {
 
 #[test]
 fn raising_atfd_threshold_suppresses() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -259,9 +229,7 @@ fn raising_atfd_threshold_suppresses() {
 
 #[test]
 fn raising_foreign_ratio_threshold_suppresses() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -289,9 +257,7 @@ fn lowering_thresholds_yields_at_least_as_many_findings() {
 fn determinism_five_runs_yield_same_finding_count() {
     let mut counts = Vec::new();
     for _ in 0..5 {
-        let foreign = vec![
-            ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-        ];
+        let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
         let m = def("a.py", Some("A"), "m", 1, foreign);
         let other = def("b.py", Some("B"), "do", 1, vec![]);
         let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -305,16 +271,11 @@ fn determinism_five_runs_yield_same_finding_count() {
 
 #[test]
 fn intra_calls_do_not_count_as_foreign() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let intra1 = def("a.py", Some("A"), "intra1", 2, vec![]);
     let intra2 = def("a.py", Some("A"), "intra2", 3, vec![]);
-    let calls = vec![
-        call_to(&m, "intra1", Some("A")),
-        call_to(&m, "intra2", Some("A")),
-    ];
+    let calls = vec![call_to(&m, "intra1", Some("A")), call_to(&m, "intra2", Some("A"))];
     let findings = detect_with(vec![m, intra1, intra2], calls, &t().audit);
     assert!(findings.is_empty(), "all-intra calls should give 0 foreign ratio");
 }
@@ -330,9 +291,7 @@ fn envied_class_unset_when_foreign_list_empty() {
 
 #[test]
 fn constructor_with_foreign_accesses_eligible() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let mut m = def("a.py", Some("A"), "__init__", 1, foreign);
     m.is_constructor = true;
     let other = def("b.py", Some("B"), "do", 1, vec![]);
@@ -343,9 +302,7 @@ fn constructor_with_foreign_accesses_eligible() {
 
 #[test]
 fn parent_class_method_with_foreign_field_eligible() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let mut m = def("a.py", Some("A"), "m", 1, foreign);
     m.parent_class = Some("ParentBase".to_string());
     let other = def("b.py", Some("B"), "do", 1, vec![]);
@@ -360,17 +317,8 @@ fn stress_500_methods_all_potential_envy_completes_quickly() {
     let mut defs = Vec::new();
     let mut calls = Vec::new();
     for i in 0..500 {
-        let foreign = vec![
-            ("ext", "f1"), ("ext", "f2"), ("ext", "f3"),
-            ("ext", "f4"), ("ext", "f5"), ("ext", "f6"),
-        ];
-        let m = def(
-            &format!("c_{i}.py"),
-            Some(&format!("Cls{i}")),
-            "m",
-            1,
-            foreign,
-        );
+        let foreign = vec![("ext", "f1"), ("ext", "f2"), ("ext", "f3"), ("ext", "f4"), ("ext", "f5"), ("ext", "f6")];
+        let m = def(&format!("c_{i}.py"), Some(&format!("Cls{i}")), "m", 1, foreign);
         defs.push(m.clone());
         for _ in 0..3 {
             calls.push(call_to(&m, "do", Some("Other")));
@@ -384,10 +332,7 @@ fn stress_500_methods_all_potential_envy_completes_quickly() {
 
 #[test]
 fn multiple_foreign_classes_dominant_picked_correctly() {
-    let foreign = vec![
-        ("alpha", "x"), ("alpha", "y"),
-        ("beta", "p"), ("beta", "q"), ("beta", "r"), ("beta", "s"),
-    ];
+    let foreign = vec![("alpha", "x"), ("alpha", "y"), ("beta", "p"), ("beta", "q"), ("beta", "r"), ("beta", "s")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let calls = vec![call_to(&m, "do", Some("B")); 4];
@@ -399,9 +344,7 @@ fn multiple_foreign_classes_dominant_picked_correctly() {
 
 #[test]
 fn evidence_carries_intra_and_foreign_counts() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let intra = def("a.py", Some("A"), "intra", 5, vec![]);
@@ -421,17 +364,11 @@ fn evidence_carries_intra_and_foreign_counts() {
 
 #[test]
 fn no_calls_to_existing_targets_no_finding() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def("a.py", Some("A"), "m", 1, foreign);
     let other = def("b.py", Some("B"), "do", 1, vec![]);
     let unrelated_call = LocatedCall {
-        call: RawCall {
-            callee_name: "ghost".to_string(),
-            receiver_hint: Some("Phantom".to_string()),
-            line: 5,
-        },
+        call: RawCall { callee_name: "ghost".to_string(), receiver_hint: Some("Phantom".to_string()), line: 5 },
         caller: Some(m.identity.clone()),
         file: m.identity.file.clone(),
     };
@@ -441,9 +378,7 @@ fn no_calls_to_existing_targets_no_finding() {
 
 #[test]
 fn three_methods_one_envious_only_envious_reported() {
-    let envious_foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let envious_foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let envious = def("a.py", Some("A"), "envious", 1, envious_foreign);
     let normal = def("a.py", Some("A"), "normal", 5, vec![("b", "x")]);
     let isolated = def("a.py", Some("A"), "isolated", 10, vec![]);

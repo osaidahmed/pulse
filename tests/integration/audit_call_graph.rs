@@ -22,11 +22,7 @@ fn def(file: &str, class: Option<&str>, name: &str, line: u32) -> DefinitionReco
     }
 }
 
-fn call_to(
-    caller_def: &DefinitionRecord,
-    callee: &str,
-    receiver: Option<&str>,
-) -> LocatedCall {
+fn call_to(caller_def: &DefinitionRecord, callee: &str, receiver: Option<&str>) -> LocatedCall {
     LocatedCall {
         call: RawCall {
             callee_name: callee.to_string(),
@@ -80,10 +76,7 @@ fn build_resolves_ambiguous_name_to_low_confidence() {
     let graph = CallGraph::build(vec![t1, t2, caller], calls);
     let candidates = graph.registry.lookup_by_name("shared");
     assert_eq!(candidates.len(), 2);
-    let total_incoming: usize = candidates
-        .iter()
-        .map(|i| graph.adjacency.incoming(*i).len())
-        .sum();
+    let total_incoming: usize = candidates.iter().map(|i| graph.adjacency.incoming(*i).len()).sum();
     assert_eq!(total_incoming, 2);
     for c in candidates {
         for edge in graph.adjacency.incoming(*c) {
@@ -147,11 +140,7 @@ fn self_call_emits_self_loop_edge() {
 
 #[test]
 fn registry_methods_sorted_deterministically() {
-    let defs1 = vec![
-        def("z.py", None, "x", 1),
-        def("a.py", None, "y", 1),
-        def("m.py", None, "z", 1),
-    ];
+    let defs1 = vec![def("z.py", None, "x", 1), def("a.py", None, "y", 1), def("m.py", None, "z", 1)];
     let defs2 = defs1.clone();
     let g1 = CallGraph::build(defs1, Vec::new());
     let g2 = CallGraph::build(defs2, Vec::new());

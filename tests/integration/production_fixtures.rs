@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 // ===========================================================================
@@ -79,14 +78,9 @@ fn py_production_primitive_obsession() {
 fn py_production_clean_functions_not_flagged_individually() {
     let output = run_check("python", "production_service.py");
     // get_user has no individual smell (it may appear in duplication groups, which is fine)
-    let function_lines: Vec<&str> = output
-        .lines()
-        .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("get_user"))
-        .collect();
-    assert!(
-        function_lines.is_empty(),
-        "get_user should have no individual smells, got: {function_lines:?}"
-    );
+    let function_lines: Vec<&str> =
+        output.lines().filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("get_user")).collect();
+    assert!(function_lines.is_empty(), "get_user should have no individual smells, got: {function_lines:?}");
 }
 
 // ===========================================================================
@@ -212,14 +206,9 @@ fn lua_production_low_cohesion() {
 #[test]
 fn lua_production_clean_functions_not_flagged_individually() {
     let output = run_check("lua", "production_service.lua");
-    let function_lines: Vec<&str> = output
-        .lines()
-        .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("getOrder"))
-        .collect();
-    assert!(
-        function_lines.is_empty(),
-        "getOrder should have no individual smells, got: {function_lines:?}"
-    );
+    let function_lines: Vec<&str> =
+        output.lines().filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("getOrder")).collect();
+    assert!(function_lines.is_empty(), "getOrder should have no individual smells, got: {function_lines:?}");
 }
 
 // ===========================================================================
@@ -338,14 +327,9 @@ fn cobol_production_no_false_constructor_injection() {
 fn cobol_production_clean_functions_not_flagged_individually() {
     let output = run_check("cobol", "production_service.cob");
     // GET-ORDER has no individual smell
-    let function_lines: Vec<&str> = output
-        .lines()
-        .filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("GET-ORDER"))
-        .collect();
-    assert!(
-        function_lines.is_empty(),
-        "GET-ORDER should have no individual smells, got: {function_lines:?}"
-    );
+    let function_lines: Vec<&str> =
+        output.lines().filter(|l| l.starts_with("  ") && !l.contains("Module:") && l.contains("GET-ORDER")).collect();
+    assert!(function_lines.is_empty(), "GET-ORDER should have no individual smells, got: {function_lines:?}");
 }
 
 // ===========================================================================

@@ -1,13 +1,10 @@
 use std::path::PathBuf;
 
-use pulse::audit::cycles::{
-    default_max_iters, find_cycles, find_cycles_with_max_iters, TarjanDiagnostics,
-};
+use pulse::audit::cycles::{default_max_iters, find_cycles, find_cycles_with_max_iters, TarjanDiagnostics};
 use pulse::audit::graph::{ImportGraph, InputEdge};
 use pulse::audit::{audit_traversal_cap_hit, MAX_FILES};
 use pulse::parse::{
-    parse_and_walk, parse_and_walk_guarded, parse_and_walk_scoped, Language, MAX_INPUT_LINES,
-    MAX_LINE_BYTES,
+    parse_and_walk, parse_and_walk_guarded, parse_and_walk_scoped, Language, MAX_INPUT_LINES, MAX_LINE_BYTES,
 };
 
 fn graph_chain(n: usize) -> ImportGraph {
@@ -25,32 +22,22 @@ fn graph_chain(n: usize) -> ImportGraph {
 #[test]
 fn tarjan_default_cap_does_not_fire_on_modest_graph() {
     let graph = graph_chain(50);
-    let (_, diag): (_, TarjanDiagnostics) =
-        find_cycles_with_max_iters(&graph, 2, default_max_iters(&graph));
-    assert!(
-        !diag.iteration_cap_hit,
-        "default cap must not fire on a 50-node cycle: {diag:?}"
-    );
+    let (_, diag): (_, TarjanDiagnostics) = find_cycles_with_max_iters(&graph, 2, default_max_iters(&graph));
+    assert!(!diag.iteration_cap_hit, "default cap must not fire on a 50-node cycle: {diag:?}");
 }
 
 #[test]
 fn tarjan_default_cap_does_not_fire_on_large_graph() {
     let graph = graph_chain(2_000);
     let (_, diag) = find_cycles_with_max_iters(&graph, 2, default_max_iters(&graph));
-    assert!(
-        !diag.iteration_cap_hit,
-        "default cap must not fire on a 2000-node cycle: {diag:?}"
-    );
+    assert!(!diag.iteration_cap_hit, "default cap must not fire on a 2000-node cycle: {diag:?}");
 }
 
 #[test]
 fn tarjan_cap_fires_when_max_iters_is_zero() {
     let graph = graph_chain(50);
     let (_, diag) = find_cycles_with_max_iters(&graph, 2, 0);
-    assert!(
-        diag.iteration_cap_hit,
-        "cap must fire when max_iters=0: {diag:?}"
-    );
+    assert!(diag.iteration_cap_hit, "cap must fire when max_iters=0: {diag:?}");
     assert_eq!(diag.max_iters, 0);
 }
 
@@ -64,8 +51,7 @@ fn tarjan_cap_fires_when_max_iters_is_one() {
 #[test]
 fn guarded_matches_unguarded_on_normal_input() {
     let src = "def a():\n    if x:\n        return 1\n    return 0\n";
-    let guarded =
-        parse_and_walk_guarded(src, Language::Python).expect("guarded analyzes normal input");
+    let guarded = parse_and_walk_guarded(src, Language::Python).expect("guarded analyzes normal input");
     let plain = parse_and_walk(src, Language::Python).expect("plain analyzes normal input");
     assert_eq!(guarded.functions.len(), plain.functions.len());
     assert_eq!(guarded.module.sum_cc, plain.module.sum_cc);
@@ -120,11 +106,7 @@ fn tarjan_default_cap_formula_is_at_least_n_plus_edges() {
     let cap = default_max_iters(&graph);
     let n = 100usize;
     let total_edges = 100usize;
-    assert!(
-        cap >= n + total_edges,
-        "default cap {cap} must be >= n+edges = {} for a 100-node ring",
-        n + total_edges
-    );
+    assert!(cap >= n + total_edges, "default cap {cap} must be >= n+edges = {} for a 100-node ring", n + total_edges);
 }
 
 #[test]
@@ -143,8 +125,7 @@ fn tarjan_cap_truncates_output_silently_when_fired() {
 fn tarjan_normal_call_returns_same_components_as_diagnostic_call() {
     let graph = graph_chain(50);
     let normal = find_cycles(&graph, 2);
-    let (diag_components, diag) =
-        find_cycles_with_max_iters(&graph, 2, default_max_iters(&graph));
+    let (diag_components, diag) = find_cycles_with_max_iters(&graph, 2, default_max_iters(&graph));
     assert_eq!(normal.len(), diag_components.len());
     assert!(!diag.iteration_cap_hit);
 }
@@ -161,10 +142,7 @@ fn audit_max_files_cap_predicate_is_consistent() {
 #[test]
 fn audit_max_files_cap_is_generous_relative_to_realistic_repos() {
     let max_files = MAX_FILES;
-    assert!(
-        max_files >= 50_000,
-        "MAX_FILES must accommodate large monorepos, got {max_files}"
-    );
+    assert!(max_files >= 50_000, "MAX_FILES must accommodate large monorepos, got {max_files}");
 }
 
 #[test]
@@ -203,10 +181,7 @@ fn fingerprint_terminates_on_wide_tree() {
     let lang = detect_language(&path).expect("python");
     let metrics = parse_and_walk(&src, lang).expect("parse");
     let f = metrics.functions.iter().find(|f| f.name == "f").expect("f");
-    assert_ne!(
-        f.structural_hash, 0,
-        "wide tree must produce non-zero fingerprint (cap must not be hit prematurely)"
-    );
+    assert_ne!(f.structural_hash, 0, "wide tree must produce non-zero fingerprint (cap must not be hit prematurely)");
 }
 
 #[test]
@@ -228,10 +203,6 @@ fn cobol_walker_terminates_on_many_statements() {
     std::fs::write(&path, &src).unwrap();
     let lang = detect_language(&path).expect("cobol");
     let metrics = parse_and_walk(&src, lang).expect("parse");
-    let main = metrics
-        .functions
-        .iter()
-        .find(|f| f.name.contains("MAIN"))
-        .expect("MAIN-PARA");
+    let main = metrics.functions.iter().find(|f| f.name.contains("MAIN")).expect("MAIN-PARA");
     assert!(main.loc > 100, "main paragraph loc must reflect 500 statements, got {}", main.loc);
 }

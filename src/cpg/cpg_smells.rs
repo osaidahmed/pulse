@@ -34,32 +34,20 @@ fn finding(smell: Smell, func: &FunctionMetrics, detail: String) -> Finding {
 }
 
 fn is_real(kind: NodeKind) -> bool {
-    matches!(
-        kind,
-        NodeKind::Stmt | NodeKind::Predicate | NodeKind::LoopHead | NodeKind::Handler
-    )
+    matches!(kind, NodeKind::Stmt | NodeKind::Predicate | NodeKind::LoopHead | NodeKind::Handler)
 }
 
 fn unreachable_code(cfg: &Cfg, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {
     let mut lines: Vec<u32> = cfg
         .nodes
         .iter()
-        .filter(|n| {
-            n.id != cfg.entry
-                && n.id != cfg.exit
-                && is_real(n.kind)
-                && !flow.reachable.contains(&n.id)
-        })
+        .filter(|n| n.id != cfg.entry && n.id != cfg.exit && is_real(n.kind) && !flow.reachable.contains(&n.id))
         .map(|n| n.line)
         .collect();
     lines.sort_unstable();
     lines.dedup();
     if let Some(first) = lines.first() {
-        out.push(finding(
-            Smell::UnreachableCode,
-            func,
-            format!("unreachable code starting at line {first}"),
-        ));
+        out.push(finding(Smell::UnreachableCode, func, format!("unreachable code starting at line {first}")));
     }
 }
 
@@ -88,12 +76,7 @@ fn dead_stores(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut 
 }
 
 fn use_before_def(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {
-    let local: HashSet<&str> = cpg
-        .def_use
-        .iter()
-        .filter(|r| r.kind == DefUse::Def)
-        .map(|r| r.name.as_str())
-        .collect();
+    let local: HashSet<&str> = cpg.def_use.iter().filter(|r| r.kind == DefUse::Def).map(|r| r.name.as_str()).collect();
     for u in &cpg.def_use {
         if u.kind != DefUse::Use || !flow.reachable.contains(&u.block) {
             continue;
@@ -101,9 +84,7 @@ fn use_before_def(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &m
         if !local.contains(u.name.as_str()) {
             continue;
         }
-        let reached = flow.reaching_in[u.block as usize]
-            .iter()
-            .any(|&d| cpg.def_use[d].name == u.name);
+        let reached = flow.reaching_in[u.block as usize].iter().any(|&d| cpg.def_use[d].name == u.name);
         if !reached {
             out.push(finding(
                 Smell::UseBeforeDef,

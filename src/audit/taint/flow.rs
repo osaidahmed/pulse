@@ -5,9 +5,7 @@ use tree_sitter::Node;
 use crate::audit::finding::{AuditFinding, AuditKind, ImportConfidence, InjectionEvidence};
 use crate::walk::{node_text, DepthGuard};
 
-use super::nodes::{
-    binding_left, binding_right, callee_name, idents_in, is_field_or_index_target, is_in, line,
-};
+use super::nodes::{binding_left, binding_right, callee_name, idents_in, is_field_or_index_target, is_in, line};
 use super::state::{resolve_taint, sanitized, source_rhs, Rhs, Taint};
 use super::FileCtx;
 
@@ -126,8 +124,7 @@ impl<'a> Analyzer<'a> {
         if !self.reported.insert((t.source_line, sink_line, var.clone())) {
             return;
         }
-        let confidence =
-            if t.opaque { ImportConfidence::BestEffort } else { ImportConfidence::Low };
+        let confidence = if t.opaque { ImportConfidence::BestEffort } else { ImportConfidence::Low };
         self.out.push(AuditFinding {
             kind: AuditKind::InjectionShape(InjectionEvidence {
                 file: self.ctx.path.to_path_buf(),
@@ -202,11 +199,7 @@ impl<'a> Analyzer<'a> {
         let Some(base) = self.tainted.get(name) else { return };
         let mut t = base.clone();
         t.via_var = Some(name.to_string());
-        let add = Rhs {
-            strict: if in_sanitizer { None } else { Some(t.clone()) },
-            opaque: t.opaque,
-            loose: Some(t),
-        };
+        let add = Rhs { strict: if in_sanitizer { None } else { Some(t.clone()) }, opaque: t.opaque, loose: Some(t) };
         r.absorb(add);
     }
 }

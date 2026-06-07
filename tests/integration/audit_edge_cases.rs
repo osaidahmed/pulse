@@ -50,8 +50,11 @@ fn edge_cluster_threshold_just_below_4_dropped() {
 #[test]
 fn edge_idiom_threshold_exact_50_percent_kept() {
     let cluster = RawCluster {
-        fingerprint: 7, support: 5, file_count: 5,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 5,
+        file_count: 5,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 10, &t().audit);
     assert_eq!(result.len(), 1);
@@ -60,8 +63,11 @@ fn edge_idiom_threshold_exact_50_percent_kept() {
 #[test]
 fn edge_idiom_threshold_just_above_50_suppressed() {
     let cluster = RawCluster {
-        fingerprint: 7, support: 6, file_count: 6,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 6,
+        file_count: 6,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 10, &t().audit);
     assert!(result.is_empty());
@@ -72,8 +78,11 @@ fn edge_idiom_threshold_one_percent_only() {
     let mut th = t().audit;
     th.pattern_mining.idiom_suppression_threshold = 0.01;
     let cluster = RawCluster {
-        fingerprint: 7, support: 2, file_count: 2,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 2,
+        file_count: 2,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 10, &th);
     assert!(result.is_empty(), "2/10=20% > 1% threshold");
@@ -85,8 +94,11 @@ fn edge_max_findings_zero_returns_empty() {
     th.pattern_mining.max_findings_reported = 0;
     th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
-        fingerprint: 7, support: 5, file_count: 5,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 5,
+        file_count: 5,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 10, &th);
     assert!(result.is_empty());
@@ -99,8 +111,10 @@ fn edge_max_locations_zero_renders_only_more_marker() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "x".to_string(),
-        support: 3, file_count: 3,
-        idf_score: Some(1.0), action_label: None,
+        support: 3,
+        file_count: 3,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -159,11 +173,7 @@ fn edge_zero_records_returns_empty_vec() {
 fn edge_locations_already_sorted_preserved() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "x"),
-        rec(7, "b.py", 2, "x"),
-        rec(7, "c.py", 3, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "x"), rec(7, "b.py", 2, "x"), rec(7, "c.py", 3, "x")];
     let clusters = freqt_mine(&recs, &th);
     let locs = &clusters[0].locations;
     for i in 1..locs.len() {
@@ -176,8 +186,11 @@ fn edge_apply_idf_with_zero_locations_kept_finding_renders() {
     let mut th = t().audit;
     th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
-        fingerprint: 7, support: 5, file_count: 1,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 5,
+        file_count: 1,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 100, &th);
     assert_eq!(result.len(), 1);
@@ -188,8 +201,11 @@ fn edge_apply_idf_with_zero_locations_kept_finding_renders() {
 #[test]
 fn edge_apply_idf_score_for_unique_pattern_is_log_n() {
     let cluster = RawCluster {
-        fingerprint: 7, support: 1, file_count: 1,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 1,
+        file_count: 1,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 100, &t().audit);
     assert_eq!(result.len(), 1);
@@ -203,8 +219,11 @@ fn edge_apply_idf_score_for_universal_pattern_is_zero() {
     let mut th = t().audit;
     th.pattern_mining.idiom_suppression_threshold = 1.0;
     let cluster = RawCluster {
-        fingerprint: 7, support: 100, file_count: 100,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 100,
+        file_count: 100,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 100, &th);
     assert!(result[0].idf_score.unwrap().abs() < 1e-9);
@@ -213,8 +232,11 @@ fn edge_apply_idf_score_for_universal_pattern_is_zero() {
 #[test]
 fn edge_apply_idf_handles_large_total_files() {
     let cluster = RawCluster {
-        fingerprint: 7, support: 5, file_count: 1,
-        representative_snippet: "x".to_string(), locations: vec![],
+        fingerprint: 7,
+        support: 5,
+        file_count: 1,
+        representative_snippet: "x".to_string(),
+        locations: vec![],
     };
     let result = apply_idf(vec![cluster], 1_000_000, &t().audit);
     assert_eq!(result.len(), 1);
@@ -225,7 +247,8 @@ fn edge_format_findings_with_action_label_renders_correctly() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "x".to_string(),
-        support: 5, file_count: 5,
+        support: 5,
+        file_count: 5,
         idf_score: Some(1.0),
         action_label: Some("extract polymorphic dispatch"),
         pattern_category: None,
@@ -243,7 +266,8 @@ fn edge_format_findings_without_action_label_omits_block() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "x".to_string(),
-        support: 5, file_count: 5,
+        support: 5,
+        file_count: 5,
         idf_score: Some(1.0),
         action_label: None,
         pattern_category: None,
@@ -260,8 +284,10 @@ fn edge_format_findings_two_findings_separated_by_blank_line() {
     let f1 = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 1 },
         representative_snippet: "a".to_string(),
-        support: 5, file_count: 5,
-        idf_score: Some(1.0), action_label: None,
+        support: 5,
+        file_count: 5,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -270,8 +296,10 @@ fn edge_format_findings_two_findings_separated_by_blank_line() {
     let f2 = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 2 },
         representative_snippet: "b".to_string(),
-        support: 4, file_count: 4,
-        idf_score: Some(1.0), action_label: None,
+        support: 4,
+        file_count: 4,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -292,8 +320,10 @@ fn edge_format_findings_json_handles_unicode_in_snippet() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "δ == λ".to_string(),
-        support: 5, file_count: 5,
-        idf_score: Some(1.0), action_label: None,
+        support: 5,
+        file_count: 5,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -642,8 +672,10 @@ fn edge_format_findings_full_round_trip_human_then_json() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 0xdead_beef },
         representative_snippet: "media_type == X.value".to_string(),
-        support: 99, file_count: 38,
-        idf_score: Some(1.5), action_label: None,
+        support: 99,
+        file_count: 38,
+        idf_score: Some(1.5),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -664,8 +696,10 @@ fn edge_format_findings_human_renders_correct_bullet_indents() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "x".to_string(),
-        support: 3, file_count: 3,
-        idf_score: Some(1.0), action_label: None,
+        support: 3,
+        file_count: 3,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -684,8 +718,10 @@ fn edge_format_findings_json_array_syntax_correct_for_one_finding() {
     let f = AuditFinding {
         kind: AuditKind::UncategorizedPattern { fingerprint: 7 },
         representative_snippet: "x".to_string(),
-        support: 3, file_count: 3,
-        idf_score: Some(1.0), action_label: None,
+        support: 3,
+        file_count: 3,
+        idf_score: Some(1.0),
+        action_label: None,
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
@@ -709,7 +745,8 @@ fn edge_walker_records_correct_line_for_first_function_after_blank() {
 #[test]
 fn edge_walker_record_count_increases_with_branching() {
     let simple = "def f():\n    return 1\n";
-    let branchy = "def f(x):\n    if x:\n        return 1\n    elif y:\n        return 2\n    else:\n        return 3\n";
+    let branchy =
+        "def f(x):\n    if x:\n        return 1\n    elif y:\n        return 2\n    else:\n        return 3\n";
     let s = ext_python(simple).len();
     let b = ext_python(branchy).len();
     assert!(b > s);
@@ -728,11 +765,7 @@ fn edge_freqt_mine_distinguishes_single_char_snippet_difference() {
 fn edge_freqt_mine_picks_longest_among_equal_length_snippets() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "abc"),
-        rec(7, "b.py", 1, "abcd"),
-        rec(7, "c.py", 1, "abcde"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "abc"), rec(7, "b.py", 1, "abcd"), rec(7, "c.py", 1, "abcde")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].representative_snippet, "abcde");
 }
@@ -741,11 +774,7 @@ fn edge_freqt_mine_picks_longest_among_equal_length_snippets() {
 fn edge_freqt_mine_handles_locations_with_same_path_different_lines() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let recs = vec![
-        rec(7, "a.py", 1, "x"),
-        rec(7, "a.py", 5, "x"),
-        rec(7, "a.py", 10, "x"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "x"), rec(7, "a.py", 5, "x"), rec(7, "a.py", 10, "x")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters[0].support, 3);
     assert_eq!(clusters[0].file_count, 1);
@@ -754,12 +783,27 @@ fn edge_freqt_mine_handles_locations_with_same_path_different_lines() {
 #[test]
 fn edge_apply_idf_reorders_when_input_unsorted() {
     let cs = vec![
-        RawCluster { fingerprint: 1, support: 3, file_count: 2,
-            representative_snippet: "a".to_string(), locations: vec![] },
-        RawCluster { fingerprint: 2, support: 9, file_count: 2,
-            representative_snippet: "b".to_string(), locations: vec![] },
-        RawCluster { fingerprint: 3, support: 5, file_count: 2,
-            representative_snippet: "c".to_string(), locations: vec![] },
+        RawCluster {
+            fingerprint: 1,
+            support: 3,
+            file_count: 2,
+            representative_snippet: "a".to_string(),
+            locations: vec![],
+        },
+        RawCluster {
+            fingerprint: 2,
+            support: 9,
+            file_count: 2,
+            representative_snippet: "b".to_string(),
+            locations: vec![],
+        },
+        RawCluster {
+            fingerprint: 3,
+            support: 5,
+            file_count: 2,
+            representative_snippet: "c".to_string(),
+            locations: vec![],
+        },
     ];
     let result = apply_idf(cs, 100, &t().audit);
     assert_eq!(result[0].support, 9);
@@ -771,10 +815,7 @@ fn edge_apply_idf_reorders_when_input_unsorted() {
 fn edge_freqt_mine_two_equal_fingerprint_groups_handled_separately() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 2;
-    let recs = vec![
-        rec(7, "a.py", 1, "x"), rec(7, "b.py", 1, "x"),
-        rec(8, "c.py", 1, "y"), rec(8, "d.py", 1, "y"),
-    ];
+    let recs = vec![rec(7, "a.py", 1, "x"), rec(7, "b.py", 1, "x"), rec(8, "c.py", 1, "y"), rec(8, "d.py", 1, "y")];
     let clusters = freqt_mine(&recs, &th);
     assert_eq!(clusters.len(), 2);
 }

@@ -45,11 +45,7 @@ pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>, curre
     create_baseline_files(hook, cfg, current_source);
 }
 
-fn create_baseline_files(
-    hook: &HookInput,
-    cfg: Option<&config::PulseConfig>,
-    current_source: &str,
-) {
+fn create_baseline_files(hook: &HookInput, cfg: Option<&config::PulseConfig>, current_source: &str) {
     let bp = baseline_path(&hook.file_path);
     let (counts, func_findings) = compute_baseline(hook, cfg, current_source);
     write_baseline(&bp, &counts);
@@ -73,9 +69,7 @@ pub fn load_function_baseline(file_path: &str) -> HashSet<String> {
 
 pub fn is_preexisting_finding(f: &Finding, baseline: &HashSet<String>) -> bool {
     match &f.location {
-        Location::Function { name, .. } => {
-            baseline.contains(&format!("{}:{}:{}", name, f.smell, f.detail))
-        }
+        Location::Function { name, .. } => baseline.contains(&format!("{}:{}:{}", name, f.smell, f.detail)),
         Location::Module => false,
     }
 }
@@ -118,16 +112,9 @@ fn baseline_path(file_path: &str) -> PathBuf {
 
 pub fn increment_edit_count(file_path: &str) -> u32 {
     let path = baseline_dir().join(format!("{:016x}.edits", hash_path(file_path)));
-    let current: u32 = std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|s| s.trim().parse().ok())
-        .unwrap_or(0);
+    let current: u32 = std::fs::read_to_string(&path).ok().and_then(|s| s.trim().parse().ok()).unwrap_or(0);
     let next = current + 1;
-    let tmp = baseline_dir().join(format!(
-        "{:016x}.edits.tmp.{}",
-        hash_path(file_path),
-        std::process::id()
-    ));
+    let tmp = baseline_dir().join(format!("{:016x}.edits.tmp.{}", hash_path(file_path), std::process::id()));
     if std::fs::write(&tmp, next.to_string()).is_ok() {
         let _ = std::fs::rename(&tmp, &path);
     }
@@ -187,26 +174,15 @@ fn reconstruct_pre_edit(hook: &HookInput, current_source: &str) -> Option<String
 fn git_show_head(file_path: &str) -> Option<String> {
     let abs = std::fs::canonicalize(file_path).ok()?;
     let dir = abs.parent()?;
-    let toplevel = std::process::Command::new("git")
-        .args(["-C", dir.to_str()?, "rev-parse", "--show-toplevel"])
-        .output()
-        .ok()?;
+    let toplevel =
+        std::process::Command::new("git").args(["-C", dir.to_str()?, "rev-parse", "--show-toplevel"]).output().ok()?;
     if !toplevel.status.success() {
         return None;
     }
     let root = String::from_utf8_lossy(&toplevel.stdout).trim().to_string();
     let root = std::fs::canonicalize(&root).ok()?;
-    let rel = abs
-        .strip_prefix(&root)
-        .ok()?
-        .to_string_lossy()
-        .replace('\\', "/");
-    let output = std::process::Command::new("git")
-        .args(["-C", root.to_str()?, "show", &format!("HEAD:{rel}")])
-        .output()
-        .ok()?;
-    output
-        .status
-        .success()
-        .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
+    let rel = abs.strip_prefix(&root).ok()?.to_string_lossy().replace('\\', "/");
+    let output =
+        std::process::Command::new("git").args(["-C", root.to_str()?, "show", &format!("HEAD:{rel}")]).output().ok()?;
+    output.status.success().then(|| String::from_utf8_lossy(&output.stdout).into_owned())
 }

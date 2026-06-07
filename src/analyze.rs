@@ -58,22 +58,13 @@ pub fn analyze_source(
     opts: ScanOptions,
 ) -> Option<AnalysisResultFull> {
     let thresholds = config::resolve_thresholds(cfg, lang);
-    let metrics =
-        parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range, thresholds.cpg.enabled)?;
+    let metrics = parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range, thresholds.cpg.enabled)?;
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);
     config::filter_disabled(&mut findings, &disabled);
     applicability::filter_by_applicability(&mut findings, opts.surface);
-    let filename = Path::new(file_path)
-        .file_name()?
-        .to_string_lossy()
-        .into_owned();
-    Some(AnalysisResultFull {
-        findings,
-        filename,
-        metrics,
-        thresholds,
-    })
+    let filename = Path::new(file_path).file_name()?.to_string_lossy().into_owned();
+    Some(AnalysisResultFull { findings, filename, metrics, thresholds })
 }
 
 pub fn analyze_file(
@@ -89,16 +80,9 @@ pub fn analyze_file(
     analyze_source(file_path, &source, lang, cfg, opts)
 }
 
-pub fn module_regressions(
-    result: &AnalysisResultFull,
-    baseline: &HashMap<String, usize>,
-) -> Vec<Finding> {
+pub fn module_regressions(result: &AnalysisResultFull, baseline: &HashMap<String, usize>) -> Vec<Finding> {
     let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
-    for f in result
-        .findings
-        .iter()
-        .filter(|f| matches!(f.location, Location::Module))
-    {
+    for f in result.findings.iter().filter(|f| matches!(f.location, Location::Module)) {
         *current_counts.entry(f.smell).or_default() += 1;
     }
     result

@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
 use pulse::audit::finding::{
-    AuditFinding, AuditKind, AuditLocation, CycleMembership, ImportConfidence, MartinMetrics,
-    MartinTier,
+    AuditFinding, AuditKind, AuditLocation, CycleMembership, ImportConfidence, MartinMetrics, MartinTier,
 };
 use pulse::audit::output::{format_findings, format_findings_json};
 use pulse::thresholds::Thresholds;
@@ -66,10 +65,7 @@ fn cycle_finding(members: &[&str], confidence: ImportConfidence) -> AuditFinding
         pattern_category: None,
         locality_entropy: None,
         p_value: None,
-        locations: member_paths
-            .iter()
-            .map(|p| AuditLocation { file: p.clone(), line: 1 })
-            .collect(),
+        locations: member_paths.iter().map(|p| AuditLocation { file: p.clone(), line: 1 }).collect(),
     }
 }
 
@@ -220,12 +216,8 @@ fn cycle_json_members_in_alphabetical_order() {
     let f = cycle_finding(&["z.rs", "a.rs", "m.rs"], ImportConfidence::High);
     let s = format_findings_json(&[f], None);
     let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-    let members: Vec<String> = v[0]["members"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|x| x.as_str().unwrap().to_string())
-        .collect();
+    let members: Vec<String> =
+        v[0]["members"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect();
     let mut sorted = members.clone();
     sorted.sort();
     assert_eq!(members, sorted);

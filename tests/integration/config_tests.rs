@@ -1,4 +1,3 @@
-
 use pulse::config::{self, PulseConfig};
 use pulse::parse::Language;
 use pulse::smells::{self, Smell};
@@ -288,16 +287,8 @@ fn invalid_smell_name_silently_ignored() {
 #[test]
 fn filter_disabled_removes_matching() {
     let mut findings = vec![
-        smells::Finding {
-            smell: Smell::ExcessArguments,
-            location: smells::Location::Module,
-            detail: String::new(),
-        },
-        smells::Finding {
-            smell: Smell::GodMethod,
-            location: smells::Location::Module,
-            detail: String::new(),
-        },
+        smells::Finding { smell: Smell::ExcessArguments, location: smells::Location::Module, detail: String::new() },
+        smells::Finding { smell: Smell::GodMethod, location: smells::Location::Module, detail: String::new() },
     ];
     let mut disabled = std::collections::HashSet::new();
     disabled.insert(Smell::ExcessArguments);
@@ -424,11 +415,7 @@ fn no_config_detects_finding() {
 #[test]
 fn disable_config_suppresses_smell() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(
-        dir.path().join(".pulse.toml"),
-        "[disable]\nsmells = [\"excess_arguments\"]\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join(".pulse.toml"), "[disable]\nsmells = [\"excess_arguments\"]\n").unwrap();
 
     let args: Vec<String> = (0..crate::common::args_above()).map(|i| format!("a{i}")).collect();
     let code = format!("def foo({}):\n    pass\n", args.join(", "));
@@ -480,4 +467,3 @@ fn cpg_section_overrides_flags() {
     assert_eq!(resolved.cpg.dead_store, t().cpg.dead_store);
     assert_eq!(resolved.cpg.use_before_def, t().cpg.use_before_def);
 }
-

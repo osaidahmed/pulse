@@ -106,15 +106,8 @@ struct Builder<'a> {
 }
 
 pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRecord>) {
-    let mut b = Builder {
-        lang,
-        source,
-        nodes: Vec::new(),
-        edges: Vec::new(),
-        loops: Vec::new(),
-        def_use: Vec::new(),
-        exit: 0,
-    };
+    let mut b =
+        Builder { lang, source, nodes: Vec::new(), edges: Vec::new(), loops: Vec::new(), def_use: Vec::new(), exit: 0 };
     let entry = b.add(NodeKind::Entry, line(body));
     let exit = b.add(NodeKind::Exit, end_line(body));
     b.exit = exit;
@@ -219,8 +212,7 @@ impl Builder<'_> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
         self.record_cond(node, p);
-        let then_end =
-            self.seq_opt_block(node.child_by_field_name("consequence"), Some((p, EdgeLabel::True)));
+        let then_end = self.seq_opt_block(node.child_by_field_name("consequence"), Some((p, EdgeLabel::True)));
         let alt = node.child_by_field_name("alternative");
         let else_end = match alt {
             Some(a) => self.do_else(a, p),
@@ -284,9 +276,8 @@ impl Builder<'_> {
         let entry = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, entry);
         let after = self.add(NodeKind::Stmt, end_line(node));
-        let body_end = node
-            .child_by_field_name("body")
-            .map_or(Some(entry), |b| self.seq(b, Some((entry, EdgeLabel::Epsilon))));
+        let body_end =
+            node.child_by_field_name("body").map_or(Some(entry), |b| self.seq(b, Some((entry, EdgeLabel::Epsilon))));
         let mut normal = body_end;
         let mut finalizer = None;
         let mut cursor = node.walk();

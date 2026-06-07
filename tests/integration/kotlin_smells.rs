@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -300,10 +299,7 @@ fn embedded_block_detected() {
 
 #[test]
 fn simple_string_not_flagged() {
-    let output = pulse_check_code(
-        "class T {\n    fun f(): String {\n        return \"hello\"\n    }\n}\n",
-        "kt",
-    );
+    let output = pulse_check_code("class T {\n    fun f(): String {\n        return \"hello\"\n    }\n}\n", "kt");
     assert!(!has_smell(&output, "Large Embedded Block"), "got: {output}");
 }
 

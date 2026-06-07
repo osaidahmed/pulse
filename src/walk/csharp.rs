@@ -2,31 +2,23 @@ use tree_sitter::{Node, Tree};
 
 use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
-    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, ElseBranchCfg, ElseHandlers,
-    GlobalMetricsConfig,
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
 };
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds,
-    find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["this"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "long", "float", "double", "bool", "string", "char",
-    "byte", "sbyte", "short", "ushort", "uint", "ulong", "decimal",
-    "object", "void",
+    "int", "long", "float", "double", "bool", "string", "char", "byte", "sbyte", "short", "ushort", "uint", "ulong",
+    "decimal", "object", "void",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "foreach_statement",
-    "while_statement",
-    "switch_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "foreach_statement", "while_statement", "switch_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
 const BOOL_STOPS: &[&str] = &["block", "method_declaration", "class_declaration", "lambda_expression"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -69,8 +61,9 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
-            "class_declaration" | "struct_declaration" | "interface_declaration"
-            | "record_declaration" => collect_class_methods(child, source, functions),
+            "class_declaration" | "struct_declaration" | "interface_declaration" | "record_declaration" => {
+                collect_class_methods(child, source, functions);
+            }
             "namespace_declaration" => recurse_namespace(child, source, functions),
             "method_declaration" | "local_function_statement" => {
                 if let Some(m) = analyze_callable(child, source, &METHOD_CFG) {
@@ -83,18 +76,17 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 }
 
 fn recurse_namespace(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let Some(body) = find_child_by_kind(node, "declaration_list") else { return; };
+    let Some(body) = find_child_by_kind(node, "declaration_list") else {
+        return;
+    };
     collect_functions(body, source, functions);
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let class_name = find_child_by_kind(class_node, "identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let class_name =
+        find_child_by_kind(class_node, "identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default();
     let parent_class = find_child_by_kind(class_node, "base_list")
-        .and_then(|bl| {
-            find_child_by_kind(bl, "identifier").or_else(|| find_child_by_kind(bl, "qualified_name"))
-        })
+        .and_then(|bl| find_child_by_kind(bl, "identifier").or_else(|| find_child_by_kind(bl, "qualified_name")))
         .map(|id| node_text(id, source).to_string());
 
     let Some(body) = find_child_by_kind(class_node, "declaration_list") else {
@@ -143,11 +135,7 @@ struct CallableConfig {
 const METHOD_CFG: CallableConfig = CallableConfig { body_kind: "block", fallback_name: "<anonymous>" };
 const CTOR_CFG: CallableConfig = CallableConfig { body_kind: "constructor_body", fallback_name: "<constructor>" };
 
-fn analyze_callable(
-    node: Node,
-    source: &str,
-    cfg: &CallableConfig,
-) -> Option<FunctionMetrics> {
+fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<FunctionMetrics> {
     let name = find_child_by_kind(node, "identifier")
         .map_or_else(|| cfg.fallback_name.into(), |n| node_text(n, source).to_string());
 
@@ -155,8 +143,7 @@ fn analyze_callable(
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
-        count_parameters(node, source);
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, cfg.body_kind).or_else(|| find_child_by_kind(node, "block"))?;
 
@@ -196,7 +183,13 @@ fn analyze_callable(
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["variable_declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_statement", "switch_section", &["string_literal", "verbatim_string_literal", "interpolated_string_expression"], &[]),
+        string_match_arms: count_string_match_arms(
+            body,
+            "switch_statement",
+            "switch_section",
+            &["string_literal", "verbatim_string_literal", "interpolated_string_expression"],
+            &[],
+        ),
         cpg: None,
     })
 }
@@ -221,10 +214,8 @@ const NODE_HANDLERS: &[(&[&str], NodeHandler)] = &[
     (&["try_statement"], walk_children),
 ];
 
-const STRING_KINDS: &[&str] = &[
-    "string_literal", "raw_string_literal", "verbatim_string_literal",
-    "interpolated_string_expression",
-];
+const STRING_KINDS: &[&str] =
+    &["string_literal", "raw_string_literal", "verbatim_string_literal", "interpolated_string_expression"];
 
 fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     let kind = child.kind();
@@ -232,8 +223,14 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
         track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    if kind == "lambda_expression" { return; }
-    if kind == "conditional_expression" { s.cc += 1; s.track_cogc_branch(); return; }
+    if kind == "lambda_expression" {
+        return;
+    }
+    if kind == "conditional_expression" {
+        s.cc += 1;
+        s.track_cogc_branch();
+        return;
+    }
     for (kinds, handler) in NODE_HANDLERS {
         if kinds.contains(&kind) {
             handler(child, source, depth, s);
@@ -319,9 +316,19 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                 if is_catch_body_empty(child, "block", None) {
                     s.empty_catch_count += 1;
                 }
-                shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
+                shared::walk_block_children(
+                    child,
+                    &mut shared::BlockWalkCtx { source, depth, state: s },
+                    "block",
+                    walk_body,
+                );
             }
-            "finally_clause" => shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body),
+            "finally_clause" => shared::walk_block_children(
+                child,
+                &mut shared::BlockWalkCtx { source, depth, state: s },
+                "block",
+                walk_body,
+            ),
             _ => {}
         }
     }
@@ -354,11 +361,7 @@ const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
     bool_stops: BOOL_STOPS,
 };
 
-const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
-    cfg: &ELSE_CFG,
-    walk_body,
-    walk_children,
-};
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers { cfg: &ELSE_CFG, walk_body, walk_children };
 
 fn walk_else_clause(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_else_branch(node, &mut BlockWalkCtx { source, depth, state: s }, &ELSE_HANDLERS);
@@ -400,8 +403,11 @@ fn count_declarations(root: Node) -> u32 {
     let mut cursor = root.walk();
     for child in root.children(&mut cursor) {
         match child.kind() {
-            "class_declaration" | "struct_declaration" | "interface_declaration"
-            | "enum_declaration" | "record_declaration" => {
+            "class_declaration"
+            | "struct_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration" => {
                 count += 1;
             }
             _ => {}

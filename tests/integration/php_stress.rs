@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("php");
@@ -21,7 +20,8 @@ fn cc_if() {
 
 #[test]
 fn cc_elseif() {
-    let out = debug("<?php\nfunction f(int $x): int { if ($x > 2) { return 2; } elseif ($x > 1) { return 1; } return 0; }\n");
+    let out =
+        debug("<?php\nfunction f(int $x): int { if ($x > 2) { return 2; } elseif ($x > 1) { return 1; } return 0; }\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -111,7 +111,9 @@ fn cc_keyword_or() {
 
 #[test]
 fn cc_chained_boolean() {
-    let out = debug("<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n");
+    let out = debug(
+        "<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n",
+    );
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {cc}");
 }
@@ -130,7 +132,8 @@ fn cc_case_else_not_counted() {
 
 #[test]
 fn cc_sequential_ifs() {
-    let out = debug("<?php\nfunction f(int $a, int $b, int $c): void { if ($a > 0) {} if ($b > 0) {} if ($c > 0) {} }\n");
+    let out =
+        debug("<?php\nfunction f(int $a, int $b, int $c): void { if ($a > 0) {} if ($b > 0) {} if ($c > 0) {} }\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(4));
 }
 
@@ -186,7 +189,9 @@ fn cogc_loop_with_nested_if() {
 
 #[test]
 fn cogc_switch() {
-    let out = debug("<?php\nfunction f(int $x): void { switch ($x) { case 1: echo 'a'; break; case 2: echo 'b'; break; } }\n");
+    let out = debug(
+        "<?php\nfunction f(int $x): void { switch ($x) { case 1: echo 'a'; break; case 2: echo 'b'; break; } }\n",
+    );
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 1, "cogc={cogc}");
 }
@@ -217,7 +222,8 @@ fn nesting_simple_if() {
 
 #[test]
 fn nesting_three_deep() {
-    let out = debug("<?php\nfunction f(bool $a, bool $b, bool $c): void { if ($a) { if ($b) { if ($c) { echo 'x'; } } } }\n");
+    let out =
+        debug("<?php\nfunction f(bool $a, bool $b, bool $c): void { if ($a) { if ($b) { if ($c) { echo 'x'; } } } }\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -235,7 +241,9 @@ fn nesting_sequential_not_accumulated() {
 
 #[test]
 fn nesting_loop_with_if() {
-    let out = debug("<?php\nfunction f(array $a): void { for ($i=0; $i<count($a); $i++) { if ($a[$i] > 0) { echo $a[$i]; } } }\n");
+    let out = debug(
+        "<?php\nfunction f(array $a): void { for ($i=0; $i<count($a); $i++) { if ($a[$i] > 0) { echo $a[$i]; } } }\n",
+    );
     assert_eq!(function_metric(&out, "f", "nesting"), Some(2));
 }
 
@@ -361,7 +369,8 @@ fn below_min_loc_no_duplication() {
 #[test]
 fn test_prefix_duplication_suppressed() {
     let body = "  $t = 0;\n  foreach ($a as $v) {\n    if ($v > 0) { $t += $v; }\n  }\n  return $t;\n";
-    let code = format!("<?php\nfunction test_a(array $a): int {{\n{body}}}\nfunction test_b(array $a): int {{\n{body}}}\n");
+    let code =
+        format!("<?php\nfunction test_a(array $a): int {{\n{body}}}\nfunction test_b(array $a): int {{\n{body}}}\n");
     let out = check(&code);
     assert!(!has_smell(&out, "Code Duplication"), "got: {out}");
 }
@@ -390,7 +399,8 @@ fn asserts_below_threshold_not_flagged() {
 fn assert_interruption_resets() {
     let half = asserts_at() / 2;
     let asserts: Vec<String> = (0..half).map(|i| format!("  assert({i} === {i});")).collect();
-    let code = format!("<?php\nfunction f(): void {{\n{}\n  echo 'break';\n{}\n}}\n", asserts.join("\n"), asserts.join("\n"));
+    let code =
+        format!("<?php\nfunction f(): void {{\n{}\n  echo 'break';\n{}\n}}\n", asserts.join("\n"), asserts.join("\n"));
     let out = check(&code);
     assert!(!has_smell(&out, "Large Assertion Block"), "got: {out}");
 }
@@ -564,7 +574,9 @@ fn match_with_default_cc() {
 
 #[test]
 fn catch_multiple_types() {
-    let out = debug("<?php\nfunction f(): void { try { echo 'a'; } catch (RuntimeException | LogicException $e) { echo 'b'; } }\n");
+    let out = debug(
+        "<?php\nfunction f(): void { try { echo 'a'; } catch (RuntimeException | LogicException $e) { echo 'b'; } }\n",
+    );
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
 }
 
@@ -576,7 +588,8 @@ fn empty_catch_flagged() {
 
 #[test]
 fn non_empty_catch_not_flagged() {
-    let out = check("<?php\nfunction f(): void { try { echo 'a'; } catch (Exception $e) { echo $e->getMessage(); } }\n");
+    let out =
+        check("<?php\nfunction f(): void { try { echo 'a'; } catch (Exception $e) { echo $e->getMessage(); } }\n");
     assert!(!has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
@@ -588,13 +601,15 @@ fn arrow_fn_scope_boundary() {
 
 #[test]
 fn closure_scope_boundary() {
-    let out = debug("<?php\nfunction f(): callable { return function(): int { if (true) { return 1; } return 0; }; }\n");
+    let out =
+        debug("<?php\nfunction f(): callable { return function(): int { if (true) { return 1; } return 0; }; }\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
 #[test]
 fn closure_with_use() {
-    let out = debug("<?php\nfunction f(int $y): callable { return function(int $x) use ($y): int { return $x + $y; }; }\n");
+    let out =
+        debug("<?php\nfunction f(int $y): callable { return function(int $x) use ($y): int { return $x + $y; }; }\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(1));
 }
 
@@ -647,7 +662,9 @@ fn interface_methods_skipped_without_body() {
 
 #[test]
 fn enum_methods_found() {
-    let out = debug("<?php\nenum Color {\n  case Red;\n  case Blue;\n  public function label(): string { return 'color'; }\n}\n");
+    let out = debug(
+        "<?php\nenum Color {\n  case Red;\n  case Blue;\n  public function label(): string { return 'color'; }\n}\n",
+    );
     assert!(out.contains("Color.label"), "got: {out}");
 }
 
@@ -668,7 +685,8 @@ fn performance_large_file() {
 fn performance_class_hierarchy() {
     let mut classes = Vec::new();
     for c in 0..10 {
-        let methods: Vec<String> = (0..5).map(|m| format!("  public function m_{m}(): int {{ return {m}; }}")).collect();
+        let methods: Vec<String> =
+            (0..5).map(|m| format!("  public function m_{m}(): int {{ return {m}; }}")).collect();
         classes.push(format!("class C_{c} {{\n{}\n}}", methods.join("\n")));
     }
     let code = format!("<?php\n{}\n", classes.join("\n"));
@@ -683,7 +701,9 @@ fn performance_class_hierarchy() {
 
 #[test]
 fn clean_class_no_smells() {
-    let out = check("<?php\nclass C {\n  public function f(): int { return 1; }\n  public function g(): int { return 2; }\n}\n");
+    let out = check(
+        "<?php\nclass C {\n  public function f(): int { return 1; }\n  public function g(): int { return 2; }\n}\n",
+    );
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -708,7 +728,9 @@ fn empty_method_body() {
 
 #[test]
 fn multiple_independent_functions() {
-    let out = debug("<?php\nfunction a(): int { return 1; }\nfunction b(): int { return 2; }\nfunction c(): int { return 3; }\n");
+    let out = debug(
+        "<?php\nfunction a(): int { return 1; }\nfunction b(): int { return 2; }\nfunction c(): int { return 3; }\n",
+    );
     assert!(out.contains('a') && out.contains('b') && out.contains('c'), "got: {out}");
 }
 
@@ -764,7 +786,9 @@ fn cogc_boolean_single_sequence() {
 
 #[test]
 fn cogc_boolean_mixed_sequence() {
-    let out = debug("<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n");
+    let out = debug(
+        "<?php\nfunction f(bool $a, bool $b, bool $c): bool { if ($a && $b || $c) { return true; } return false; }\n",
+    );
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
     assert!(cogc >= 3, "got: {cogc}");
 }
@@ -828,7 +852,8 @@ fn bumpy_road_metric_two_bumps() {
 
 #[test]
 fn args_five_at_threshold_not_flagged() {
-    let out = check("<?php\nfunction f(int $a, int $b, int $c, int $d, int $e): int { return $a + $b + $c + $d + $e; }\n");
+    let out =
+        check("<?php\nfunction f(int $a, int $b, int $c, int $d, int $e): int { return $a + $b + $c + $d + $e; }\n");
     assert!(!has_smell(&out, "Excess Arguments"));
 }
 

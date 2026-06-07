@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -17,9 +16,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_methods.cob");
-    assert!(output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -102,10 +99,7 @@ fn function_at_cc_boundary_flagged() {
         code.push_str(&format!("           IF {v} > 0\n               DISPLAY \"{v}\"\n           END-IF.\n"));
     }
     let out = pulse_check_code(&code, "cob");
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -203,10 +197,7 @@ fn god_method_not_reported_as_separate() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout
-        .lines()
-        .filter(|l| l.contains("BIG-PARA"))
-        .collect();
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("BIG-PARA")).collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -231,10 +222,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -316,19 +304,13 @@ fn code_duplication_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.cob");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.cob");
-    assert!(
-        has_smell(&output, "Low Cohesion") || !output.is_empty() || output.is_empty(),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Low Cohesion") || !output.is_empty() || output.is_empty(), "got: {output}");
 }
 
 #[test]
@@ -341,9 +323,7 @@ fn primitive_obsession_no_false_positive() {
 fn overall_function_size_at_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("size_at.cob");
-    let mut code = String::from(
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
-    );
+    let mut code = String::from("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n");
     for i in 0..3 {
         code.push_str(&format!("       LG{i}.\n"));
         for j in 0..large_fn_lines() {
@@ -356,19 +336,14 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Overall Function Size"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 #[test]
 fn overall_function_size_below_threshold() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("size_below.cob");
-    let mut code = String::from(
-        "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n"
-    );
+    let mut code = String::from("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. T.\n       PROCEDURE DIVISION.\n");
     for i in 0..2 {
         code.push_str(&format!("       LG{i}.\n"));
         for j in 0..large_fn_lines() {
@@ -429,10 +404,7 @@ fn complex_conditional_detected() {
         ),
         "cob",
     );
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -450,11 +422,7 @@ fn analysis_completes_under_500ms() {
         .output()
         .expect("failed to run");
     let elapsed = start.elapsed();
-    assert!(
-        elapsed.as_millis() < 1000,
-        "took: {}ms",
-        elapsed.as_millis()
-    );
+    assert!(elapsed.as_millis() < 1000, "took: {}ms", elapsed.as_millis());
 }
 
 #[test]
@@ -521,10 +489,7 @@ fn nested_conditional_chunks_detected() {
         ),
         "cob",
     );
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -709,8 +674,5 @@ fn global_conditionals_parsed() {
 #[test]
 fn test_file_analyzed() {
     let output = run_check(LANG, "test_smells.cob");
-    assert!(
-        !output.is_empty() || output.is_empty(),
-        "test file should be parseable"
-    );
+    assert!(!output.is_empty() || output.is_empty(), "test file should be parseable");
 }

@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -13,12 +12,7 @@ fn run_hook_with_json(json: &str) -> String {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(json.as_bytes())
-                .unwrap();
+            child.stdin.take().unwrap().write_all(json.as_bytes()).unwrap();
             child.wait_with_output()
         })
         .expect("failed to run pulse --hook");
@@ -36,13 +30,7 @@ fn edit_that_introduces_smell_shows_only_near_function() {
     // After edit: func_a has too many args (smelly), func_b is clean far away
     std::fs::write(
         &path,
-        concat!(
-            "def func_a(a, b, c, d, e, f, g, h):\n",
-            "    return a\n",
-            "\n",
-            "def clean():\n",
-            "    return 1\n",
-        ),
+        concat!("def func_a(a, b, c, d, e, f, g, h):\n", "    return a\n", "\n", "def clean():\n", "    return 1\n",),
     )
     .unwrap();
 
@@ -52,10 +40,7 @@ fn edit_that_introduces_smell_shows_only_near_function() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(
-        output.contains("func_a"),
-        "should see func_a after introducing smell, got: {output}"
-    );
+    assert!(output.contains("func_a"), "should see func_a after introducing smell, got: {output}");
 }
 
 #[test]
@@ -64,15 +49,7 @@ fn edit_far_from_functions_shows_nothing() {
     let path = dir.path().join("test.py");
     std::fs::write(
         &path,
-        concat!(
-            "import os\n",
-            "\n",
-            "\n",
-            "\n",
-            "\n",
-            "def smelly(a, b, c, d, e, f, g, h):\n",
-            "    return a\n",
-        ),
+        concat!("import os\n", "\n", "\n", "\n", "\n", "def smelly(a, b, c, d, e, f, g, h):\n", "    return a\n",),
     )
     .unwrap();
 
@@ -82,10 +59,7 @@ fn edit_far_from_functions_shows_nothing() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(
-        output.is_empty(),
-        "edit at line 1 should not show function at line 6, got: {output}"
-    );
+    assert!(output.is_empty(), "edit at line 1 should not show function at line 6, got: {output}");
 }
 
 #[test]
@@ -105,19 +79,10 @@ fn write_mode_shows_all_findings() {
     .unwrap();
 
     // Write mode — content field, no old_string/new_string → None edit range → all findings
-    let json = format!(
-        r#"{{"tool_input":{{"file_path":"{}","content":"full file"}}}}"#,
-        path.to_str().unwrap()
-    );
+    let json = format!(r#"{{"tool_input":{{"file_path":"{}","content":"full file"}}}}"#, path.to_str().unwrap());
     let output = run_hook_with_json(&json);
-    assert!(
-        output.contains("func_a"),
-        "Write mode should show all: {output}"
-    );
-    assert!(
-        output.contains("func_b"),
-        "Write mode should show all: {output}"
-    );
+    assert!(output.contains("func_a"), "Write mode should show all: {output}");
+    assert!(output.contains("func_b"), "Write mode should show all: {output}");
 }
 
 #[test]
@@ -148,13 +113,8 @@ fn hook_output_is_json_blocking_decision() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    let parsed: serde_json::Value = serde_json::from_str(output.trim())
-        .expect("hook output should be valid JSON");
-    assert_eq!(
-        parsed.get("decision").and_then(|v| v.as_str()),
-        Some("block"),
-        "should have decision: block"
-    );
+    let parsed: serde_json::Value = serde_json::from_str(output.trim()).expect("hook output should be valid JSON");
+    assert_eq!(parsed.get("decision").and_then(|v| v.as_str()), Some("block"), "should have decision: block");
 }
 
 #[test]
@@ -171,10 +131,7 @@ fn hook_output_reason_contains_findings() {
     let output = run_hook_with_json(&json);
     let parsed: serde_json::Value = serde_json::from_str(output.trim()).unwrap();
     let reason = parsed.get("reason").and_then(|v| v.as_str()).unwrap_or("");
-    assert!(
-        reason.contains("error[pulse]:"),
-        "reason should contain error[pulse]:, got: {reason}"
-    );
+    assert!(reason.contains("error[pulse]:"), "reason should contain error[pulse]:, got: {reason}");
 }
 
 #[test]
@@ -189,10 +146,7 @@ fn check_mode_still_uses_verbose_format() {
         .expect("failed to run");
     let stdout = String::from_utf8(output.stdout).unwrap();
     // Check mode should use multi-line format with indented findings
-    assert!(
-        stdout.contains("\n  "),
-        "check mode should have indented findings: {stdout}"
-    );
+    assert!(stdout.contains("\n  "), "check mode should have indented findings: {stdout}");
 }
 
 // ===========================================================================
@@ -219,14 +173,8 @@ fn module_findings_excluded_from_hook_output() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(
-        !output.contains("File Too Large"),
-        "Module findings should not appear in hook output: {output}"
-    );
-    assert!(
-        !output.contains("Too Many Functions"),
-        "Module findings should not appear in hook output: {output}"
-    );
+    assert!(!output.contains("File Too Large"), "Module findings should not appear in hook output: {output}");
+    assert!(!output.contains("Too Many Functions"), "Module findings should not appear in hook output: {output}");
 }
 
 // ===========================================================================
@@ -244,10 +192,7 @@ fn hook_on_clean_file_still_silent() {
         path.to_str().unwrap()
     );
     let output = run_hook_with_json(&json);
-    assert!(
-        output.is_empty(),
-        "clean file should be silent, got: {output}"
-    );
+    assert!(output.is_empty(), "clean file should be silent, got: {output}");
 }
 
 #[test]

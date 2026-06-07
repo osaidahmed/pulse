@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -233,10 +232,8 @@ fn hook_invalid_json_silent() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code(
-        "f :: Bool -> Bool -> Bool -> Bool\nf a b c = if a && b && c then True else False\n",
-        "hs",
-    );
+    let debug =
+        pulse_debug_code("f :: Bool -> Bool -> Bool -> Bool\nf a b c = if a && b && c then True else False\n", "hs");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "cc should be >= 4 (1+if+2&&), got: {cc}");
 }
@@ -321,28 +318,21 @@ fn code_duplication_detected() {
         a_body.push_str(&format!("      v{i} = {i}\n"));
         b_body.push_str(&format!("      v{i} = {i}\n"));
     }
-    let code = format!(
-        "a :: Int -> Int\na x =\n  let\n{a_body}  in x\n\nb :: Int -> Int\nb x =\n  let\n{b_body}  in x\n"
-    );
+    let code =
+        format!("a :: Int -> Int\na x =\n  let\n{a_body}  in x\n\nb :: Int -> Int\nb x =\n  let\n{b_body}  in x\n");
     let output = pulse_check_code(&code, "hs");
     assert!(has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
 fn primitive_obsession_recognizes_haskell_types() {
-    let output = pulse_check_code(
-        "f :: Int -> Float -> Double -> Bool -> Char -> Int -> Int\nf a b c d e = 0\n",
-        "hs",
-    );
+    let output = pulse_check_code("f :: Int -> Float -> Double -> Bool -> Char -> Int -> Int\nf a b c d e = 0\n", "hs");
     assert!(has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 
 #[test]
 fn primitive_obsession_mixed_not_flagged() {
-    let output = pulse_check_code(
-        "f :: Int -> Float -> [String] -> Maybe Int -> Int\nf a b c d = 0\n",
-        "hs",
-    );
+    let output = pulse_check_code("f :: Int -> Float -> [String] -> Maybe Int -> Int\nf a b c d = 0\n", "hs");
     assert!(!has_smell(&output, "Primitive Obsession"), "got: {output}");
 }
 

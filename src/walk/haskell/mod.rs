@@ -11,12 +11,8 @@ use analysis::{analyze_bind, analyze_function_group};
 
 const COMMENT_PREFIXES: &[&str] = &["--", "{-", "*"];
 const NESTING_BRANCH_KINDS: &[&str] = &["conditional", "case"];
-const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
-    cond: &["conditional"],
-    loops: &[],
-    branches: NESTING_BRANCH_KINDS,
-    recurse: &[],
-};
+const GLOBAL_CFG: GlobalMetricsConfig =
+    GlobalMetricsConfig { cond: &["conditional"], loops: &[], branches: NESTING_BRANCH_KINDS, recurse: &[] };
 
 pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let root = tree.root_node();
@@ -51,7 +47,8 @@ fn count_declarations(decls: Node) -> u32 {
 
 pub(crate) fn extract_name(node: Node, source: &str) -> String {
     let mut cursor = node.walk();
-    let result = node.children(&mut cursor)
+    let result = node
+        .children(&mut cursor)
         .find(|c| c.kind() == "variable")
         .map_or_else(|| "<anonymous>".into(), |n| node_text(n, source).to_string());
     result
@@ -136,9 +133,7 @@ fn collect_where_binds(nodes: &[Node], source: &str, fns: &mut Vec<FunctionMetri
 }
 
 fn emit_typed_methods(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, decl_kind: &str) {
-    let cls = find_child_by_kind(node, "name")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let cls = find_child_by_kind(node, "name").map(|n| node_text(n, source).to_string()).unwrap_or_default();
     if let Some(decls) = find_child_by_kind(node, decl_kind) {
         collect_functions(decls, source, fns, &cls);
     }

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use pulse::audit::finding::{
-    kind_pillar, AuditKind, AuditPillar, CompoundEvidence, GodClassEvidence, GodComponentEvidence,
-    HubLikeEvidence, ImportConfidence, UnstableDepEvidence,
+    kind_pillar, AuditKind, AuditPillar, CompoundEvidence, GodClassEvidence, GodComponentEvidence, HubLikeEvidence,
+    ImportConfidence, UnstableDepEvidence,
 };
 
 const ARCH_MODULES: &[&str] = &[

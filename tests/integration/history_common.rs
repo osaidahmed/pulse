@@ -64,11 +64,9 @@ fn apply_deletes(root: &Path, deletes: &[&str]) {
 
 fn commit_with_identity(path: &Path, spec: &CommitSpec, date: &str) {
     let status = Command::new("git")
-        .arg("-C").arg(path)
-        .args([
-            "commit", "--no-gpg-sign", "--allow-empty-message", "--allow-empty", "-q",
-            "-m", spec.message,
-        ])
+        .arg("-C")
+        .arg(path)
+        .args(["commit", "--no-gpg-sign", "--allow-empty-message", "--allow-empty", "-q", "-m", spec.message])
         .arg(format!("--author={}", spec.author))
         .env("GIT_AUTHOR_DATE", date)
         .env("GIT_COMMITTER_DATE", date)
@@ -80,10 +78,6 @@ fn commit_with_identity(path: &Path, spec: &CommitSpec, date: &str) {
 }
 
 fn run_git(path: &Path, args: &[&str]) {
-    let status = Command::new("git")
-        .arg("-C").arg(path)
-        .args(args)
-        .status()
-        .expect("run git");
+    let status = Command::new("git").arg("-C").arg(path).args(args).status().expect("run git");
     assert!(status.success(), "git {args:?} failed");
 }

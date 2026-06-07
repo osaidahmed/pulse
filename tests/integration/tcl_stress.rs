@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -199,24 +198,17 @@ fn cogc_nested_ifs() {
 
 #[test]
 fn cogc_elseif_no_extra_nesting() {
-    let out = debug(concat!(
-        "proc f {x} {\n",
-        "    if {$x == 1} {} elseif {$x == 2} {} elseif {$x == 3} {}\n",
-        "}\n",
-    ));
+    let out = debug(concat!("proc f {x} {\n", "    if {$x == 1} {} elseif {$x == 2} {} elseif {$x == 3} {}\n", "}\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "elseif chain should have cogc >= 3, got: {cogc}");
 }
 
 #[test]
 fn cogc_else_increases_nesting() {
-    let out = debug(concat!(
-        "proc f {x} {\n",
-        "    if {$x > 0} {} else {\n",
-        "        if {$x < -10} {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(
+            concat!("proc f {x} {\n", "    if {$x > 0} {} else {\n", "        if {$x < -10} {}\n", "    }\n", "}\n",),
+        );
     let cogc = function_metric(&out, "f", "cogc").unwrap();
     assert!(cogc >= 3, "else should contribute to nesting, got: {cogc}");
 }
@@ -278,7 +270,8 @@ fn nesting_depth_simple() {
 
 #[test]
 fn nesting_depth_nested() {
-    let out = debug("proc f {a b c} {\n    if {$a} {\n        if {$b} {\n            if {$c} {}\n        }\n    }\n}\n");
+    let out =
+        debug("proc f {a b c} {\n    if {$a} {\n        if {$b} {\n            if {$c} {}\n        }\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "nesting"), Some(3));
 }
 
@@ -719,11 +712,7 @@ fn standalone_catch_increments_cc() {
 
 #[test]
 fn empty_catch_detected() {
-    let out = check(concat!(
-        "proc f {x} {\n",
-        "    catch {} result\n",
-        "}\n",
-    ));
+    let out = check(concat!("proc f {x} {\n", "    catch {} result\n", "}\n",));
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 

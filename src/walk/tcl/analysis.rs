@@ -9,7 +9,9 @@ pub fn count_boolean_ops(node: Node, cc: &mut u32) {
     for child in node.children(&mut cursor) {
         let k = child.kind();
         if k == "binop_expr" {
-            if !bool_op_category(child).is_empty() { *cc += 1; }
+            if !bool_op_category(child).is_empty() {
+                *cc += 1;
+            }
             count_boolean_ops(child, cc);
         } else if !BOOL_STOPS.contains(&k) {
             count_boolean_ops(child, cc);
@@ -22,8 +24,13 @@ pub fn walk_cogc(node: Node, cogc: &mut u32, last: &mut Option<String>) {
     while let Some(child) = c {
         c = child.next_sibling();
         let k = child.kind();
-        if BOOL_STOPS.contains(&k) { continue; }
-        if k != "binop_expr" { walk_cogc(child, cogc, last); continue; }
+        if BOOL_STOPS.contains(&k) {
+            continue;
+        }
+        if k != "binop_expr" {
+            walk_cogc(child, cogc, last);
+            continue;
+        }
         let op = bool_op_category(child);
         if !op.is_empty() && last.as_deref() != Some(op) {
             *cogc += 1;
@@ -37,9 +44,15 @@ fn bool_op_category(node: Node) -> &'static str {
     let n = node.child_count();
     for i in 0..n {
         let Some(c) = node.child(i) else { continue };
-        if c.is_named() { continue; }
-        if c.kind() == "&&" { return "and"; }
-        if c.kind() == "||" { return "or"; }
+        if c.is_named() {
+            continue;
+        }
+        if c.kind() == "&&" {
+            return "and";
+        }
+        if c.kind() == "||" {
+            return "or";
+        }
     }
     ""
 }
@@ -56,10 +69,13 @@ pub fn collect_field_accesses(node: Node, source: &str, fields: &mut Vec<String>
 }
 
 fn extract_variable_decl(child: Node, source: &str, fields: &mut Vec<String>) {
-    if child.kind() != "command" || cmd_name(child, source) != "variable" { return; }
-    let v = find_child_by_kind(child, "word_list")
-        .and_then(|w| find_child_by_kind(w, "simple_word"));
-    if let Some(v) = v { fields.push(node_text(v, source).to_string()); }
+    if child.kind() != "command" || cmd_name(child, source) != "variable" {
+        return;
+    }
+    let v = find_child_by_kind(child, "word_list").and_then(|w| find_child_by_kind(w, "simple_word"));
+    if let Some(v) = v {
+        fields.push(node_text(v, source).to_string());
+    }
 }
 
 pub fn cmd_name<'a>(node: Node<'a>, source: &'a str) -> &'a str {
@@ -88,13 +104,17 @@ fn tally_switch(switch_cmd: Node, source: &str, count: &mut u32) {
         let n = bw.child_count();
         for i in 0..n {
             let case = bw.child(i).unwrap();
-            if is_string_case(case, source) { *count += 1; }
+            if is_string_case(case, source) {
+                *count += 1;
+            }
         }
     }
 }
 
 fn is_string_case(node: Node, source: &str) -> bool {
-    if node.kind() != "command" { return false; }
+    if node.kind() != "command" {
+        return false;
+    }
     let name = cmd_name(node, source);
     !name.is_empty() && name != "default" && !name.starts_with('$')
 }
@@ -105,8 +125,14 @@ pub fn count_named_consecutive_asserts(body: Node) -> u32 {
     let n = body.named_child_count();
     for i in 0..n {
         let child = body.named_child(i).unwrap();
-        if child.kind() == "command" { current += 1; } else { current = 0; }
-        if current > max { max = current; }
+        if child.kind() == "command" {
+            current += 1;
+        } else {
+            current = 0;
+        }
+        if current > max {
+            max = current;
+        }
     }
     max
 }

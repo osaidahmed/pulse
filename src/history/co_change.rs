@@ -49,10 +49,7 @@ pub fn revisions_in_scope(commits: &[Commit], t: &HistoryThresholds) -> Revision
     RevisionScope { per_file, commits: commit_count }
 }
 
-fn record_commit_pairs(
-    commit: &Commit,
-    pairs: &mut HashMap<(PathBuf, PathBuf), CoChangeAgg>,
-) {
+fn record_commit_pairs(commit: &Commit, pairs: &mut HashMap<(PathBuf, PathBuf), CoChangeAgg>) {
     for i in 0..commit.files.len() {
         for j in (i + 1)..commit.files.len() {
             let (lo, hi) = canonical_pair(&commit.files[i], &commit.files[j]);
@@ -101,21 +98,14 @@ pub fn rank_drift(
     t: &HistoryThresholds,
 ) -> Vec<HistoryFinding> {
     let ctx = DriftCtx { scope, graph, typed_paths, t };
-    let mut findings: Vec<HistoryFinding> = pairs
-        .into_iter()
-        .filter_map(|((a, b), agg)| build_drift(a, b, &agg, &ctx))
-        .collect();
+    let mut findings: Vec<HistoryFinding> =
+        pairs.into_iter().filter_map(|((a, b), agg)| build_drift(a, b, &agg, &ctx)).collect();
     sort_drift_findings(&mut findings);
     findings.truncate(t.co_change.max_findings_reported as usize);
     findings
 }
 
-fn build_drift(
-    a: PathBuf,
-    b: PathBuf,
-    agg: &CoChangeAgg,
-    ctx: &DriftCtx,
-) -> Option<HistoryFinding> {
+fn build_drift(a: PathBuf, b: PathBuf, agg: &CoChangeAgg, ctx: &DriftCtx) -> Option<HistoryFinding> {
     if agg.support < ctx.t.co_change.min_support
         || !ctx.typed_paths.contains(&a)
         || !ctx.typed_paths.contains(&b)
@@ -141,10 +131,7 @@ fn build_drift(
         last_seen_unix: agg.last_seen,
         distinct_authors: u32::try_from(agg.authors.len()).unwrap_or(u32::MAX),
     };
-    Some(HistoryFinding {
-        kind: HistoryKind::ArchitecturalDrift(evidence),
-        action_label: None,
-    })
+    Some(HistoryFinding { kind: HistoryKind::ArchitecturalDrift(evidence), action_label: None })
 }
 
 fn drift_metrics(c: &DriftCounts) -> (f64, f64, f64) {

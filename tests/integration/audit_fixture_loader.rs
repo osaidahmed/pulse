@@ -1,4 +1,3 @@
-
 use crate::audit_common::*;
 
 const SCENARIOS: &[&str] = &[
@@ -28,8 +27,7 @@ fn audit_fixtures_root_exists_and_is_dir() {
 fn list_scenarios_returns_all_eight() {
     let scenarios = list_scenarios();
     for name in SCENARIOS {
-        assert!(scenarios.contains(&(*name).to_string()),
-            "missing scenario {name}, found: {scenarios:?}");
+        assert!(scenarios.contains(&(*name).to_string()), "missing scenario {name}, found: {scenarios:?}");
     }
 }
 
@@ -37,8 +35,7 @@ fn list_scenarios_returns_all_eight() {
 fn list_scenario_languages_for_each_includes_python() {
     for name in SCENARIOS {
         let langs = list_scenario_languages(name);
-        assert!(langs.contains(&"python".to_string()),
-            "{name} missing python subdir, got {langs:?}");
+        assert!(langs.contains(&"python".to_string()), "{name} missing python subdir, got {langs:?}");
     }
 }
 
@@ -160,8 +157,12 @@ fn shotgun_media_type_thresholds_within_default_min_support() {
     let exp = expected_for("shotgun_media_type");
     let f = &exp.findings[0];
     let default_min_support = t().audit.pattern_mining.freqt_min_support as u32;
-    assert!(f.support_min >= default_min_support,
-        "support_min {} should clear default min_support {}", f.support_min, default_min_support);
+    assert!(
+        f.support_min >= default_min_support,
+        "support_min {} should clear default min_support {}",
+        f.support_min,
+        default_min_support
+    );
 }
 
 #[test]
@@ -189,8 +190,8 @@ fn count_files(dir: &std::path::Path) -> usize {
 #[test]
 fn copy_scenario_to_tempdir_content_matches() {
     let tmp = copy_scenario_to_tempdir("shotgun_media_type", "python");
-    let original_managers = std::fs::read_to_string(
-        scenario_path("shotgun_media_type", "python").join("managers.py")).unwrap();
+    let original_managers =
+        std::fs::read_to_string(scenario_path("shotgun_media_type", "python").join("managers.py")).unwrap();
     let copied_managers = std::fs::read_to_string(tmp.path().join("managers.py")).unwrap();
     assert_eq!(original_managers, copied_managers);
 }
@@ -201,15 +202,16 @@ fn shotgun_cache_pattern_lists_five_provider_files() {
     let f = &exp.findings[0];
     assert_eq!(f.must_include_files.len(), 5);
     for name in ["provider_a.py", "provider_b.py", "provider_c.py", "provider_d.py", "provider_e.py"] {
-        assert!(f.must_include_files.contains(&name.to_string()),
-            "missing {name} in cache pattern fixture");
+        assert!(f.must_include_files.contains(&name.to_string()), "missing {name} in cache pattern fixture");
     }
 }
 
 #[test]
 fn idiom_heavy_listcomp_has_eight_files() {
     let dir = scenario_path("idiom_heavy_listcomp", "python");
-    let py_count = std::fs::read_dir(&dir).unwrap().flatten()
+    let py_count = std::fs::read_dir(&dir)
+        .unwrap()
+        .flatten()
         .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("py"))
         .count();
     assert_eq!(py_count, 8);
@@ -218,7 +220,9 @@ fn idiom_heavy_listcomp_has_eight_files() {
 #[test]
 fn idiom_heavy_dict_get_has_eight_files() {
     let dir = scenario_path("idiom_heavy_dict_get", "python");
-    let py_count = std::fs::read_dir(&dir).unwrap().flatten()
+    let py_count = std::fs::read_dir(&dir)
+        .unwrap()
+        .flatten()
         .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("py"))
         .count();
     assert_eq!(py_count, 8);
@@ -227,7 +231,9 @@ fn idiom_heavy_dict_get_has_eight_files() {
 #[test]
 fn clean_medium_has_at_least_eight_files() {
     let dir = scenario_path("clean_medium", "python");
-    let py_count = std::fs::read_dir(&dir).unwrap().flatten()
+    let py_count = std::fs::read_dir(&dir)
+        .unwrap()
+        .flatten()
         .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("py"))
         .count();
     assert!(py_count >= 8, "clean_medium should be larger; got {py_count}");

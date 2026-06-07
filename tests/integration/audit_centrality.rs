@@ -24,10 +24,7 @@ fn most_depended_upon_node_ranks_highest() {
     let adjacency = vec![vec![], vec![0], vec![0], vec![0]];
     let (ranks, _) = pagerank(&adjacency, params());
     let hub = ranks[0];
-    assert!(
-        ranks[1..].iter().all(|&r| hub > r),
-        "the node every other depends on carries the most rank"
-    );
+    assert!(ranks[1..].iter().all(|&r| hub > r), "the node every other depends on carries the most rank");
 }
 
 #[test]

@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use pulse::audit::finding::{
-    AuditFinding, AuditKind, ImportConfidence, RefusedBequestEvidence,
-};
+use pulse::audit::finding::{AuditFinding, AuditKind, ImportConfidence, RefusedBequestEvidence};
 use pulse::audit::output::{format_findings, format_findings_json};
 
 use crate::audit_common::t;
@@ -103,11 +101,7 @@ fn human_strips_root_prefix() {
     let mut e = sample(ImportConfidence::Medium);
     e.subclass_file = PathBuf::from("/tmp/proj/child.py");
     e.parent_file = PathBuf::from("/tmp/proj/base.py");
-    let out = format_findings(
-        &[finding_with(e)],
-        Some(std::path::Path::new("/tmp/proj")),
-        &t().audit,
-    );
+    let out = format_findings(&[finding_with(e)], Some(std::path::Path::new("/tmp/proj")), &t().audit);
     assert!(!out.contains("/tmp/proj/"));
     assert!(out.contains("child.py"));
     assert!(out.contains("base.py"));

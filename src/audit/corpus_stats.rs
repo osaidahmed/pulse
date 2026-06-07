@@ -59,17 +59,11 @@ pub struct CorpusStats {
 pub fn aggregate_corpus(per_file: Vec<PerFileFeatures>) -> CorpusStats {
     let project = build_project_histogram(&per_file);
     let median = build_median_histogram(&per_file);
-    CorpusStats {
-        project_kind_histogram: project,
-        median_kind_histogram: median,
-        per_file,
-    }
+    CorpusStats { project_kind_histogram: project, median_kind_histogram: median, per_file }
 }
 
 fn build_project_histogram(per_file: &[PerFileFeatures]) -> KindHistogram {
-    per_file
-        .iter()
-        .fold(KindHistogram::default(), |acc, f| acc.merged(&f.kind_histogram))
+    per_file.iter().fold(KindHistogram::default(), |acc, f| acc.merged(&f.kind_histogram))
 }
 
 fn build_median_histogram(per_file: &[PerFileFeatures]) -> KindHistogram {
@@ -97,20 +91,15 @@ fn collect_unique_kinds(per_file: &[PerFileFeatures]) -> Vec<Box<str>> {
 }
 
 fn median_count_for_kind(per_file: &[PerFileFeatures], kind: &str) -> u32 {
-    let mut samples: Vec<u32> = per_file
-        .iter()
-        .map(|f| f.kind_histogram.counts.get(kind).copied().unwrap_or(0))
-        .collect();
+    let mut samples: Vec<u32> =
+        per_file.iter().map(|f| f.kind_histogram.counts.get(kind).copied().unwrap_or(0)).collect();
     samples.sort_unstable();
     let mid = samples.len() / 2;
     samples.get(mid).copied().unwrap_or(0)
 }
 
 pub fn line_length_stats(source: &str) -> (u32, u32) {
-    let mut lengths: Vec<u32> = source
-        .lines()
-        .map(|line| line.chars().count() as u32)
-        .collect();
+    let mut lengths: Vec<u32> = source.lines().map(|line| line.chars().count() as u32).collect();
     if lengths.is_empty() {
         return (0, 0);
     }
@@ -140,11 +129,7 @@ impl WelfordIdentifierStats {
         if self.count == 0 {
             return (0.0, 0.0);
         }
-        let variance = if self.count > 1 {
-            self.m2 / (self.count - 1) as f64
-        } else {
-            0.0
-        };
+        let variance = if self.count > 1 { self.m2 / (self.count - 1) as f64 } else { 0.0 };
         (self.mean, variance)
     }
 }

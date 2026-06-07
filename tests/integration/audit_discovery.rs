@@ -1,4 +1,3 @@
-
 use crate::audit_common::*;
 use pulse::audit::discovery::{freqt_mine, RawCluster};
 use pulse::audit::walker::{ShapeMetrics, SubtreeRecord};
@@ -62,8 +61,12 @@ fn freqt_mine_distinguishes_clusters_by_fingerprint() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
     let records: Vec<SubtreeRecord> = vec![
-        record(1, "a.py", 1, "x"), record(1, "b.py", 1, "x"), record(1, "c.py", 1, "x"),
-        record(2, "d.py", 1, "y"), record(2, "e.py", 1, "y"), record(2, "f.py", 1, "y"),
+        record(1, "a.py", 1, "x"),
+        record(1, "b.py", 1, "x"),
+        record(1, "c.py", 1, "x"),
+        record(2, "d.py", 1, "y"),
+        record(2, "e.py", 1, "y"),
+        record(2, "f.py", 1, "y"),
     ];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters.len(), 2);
@@ -88,9 +91,7 @@ fn freqt_mine_aggregates_records_with_same_fingerprint() {
 fn freqt_mine_counts_unique_files_correctly() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let records = vec![
-        record(7, "a.py", 1, "x"), record(7, "a.py", 5, "x"), record(7, "a.py", 9, "x"),
-    ];
+    let records = vec![record(7, "a.py", 1, "x"), record(7, "a.py", 5, "x"), record(7, "a.py", 9, "x")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters[0].support, 3);
     assert_eq!(clusters[0].file_count, 1);
@@ -165,11 +166,7 @@ fn freqt_mine_handles_one_giant_cluster() {
 fn freqt_mine_picks_representative_snippet_excluding_empty() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let records = vec![
-        record(7, "a.py", 1, ""),
-        record(7, "b.py", 1, "media_type == X"),
-        record(7, "c.py", 1, ""),
-    ];
+    let records = vec![record(7, "a.py", 1, ""), record(7, "b.py", 1, "media_type == X"), record(7, "c.py", 1, "")];
     let clusters = freqt_mine(&records, &th);
     assert!(!clusters[0].representative_snippet.is_empty());
     assert!(clusters[0].representative_snippet.contains("media_type"));
@@ -179,11 +176,8 @@ fn freqt_mine_picks_representative_snippet_excluding_empty() {
 fn freqt_mine_picks_longest_non_empty_snippet() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let records = vec![
-        record(7, "a.py", 1, "x"),
-        record(7, "b.py", 1, "media_type == X.value"),
-        record(7, "c.py", 1, "y == z"),
-    ];
+    let records =
+        vec![record(7, "a.py", 1, "x"), record(7, "b.py", 1, "media_type == X.value"), record(7, "c.py", 1, "y == z")];
     let clusters = freqt_mine(&records, &th);
     assert_eq!(clusters[0].representative_snippet, "media_type == X.value");
 }
@@ -221,11 +215,7 @@ fn freqt_mine_records_with_zero_named_node_count_handled() {
 fn freqt_mine_locations_sorted_for_determinism() {
     let mut th = t().audit;
     th.pattern_mining.freqt_min_support = 3;
-    let records = vec![
-        record(7, "z.py", 5, "x"),
-        record(7, "a.py", 10, "x"),
-        record(7, "m.py", 1, "x"),
-    ];
+    let records = vec![record(7, "z.py", 5, "x"), record(7, "a.py", 10, "x"), record(7, "m.py", 1, "x")];
     let clusters = freqt_mine(&records, &th);
     let locs = &clusters[0].locations;
     assert!(locs[0].0 <= locs[1].0);

@@ -14,12 +14,11 @@ use super::graph::{ImportGraph, NodeIndex};
 pub fn detect(graph: &ImportGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let community = thresholds.package_metrics.community;
     let adjacency = undirected_adjacency(graph);
-    let result = louvain(&adjacency, CommunityParams { resolution: community.resolution, max_passes: community.max_passes });
+    let result =
+        louvain(&adjacency, CommunityParams { resolution: community.resolution, max_passes: community.max_passes });
     let by_dir = tally_by_directory(graph, &result.assignment);
-    let mut out: Vec<AuditFinding> = by_dir
-        .iter()
-        .filter_map(|(dir, counts)| split_finding(dir.clone(), counts, &community))
-        .collect();
+    let mut out: Vec<AuditFinding> =
+        by_dir.iter().filter_map(|(dir, counts)| split_finding(dir.clone(), counts, &community)).collect();
     out.extend(merge_findings(&by_dir, &community));
     out.extend(move_findings(graph, &result.assignment, &community));
     rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
@@ -32,11 +31,7 @@ struct MoveTarget {
     lone_dirs: BTreeSet<PathBuf>,
 }
 
-fn move_findings(
-    graph: &ImportGraph,
-    assignment: &[usize],
-    thresholds: &CommunityThresholds,
-) -> Vec<AuditFinding> {
+fn move_findings(graph: &ImportGraph, assignment: &[usize], thresholds: &CommunityThresholds) -> Vec<AuditFinding> {
     let by_community = tally_by_community(graph, assignment);
     let mut out = Vec::new();
     for (community_id, counts) in &by_community {
@@ -48,14 +43,11 @@ fn move_findings(
 }
 
 fn tally_by_community(graph: &ImportGraph, assignment: &[usize]) -> BTreeMap<usize, BTreeMap<PathBuf, u32>> {
-    assignment
-        .iter()
-        .enumerate()
-        .fold(BTreeMap::new(), |mut tally, (i, &community)| {
-            let dir = component_of(graph.registry.path_of(NodeIndex(i as u32)));
-            *tally.entry(community).or_default().entry(dir).or_insert(0) += 1;
-            tally
-        })
+    assignment.iter().enumerate().fold(BTreeMap::new(), |mut tally, (i, &community)| {
+        let dir = component_of(graph.registry.path_of(NodeIndex(i as u32)));
+        *tally.entry(community).or_default().entry(dir).or_insert(0) += 1;
+        tally
+    })
 }
 
 fn move_target(counts: &BTreeMap<PathBuf, u32>, thresholds: &CommunityThresholds) -> Option<MoveTarget> {
@@ -68,11 +60,7 @@ fn move_target(counts: &BTreeMap<PathBuf, u32>, thresholds: &CommunityThresholds
     if share < thresholds.split_cohesion {
         return None;
     }
-    let lone_dirs = counts
-        .iter()
-        .filter(|&(_, &count)| count == 1)
-        .map(|(dir, _)| dir.clone())
-        .collect();
+    let lone_dirs = counts.iter().filter(|&(_, &count)| count == 1).map(|(dir, _)| dir.clone()).collect();
     Some(MoveTarget { home, total, share, lone_dirs })
 }
 
@@ -176,12 +164,7 @@ fn split_finding(
     ))
 }
 
-fn arch_finding(
-    kind: AuditKind,
-    support: u32,
-    file_count: u32,
-    locations: Vec<AuditLocation>,
-) -> AuditFinding {
+fn arch_finding(kind: AuditKind, support: u32, file_count: u32, locations: Vec<AuditLocation>) -> AuditFinding {
     AuditFinding {
         kind,
         representative_snippet: String::new(),
@@ -209,9 +192,7 @@ fn merge_findings(
     groups
         .values()
         .filter(|dirs| dirs.len() >= 2)
-        .filter(|dirs| {
-            dirs.iter().map(|(_, count)| count).sum::<u32>() >= thresholds.min_split_files
-        })
+        .filter(|dirs| dirs.iter().map(|(_, count)| count).sum::<u32>() >= thresholds.min_split_files)
         .map(|dirs| merge_finding(dirs))
         .collect()
 }

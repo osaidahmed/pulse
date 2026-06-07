@@ -11,19 +11,11 @@ fn t() -> Thresholds {
 }
 
 fn opts(root: PathBuf) -> HistoryOpts {
-    HistoryOpts {
-        root,
-        include_tests: false,
-        since: None,
-        max_commits: None,
-    }
+    HistoryOpts { root, include_tests: false, since: None, max_commits: None }
 }
 
 fn count_pillar(findings: &[HistoryFinding], pillar: HistoryPillar) -> usize {
-    findings
-        .iter()
-        .filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar)
-        .count()
+    findings.iter().filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar).count()
 }
 
 #[test]
@@ -36,11 +28,7 @@ fn run_returns_not_a_git_repo_for_plain_dir() {
 #[test]
 fn run_zero_commit_repo_returns_empty_findings() {
     let dir = tempfile::tempdir().unwrap();
-    let _ = std::process::Command::new("git")
-        .arg("-C")
-        .arg(dir.path())
-        .args(["init", "-q", "-b", "main"])
-        .status();
+    let _ = std::process::Command::new("git").arg("-C").arg(dir.path()).args(["init", "-q", "-b", "main"]).status();
     let findings = run(&opts(dir.path().to_path_buf()), &t().history).unwrap();
     assert!(findings.is_empty());
 }
@@ -192,9 +180,7 @@ fn run_respects_include_tests_false_by_default() {
             CommitSpec {
                 author: "alice <alice@x>",
                 message: Box::leak(msg.into_boxed_str()),
-                writes: Box::leak(Box::new([
-                    ("test_helper.py", high_cc),
-                ])),
+                writes: Box::leak(Box::new([("test_helper.py", high_cc)])),
                 deletes: &[],
             }
         })

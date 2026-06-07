@@ -11,12 +11,7 @@ fn t() -> Thresholds {
 }
 
 fn commit(hash: &str, ts: i64, files: &[&str]) -> Commit {
-    Commit {
-        hash: hash.into(),
-        author: "a@x".into(),
-        timestamp: ts,
-        files: files.iter().map(PathBuf::from).collect(),
-    }
+    Commit { hash: hash.into(), author: "a@x".into(), timestamp: ts, files: files.iter().map(PathBuf::from).collect() }
 }
 
 fn write_file(root: &Path, rel: &str, content: &str) -> PathBuf {
@@ -78,11 +73,7 @@ fn revisions_per_file_single_commit() {
 
 #[test]
 fn revisions_per_file_increments_across_commits() {
-    let commits = vec![
-        commit("h1", 1, &["a.py"]),
-        commit("h2", 2, &["a.py"]),
-        commit("h3", 3, &["a.py", "b.py"]),
-    ];
+    let commits = vec![commit("h1", 1, &["a.py"]), commit("h2", 2, &["a.py"]), commit("h3", 3, &["a.py", "b.py"])];
     let result = revisions_per_file(&commits);
     assert_eq!(result.get(&PathBuf::from("a.py")), Some(&3));
     assert_eq!(result.get(&PathBuf::from("b.py")), Some(&1));
@@ -186,10 +177,8 @@ fn rank_truncates_at_max_findings_reported() -> std::io::Result<()> {
         path_strings.push(p.to_str().unwrap().to_string());
         typed.push((p, Language::Python));
     }
-    let commits: Vec<Commit> = path_strings
-        .iter()
-        .flat_map(|s| (0..3).map(move |i| commit("h", i, &[s.as_str()])))
-        .collect();
+    let commits: Vec<Commit> =
+        path_strings.iter().flat_map(|s| (0..3).map(move |i| commit("h", i, &[s.as_str()]))).collect();
     let mut th = t().history;
     th.hotspot.min_revisions = 1;
     th.hotspot.min_score = 1;
@@ -204,10 +193,7 @@ fn rank_orders_by_score_desc() -> std::io::Result<()> {
     let dir = tempfile::tempdir()?;
     let high = write_file(dir.path(), "high.py", HIGH_CC_PYTHON);
     let low = write_file(dir.path(), "low.py", "x = 1\ndef f():\n    if True:\n        return 1\n");
-    let typed = vec![
-        (high.clone(), Language::Python),
-        (low.clone(), Language::Python),
-    ];
+    let typed = vec![(high.clone(), Language::Python), (low.clone(), Language::Python)];
     let commits = vec![
         commit("h1", 1, &[high.to_str().unwrap()]),
         commit("h2", 2, &[high.to_str().unwrap()]),

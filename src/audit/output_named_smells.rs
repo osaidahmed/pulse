@@ -81,12 +81,7 @@ fn write_divergent(out: &mut String, e: &DivergentChangeEvidence, ctx: &WriterCt
 fn write_feature_envy(out: &mut String, e: &FeatureEnvyEvidence, ctx: &WriterCtx) {
     let label = qualified_method_name(e.method_class.as_deref(), &e.method_name);
     let _ = writeln!(out, "audit: feature envy — {label}");
-    let _ = writeln!(
-        out,
-        "  defined at:    {}:{}",
-        (ctx.display_path)(&e.method_file, ctx.root),
-        e.method_line
-    );
+    let _ = writeln!(out, "  defined at:    {}:{}", (ctx.display_path)(&e.method_file, ctx.root), e.method_line);
     let _ = writeln!(out, "  ATFD:          {}", e.atfd);
     let _ = writeln!(out, "  foreign calls: {}", e.foreign_call_count);
     let _ = writeln!(out, "  intra calls:   {}", e.intra_call_count);
@@ -113,11 +108,7 @@ fn write_god_class(out: &mut String, e: &GodClassEvidence, ctx: &WriterCtx) {
 }
 
 fn write_parallel(out: &mut String, e: &ParallelInheritanceEvidence, ctx: &WriterCtx) {
-    let _ = writeln!(
-        out,
-        "audit: parallel inheritance — {} ↔ {}",
-        e.root_a.name, e.root_b.name
-    );
+    let _ = writeln!(out, "audit: parallel inheritance — {} ↔ {}", e.root_a.name, e.root_b.name);
     let _ = writeln!(out, "  root A file:   {}", (ctx.display_path)(&e.root_a.file, ctx.root));
     let _ = writeln!(out, "  root B file:   {}", (ctx.display_path)(&e.root_b.file, ctx.root));
     let _ = writeln!(out, "  matched pairs: {}", e.matched_descendants.len());
@@ -201,11 +192,7 @@ fn parallel_json(
     conf_fn: fn(ImportConfidence) -> &'static str,
     path_fn: fn(&Path, Option<&Path>) -> String,
 ) -> serde_json::Value {
-    let pairs: Vec<serde_json::Value> = e
-        .matched_descendants
-        .iter()
-        .map(|(a, b)| serde_json::json!([a, b]))
-        .collect();
+    let pairs: Vec<serde_json::Value> = e.matched_descendants.iter().map(|(a, b)| serde_json::json!([a, b])).collect();
     serde_json::json!({
         "kind": "ParallelInheritance",
         "root_a_file": path_fn(&e.root_a.file, root),

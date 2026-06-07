@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("swift");
@@ -15,9 +14,7 @@ fn cc_counts_if() {
 
 #[test]
 fn cc_counts_else_if() {
-    let out = debug(
-        "func f(x: Int) -> Int {\n    if x > 0 {\n    } else if x < 0 {\n    }\n    return x\n}\n",
-    );
+    let out = debug("func f(x: Int) -> Int {\n    if x > 0 {\n    } else if x < 0 {\n    }\n    return x\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -68,13 +65,15 @@ fn cc_counts_ternary() {
 
 #[test]
 fn cc_counts_logical_and() {
-    let out = debug("func f(a: Bool, b: Bool) -> Bool {\n    if a && b {\n        return true\n    }\n    return false\n}\n");
+    let out =
+        debug("func f(a: Bool, b: Bool) -> Bool {\n    if a && b {\n        return true\n    }\n    return false\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
 #[test]
 fn cc_counts_logical_or() {
-    let out = debug("func f(a: Bool, b: Bool) -> Bool {\n    if a || b {\n        return true\n    }\n    return false\n}\n");
+    let out =
+        debug("func f(a: Bool, b: Bool) -> Bool {\n    if a || b {\n        return true\n    }\n    return false\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -168,26 +167,15 @@ fn cogc_simple_if_is_1() {
 
 #[test]
 fn cogc_nested_if_weighted() {
-    let out = debug(concat!(
-        "func f(x: Int, y: Int) {\n",
-        "    if x > 0 {\n",
-        "        if y > 0 {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("func f(x: Int, y: Int) {\n", "    if x > 0 {\n", "        if y > 0 {}\n", "    }\n", "}\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
     assert!(cogc >= 3, "nested if should get extra weight, got: {cogc}");
 }
 
 #[test]
 fn cogc_else_if_flat() {
-    let out = debug(concat!(
-        "func f(x: Int) {\n",
-        "    if x > 0 {\n",
-        "    } else if x < 0 {\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out = debug(concat!("func f(x: Int) {\n", "    if x > 0 {\n", "    } else if x < 0 {\n", "    }\n", "}\n",));
     let cogc = function_metric(&out, "f", "cogc").unwrap_or(0);
     assert!(cogc >= 2, "got: {cogc}");
 }
@@ -296,13 +284,8 @@ fn nesting_if_is_1() {
 
 #[test]
 fn nesting_nested_if_is_2() {
-    let out = debug(concat!(
-        "func f(x: Int, y: Int) {\n",
-        "    if x > 0 {\n",
-        "        if y > 0 {}\n",
-        "    }\n",
-        "}\n",
-    ));
+    let out =
+        debug(concat!("func f(x: Int, y: Int) {\n", "    if x > 0 {\n", "        if y > 0 {}\n", "    }\n", "}\n",));
     assert_eq!(function_metric(&out, "f", "nesting"), Some(2));
 }
 
@@ -455,21 +438,14 @@ fn args_one_param() {
 
 #[test]
 fn args_six_triggers_excess() {
-    let out = check(concat!(
-        "func f(a: Int, b: Int, c: Int, d: Int, e: Int, f2: Int) -> Int {\n",
-        "    return 0\n",
-        "}\n",
-    ));
+    let out =
+        check(concat!("func f(a: Int, b: Int, c: Int, d: Int, e: Int, f2: Int) -> Int {\n", "    return 0\n", "}\n",));
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
 #[test]
 fn args_five_no_excess() {
-    let out = check(concat!(
-        "func f(a: Int, b: Int, c: Int, d: Int, e: Int) -> Int {\n",
-        "    return 0\n",
-        "}\n",
-    ));
+    let out = check(concat!("func f(a: Int, b: Int, c: Int, d: Int, e: Int) -> Int {\n", "    return 0\n", "}\n",));
     assert!(!has_smell(&out, "Excess Arguments"));
 }
 
@@ -595,10 +571,7 @@ fn no_duplication_for_different_structure() {
 
 #[test]
 fn duplication_needs_min_loc() {
-    let out = check(concat!(
-        "func a() -> Int { return 1 }\n",
-        "func b() -> Int { return 1 }\n",
-    ));
+    let out = check(concat!("func a() -> Int { return 1 }\n", "func b() -> Int { return 1 }\n",));
     assert!(!has_smell(&out, "Code Duplication"));
 }
 
@@ -614,26 +587,14 @@ fn assert_count_zero_for_no_calls() {
 
 #[test]
 fn assert_count_for_calls() {
-    let out = debug(concat!(
-        "func f() {\n",
-        "    assert(true)\n",
-        "    assert(true)\n",
-        "    assert(true)\n",
-        "}\n",
-    ));
+    let out = debug(concat!("func f() {\n", "    assert(true)\n", "    assert(true)\n", "    assert(true)\n", "}\n",));
     let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
     assert!(asserts >= 3, "got: {asserts}");
 }
 
 #[test]
 fn assert_block_single_gap_tolerated() {
-    let out = debug(concat!(
-        "func f() {\n",
-        "    assert(true)\n",
-        "    let x = 1\n",
-        "    assert(true)\n",
-        "}\n",
-    ));
+    let out = debug(concat!("func f() {\n", "    assert(true)\n", "    let x = 1\n", "    assert(true)\n", "}\n",));
     let asserts = function_metric(&out, "f", "asserts").unwrap_or(0);
     assert!(asserts >= 2, "single gap should be tolerated, got: {asserts}");
 }
@@ -744,15 +705,8 @@ fn init_exactly_at_boundary() {
 
 #[test]
 fn primitive_obsession_high_ratio() {
-    let out = check(concat!(
-        "func f(a: Int, b: Int, c: Int, d: Double) -> Int {\n",
-        "    return a\n",
-        "}\n",
-    ));
-    assert!(
-        has_smell(&out, "Primitive Obsession"),
-        "4/4 primitives should trigger, got: {out}"
-    );
+    let out = check(concat!("func f(a: Int, b: Int, c: Int, d: Double) -> Int {\n", "    return a\n", "}\n",));
+    assert!(has_smell(&out, "Primitive Obsession"), "4/4 primitives should trigger, got: {out}");
 }
 
 #[test]
@@ -763,21 +717,15 @@ fn primitive_obsession_low_count_no_flag() {
 
 #[test]
 fn primitive_obsession_non_primitive_reduces_ratio() {
-    let out = check(concat!(
-        "func f(a: Int, b: MyType, c: OtherType, d: AnotherType) -> Int {\n",
-        "    return a\n",
-        "}\n",
-    ));
+    let out =
+        check(concat!("func f(a: Int, b: MyType, c: OtherType, d: AnotherType) -> Int {\n", "    return a\n", "}\n",));
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
 #[test]
 fn primitive_obsession_all_custom_no_flag() {
-    let out = check(concat!(
-        "func f(a: MyType, b: YourType, c: TheirType, d: OurType) -> Int {\n",
-        "    return 0\n",
-        "}\n",
-    ));
+    let out =
+        check(concat!("func f(a: MyType, b: YourType, c: TheirType, d: OurType) -> Int {\n", "    return 0\n", "}\n",));
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
@@ -964,21 +912,13 @@ fn lcom4_dependency_method_calls_dont_falsely_connect() {
 
 #[test]
 fn module_declaration_count() {
-    let out = debug(concat!(
-        "class A {}\n",
-        "class B {}\n",
-        "struct C {\n    var x: Int\n}\n",
-    ));
+    let out = debug(concat!("class A {}\n", "class B {}\n", "struct C {\n    var x: Int\n}\n",));
     assert!(out.contains("declarations=3"), "got: {out}");
 }
 
 #[test]
 fn module_function_count() {
-    let out = debug(concat!(
-        "func a() {}\n",
-        "func b() {}\n",
-        "func c() {}\n",
-    ));
+    let out = debug(concat!("func a() {}\n", "func b() {}\n", "func c() {}\n",));
     assert!(out.contains("3 functions"), "got: {out}");
 }
 

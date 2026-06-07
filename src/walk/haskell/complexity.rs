@@ -51,10 +51,8 @@ pub fn check_compound(node: Node, source: &str, count: &mut u32) {
 
 fn operator_text(infix: Node, source: &str) -> Option<String> {
     let mut cursor = infix.walk();
-    let result = infix
-        .children(&mut cursor)
-        .find(|c| c.kind() == "operator")
-        .map(|n| node_text(n, source).trim().to_string());
+    let result =
+        infix.children(&mut cursor).find(|c| c.kind() == "operator").map(|n| node_text(n, source).trim().to_string());
     result
 }
 

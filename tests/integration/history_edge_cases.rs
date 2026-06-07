@@ -11,19 +11,11 @@ fn t() -> Thresholds {
 }
 
 fn opts(root: PathBuf) -> HistoryOpts {
-    HistoryOpts {
-        root,
-        include_tests: false,
-        since: None,
-        max_commits: None,
-    }
+    HistoryOpts { root, include_tests: false, since: None, max_commits: None }
 }
 
 fn count_pillar(findings: &[HistoryFinding], pillar: HistoryPillar) -> usize {
-    findings
-        .iter()
-        .filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar)
-        .count()
+    findings.iter().filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar).count()
 }
 
 #[test]
@@ -52,12 +44,8 @@ fn output_deterministic_across_two_runs_on_same_repo() {
 
 #[test]
 fn run_with_relative_root_dot_works() {
-    let repo = build_repo(&[CommitSpec {
-        author: "a <a@x>",
-        message: "init",
-        writes: &[("a.py", "x = 1\n")],
-        deletes: &[],
-    }]);
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
     let saved = std::env::current_dir().unwrap();
     std::env::set_current_dir(repo.path()).unwrap();
     let result = run(&opts(PathBuf::from(".")), &t().history);
@@ -68,18 +56,8 @@ fn run_with_relative_root_dot_works() {
 #[test]
 fn merge_commit_with_no_files_silently_skipped() {
     let repo = build_repo(&[
-        CommitSpec {
-            author: "a <a@x>",
-            message: "init",
-            writes: &[("a.py", "x = 1\n")],
-            deletes: &[],
-        },
-        CommitSpec {
-            author: "a <a@x>",
-            message: "empty",
-            writes: &[],
-            deletes: &[],
-        },
+        CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] },
+        CommitSpec { author: "a <a@x>", message: "empty", writes: &[], deletes: &[] },
     ]);
     let result = run(&opts(repo.path().to_path_buf()), &t().history);
     assert!(result.is_ok());
@@ -106,12 +84,7 @@ fn deleted_file_excluded_from_drift_findings() {
             writes: &[("a.py", "x = 3\n"), ("b.py", "y = 4\n")],
             deletes: &[],
         },
-        CommitSpec {
-            author: "a <a@x>",
-            message: "delete b",
-            writes: &[],
-            deletes: &["b.py"],
-        },
+        CommitSpec { author: "a <a@x>", message: "delete b", writes: &[], deletes: &["b.py"] },
     ]);
     let mut th = t().history;
     th.co_change.min_support = 1;
@@ -120,8 +93,7 @@ fn deleted_file_excluded_from_drift_findings() {
         .iter()
         .filter(|f| {
             let HistoryKind::ArchitecturalDrift(e) = &f.kind else { return false };
-            e.file_b.to_string_lossy().contains("b.py")
-                || e.file_a.to_string_lossy().contains("b.py")
+            e.file_b.to_string_lossy().contains("b.py") || e.file_a.to_string_lossy().contains("b.py")
         })
         .count();
     assert_eq!(drift_with_b, 0, "drift with deleted file shouldn't surface");
@@ -156,12 +128,8 @@ fn include_tests_flag_changes_behavior() {
 
 #[test]
 fn since_filter_excludes_old_commits() {
-    let repo = build_repo(&[CommitSpec {
-        author: "a <a@x>",
-        message: "init",
-        writes: &[("a.py", "x = 1\n")],
-        deletes: &[],
-    }]);
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
     let mut o = opts(repo.path().to_path_buf());
     o.since = Some("9999-01-01".to_string());
     let result = run(&o, &t().history).unwrap();
@@ -184,12 +152,8 @@ fn max_commits_zero_returns_empty_findings() {
 
 #[test]
 fn run_idempotent_returns_same_count() {
-    let repo = build_repo(&[CommitSpec {
-        author: "a <a@x>",
-        message: "init",
-        writes: &[("a.py", "x = 1\n")],
-        deletes: &[],
-    }]);
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
     let r1 = run(&opts(repo.path().to_path_buf()), &t().history).unwrap();
     let r2 = run(&opts(repo.path().to_path_buf()), &t().history).unwrap();
     assert_eq!(r1.len(), r2.len());
@@ -197,12 +161,8 @@ fn run_idempotent_returns_same_count() {
 
 #[test]
 fn run_on_repo_with_only_one_file_does_not_panic() {
-    let repo = build_repo(&[CommitSpec {
-        author: "a <a@x>",
-        message: "init",
-        writes: &[("a.py", "x = 1\n")],
-        deletes: &[],
-    }]);
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
     let result = run(&opts(repo.path().to_path_buf()), &t().history);
     assert!(result.is_ok());
 }
@@ -297,10 +257,8 @@ fn three_way_chain_does_not_create_phantom_pair() {
         .iter()
         .filter(|f| {
             let HistoryKind::ArchitecturalDrift(e) = &f.kind else { return false };
-            (e.file_a.to_string_lossy().ends_with("a.py")
-                && e.file_b.to_string_lossy().ends_with("c.py"))
-                || (e.file_a.to_string_lossy().ends_with("c.py")
-                    && e.file_b.to_string_lossy().ends_with("a.py"))
+            (e.file_a.to_string_lossy().ends_with("a.py") && e.file_b.to_string_lossy().ends_with("c.py"))
+                || (e.file_a.to_string_lossy().ends_with("c.py") && e.file_b.to_string_lossy().ends_with("a.py"))
         })
         .count();
     assert_eq!(ac_pair, 0, "A↔C should not be inferred from A↔B and B↔C");
@@ -308,12 +266,8 @@ fn three_way_chain_does_not_create_phantom_pair() {
 
 #[test]
 fn run_back_to_back_without_state_leak() {
-    let repo = build_repo(&[CommitSpec {
-        author: "a <a@x>",
-        message: "init",
-        writes: &[("a.py", "x = 1\n")],
-        deletes: &[],
-    }]);
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
     let _ = run(&opts(repo.path().to_path_buf()), &t().history).unwrap();
     let r2 = run(&opts(repo.path().to_path_buf()), &t().history).unwrap();
     assert!(r2.len() <= 100);

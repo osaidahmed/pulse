@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use pulse::audit::finding::{
-    AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence,
-};
+use pulse::audit::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence};
 use pulse::audit::output::{format_findings, format_findings_json};
 
 use crate::audit_common::t;
@@ -25,10 +23,7 @@ fn finding_with_evidence(e: ShotgunSurgeryEvidence) -> AuditFinding {
 fn sample_evidence(callers: usize, confidence: ImportConfidence) -> ShotgunSurgeryEvidence {
     let mut samples = Vec::new();
     for i in 0..callers {
-        samples.push(AuditLocation {
-            file: PathBuf::from(format!("caller_{i}.py")),
-            line: i as u32 + 1,
-        });
+        samples.push(AuditLocation { file: PathBuf::from(format!("caller_{i}.py")), line: i as u32 + 1 });
     }
     ShotgunSurgeryEvidence {
         method_file: PathBuf::from("api.py"),

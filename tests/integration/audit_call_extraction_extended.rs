@@ -34,14 +34,7 @@ fn dispatchers_table_all_languages_enumerable() {
 
 #[test]
 fn unsupported_languages_have_empty_dispatchers() {
-    let unsupported = [
-        Language::Lua,
-        Language::R,
-        Language::Tcl,
-        Language::Cobol,
-        Language::ObjectiveC,
-        Language::Zig,
-    ];
+    let unsupported = [Language::Lua, Language::R, Language::Tcl, Language::Cobol, Language::ObjectiveC, Language::Zig];
     for lang in unsupported {
         let d = dispatchers_for_lang(lang);
         assert!(d.is_empty(), "lang {lang:?} should have no dispatchers");
@@ -232,8 +225,7 @@ fn long_chained_calls_handled() {
 fn nested_calls_each_emit_record() {
     let source = "x = f(g(h(1)))\n";
     let calls = parse_extract(source, Language::Python);
-    let names: std::collections::BTreeSet<String> =
-        calls.iter().map(|c| c.callee_name.clone()).collect();
+    let names: std::collections::BTreeSet<String> = calls.iter().map(|c| c.callee_name.clone()).collect();
     assert!(names.contains("f"));
     assert!(names.contains("g"));
     assert!(names.contains("h"));
@@ -290,10 +282,7 @@ fn determinism_same_source_yields_same_extracted_calls_five_runs() {
     let source = "fn main() { obj.first(); pkg.second(); a.b.third(); }\n";
     let mut all = Vec::new();
     for _ in 0..5 {
-        let mut names: Vec<String> = parse_extract(source, Language::Rust)
-            .into_iter()
-            .map(|c| c.callee_name)
-            .collect();
+        let mut names: Vec<String> = parse_extract(source, Language::Rust).into_iter().map(|c| c.callee_name).collect();
         names.sort();
         all.push(names);
     }

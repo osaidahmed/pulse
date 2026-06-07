@@ -27,31 +27,15 @@ pub struct NaturalnessThresholds {
 }
 
 impl CloneClusterThresholds {
-    pub const DEFAULTS: Self = Self {
-        max_sim_threshold: 12,
-        min_cluster_size: 2,
-        loc_window_pct: 30,
-        min_loc: 6,
-    };
+    pub const DEFAULTS: Self = Self { max_sim_threshold: 12, min_cluster_size: 2, loc_window_pct: 30, min_loc: 6 };
 }
 
 impl CpgThresholds {
-    pub const DEFAULTS: Self = Self {
-        enabled: false,
-        dead_store: true,
-        use_before_def: true,
-        unreachable_code: true,
-        unused_result: false,
-    };
+    pub const DEFAULTS: Self =
+        Self { enabled: false, dead_store: true, use_before_def: true, unreachable_code: true, unused_result: false };
 }
 
 impl NaturalnessThresholds {
-    pub const DEFAULTS: Self = Self {
-        enabled: false,
-        ngram_order: 6,
-        cache_k: 5000,
-        jm_gamma: 1.0,
-        min_fn_tokens: 20,
-        zscore_cutoff: 3.0,
-    };
+    pub const DEFAULTS: Self =
+        Self { enabled: false, ngram_order: 6, cache_k: 5000, jm_gamma: 1.0, min_fn_tokens: 20, zscore_cutoff: 3.0 };
 }

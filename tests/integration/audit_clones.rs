@@ -57,9 +57,8 @@ fn near_duplicate_functions_clustered_across_files() {
 #[test]
 fn cross_file_clone_is_medium_confidence() {
     let found = run_clones(&[("mod_a.py", PY_A), ("mod_b.py", PY_B)], Some(PassChoice::Clones));
-    let cross = clusters(&found)
-        .into_iter()
-        .find(|e| e.members.iter().map(|m| &m.file).collect::<HashSet<_>>().len() >= 2);
+    let cross =
+        clusters(&found).into_iter().find(|e| e.members.iter().map(|m| &m.file).collect::<HashSet<_>>().len() >= 2);
     let e = cross.expect("expected a cross-file cluster");
     assert_eq!(e.confidence, ImportConfidence::Medium);
     assert!(e.member_count >= 2);

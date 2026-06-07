@@ -41,29 +41,16 @@ pub struct ContributorThresholds {
 }
 
 impl CoChangeThresholds {
-    pub const DEFAULTS: Self = Self {
-        min_support: 3,
-        min_confidence: 0.5,
-        min_lift: 1.0,
-        max_findings_reported: 20,
-    };
+    pub const DEFAULTS: Self = Self { min_support: 3, min_confidence: 0.5, min_lift: 1.0, max_findings_reported: 20 };
 }
 
 impl HotspotThresholds {
-    pub const DEFAULTS: Self = Self {
-        min_revisions: 3,
-        min_score: 30,
-        max_findings_reported: 10,
-    };
+    pub const DEFAULTS: Self = Self { min_revisions: 3, min_score: 30, max_findings_reported: 10 };
 }
 
 impl ContributorThresholds {
-    pub const DEFAULTS: Self = Self {
-        minor_contributor_pct: 5.0,
-        min_minor_authors: 3,
-        min_total_commits: 5,
-        max_findings_reported: 20,
-    };
+    pub const DEFAULTS: Self =
+        Self { minor_contributor_pct: 5.0, min_minor_authors: 3, min_total_commits: 5, max_findings_reported: 20 };
 }
 
 impl HistSmellThresholds {

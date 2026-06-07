@@ -26,30 +26,10 @@ const DOTTED_PROFILES: &[DottedProfile] = &[
         ext: "kt",
         bases: &["", "src", "src/main/java", "src/main/kotlin"],
     },
-    DottedProfile {
-        lang: Language::CSharp,
-        kind: "using_directive",
-        ext: "cs",
-        bases: &["", "src"],
-    },
-    DottedProfile {
-        lang: Language::Swift,
-        kind: "import_declaration",
-        ext: "swift",
-        bases: &["", "src", "Sources"],
-    },
-    DottedProfile {
-        lang: Language::Haskell,
-        kind: "import",
-        ext: "hs",
-        bases: &["", "src"],
-    },
-    DottedProfile {
-        lang: Language::D,
-        kind: "import_declaration",
-        ext: "d",
-        bases: &["", "src", "source"],
-    },
+    DottedProfile { lang: Language::CSharp, kind: "using_directive", ext: "cs", bases: &["", "src"] },
+    DottedProfile { lang: Language::Swift, kind: "import_declaration", ext: "swift", bases: &["", "src", "Sources"] },
+    DottedProfile { lang: Language::Haskell, kind: "import", ext: "hs", bases: &["", "src"] },
+    DottedProfile { lang: Language::D, kind: "import_declaration", ext: "d", bases: &["", "src", "source"] },
     DottedProfile {
         lang: Language::Groovy,
         kind: "import_declaration",
@@ -85,9 +65,8 @@ fn match_zig(node: Node, source: &str) -> Option<RawImport> {
         return None;
     }
     let mut cursor = node.walk();
-    let is_import = node.children(&mut cursor).any(|c| {
-        c.kind() == "builtin_identifier" && node_text(c, source) == "@import"
-    });
+    let is_import =
+        node.children(&mut cursor).any(|c| c.kind() == "builtin_identifier" && node_text(c, source) == "@import");
     if !is_import {
         return None;
     }
@@ -97,16 +76,10 @@ fn match_zig(node: Node, source: &str) -> Option<RawImport> {
 
 fn find_string_arg(node: Node, source: &str) -> Option<String> {
     let mut cursor = node.walk();
-    let arguments = node
-        .children(&mut cursor)
-        .find(|c| c.is_named() && c.kind() == "arguments")?;
+    let arguments = node.children(&mut cursor).find(|c| c.is_named() && c.kind() == "arguments")?;
     let mut argc = arguments.walk();
-    let string_node = arguments
-        .children(&mut argc)
-        .find(|c| c.is_named() && c.kind() == "string")?;
-    find_named_child(string_node, |c| {
-        (c.kind() == "string_content").then(|| node_text(c, source))
-    })
+    let string_node = arguments.children(&mut argc).find(|c| c.is_named() && c.kind() == "string")?;
+    find_named_child(string_node, |c| (c.kind() == "string_content").then(|| node_text(c, source)))
 }
 
 fn find_named_child<R>(node: Node, mut predicate: impl FnMut(Node) -> Option<R>) -> Option<R> {
@@ -137,12 +110,7 @@ pub fn path_suffix_for(raw: &str, lang: Language) -> Option<String> {
     let profile = dotted_profile(lang)?;
     let segments: Vec<&str> = raw.split('.').filter(|s| !s.is_empty()).collect();
     let joined = segments.join(std::path::MAIN_SEPARATOR_STR);
-    Some(format!(
-        "{}{}.{}",
-        std::path::MAIN_SEPARATOR_STR,
-        joined,
-        profile.ext
-    ))
+    Some(format!("{}{}.{}", std::path::MAIN_SEPARATOR_STR, joined, profile.ext))
 }
 
 fn match_rust(node: Node, source: &str) -> Option<RawImport> {
@@ -207,9 +175,7 @@ fn path_for_kind(node: Node, source: &str) -> Option<String> {
 }
 
 fn first_dotted_text(node: Node, source: &str) -> Option<String> {
-    find_named_child(node, |child| {
-        is_dotted_kind(child.kind()).then(|| node_text(child, source))
-    })
+    find_named_child(node, |child| is_dotted_kind(child.kind()).then(|| node_text(child, source)))
 }
 
 fn is_dotted_kind(kind: &str) -> bool {

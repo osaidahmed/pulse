@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -61,9 +60,7 @@ fn cc_counts_ternary() {
 
 #[test]
 fn cc_nested_if_in_for() {
-    let out = debug(
-        "void f(void) {\n    for (int i = 0; i < 10; i++) {\n        if (i > 5) {}\n    }\n}\n",
-    );
+    let out = debug("void f(void) {\n    for (int i = 0; i < 10; i++) {\n        if (i > 5) {}\n    }\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(3));
 }
 
@@ -131,8 +128,7 @@ fn duplication_detected() {
 // Multiple smells
 #[test]
 fn multiple_smells_same_function() {
-    let mut code =
-        String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
+    let mut code = String::from("void bad(int a, int b, int c, int d, int e, int f, int g, int h) {\n");
     code.push_str("    for (int i = 0; i < a; i++) {\n");
     code.push_str("        if (i > 0) {\n");
     code.push_str("            for (int j = 0; j < b; j++) {\n");
@@ -442,12 +438,7 @@ fn hook_missing_tool_input() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"other\": 1}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"other\": 1}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -463,12 +454,7 @@ fn hook_missing_file_path_key() {
         .spawn()
         .and_then(|mut child| {
             use std::io::Write;
-            child
-                .stdin
-                .take()
-                .unwrap()
-                .write_all(b"{\"tool_input\": {\"content\": \"hello\"}}")
-                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{\"tool_input\": {\"content\": \"hello\"}}").unwrap();
             child.wait_with_output()
         })
         .expect("failed to run");
@@ -511,10 +497,7 @@ fn clean_c_module_not_flagged() {
         "    return dx * dx + dy * dy;\n",
         "}\n",
     ));
-    assert!(
-        out.is_empty(),
-        "clean C code should not be flagged, got: {out}"
-    );
+    assert!(out.is_empty(), "clean C code should not be flagged, got: {out}");
 }
 
 // ===========================================================================
@@ -559,10 +542,7 @@ fn cc_nested_if_in_while() {
 fn nesting_do_while_counts_depth() {
     let out = debug("void f(void) {\n    do {\n        if (x) {}\n    } while (y);\n}\n");
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
-    assert!(
-        depth >= 1,
-        "do-while should contribute nesting, got: {depth}"
-    );
+    assert!(depth >= 1, "do-while should contribute nesting, got: {depth}");
 }
 
 // ===========================================================================
@@ -696,10 +676,7 @@ fn nested_conditional_chunks_detected() {
         "    }\n",
         "}\n",
     ));
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 // ===========================================================================
@@ -803,9 +780,7 @@ fn output_has_line_numbers() {
 
 #[test]
 fn attributed_function_analyzed() {
-    let out = check(
-        "__attribute__((noinline))\nvoid f(int a, int b, int c, int d, int e, int f, int g) {}\n",
-    );
+    let out = check("__attribute__((noinline))\nvoid f(int a, int b, int c, int d, int e, int f, int g) {}\n");
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
@@ -835,8 +810,7 @@ fn excess_args_count_verified() {
 
 #[test]
 fn cc_else_if_chain() {
-    let out =
-        debug("void f(int x) {\n    if (x == 1) {} else if (x == 2) {} else if (x == 3) {}\n}\n");
+    let out = debug("void f(int x) {\n    if (x == 1) {} else if (x == 2) {} else if (x == 3) {}\n}\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(4));
 }
 
@@ -846,7 +820,9 @@ fn cc_else_if_chain() {
 
 #[test]
 fn nesting_switch_counts_depth() {
-    let out = debug("void f(int x) {\n    switch (x) {\n        case 1:\n            if (x > 0) {}\n            break;\n    }\n}\n");
+    let out = debug(
+        "void f(int x) {\n    switch (x) {\n        case 1:\n            if (x > 0) {}\n            break;\n    }\n}\n",
+    );
     let depth = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(depth >= 2, "switch+if should be >= 2, got: {depth}");
 }

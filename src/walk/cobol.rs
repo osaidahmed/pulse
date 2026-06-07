@@ -2,9 +2,8 @@ use tree_sitter::{Node, Tree};
 
 use super::counters::count_short_variables;
 use super::{
-    compute_skeleton_hash, compute_structural_fingerprint, count_code_lines,
-    count_distinct_node_kinds_multi, find_child_by_kind, node_text, track_embedded_block, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState,
+    compute_skeleton_hash, compute_structural_fingerprint, count_code_lines, count_distinct_node_kinds_multi,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["*>", "*"];
@@ -22,8 +21,8 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let total_loc = count_code_lines(source, COMMENT_PREFIXES);
     let prog = find_child_by_kind(root, "program_definition").unwrap_or(root);
 
-    let declaration_count = find_child_by_kind(prog, "data_division")
-        .map_or(0, |dd| count_descendants(dd, "data_description"));
+    let declaration_count =
+        find_child_by_kind(prog, "data_division").map_or(0, |dd| count_descendants(dd, "data_description"));
 
     let mut functions = Vec::new();
     let mut global_cond: u32 = 0;
@@ -142,7 +141,11 @@ fn header_name(node: Node, source: &str) -> Option<String> {
     let text = node_text(node, source).trim().trim_end_matches('.');
     // Section headers include " SECTION" suffix — strip it
     let text = text.strip_suffix(" SECTION").unwrap_or(text).trim();
-    if text.is_empty() { None } else { Some(text.to_string()) }
+    if text.is_empty() {
+        None
+    } else {
+        Some(text.to_string())
+    }
 }
 
 fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<FunctionMetrics>) {
@@ -151,27 +154,38 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
 
     let struct_hash = info.body.first().map_or(0, |n| compute_structural_fingerprint(*n));
     let distinct_kinds = count_distinct_node_kinds_multi(info.body);
-    let skel_hash = info.body.iter().fold(0u64, |acc, n| {
-        acc.wrapping_mul(31).wrapping_add(compute_skeleton_hash(*n))
-    });
+    let skel_hash = info.body.iter().fold(0u64, |acc, n| acc.wrapping_mul(31).wrapping_add(compute_skeleton_hash(*n)));
     let assign_kinds = &["move_statement", "set_statement", "compute_statement"];
     let short_vars = info.body.iter().map(|n| count_short_variables(*n, info.source, assign_kinds)).sum();
 
     out.push(FunctionMetrics {
-        name: info.name.to_string(), start_line: info.start_line, end_line: info.end_line,
+        name: info.name.to_string(),
+        start_line: info.start_line,
+        end_line: info.end_line,
         loc: info.end_line.saturating_sub(info.start_line) + 1,
-        cc: bw.s.cc, cognitive_complexity: bw.s.cogc,
-        max_nesting: bw.s.max_nesting, bump_count: bw.s.bump_count,
-        arg_count: 0, compound_condition_count: bw.s.compound_condition_count,
-        is_constructor: false, max_embedded_block_loc: bw.s.max_embedded_block_loc,
-        structural_hash: struct_hash, distinct_node_kinds: distinct_kinds, skeleton_hash: skel_hash,
-        consecutive_asserts: 0, assert_hash: 0,
-        primitive_type_count: 0, typed_param_count: 0, max_same_primitive_count: 0,
-        empty_catch_count: 0, field_accesses: Vec::new(),
+        cc: bw.s.cc,
+        cognitive_complexity: bw.s.cogc,
+        max_nesting: bw.s.max_nesting,
+        bump_count: bw.s.bump_count,
+        arg_count: 0,
+        compound_condition_count: bw.s.compound_condition_count,
+        is_constructor: false,
+        max_embedded_block_loc: bw.s.max_embedded_block_loc,
+        structural_hash: struct_hash,
+        distinct_node_kinds: distinct_kinds,
+        skeleton_hash: skel_hash,
+        consecutive_asserts: 0,
+        assert_hash: 0,
+        primitive_type_count: 0,
+        typed_param_count: 0,
+        max_same_primitive_count: 0,
+        empty_catch_count: 0,
+        field_accesses: Vec::new(),
         foreign_field_accesses: Vec::new(),
         class_name: section.map(String::from),
         parent_class: None,
-        short_var_count: short_vars, string_match_arms: bw.match_arms,
+        short_var_count: short_vars,
+        string_match_arms: bw.match_arms,
         cpg: None,
     });
 }
@@ -247,8 +261,14 @@ impl BodyWalker<'_, '_> {
                     track_condition(self.nodes[i], self.source, &mut self.s);
                     i += 1;
                 }
-                "else_header" => { self.s.track_cogc_flat(); i += 1; }
-                "END_IF" => { self.s.cogc_nesting = saved; return i + 1; }
+                "else_header" => {
+                    self.s.track_cogc_flat();
+                    i += 1;
+                }
+                "END_IF" => {
+                    self.s.cogc_nesting = saved;
+                    return i + 1;
+                }
                 _ => {
                     let prev = i;
                     let next = self.dispatch(i, depth + 1);
@@ -272,9 +292,19 @@ impl BodyWalker<'_, '_> {
         let mut steps: usize = 0;
         while i < self.nodes.len() && steps < cap {
             match self.nodes[i].kind() {
-                "when" => { self.s.cc += 1; self.match_arms += 1; i += 1; }
-                "when_other" => { self.s.track_cogc_flat(); i += 1; }
-                "END_EVALUATE" => { self.s.cogc_nesting = saved; return i + 1; }
+                "when" => {
+                    self.s.cc += 1;
+                    self.match_arms += 1;
+                    i += 1;
+                }
+                "when_other" => {
+                    self.s.track_cogc_flat();
+                    i += 1;
+                }
+                "END_EVALUATE" => {
+                    self.s.cogc_nesting = saved;
+                    return i + 1;
+                }
                 _ => {
                     let prev = i;
                     let next = self.dispatch(i, depth + 1);
@@ -312,7 +342,9 @@ fn track_perform_bools(opt: Node, s: &mut WalkState) {
     }
     let mut cursor = opt.walk();
     for child in opt.children(&mut cursor) {
-        if child.kind() != "perform_varying" { continue; }
+        if child.kind() != "perform_varying" {
+            continue;
+        }
         let mut vc = child.walk();
         for vc_child in child.children(&mut vc) {
             if vc_child.kind() == "expr" {
@@ -326,12 +358,16 @@ fn count_expr_bools(node: Node, cc: &mut u32, cogc: &mut u32) {
     let mut prev_op: Option<&str> = None;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if !child.is_named() { continue; }
+        if !child.is_named() {
+            continue;
+        }
         let kind = child.kind();
         let is_bool = kind == "AND" || kind == "OR";
         if is_bool {
             *cc += 1;
-            if prev_op != Some(kind) { *cogc += 1; }
+            if prev_op != Some(kind) {
+                *cogc += 1;
+            }
             prev_op = Some(kind);
         } else if kind == "expr" {
             count_expr_bools(child, cc, cogc);
@@ -347,8 +383,16 @@ fn scan_nesting(children: &[Node], start: usize) -> u32 {
     let mut max: u32 = 1;
     for child in &children[start + 1..] {
         match child.kind() {
-            "if_header" => { depth += 1; max = max.max(depth); }
-            "END_IF" => { depth = depth.saturating_sub(1); if depth == 0 { return max; } }
+            "if_header" => {
+                depth += 1;
+                max = max.max(depth);
+            }
+            "END_IF" => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return max;
+                }
+            }
             "paragraph_header" | "section_header" => return max,
             _ => {}
         }
@@ -362,7 +406,11 @@ fn count_descendants(node: Node, target: &str) -> u32 {
     while let Some(current) = stack.pop() {
         let mut cursor = current.walk();
         for child in current.children(&mut cursor) {
-            if child.kind() == target { count += 1; } else { stack.push(child); }
+            if child.kind() == target {
+                count += 1;
+            } else {
+                stack.push(child);
+            }
         }
     }
     count

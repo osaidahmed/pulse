@@ -215,12 +215,7 @@ fn run_root_is_a_file_not_dir_handled() {
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("file.txt");
     std::fs::write(&file, "x").unwrap();
-    let opts = HistoryOpts {
-        root: file,
-        include_tests: false,
-        since: None,
-        max_commits: None,
-    };
+    let opts = HistoryOpts { root: file, include_tests: false, since: None, max_commits: None };
     let result = run(&opts, &t().history);
     assert!(result.is_err());
 }
@@ -235,12 +230,7 @@ fn parse_does_not_dedupe_files_in_commit() {
 
 #[test]
 fn debug_assert_commit_clone_works() {
-    let c = Commit {
-        hash: "h".into(),
-        author: "a".into(),
-        timestamp: 1,
-        files: vec![PathBuf::from("a.py")],
-    };
+    let c = Commit { hash: "h".into(), author: "a".into(), timestamp: 1, files: vec![PathBuf::from("a.py")] };
     let cloned = c.clone();
     assert_eq!(c.hash, cloned.hash);
 }

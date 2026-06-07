@@ -48,10 +48,7 @@ pub fn extract_calls(tree: &Tree, source: &str, lang: Language) -> Vec<RawCall> 
 }
 
 pub fn dispatchers_for_lang(lang: Language) -> &'static [CallDispatch] {
-    DISPATCH_TABLE
-        .iter()
-        .find(|(l, _)| *l == lang)
-        .map_or(&[][..], |(_, d)| *d)
+    DISPATCH_TABLE.iter().find(|(l, _)| *l == lang).map_or(&[][..], |(_, d)| *d)
 }
 
 fn visit(node: Node, source: &str, dispatchers: &[CallDispatch], out: &mut Vec<RawCall>) {

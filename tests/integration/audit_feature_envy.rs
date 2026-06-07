@@ -9,13 +9,7 @@ use pulse::audit::finding::{AuditKind, FeatureEnvyEvidence};
 
 use crate::audit_common::t;
 
-fn def(
-    file: &str,
-    class: Option<&str>,
-    name: &str,
-    line: u32,
-    foreign: Vec<(&str, &str)>,
-) -> DefinitionRecord {
+fn def(file: &str, class: Option<&str>, name: &str, line: u32, foreign: Vec<(&str, &str)>) -> DefinitionRecord {
     DefinitionRecord {
         identity: MethodIdentity {
             file: PathBuf::from(file),
@@ -25,10 +19,7 @@ fn def(
         },
         cc: 1,
         field_accesses: Vec::new(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: None,
         is_constructor: false,
     }
@@ -74,10 +65,7 @@ fn method_with_high_atfd_and_foreign_ratio_emits_finding() {
     );
     let bar_method1 = def("b.py", Some("Bar"), "do1", 1, vec![]);
     let bar_method2 = def("b.py", Some("Bar"), "do2", 1, vec![]);
-    let calls = vec![
-        call_to(&envious, "do1", Some("Bar")),
-        call_to(&envious, "do2", Some("Bar")),
-    ];
+    let calls = vec![call_to(&envious, "do1", Some("Bar")), call_to(&envious, "do2", Some("Bar"))];
     let findings = detect_with(vec![envious, bar_method1, bar_method2], calls, &t().audit);
     assert!(!findings.is_empty(), "expected Feature Envy finding");
     let e = envy_evidence(&findings[0]);
@@ -87,19 +75,11 @@ fn method_with_high_atfd_and_foreign_ratio_emits_finding() {
 
 #[test]
 fn method_with_high_atfd_low_foreign_ratio_no_finding() {
-    let envious = def(
-        "a.py",
-        Some("Foo"),
-        "m",
-        1,
-        vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")],
-    );
+    let envious =
+        def("a.py", Some("Foo"), "m", 1, vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")]);
     let intra1 = def("a.py", Some("Foo"), "intra1", 1, vec![]);
     let intra2 = def("a.py", Some("Foo"), "intra2", 1, vec![]);
-    let calls = vec![
-        call_to(&envious, "intra1", Some("Foo")),
-        call_to(&envious, "intra2", Some("Foo")),
-    ];
+    let calls = vec![call_to(&envious, "intra1", Some("Foo")), call_to(&envious, "intra2", Some("Foo"))];
     let findings = detect_with(vec![envious, intra1, intra2], calls, &t().audit);
     assert!(findings.is_empty(), "high intra-class ratio suppresses Feature Envy");
 }
@@ -115,7 +95,8 @@ fn method_with_low_atfd_no_finding() {
 
 #[test]
 fn free_function_not_eligible() {
-    let f = def("a.py", None, "free_fn", 1, vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")]);
+    let f =
+        def("a.py", None, "free_fn", 1, vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")]);
     let bar = def("b.py", Some("Bar"), "do", 1, vec![]);
     let calls = vec![call_to(&f, "do", Some("Bar"))];
     let findings = detect_with(vec![f, bar], calls, &t().audit);
@@ -124,7 +105,8 @@ fn free_function_not_eligible() {
 
 #[test]
 fn method_with_no_calls_no_finding() {
-    let m = def("a.py", Some("Foo"), "m", 1, vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")]);
+    let m =
+        def("a.py", Some("Foo"), "m", 1, vec![("x", "a"), ("x", "b"), ("x", "c"), ("x", "d"), ("x", "e"), ("x", "f")]);
     let findings = detect_with(vec![m], Vec::new(), &t().audit);
     assert!(findings.is_empty(), "no calls = no ratio computation = no finding");
 }

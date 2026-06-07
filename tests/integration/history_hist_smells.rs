@@ -15,23 +15,14 @@ fn hist_t() -> HistoryThresholds {
 }
 
 fn commit(files: &[&str]) -> Commit {
-    Commit {
-        hash: "h".into(),
-        author: "a@x".into(),
-        timestamp: 0,
-        files: files.iter().map(PathBuf::from).collect(),
-    }
+    Commit { hash: "h".into(), author: "a@x".into(), timestamp: 0, files: files.iter().map(PathBuf::from).collect() }
 }
 
 fn typed(files: &[&str]) -> HashSet<PathBuf> {
     files.iter().map(PathBuf::from).collect()
 }
 
-fn run_hist(
-    commits: &[Commit],
-    typed_paths: &HashSet<PathBuf>,
-    t: &HistoryThresholds,
-) -> Vec<HistoryFinding> {
+fn run_hist(commits: &[Commit], typed_paths: &HashSet<PathBuf>, t: &HistoryThresholds) -> Vec<HistoryFinding> {
     let pairs = co_change::mine(commits, t);
     let scope = co_change::revisions_in_scope(commits, t);
     rank(commits, &pairs, &scope, typed_paths, t)
@@ -119,10 +110,7 @@ fn an_untyped_blob_file_is_not_reported() {
         commits.push(commit(&["generated.bin", m.as_str()]));
     }
     let typed_paths = typed(&[]);
-    assert!(
-        blobs(&commits, &typed_paths).is_empty(),
-        "a non-source file is never surfaced as a blob"
-    );
+    assert!(blobs(&commits, &typed_paths).is_empty(), "a non-source file is never surfaced as a blob");
 }
 
 #[test]
@@ -152,8 +140,7 @@ fn co_changing_within_few_packages_is_not_a_shotgun() {
 
 #[test]
 fn partners_below_the_confidence_floor_are_not_counted() {
-    let mut commits: Vec<Commit> =
-        (0..5).map(|_| commit(&["core/hub.rs", "pkg1/a.rs", "pkg2/b.rs"])).collect();
+    let mut commits: Vec<Commit> = (0..5).map(|_| commit(&["core/hub.rs", "pkg1/a.rs", "pkg2/b.rs"])).collect();
     commits.extend((0..5).map(|_| commit(&["core/hub.rs", "pkg3/c.rs", "pkg4/d.rs"])));
     let typed_paths = typed(&["core/hub.rs", "pkg1/a.rs", "pkg2/b.rs", "pkg3/c.rs", "pkg4/d.rs"]);
     assert!(

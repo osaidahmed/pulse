@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use pulse::audit::call_graph::{CallGraph, MethodIdentity};
 use pulse::audit::class_registry::{
-    bucket_for_class, bucket_for_method, class_atfd, class_cc, class_fanout,
-    class_method_count, class_tcc, class_wmc, ClassIndex, ClassRegistry,
+    bucket_for_class, bucket_for_method, class_atfd, class_cc, class_fanout, class_method_count, class_tcc, class_wmc,
+    ClassIndex, ClassRegistry,
 };
 use pulse::audit::definitions::DefinitionRecord;
 
@@ -28,10 +28,7 @@ fn def_with(
         },
         cc,
         field_accesses: fields.into_iter().map(String::from).collect(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: parent.map(String::from),
         is_constructor: is_ctor,
     }
@@ -76,17 +73,7 @@ fn same_class_name_in_different_files_creates_two_entries() {
 
 #[test]
 fn parent_class_propagates_to_class_identity() {
-    let defs = vec![def_with(
-        "a.py",
-        Some("Bar"),
-        "m",
-        1,
-        Some("Foo"),
-        1,
-        vec![],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", Some("Bar"), "m", 1, Some("Foo"), 1, vec![], vec![], false)];
     let (reg, _) = build_registry(defs);
     let bar = reg.get(ClassIndex(0)).unwrap();
     assert_eq!(bar.parent_class.as_deref(), Some("Foo"));
@@ -124,9 +111,17 @@ fn class_wmc_sums_per_method_cc() {
         def_with("a.py", Some("Foo"), "m3", 10, None, 3, vec![], vec![], false),
     ];
     let (reg, graph) = build_registry(defs);
-    let cc_for = |m| graph.registry.get(m).map_or(0, |id| {
-        if id.name == "m1" { 5 } else if id.name == "m2" { 7 } else { 3 }
-    });
+    let cc_for = |m| {
+        graph.registry.get(m).map_or(0, |id| {
+            if id.name == "m1" {
+                5
+            } else if id.name == "m2" {
+                7
+            } else {
+                3
+            }
+        })
+    };
     assert_eq!(class_wmc(&reg, ClassIndex(0), &cc_for), 15);
 }
 
@@ -139,10 +134,7 @@ fn class_atfd_dedupes_distinct_pairs() {
     let (reg, graph) = build_registry(defs.clone());
     let foreign_for = |m: pulse::audit::call_graph::MethodIndex| -> Vec<(String, String)> {
         let id = graph.registry.get(m).unwrap();
-        defs.iter()
-            .find(|d| &d.identity == id)
-            .map(|d| d.foreign_field_accesses.clone())
-            .unwrap_or_default()
+        defs.iter().find(|d| &d.identity == id).map(|d| d.foreign_field_accesses.clone()).unwrap_or_default()
     };
     let atfd = class_atfd(&reg, ClassIndex(0), &foreign_for);
     assert_eq!(atfd, 2);
@@ -201,17 +193,7 @@ fn class_tcc_excludes_constructors() {
 
 #[test]
 fn class_tcc_one_method_returns_zero() {
-    let defs = vec![def_with(
-        "a.py",
-        Some("Foo"),
-        "m",
-        1,
-        None,
-        1,
-        vec!["x"],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", Some("Foo"), "m", 1, None, 1, vec!["x"], vec![], false)];
     let (reg, graph) = build_registry(defs.clone());
     let fields_for = |m: pulse::audit::call_graph::MethodIndex| -> (Vec<String>, bool) {
         let id = graph.registry.get(m).unwrap();
@@ -224,39 +206,20 @@ fn class_tcc_one_method_returns_zero() {
 
 #[test]
 fn bucket_for_method_with_class_includes_file() {
-    let m = MethodIdentity {
-        file: PathBuf::from("a.py"),
-        class: Some("Foo".to_string()),
-        name: "m".to_string(),
-        line: 1,
-    };
+    let m =
+        MethodIdentity { file: PathBuf::from("a.py"), class: Some("Foo".to_string()), name: "m".to_string(), line: 1 };
     assert_eq!(bucket_for_method(&m), "a.py::Foo");
 }
 
 #[test]
 fn bucket_for_method_without_class_uses_free_prefix() {
-    let m = MethodIdentity {
-        file: PathBuf::from("a.py"),
-        class: None,
-        name: "f".to_string(),
-        line: 1,
-    };
+    let m = MethodIdentity { file: PathBuf::from("a.py"), class: None, name: "f".to_string(), line: 1 };
     assert_eq!(bucket_for_method(&m), "__free::a.py");
 }
 
 #[test]
 fn bucket_for_class_uses_file_and_name() {
-    let defs = vec![def_with(
-        "a.py",
-        Some("Foo"),
-        "m",
-        1,
-        None,
-        1,
-        vec![],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", Some("Foo"), "m", 1, None, 1, vec![], vec![], false)];
     let (reg, _) = build_registry(defs);
     let foo = reg.get(ClassIndex(0));
     assert_eq!(bucket_for_class(foo), "a.py::Foo");
@@ -264,17 +227,7 @@ fn bucket_for_class_uses_file_and_name() {
 
 #[test]
 fn class_cc_zero_with_no_callers() {
-    let defs = vec![def_with(
-        "a.py",
-        Some("Foo"),
-        "m",
-        1,
-        None,
-        1,
-        vec![],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", Some("Foo"), "m", 1, None, 1, vec![], vec![], false)];
     let (reg, graph) = build_registry(defs);
     assert_eq!(class_cc(&reg, &graph, ClassIndex(0)), 0);
 }
@@ -293,34 +246,14 @@ fn determinism_two_builds_yield_same_class_count() {
 
 #[test]
 fn free_function_not_in_registry() {
-    let defs = vec![def_with(
-        "a.py",
-        None,
-        "free_fn",
-        1,
-        None,
-        1,
-        vec![],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", None, "free_fn", 1, None, 1, vec![], vec![], false)];
     let (reg, _) = build_registry(defs);
     assert_eq!(reg.count(), 0);
 }
 
 #[test]
 fn class_fanout_zero_with_no_outgoing() {
-    let defs = vec![def_with(
-        "a.py",
-        Some("Foo"),
-        "m",
-        1,
-        None,
-        1,
-        vec![],
-        vec![],
-        false,
-    )];
+    let defs = vec![def_with("a.py", Some("Foo"), "m", 1, None, 1, vec![], vec![], false)];
     let (reg, graph) = build_registry(defs);
     assert_eq!(class_fanout(&reg, &graph, ClassIndex(0)), 0);
 }

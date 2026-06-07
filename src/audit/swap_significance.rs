@@ -76,18 +76,10 @@ fn accumulate(observed: &[u32], stats: &[u32], below: &mut [u32], above: &mut [u
 
 fn empirical_pvalues(below: &[u32], above: &[u32], samples: usize) -> Vec<f64> {
     let k = samples as f64;
-    below
-        .iter()
-        .zip(above)
-        .map(|(&b, &a)| (f64::from(b.min(a)) + 1.0) / (k + 1.0))
-        .collect()
+    below.iter().zip(above).map(|(&b, &a)| (f64::from(b.min(a)) + 1.0) / (k + 1.0)).collect()
 }
 
-fn swap_randomize(
-    matrix: &IncidenceMatrix,
-    rng: &mut SplitMix64,
-    step_multiplier: usize,
-) -> Vec<(usize, usize)> {
+fn swap_randomize(matrix: &IncidenceMatrix, rng: &mut SplitMix64, step_multiplier: usize) -> Vec<(usize, usize)> {
     let mut edges = matrix.edges.clone();
     let mut present = matrix.present.clone();
     let steps = step_multiplier.saturating_mul(edges.len());
@@ -97,11 +89,7 @@ fn swap_randomize(
     edges
 }
 
-fn try_swap(
-    edges: &mut [(usize, usize)],
-    present: &mut HashSet<(usize, usize)>,
-    rng: &mut SplitMix64,
-) {
+fn try_swap(edges: &mut [(usize, usize)], present: &mut HashSet<(usize, usize)>, rng: &mut SplitMix64) {
     let first = rng.below(edges.len());
     let second = rng.below(edges.len());
     let (r1, c1) = edges[first];

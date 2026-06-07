@@ -13,11 +13,7 @@ const MIN_COMPONENTS_FOR_GC: usize = 3;
 
 pub fn unstable_dependencies(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let threshold = thresholds.package_metrics.unstable_dep_strength;
-    let out: Vec<AuditFinding> = cg
-        .components
-        .iter()
-        .filter_map(|c| unstable_dep_finding(cg, c, threshold))
-        .collect();
+    let out: Vec<AuditFinding> = cg.components.iter().filter_map(|c| unstable_dep_finding(cg, c, threshold)).collect();
     rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
 }
 
@@ -33,11 +29,7 @@ pub fn hub_like_dependencies(cg: &ComponentGraph, thresholds: &AuditThresholds) 
         median_out: median(cg.components.iter().map(|c| c.efferent)),
         ratio: thresholds.package_metrics.hublike_imbalance_ratio,
     };
-    let out: Vec<AuditFinding> = cg
-        .components
-        .iter()
-        .filter_map(|c| hub_finding(c, &bounds))
-        .collect();
+    let out: Vec<AuditFinding> = cg.components.iter().filter_map(|c| hub_finding(c, &bounds)).collect();
     rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
 }
 
@@ -65,12 +57,9 @@ pub fn god_components(cg: &ComponentGraph, thresholds: &AuditThresholds) -> Vec<
     if cg.components.len() < MIN_COMPONENTS_FOR_GC {
         return Vec::new();
     }
-    let cutoff = percentile(
-        cg.components.iter().map(|c| c.loc),
-        thresholds.package_metrics.god_component_loc_percentile,
-    );
-    let out: Vec<AuditFinding> =
-        cg.components.iter().filter_map(|c| god_finding(c, cutoff)).collect();
+    let cutoff =
+        percentile(cg.components.iter().map(|c| c.loc), thresholds.package_metrics.god_component_loc_percentile);
+    let out: Vec<AuditFinding> = cg.components.iter().filter_map(|c| god_finding(c, cutoff)).collect();
     rank_and_cap(out, thresholds.package_metrics.max_arch_findings_reported)
 }
 
@@ -78,11 +67,7 @@ fn god_finding(c: &Component, cutoff: f64) -> Option<AuditFinding> {
     if f64::from(c.loc) <= cutoff {
         return None;
     }
-    let density = if c.file_count == 0 {
-        f64::from(c.loc)
-    } else {
-        f64::from(c.loc) / f64::from(c.file_count)
-    };
+    let density = if c.file_count == 0 { f64::from(c.loc) } else { f64::from(c.loc) / f64::from(c.file_count) };
     let evidence = GodComponentEvidence {
         component: c.path.clone(),
         loc: c.loc,
@@ -123,9 +108,7 @@ fn median(values: impl Iterator<Item = u32>) -> f64 {
 }
 
 fn rank_and_cap(mut findings: Vec<AuditFinding>, cap: usize) -> Vec<AuditFinding> {
-    findings.sort_by(|a, b| {
-        arch_severity(b).partial_cmp(&arch_severity(a)).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    findings.sort_by(|a, b| arch_severity(b).partial_cmp(&arch_severity(a)).unwrap_or(std::cmp::Ordering::Equal));
     findings.truncate(cap);
     findings
 }
@@ -135,12 +118,8 @@ fn unstable_dep_finding(cg: &ComponentGraph, c: &Component, threshold: f64) -> O
     if total < MIN_DEPS {
         return None;
     }
-    let higher: Vec<f64> = c
-        .deps
-        .iter()
-        .map(|&d| cg.components[d].instability)
-        .filter(|&i| i > c.instability)
-        .collect();
+    let higher: Vec<f64> =
+        c.deps.iter().map(|&d| cg.components[d].instability).filter(|&i| i > c.instability).collect();
     let strength = higher.len() as f64 / total as f64;
     if strength < threshold {
         return None;

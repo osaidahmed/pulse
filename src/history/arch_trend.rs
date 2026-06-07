@@ -18,23 +18,14 @@ pub fn catalyst_findings(root: &Path, commits: &[git::Commit]) -> Vec<HistoryFin
     };
     let audit = Thresholds::default().audit;
     let before = cycle_members(root, &baseline.hash, &audit);
-    cycle_members(root, "HEAD", &audit)
-        .into_iter()
-        .filter_map(|cycle| classify(&cycle, &before))
-        .collect()
+    cycle_members(root, "HEAD", &audit).into_iter().filter_map(|cycle| classify(&cycle, &before)).collect()
 }
 
 fn classify(cycle: &BTreeSet<PathBuf>, before: &BTreeSet<BTreeSet<PathBuf>>) -> Option<HistoryFinding> {
     if before.iter().all(|b| b.is_disjoint(cycle)) {
-        return Some(history_finding(HistoryKind::CatalystWarning(CatalystEvidence {
-            members: members_of(cycle),
-        })));
+        return Some(history_finding(HistoryKind::CatalystWarning(CatalystEvidence { members: members_of(cycle) })));
     }
-    let previous = before
-        .iter()
-        .filter(|b| b.len() < cycle.len() && b.is_subset(cycle))
-        .map(BTreeSet::len)
-        .max()?;
+    let previous = before.iter().filter(|b| b.len() < cycle.len() && b.is_subset(cycle)).map(BTreeSet::len).max()?;
     Some(history_finding(HistoryKind::DecayTrend(DecayEvidence {
         members: members_of(cycle),
         previous_size: previous as u32,
@@ -85,13 +76,7 @@ fn typed_files_at(root: &Path, rev: &str) -> Vec<(PathBuf, Language)> {
         .collect()
 }
 
-fn edges_for(
-    root: &Path,
-    rev: &str,
-    rel: &Path,
-    lang: Language,
-    typed_set: &HashSet<PathBuf>,
-) -> Vec<InputEdge> {
+fn edges_for(root: &Path, rev: &str, rel: &Path, lang: Language, typed_set: &HashSet<PathBuf>) -> Vec<InputEdge> {
     let Some(source) = git::file_at_commit(root, rev, rel) else {
         return Vec::new();
     };

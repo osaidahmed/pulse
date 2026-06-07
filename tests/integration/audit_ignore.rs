@@ -22,10 +22,8 @@ fn build_filter<'a>(
 }
 
 fn collect_paths(typed: &[(PathBuf, pulse::parse::Language)]) -> Vec<String> {
-    let mut out: Vec<String> = typed
-        .iter()
-        .map(|(p, _)| p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string())
-        .collect();
+    let mut out: Vec<String> =
+        typed.iter().map(|(p, _)| p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string()).collect();
     out.sort();
     out
 }
@@ -202,7 +200,8 @@ fn audit_run_with_filter_excludes_findings_from_ignored_paths() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
@@ -217,7 +216,8 @@ fn audit_run_without_filter_emits_findings() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings = audit::run(&opts, &t().audit);
@@ -235,7 +235,8 @@ fn ignore_works_with_pattern_mining_layer() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PatternMining),
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
@@ -246,10 +247,7 @@ fn ignore_works_with_pattern_mining_layer() {
 fn ignore_works_with_package_metrics_layer() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..7 {
-        write_file(
-            &dir.path().join(format!("ignored/m{i}.rs")),
-            "pub fn foo() {}\n",
-        );
+        write_file(&dir.path().join(format!("ignored/m{i}.rs")), "pub fn foo() {}\n");
     }
     let mut slot = None;
     let patterns = vec!["ignored/**".to_string()];
@@ -258,7 +256,8 @@ fn ignore_works_with_package_metrics_layer() {
         root: dir.path().to_path_buf(),
         pass: Some(PassChoice::PackageMetrics),
         json: false,
-        include_tests: true, show_noise: false,
+        include_tests: true,
+        show_noise: false,
         suppression: AuditSuppression::new(),
     };
     let findings = audit::run_with_filter(&opts, &t().audit, &filter);
@@ -299,10 +298,8 @@ fn ignore_filter_with_specific_filename_pattern() {
     let patterns = vec!["a.py".to_string()];
     let filter = build_filter(&patterns, &mut slot, dir.path());
     let typed = walk_typed_source_files_filtered(dir.path(), true, &filter);
-    let names: Vec<String> = typed
-        .iter()
-        .map(|(p, _)| p.strip_prefix(dir.path()).unwrap().to_string_lossy().to_string())
-        .collect();
+    let names: Vec<String> =
+        typed.iter().map(|(p, _)| p.strip_prefix(dir.path()).unwrap().to_string_lossy().to_string()).collect();
     assert!(names.iter().any(|n| n.ends_with("b.py")));
     assert!(names.iter().any(|n| n.contains("sub") && n.ends_with("a.py")));
     assert!(!names.iter().any(|n| n == "a.py"));

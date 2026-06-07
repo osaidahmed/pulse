@@ -56,7 +56,8 @@ fn pattern_matching_in_switch_expression_handled() {
 
 #[test]
 fn local_function_within_method_handled() {
-    let source = "class M {\n    public int Run() {\n        int local() { return 42; }\n        return local();\n    }\n}\n";
+    let source =
+        "class M {\n    public int Run() {\n        int local() { return 42; }\n        return local();\n    }\n}\n";
     let _ = analyze(source);
 }
 
@@ -68,7 +69,8 @@ fn lambda_expression_handled() {
 
 #[test]
 fn partial_class_handled() {
-    let source = "public partial class M {\n    public void A() {}\n}\npublic partial class M {\n    public void B() {}\n}\n";
+    let source =
+        "public partial class M {\n    public void A() {}\n}\npublic partial class M {\n    public void B() {}\n}\n";
     let _ = analyze(source);
 }
 

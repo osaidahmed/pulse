@@ -2,41 +2,24 @@ use tree_sitter::{Node, Tree};
 
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds,
-    find_child_by_kind, is_catch_body_empty, node_text, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 const COND_KINDS: &[&str] = &["parenthesized_expression", "binary_expression"];
 
 use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
-    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
-    ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds, ElseBranchCfg,
+    ElseHandlers, GlobalMetricsConfig,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["this"];
-const PRIMITIVE_TYPES: &[&str] = &[
-    "string",
-    "number",
-    "boolean",
-    "bigint",
-    "symbol",
-    "undefined",
-    "null",
-    "void",
-    "any",
-    "unknown",
-    "never",
-];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "for_in_statement",
-    "while_statement",
-    "switch_statement",
-];
+const PRIMITIVE_TYPES: &[&str] =
+    &["string", "number", "boolean", "bigint", "symbol", "undefined", "null", "void", "any", "unknown", "never"];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "for_in_statement", "while_statement", "switch_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||", "??"];
 const BOOL_STOPS: &[&str] = &["statement_block", "function_declaration", "class_declaration", "arrow_function"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -76,12 +59,7 @@ pub fn walk(tree: &Tree, source: &str, has_types: bool) -> FileMetrics {
     FileMetrics { functions, module }
 }
 
-fn collect_functions(
-    node: Node,
-    source: &str,
-    functions: &mut Vec<FunctionMetrics>,
-    has_types: bool,
-) {
+fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>, has_types: bool) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -104,31 +82,30 @@ fn collect_functions(
     }
 }
 
-fn collect_arrow_functions(
-    decl_node: Node,
-    source: &str,
-    functions: &mut Vec<FunctionMetrics>,
-    has_types: bool,
-) {
+fn collect_arrow_functions(decl_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>, has_types: bool) {
     let mut child_opt = decl_node.child(0);
     while let Some(child) = child_opt {
         child_opt = child.next_sibling();
-        if child.kind() != "variable_declarator" { continue; }
-        let Some(name_node) = find_child_by_kind(child, "identifier") else { continue; };
-        let Some(fn_node) = find_child_by_kind(child, "arrow_function")
-            .or_else(|| find_child_by_kind(child, "function")) else { continue; };
-        let Some(mut metrics) = analyze_function(fn_node, source, has_types) else { continue; };
+        if child.kind() != "variable_declarator" {
+            continue;
+        }
+        let Some(name_node) = find_child_by_kind(child, "identifier") else {
+            continue;
+        };
+        let Some(fn_node) =
+            find_child_by_kind(child, "arrow_function").or_else(|| find_child_by_kind(child, "function"))
+        else {
+            continue;
+        };
+        let Some(mut metrics) = analyze_function(fn_node, source, has_types) else {
+            continue;
+        };
         metrics.name = node_text(name_node, source).to_string();
         functions.push(metrics);
     }
 }
 
-fn collect_class_methods(
-    class_node: Node,
-    source: &str,
-    functions: &mut Vec<FunctionMetrics>,
-    has_types: bool,
-) {
+fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>, has_types: bool) {
     let Some(body) = find_child_by_kind(class_node, "class_body") else {
         return;
     };
@@ -164,8 +141,7 @@ fn collect_class_methods(
 fn extract_parent_class_ts(class_node: Node, source: &str) -> Option<String> {
     let heritage = find_child_by_kind(class_node, "class_heritage")?;
     let extends = find_child_by_kind(heritage, "extends_clause")?;
-    let id = find_child_by_kind(extends, "identifier")
-        .or_else(|| find_child_by_kind(extends, "type_identifier"))?;
+    let id = find_child_by_kind(extends, "identifier").or_else(|| find_child_by_kind(extends, "type_identifier"))?;
     Some(node_text(id, source).to_string())
 }
 
@@ -178,30 +154,40 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
     let end_line = node.end_position().row as u32 + 1;
     let loc = end_line.saturating_sub(start_line) + 1;
 
-    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = if has_types {
-        count_parameters(node, source)
-    } else {
-        (count_parameters_untyped(node), 0, 0, 0)
-    };
+    let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) =
+        if has_types { count_parameters(node, source) } else { (count_parameters_untyped(node), 0, 0, 0) };
 
     let body = find_child_by_kind(node, "statement_block")?;
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
-    let (structural_hash, distinct_node_kinds, skeleton_hash, consecutive_asserts, assert_hash, short_var_count, string_match_arms) =
-        if super::extras_enabled(node.start_byte(), node.end_byte()) {
-            (
-                compute_structural_fingerprint(body),
-                count_distinct_node_kinds(body),
-                compute_skeleton_hash(body),
-                count_consecutive_asserts(body, "expression_statement"),
-                compute_assert_fingerprint(body, "expression_statement"),
-                count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]),
-                count_string_match_arms(body, "switch_statement", "switch_case", &["string", "template_string"], &["switch_default"]),
-            )
-        } else {
-            (0, 0, 0, 0, 0, 0, 0)
-        };
+    let (
+        structural_hash,
+        distinct_node_kinds,
+        skeleton_hash,
+        consecutive_asserts,
+        assert_hash,
+        short_var_count,
+        string_match_arms,
+    ) = if super::extras_enabled(node.start_byte(), node.end_byte()) {
+        (
+            compute_structural_fingerprint(body),
+            count_distinct_node_kinds(body),
+            compute_skeleton_hash(body),
+            count_consecutive_asserts(body, "expression_statement"),
+            compute_assert_fingerprint(body, "expression_statement"),
+            count_short_variables(body, source, &["variable_declarator", "lexical_declaration"]),
+            count_string_match_arms(
+                body,
+                "switch_statement",
+                "switch_case",
+                &["string", "template_string"],
+                &["switch_default"],
+            ),
+        )
+    } else {
+        (0, 0, 0, 0, 0, 0, 0)
+    };
 
     Some(FunctionMetrics {
         name,
@@ -262,7 +248,11 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
         track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    if kind == "ternary_expression" { s.cc += 1; s.track_cogc_branch(); return; }
+    if kind == "ternary_expression" {
+        s.cc += 1;
+        s.track_cogc_branch();
+        return;
+    }
     for (kinds, handler) in NODE_HANDLERS {
         if kinds.contains(&kind) {
             handler(child, source, depth, s);
@@ -327,17 +317,9 @@ const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
     bool_stops: BOOL_STOPS,
 };
 
-const BRANCH_HANDLERS: BranchHandlers = BranchHandlers {
-    kinds: &BRANCH_KINDS,
-    walk_body,
-    walk_else: walk_else_clause,
-};
+const BRANCH_HANDLERS: BranchHandlers = BranchHandlers { kinds: &BRANCH_KINDS, walk_body, walk_else: walk_else_clause };
 
-const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
-    cfg: &ELSE_CFG,
-    walk_body,
-    walk_children,
-};
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers { cfg: &ELSE_CFG, walk_body, walk_children };
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_branches(node, &mut BlockWalkCtx { source, depth, state: s }, &BRANCH_HANDLERS);
@@ -357,8 +339,7 @@ fn count_parameters(func_node: Node, source: &str) -> (u32, u32, u32, u32) {
     let mut prims: Vec<&str> = Vec::new();
     for child in params.children(&mut cursor) {
         match child.kind() {
-            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
-            | "assignment_pattern" => count += 1,
+            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern" | "assignment_pattern" => count += 1,
             "required_parameter" | "optional_parameter" => {
                 count += 1;
                 let ann = find_child_by_kind(child, "type_annotation");
@@ -381,8 +362,7 @@ fn count_parameters_untyped(func_node: Node) -> u32 {
     let mut cursor = params.walk();
     for child in params.children(&mut cursor) {
         match child.kind() {
-            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern"
-            | "assignment_pattern" => {
+            "identifier" | "rest_pattern" | "object_pattern" | "array_pattern" | "assignment_pattern" => {
                 count += 1;
             }
             _ => {}
@@ -417,7 +397,5 @@ fn count_declarations(root: Node) -> u32 {
 
 fn count_exported_classes(node: Node) -> u32 {
     let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .filter(|c| c.kind() == "class_declaration")
-        .count() as u32
+    node.children(&mut cursor).filter(|c| c.kind() == "class_declaration").count() as u32
 }

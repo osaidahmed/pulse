@@ -112,8 +112,6 @@ fn taint_is_opt_in_not_in_default_passes() {
     let body = "def handler(cursor):\n    q = input()\n    cursor.execute(q)\n";
     std::fs::write(dir.path().join("app.py"), body).unwrap();
     let default_findings = run_pass(dir.path(), None);
-    let any_injection = default_findings
-        .iter()
-        .any(|f| matches!(f.kind, AuditKind::InjectionShape(_)));
+    let any_injection = default_findings.iter().any(|f| matches!(f.kind, AuditKind::InjectionShape(_)));
     assert!(!any_injection, "taint must not run in the default (All) pass");
 }

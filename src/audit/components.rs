@@ -63,11 +63,8 @@ fn assign_components(graph: &ImportGraph) -> (Vec<PathBuf>, Vec<usize>) {
         set.insert(component_of(graph.registry.path_of(NodeIndex(i as u32))));
     }
     let paths: Vec<PathBuf> = set.into_iter().collect();
-    let index: BTreeMap<PathBuf, usize> =
-        paths.iter().cloned().enumerate().map(|(i, p)| (p, i)).collect();
-    let file_comp = (0..n)
-        .map(|i| index[&component_of(graph.registry.path_of(NodeIndex(i as u32)))])
-        .collect();
+    let index: BTreeMap<PathBuf, usize> = paths.iter().cloned().enumerate().map(|(i, p)| (p, i)).collect();
+    let file_comp = (0..n).map(|i| index[&component_of(graph.registry.path_of(NodeIndex(i as u32)))]).collect();
     (paths, file_comp)
 }
 
@@ -103,11 +100,8 @@ fn aggregate_members(
         sum_abs[c] += m.abstractness;
         sum_loc[c] = sum_loc[c].saturating_add(m.loc);
     }
-    let abstractness = counts
-        .iter()
-        .zip(&sum_abs)
-        .map(|(&n, &s)| if n == 0 { 0.0 } else { s / f64::from(n) })
-        .collect();
+    let abstractness =
+        counts.iter().zip(&sum_abs).map(|(&n, &s)| if n == 0 { 0.0 } else { s / f64::from(n) }).collect();
     (counts, abstractness, sum_loc)
 }
 

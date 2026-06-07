@@ -40,12 +40,7 @@ fn taint_sinks(findings: &[AuditFinding]) -> Vec<Sink> {
         .collect()
 }
 
-fn propagate(
-    cluster: &[CloneMember],
-    sinks: &[Sink],
-    seen: &mut HashSet<(PathBuf, u32)>,
-    out: &mut Vec<AuditFinding>,
-) {
+fn propagate(cluster: &[CloneMember], sinks: &[Sink], seen: &mut HashSet<(PathBuf, u32)>, out: &mut Vec<AuditFinding>) {
     let Some(vuln) = cluster.iter().find_map(|m| sink_in_member(m, sinks)) else {
         return;
     };
@@ -58,9 +53,7 @@ fn propagate(
 
 fn sink_in_member<'a>(member: &CloneMember, sinks: &'a [Sink]) -> Option<&'a Sink> {
     let end = member.line.saturating_add(member.loc);
-    sinks
-        .iter()
-        .find(|s| s.file == member.file && member.line <= s.line && s.line < end)
+    sinks.iter().find(|s| s.file == member.file && member.line <= s.line && s.line < end)
 }
 
 fn build_finding(member: &CloneMember, vuln: &Sink) -> AuditFinding {

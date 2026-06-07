@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use pulse::audit::finding::{
-    AuditFinding, AuditKind, FeatureEnvyEvidence, ImportConfidence,
-};
+use pulse::audit::finding::{AuditFinding, AuditKind, FeatureEnvyEvidence, ImportConfidence};
 use pulse::audit::output::{format_findings, format_findings_json};
 
 use crate::audit_common::t;
@@ -109,11 +107,7 @@ fn human_handles_no_method_class_falls_back_to_bare_name() {
 fn human_strips_root_prefix() {
     let mut e = sample(ImportConfidence::Medium);
     e.method_file = PathBuf::from("/tmp/proj/svc.py");
-    let out = format_findings(
-        &[finding_with(e)],
-        Some(std::path::Path::new("/tmp/proj")),
-        &t().audit,
-    );
+    let out = format_findings(&[finding_with(e)], Some(std::path::Path::new("/tmp/proj")), &t().audit);
     assert!(out.contains("svc.py:17"));
     assert!(!out.contains("/tmp/proj/svc.py"));
 }

@@ -2,29 +2,22 @@ use tree_sitter::{Node, Tree};
 
 use super::counters::{count_short_variables, count_string_match_arms, max_same_primitive};
 use super::shared::{
-    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds,
-    ElseBranchCfg, ElseHandlers, GlobalMetricsConfig,
+    self, count_boolean_ops, count_cogc_sequences, BlockWalkCtx, BranchHandlers, BranchKinds, ElseBranchCfg,
+    ElseHandlers, GlobalMetricsConfig,
 };
 use super::{
-    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_distinct_node_kinds,
-    count_code_lines, count_consecutive_asserts, find_child_by_kind, node_text,
-    FileMetrics, FunctionMetrics, ModuleMetrics, WalkState, track_embedded_block,
+    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint, count_code_lines,
+    count_consecutive_asserts, count_distinct_node_kinds, find_child_by_kind, node_text, track_embedded_block,
+    FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "size_t",
-    "ssize_t", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t",
-    "uint64_t", "bool", "_Bool",
+    "int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "size_t", "ssize_t", "int8_t",
+    "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t", "bool", "_Bool",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "while_statement",
-    "do_statement",
-    "switch_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "while_statement", "do_statement", "switch_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
 const BOOL_STOPS: &[&str] = &["compound_statement", "function_definition"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -77,8 +70,7 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let declarator = find_child_by_kind(node, "function_declarator").or_else(|| {
-        find_child_by_kind(node, "pointer_declarator")
-            .and_then(|p| find_child_by_kind(p, "function_declarator"))
+        find_child_by_kind(node, "pointer_declarator").and_then(|p| find_child_by_kind(p, "function_declarator"))
     })?;
 
     let name = find_child_by_kind(declarator, "identifier")
@@ -128,7 +120,13 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"], &[]),
+        string_match_arms: count_string_match_arms(
+            body,
+            "switch_statement",
+            "case_statement",
+            &["string_literal", "concatenated_string"],
+            &[],
+        ),
         cpg: None,
     })
 }
@@ -190,8 +188,8 @@ fn handle_switch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn handle_case(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let is_default = find_child_by_kind(child, "default").is_some()
-        || node_text(child, source).trim_start().starts_with("default");
+    let is_default =
+        find_child_by_kind(child, "default").is_some() || node_text(child, source).trim_start().starts_with("default");
     if !is_default {
         s.cc += 1;
     }
@@ -219,17 +217,9 @@ const ELSE_CFG: ElseBranchCfg = ElseBranchCfg {
     bool_stops: BOOL_STOPS,
 };
 
-const BRANCH_HANDLERS: BranchHandlers = BranchHandlers {
-    kinds: &BRANCH_KINDS,
-    walk_body,
-    walk_else: walk_else_clause,
-};
+const BRANCH_HANDLERS: BranchHandlers = BranchHandlers { kinds: &BRANCH_KINDS, walk_body, walk_else: walk_else_clause };
 
-const ELSE_HANDLERS: ElseHandlers = ElseHandlers {
-    cfg: &ELSE_CFG,
-    walk_body,
-    walk_children,
-};
+const ELSE_HANDLERS: ElseHandlers = ElseHandlers { cfg: &ELSE_CFG, walk_body, walk_children };
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     shared::walk_branches(node, &mut BlockWalkCtx { source, depth, state: s }, &BRANCH_HANDLERS);
@@ -296,11 +286,6 @@ fn primitive_type_of<'a>(param: Node, source: &'a str) -> Option<&'a str> {
 fn count_declarations(root: Node) -> u32 {
     let mut cursor = root.walk();
     root.children(&mut cursor)
-        .filter(|c| {
-            matches!(
-                c.kind(),
-                "type_definition" | "struct_specifier" | "enum_specifier"
-            )
-        })
+        .filter(|c| matches!(c.kind(), "type_definition" | "struct_specifier" | "enum_specifier"))
         .count() as u32
 }

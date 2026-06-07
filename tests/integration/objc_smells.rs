@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -17,9 +16,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_methods.m");
-    assert!(output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -60,10 +57,7 @@ fn comments_only_file() {
 
 #[test]
 fn simple_func_not_flagged() {
-    let out = pulse_check_code(
-        "void add(int a, int b) {\n    return;\n}\n",
-        "m",
-    );
+    let out = pulse_check_code("void add(int a, int b) {\n    return;\n}\n", "m");
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -73,10 +67,7 @@ fn simple_func_not_flagged() {
 
 #[test]
 fn cc_base_case_is_1() {
-    let debug = pulse_debug_code(
-        "@implementation X\n- (void)f {\n    NSLog(@\"hi\");\n}\n@end\n",
-        "m",
-    );
+    let debug = pulse_debug_code("@implementation X\n- (void)f {\n    NSLog(@\"hi\");\n}\n@end\n", "m");
     assert_eq!(function_metric(&debug, "X.f", "cc"), Some(1));
 }
 
@@ -127,8 +118,12 @@ fn production_fixture_detects_complexity() {
 #[test]
 fn god_method_subsumes_complex_and_large() {
     let mut code = String::from("@implementation X\n- (void)god:(int)x {\n");
-    for i in 0..cc_branches() { code.push_str(&format!("    if (x > {i}) {{}}\n")); }
-    for i in 0..fn_padding() { code.push_str(&format!("    NSLog(@\"{i}\");\n")); }
+    for i in 0..cc_branches() {
+        code.push_str(&format!("    if (x > {i}) {{}}\n"));
+    }
+    for i in 0..fn_padding() {
+        code.push_str(&format!("    NSLog(@\"{i}\");\n"));
+    }
     code.push_str("}\n@end\n");
     let out = pulse_check_code(&code, "m");
     assert!(has_smell(&out, "God Method"), "got: {out}");
@@ -325,10 +320,7 @@ fn hook_nonexistent_file_silent() {
 #[test]
 fn init_detected_as_constructor() {
     let debug = run_debug(LANG, "excess_args.m");
-    assert!(
-        debug.contains("UserService.initWithName"),
-        "got: {debug}"
-    );
+    assert!(debug.contains("UserService.initWithName"), "got: {debug}");
 }
 
 #[test]
@@ -340,10 +332,7 @@ fn constructor_over_injection_detected() {
 #[test]
 fn method_attributed_to_class() {
     let debug = run_debug(LANG, "complex_methods.m");
-    assert!(
-        debug.contains("OrderProcessor.processOrder"),
-        "got: {debug}"
-    );
+    assert!(debug.contains("OrderProcessor.processOrder"), "got: {debug}");
 }
 
 #[test]

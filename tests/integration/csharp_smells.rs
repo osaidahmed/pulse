@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 const LANG: &str = "csharp";
@@ -84,9 +83,7 @@ fn output_starts_with_pulse() {
 #[test]
 fn output_has_function_line_numbers() {
     let output = run_check(LANG, "complex_methods.cs");
-    assert!(output
-        .lines()
-        .any(|l| l.contains("(L") && l.contains("): ")));
+    assert!(output.lines().any(|l| l.contains("(L") && l.contains("): ")));
 }
 
 #[test]
@@ -121,10 +118,8 @@ fn comments_only_file() {
 
 #[test]
 fn simple_func_not_flagged() {
-    let out = pulse_check_code(
-        "public class T {\n    int Add(int a, int b) {\n        return a + b;\n    }\n}\n",
-        "cs",
-    );
+    let out =
+        pulse_check_code("public class T {\n    int Add(int a, int b) {\n        return a + b;\n    }\n}\n", "cs");
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -158,10 +153,7 @@ fn function_at_cc_boundary_flagged() {
         ),
         "cs",
     );
-    assert!(
-        has_smell(&out, "Complex Method"),
-        "cc=9 should trigger, got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Method"), "cc=9 should trigger, got: {out}");
 }
 
 #[test]
@@ -272,10 +264,7 @@ fn god_method_not_reported_as_separate() {
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
-    let lines: Vec<&str> = stdout
-        .lines()
-        .filter(|l| l.contains("ProcessDataPipeline"))
-        .collect();
+    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("ProcessDataPipeline")).collect();
     assert!(!lines.iter().any(|l| l.contains("Complex Method")));
     assert!(!lines.iter().any(|l| l.contains("Large Method")));
 }
@@ -295,10 +284,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 #[test]
@@ -351,10 +337,7 @@ fn excess_args_count_correct() {
 #[test]
 fn constructor_over_injection_detected() {
     let output = run_check(LANG, "excess_args.cs");
-    assert!(
-        has_smell(&output, "Constructor Over-Injection"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Constructor Over-Injection"), "got: {output}");
 }
 
 // ===========================================================================
@@ -379,10 +362,7 @@ fn file_too_large_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "File Too Large") || has_smell(&stdout, "Too Many Functions"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "File Too Large") || has_smell(&stdout, "Too Many Functions"), "got: {stdout}");
 }
 
 #[test]
@@ -421,10 +401,7 @@ fn overall_function_size_at_threshold() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Overall Function Size"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
 
 #[test]
@@ -505,10 +482,7 @@ fn god_class_requires_god_method() {
 
 #[test]
 fn simple_string_not_flagged() {
-    let out = pulse_check_code(
-        "public class T {\n    string F() {\n        return \"hello\";\n    }\n}\n",
-        "cs",
-    );
+    let out = pulse_check_code("public class T {\n    string F() {\n        return \"hello\";\n    }\n}\n", "cs");
     assert!(!has_smell(&out, "Large Embedded Block"));
 }
 
@@ -532,10 +506,7 @@ fn complex_conditional_detected() {
         ),
         "cs",
     );
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -561,10 +532,7 @@ fn lcom4_detects_low_cohesion() {
 
 #[test]
 fn primitive_obsession_mixed_not_flagged() {
-    let out = pulse_check_code(
-        "public class T {\n    void F(int a, MyType b, MyOther c, SomeObj d) {}\n}\n",
-        "cs",
-    );
+    let out = pulse_check_code("public class T {\n    void F(int a, MyType b, MyOther c, SomeObj d) {}\n}\n", "cs");
     assert!(!has_smell(&out, "Primitive Obsession"));
 }
 
@@ -626,10 +594,7 @@ fn analysis_completes_under_500ms() {
 
 #[test]
 fn empty_catch_detected_csharp() {
-    let out = pulse_check_code(
-        "class T { void F() { try { int x = 1; } catch (Exception e) { } } }\n",
-        "cs",
-    );
+    let out = pulse_check_code("class T { void F() { try { int x = 1; } catch (Exception e) { } } }\n", "cs");
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 

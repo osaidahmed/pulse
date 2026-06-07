@@ -76,81 +76,44 @@ fn nested_namespace_use_handled() {
 
 #[test]
 fn path_suffix_for_simple_namespace() {
-    let s = pulse::audit::imports::resolve_by_suffix(
-        "Foo\\Bar",
-        Language::Php,
-        &std::collections::HashSet::new(),
-    );
+    let s = pulse::audit::imports::resolve_by_suffix("Foo\\Bar", Language::Php, &std::collections::HashSet::new());
     assert!(s.is_none());
 }
 
 #[test]
 fn resolve_target_when_composer_missing_returns_none() {
     let dir = tempfile::tempdir().unwrap();
-    let _ = resolve_target(
-        "Foo\\Bar",
-        &dir.path().join("src/file.php"),
-        dir.path(),
-        Language::Php,
-    );
+    let _ = resolve_target("Foo\\Bar", &dir.path().join("src/file.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn resolve_target_with_invalid_composer_json_returns_fallback_paths() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("composer.json"), "this is not json").unwrap();
-    let _ = resolve_target(
-        "Foo\\Bar",
-        &dir.path().join("src/file.php"),
-        dir.path(),
-        Language::Php,
-    );
+    let _ = resolve_target("Foo\\Bar", &dir.path().join("src/file.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn resolve_target_with_empty_composer_json() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("composer.json"), "{}").unwrap();
-    let _ = resolve_target(
-        "Foo\\Bar",
-        &dir.path().join("src/file.php"),
-        dir.path(),
-        Language::Php,
-    );
+    let _ = resolve_target("Foo\\Bar", &dir.path().join("src/file.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn resolve_target_with_composer_no_psr4_section() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload": {"files": ["bootstrap.php"]}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "Foo\\Bar",
-        &dir.path().join("src/file.php"),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload": {"files": ["bootstrap.php"]}}"#).unwrap();
+    let _ = resolve_target("Foo\\Bar", &dir.path().join("src/file.php"), dir.path(), Language::Php);
 }
 
 #[test]
 fn resolve_target_with_psr4_prefix_match_resolves() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#).unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/Foo.php"), "<?php\n").unwrap();
-    let result = resolve_target(
-        "App\\Foo",
-        &dir.path().join("src/Other.php"),
-        dir.path(),
-        Language::Php,
-    );
+    let result = resolve_target("App\\Foo", &dir.path().join("src/Other.php"), dir.path(), Language::Php);
     if let Some(p) = result {
         assert!(p.ends_with("Foo.php"));
     }
@@ -159,17 +122,8 @@ fn resolve_target_with_psr4_prefix_match_resolves() {
 #[test]
 fn resolve_target_with_psr4_no_prefix_match_returns_other_candidates() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "Vendor\\OtherLib\\Class",
-        &dir.path().join("src/file.php"),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"App\\":"src/"}}}"#).unwrap();
+    let _ = resolve_target("Vendor\\OtherLib\\Class", &dir.path().join("src/file.php"), dir.path(), Language::Php);
 }
 
 #[test]
@@ -204,15 +158,6 @@ fn use_const_extraction_handled() {
 #[test]
 fn unresolvable_psr4_falls_through_to_default_candidates() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(
-        dir.path().join("composer.json"),
-        r#"{"autoload":{"psr-4":{"Foo\\":"lib/"}}}"#,
-    )
-    .unwrap();
-    let _ = resolve_target(
-        "Bar\\Baz",
-        Path::new(&dir.path().join("file.php")),
-        dir.path(),
-        Language::Php,
-    );
+    fs::write(dir.path().join("composer.json"), r#"{"autoload":{"psr-4":{"Foo\\":"lib/"}}}"#).unwrap();
+    let _ = resolve_target("Bar\\Baz", Path::new(&dir.path().join("file.php")), dir.path(), Language::Php);
 }

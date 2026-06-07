@@ -4,25 +4,15 @@ use tree_sitter::{Node, Tree};
 
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
-    count_code_lines, find_child_by_kind, node_text, track_embedded_block, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState,
+    count_code_lines, find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics,
+    WalkState,
 };
 use methods::{analyze_function, analyze_test, try_collect_struct_methods};
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "while_statement",
-    "switch_expression",
-];
+const NESTING_BRANCH_KINDS: &[&str] = &["if_statement", "for_statement", "while_statement", "switch_expression"];
 const BOOL_OPS: &[&str] = &["and", "or"];
-const BOOL_STOPS: &[&str] = &[
-    "block",
-    "function_declaration",
-    "test_declaration",
-    "struct_declaration",
-];
+const BOOL_STOPS: &[&str] = &["block", "function_declaration", "test_declaration", "struct_declaration"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     cond: &["if_statement"],
     loops: &["while_statement", "for_statement"],
@@ -39,12 +29,7 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     let mut global_max_nesting: u32 = 0;
 
     collect_functions(root, source, &mut functions);
-    shared::collect_global_metrics(
-        root,
-        &mut global_conditional_count,
-        &mut global_max_nesting,
-        &GLOBAL_CFG,
-    );
+    shared::collect_global_metrics(root, &mut global_conditional_count, &mut global_max_nesting, &GLOBAL_CFG);
 
     let total_functions = functions.len() as u32;
     let sum_cc: u32 = functions.iter().map(|f| f.cc).sum();
@@ -65,17 +50,24 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
 
 fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) { dispatch_top_level(child, source, functions); }
+    for child in node.children(&mut cursor) {
+        dispatch_top_level(child, source, functions);
+    }
 }
 
 fn dispatch_top_level(child: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
     let result = match child.kind() {
         "function_declaration" => analyze_function(child, source),
         "test_declaration" => analyze_test(child, source),
-        "variable_declaration" => { try_collect_struct_methods(child, source, functions); return; }
+        "variable_declaration" => {
+            try_collect_struct_methods(child, source, functions);
+            return;
+        }
         _ => return,
     };
-    if let Some(m) = result { functions.push(m); }
+    if let Some(m) = result {
+        functions.push(m);
+    }
 }
 
 // ─── Body walking ──────────────────────────────────────────────────────
@@ -111,7 +103,9 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
         track_embedded_block(&mut s.max_embedded_block_loc, child);
         return;
     }
-    if kind == "comptime_statement" { return; }
+    if kind == "comptime_statement" {
+        return;
+    }
     for (kinds, handler) in NODE_HANDLERS {
         if kinds.contains(&kind) {
             handler(child, source, depth, s);
@@ -122,8 +116,7 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_labeled_statement(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let inner = find_child_by_kind(node, "for_statement")
-        .or_else(|| find_child_by_kind(node, "while_statement"));
+    let inner = find_child_by_kind(node, "for_statement").or_else(|| find_child_by_kind(node, "while_statement"));
     if let Some(loop_node) = inner {
         handle_loop(loop_node, source, depth, s);
     } else {
@@ -245,8 +238,8 @@ fn walk_case_body(case: Node, source: &str, depth: u32, s: &mut WalkState) {
         child_opt = child.next_sibling();
         match child.kind() {
             "block" | "block_expression" => walk_body(child, source, depth, s),
-            "if_statement" | "binary_expression" | "call_expression" | "return_expression"
-            | "catch_expression" | "switch_expression" => {
+            "if_statement" | "binary_expression" | "call_expression" | "return_expression" | "catch_expression"
+            | "switch_expression" => {
                 walk_node(child, source, depth, s);
             }
             _ => {}
@@ -270,10 +263,10 @@ fn count_declarations(root: Node) -> u32 {
         if child.kind() == "variable_declaration"
             && (find_child_by_kind(child, "struct_declaration").is_some()
                 || find_child_by_kind(child, "enum_declaration").is_some()
-                || find_child_by_kind(child, "union_declaration").is_some()) {
+                || find_child_by_kind(child, "union_declaration").is_some())
+        {
             count += 1;
         }
     }
     count
 }
-

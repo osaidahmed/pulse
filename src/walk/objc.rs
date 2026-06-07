@@ -4,25 +4,42 @@ use super::counters::{count_short_variables, count_string_match_arms, max_same_p
 use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetricsConfig};
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
-    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts,
-    count_distinct_node_kinds, find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics,
-    FunctionMetrics, ModuleMetrics, WalkState,
+    compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
+    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
+    ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
 const SELF_NAMES: &[&str] = &["self"];
 const PRIMITIVE_TYPES: &[&str] = &[
-    "int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "bool",
-    "size_t", "ssize_t", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t",
-    "uint32_t", "uint64_t", "BOOL", "NSInteger", "NSUInteger", "CGFloat", "NSTimeInterval",
+    "int",
+    "char",
+    "float",
+    "double",
+    "void",
+    "long",
+    "short",
+    "unsigned",
+    "signed",
+    "bool",
+    "size_t",
+    "ssize_t",
+    "int8_t",
+    "int16_t",
+    "int32_t",
+    "int64_t",
+    "uint8_t",
+    "uint16_t",
+    "uint32_t",
+    "uint64_t",
+    "BOOL",
+    "NSInteger",
+    "NSUInteger",
+    "CGFloat",
+    "NSTimeInterval",
 ];
-const NESTING_BRANCH_KINDS: &[&str] = &[
-    "if_statement",
-    "for_statement",
-    "while_statement",
-    "do_statement",
-    "switch_statement",
-];
+const NESTING_BRANCH_KINDS: &[&str] =
+    &["if_statement", "for_statement", "while_statement", "do_statement", "switch_statement"];
 const BOOL_OPS: &[&str] = &["&&", "||"];
 const BOOL_STOPS: &[&str] = &["compound_statement", "function_definition", "method_definition"];
 const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
@@ -69,9 +86,8 @@ fn collect_functions(node: Node, source: &str, out: &mut Vec<FunctionMetrics>) {
 }
 
 fn collect_class_methods(class_node: Node, source: &str, out: &mut Vec<FunctionMetrics>) {
-    let class_name = find_child_by_kind(class_node, "identifier")
-        .map(|n| node_text(n, source).to_string())
-        .unwrap_or_default();
+    let class_name =
+        find_child_by_kind(class_node, "identifier").map(|n| node_text(n, source).to_string()).unwrap_or_default();
 
     let mut cursor = class_node.walk();
     for child in class_node.children(&mut cursor) {
@@ -146,7 +162,13 @@ fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Opti
         class_name: None,
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["declaration"]),
-        string_match_arms: count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal", "concatenated_string"], &[]),
+        string_match_arms: count_string_match_arms(
+            body,
+            "switch_statement",
+            "case_statement",
+            &["string_literal", "concatenated_string"],
+            &[],
+        ),
         cpg: None,
     })
 }
@@ -155,8 +177,7 @@ fn build_metrics(node: Node, source: &str, name: String, p: ParamCounts) -> Opti
 
 fn find_c_declarator(node: Node) -> Option<Node> {
     find_child_by_kind(node, "function_declarator").or_else(|| {
-        find_child_by_kind(node, "pointer_declarator")
-            .and_then(|p| find_child_by_kind(p, "function_declarator"))
+        find_child_by_kind(node, "pointer_declarator").and_then(|p| find_child_by_kind(p, "function_declarator"))
     })
 }
 
@@ -168,9 +189,7 @@ fn count_method_parameters(node: Node, source: &str) -> ParamCounts {
     for child in node.children(&mut cursor).filter(|c| c.kind() == "method_parameter") {
         total += 1;
         typed += 1;
-        if let Some(ty) =
-            find_child_by_kind(child, "method_type").and_then(|mt| objc_primitive_type(mt, source))
-        {
+        if let Some(ty) = find_child_by_kind(child, "method_type").and_then(|mt| objc_primitive_type(mt, source)) {
             prims.push(ty);
         }
     }
@@ -178,9 +197,7 @@ fn count_method_parameters(node: Node, source: &str) -> ParamCounts {
 }
 
 fn count_c_parameters(func_node: Node, source: &str) -> ParamCounts {
-    let Some(params) = find_c_declarator(func_node)
-        .and_then(|d| find_child_by_kind(d, "parameter_list"))
-    else {
+    let Some(params) = find_c_declarator(func_node).and_then(|d| find_child_by_kind(d, "parameter_list")) else {
         return ParamCounts { total: 0, primitive: 0, typed: 0, max_same: 0 };
     };
     let mut cursor = params.walk();
@@ -208,8 +225,8 @@ fn count_c_parameters(func_node: Node, source: &str) -> ParamCounts {
 }
 
 fn objc_primitive_type<'a>(node: Node, source: &'a str) -> Option<&'a str> {
-    if let Some(direct) = find_child_by_kind(node, "primitive_type")
-        .or_else(|| find_child_by_kind(node, "sized_type_specifier"))
+    if let Some(direct) =
+        find_child_by_kind(node, "primitive_type").or_else(|| find_child_by_kind(node, "sized_type_specifier"))
     {
         return Some(node_text(direct, source));
     }
@@ -339,7 +356,6 @@ fn descend_else(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 
 fn count_declarations(root: Node) -> u32 {
     let mut cursor = root.walk();
-    root.children(&mut cursor)
-        .filter(|c| matches!(c.kind(), "class_implementation" | "protocol_declaration"))
-        .count() as u32
+    root.children(&mut cursor).filter(|c| matches!(c.kind(), "class_implementation" | "protocol_declaration")).count()
+        as u32
 }

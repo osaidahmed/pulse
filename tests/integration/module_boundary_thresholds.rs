@@ -88,9 +88,7 @@ fn module_metric(debug: &str, key: &str) -> Option<u32> {
         let idx = tok.iter().position(|&x| x == label)?;
         tok.get(idx.checked_sub(1)?)?.parse().ok()
     };
-    let after_eq = |prefix: &str| -> Option<u32> {
-        tok.iter().find_map(|x| x.strip_prefix(prefix))?.parse().ok()
-    };
+    let after_eq = |prefix: &str| -> Option<u32> { tok.iter().find_map(|x| x.strip_prefix(prefix))?.parse().ok() };
     match key {
         "loc" => before_label("LOC"),
         "functions" => before_label("functions"),
@@ -185,10 +183,7 @@ fn large_struct_boundary_is_strict() {
 
     let at = rs_struct(max);
     assert_eq!(mmetric(&at, "rs", "declarations"), Some(1));
-    assert!(
-        pulse_check_code(&at, "rs").trim().is_empty(),
-        "fields == threshold must produce no finding (strict >)"
-    );
+    assert!(pulse_check_code(&at, "rs").trim().is_empty(), "fields == threshold must produce no finding (strict >)");
 
     let above = rs_struct(max + 1);
     assert!(fires(&above, "rs", "Large Struct"), "fields == threshold+1 must fire");
@@ -216,10 +211,7 @@ fn overall_function_size_per_function_loc_boundary_is_inclusive() {
     assert_eq!(fn_loc(&at, "py", "f0"), Some(loc_min as u32));
     let at_out = pulse_check_code(&at, "py");
     assert!(has_smell(&at_out, "Overall Function Size"), "fn loc == large_fn_loc must count (>=)");
-    assert!(
-        has_smell(&at_out, &format!("({loc_min}L)")),
-        "detail must name a function at exactly large_fn_loc"
-    );
+    assert!(has_smell(&at_out, &format!("({loc_min}L)")), "detail must name a function at exactly large_fn_loc");
 
     let below = py_big_fns(count, loc_min - 1);
     assert_eq!(fn_loc(&below, "py", "f0"), Some((loc_min - 1) as u32));

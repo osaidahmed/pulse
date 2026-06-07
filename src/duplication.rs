@@ -4,28 +4,15 @@ use crate::smells::{Finding, Location, Smell};
 use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 
-pub fn detect_code_duplication(
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-    findings: &mut Vec<Finding>,
-) {
-    let eligible: Vec<usize> = functions
-        .iter()
-        .enumerate()
-        .filter(|(_, f)| f.loc >= t.analysis.duplication.min_loc)
-        .map(|(i, _)| i)
-        .collect();
+pub fn detect_code_duplication(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
+    let eligible: Vec<usize> =
+        functions.iter().enumerate().filter(|(_, f)| f.loc >= t.analysis.duplication.min_loc).map(|(i, _)| i).collect();
 
     detect_exact_clones(&eligible, functions, t, findings);
     detect_similar_clones(functions, t, findings);
 }
 
-fn detect_exact_clones(
-    eligible: &[usize],
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-    findings: &mut Vec<Finding>,
-) {
+fn detect_exact_clones(eligible: &[usize], functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
     for &i in eligible {
         groups.entry(functions[i].structural_hash).or_default().push(i);
@@ -33,19 +20,14 @@ fn detect_exact_clones(
     let filtered: HashMap<u64, Vec<usize>> = groups
         .into_iter()
         .map(|(k, indices)| {
-            let keep = are_size_similar(&indices, functions)
-                && has_distinct_kind_variety(&indices, functions, t);
+            let keep = are_size_similar(&indices, functions) && has_distinct_kind_variety(&indices, functions, t);
             (k, if keep { indices } else { vec![] })
         })
         .collect();
     emit_duplication_findings(&filtered, functions, t, findings, "identical structure");
 }
 
-fn detect_similar_clones(
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-    findings: &mut Vec<Finding>,
-) {
+fn detect_similar_clones(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     // Skeleton matches use a higher LOC floor than exact matches
     let skeleton_eligible: Vec<usize> = functions
         .iter()
@@ -79,11 +61,7 @@ fn detect_similar_clones(
     emit_duplication_findings(&filtered, functions, t, findings, "similar structure");
 }
 
-fn has_distinct_kind_variety(
-    indices: &[usize],
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-) -> bool {
+fn has_distinct_kind_variety(indices: &[usize], functions: &[FunctionMetrics], t: &Thresholds) -> bool {
     indices
         .iter()
         .map(|&i| functions[i].distinct_node_kinds)
@@ -105,11 +83,7 @@ fn are_size_similar(indices: &[usize], functions: &[FunctionMetrics]) -> bool {
 }
 
 fn extract_line_numbers(detail: &str) -> Vec<usize> {
-    detail
-        .split("(L")
-        .skip(1)
-        .filter_map(|s| s.split('-').next()?.parse().ok())
-        .collect()
+    detail.split("(L").skip(1).filter_map(|s| s.split('-').next()?.parse().ok()).collect()
 }
 
 fn emit_duplication_findings(

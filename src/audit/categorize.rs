@@ -84,8 +84,15 @@ fn matches_attribute_root(kind: &str) -> bool {
 fn matches_literal_root(kind: &str) -> bool {
     matches!(
         kind,
-        "string" | "string_literal" | "concatenated_string" | "raw_string_literal"
-            | "integer" | "integer_literal" | "float" | "float_literal" | "number"
+        "string"
+            | "string_literal"
+            | "concatenated_string"
+            | "raw_string_literal"
+            | "integer"
+            | "integer_literal"
+            | "float"
+            | "float_literal"
+            | "number"
     )
 }
 

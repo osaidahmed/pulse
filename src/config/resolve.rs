@@ -1,12 +1,12 @@
 use crate::parse::Language;
 use crate::thresholds::{
-    AuditThresholds, CloneClusterThresholds, NaturalnessThresholds, PackageMetricsThresholds,
-    TaintThresholds, Thresholds,
+    AuditThresholds, CloneClusterThresholds, NaturalnessThresholds, PackageMetricsThresholds, TaintThresholds,
+    Thresholds,
 };
 
 use super::{
-    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig,
-    PackageMetricsConfig, PulseConfig, TaintConfig,
+    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig, PackageMetricsConfig,
+    PulseConfig, TaintConfig,
 };
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -16,9 +16,7 @@ pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thres
     config
         .languages
         .get(lang.to_config_key())
-        .map_or(merged.clone(), |lang_overrides| {
-            apply_overrides(&merged, lang_overrides)
-        })
+        .map_or(merged.clone(), |lang_overrides| apply_overrides(&merged, lang_overrides))
 }
 
 pub fn resolve_base_thresholds(config: Option<&PulseConfig>) -> Thresholds {
@@ -61,21 +59,11 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
         },
         analysis: crate::thresholds::AnalysisThresholds {
             duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
-            consecutive_asserts_max: a
-                .consecutive_asserts_max
-                .unwrap_or(ba.consecutive_asserts_max),
-            primitive_ratio_threshold: a
-                .primitive_ratio_threshold
-                .unwrap_or(ba.primitive_ratio_threshold),
-            primitive_min_typed_params: a
-                .primitive_min_typed_params
-                .unwrap_or(ba.primitive_min_typed_params),
-            primitive_min_same_count: a
-                .primitive_min_same_count
-                .unwrap_or(ba.primitive_min_same_count),
-            constructor_dep_injection_min: a
-                .constructor_dep_injection_min
-                .unwrap_or(ba.constructor_dep_injection_min),
+            consecutive_asserts_max: a.consecutive_asserts_max.unwrap_or(ba.consecutive_asserts_max),
+            primitive_ratio_threshold: a.primitive_ratio_threshold.unwrap_or(ba.primitive_ratio_threshold),
+            primitive_min_typed_params: a.primitive_min_typed_params.unwrap_or(ba.primitive_min_typed_params),
+            primitive_min_same_count: a.primitive_min_same_count.unwrap_or(ba.primitive_min_same_count),
+            constructor_dep_injection_min: a.constructor_dep_injection_min.unwrap_or(ba.constructor_dep_injection_min),
             lcom4_warning: a.lcom4_warning.unwrap_or(ba.lcom4_warning),
             short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(ba.short_var_min_fn_loc),
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),
@@ -97,31 +85,20 @@ fn resolve_audit(base: &AuditThresholds, o: &ConfigThresholds) -> AuditThreshold
     }
 }
 
-fn resolve_package_metrics(
-    o: &PackageMetricsConfig,
-    base: &PackageMetricsThresholds,
-) -> PackageMetricsThresholds {
+fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresholds) -> PackageMetricsThresholds {
     PackageMetricsThresholds {
         martin_distance_warning: o.martin_distance_warning.unwrap_or(base.martin_distance_warning),
         martin_distance_alert: o.martin_distance_alert.unwrap_or(base.martin_distance_alert),
         include_tests_in_graph: o.include_tests_in_graph.unwrap_or(base.include_tests_in_graph),
         martin_cycle_min_size: o.martin_cycle_min_size.unwrap_or(base.martin_cycle_min_size),
-        max_cycle_findings_reported: o
-            .max_cycle_findings_reported
-            .unwrap_or(base.max_cycle_findings_reported),
-        max_martin_findings_reported: o
-            .max_martin_findings_reported
-            .unwrap_or(base.max_martin_findings_reported),
+        max_cycle_findings_reported: o.max_cycle_findings_reported.unwrap_or(base.max_cycle_findings_reported),
+        max_martin_findings_reported: o.max_martin_findings_reported.unwrap_or(base.max_martin_findings_reported),
         unstable_dep_strength: o.unstable_dep_strength.unwrap_or(base.unstable_dep_strength),
         hublike_imbalance_ratio: o.hublike_imbalance_ratio.unwrap_or(base.hublike_imbalance_ratio),
-        god_component_loc_percentile: o
-            .god_component_loc_percentile
-            .unwrap_or(base.god_component_loc_percentile),
+        god_component_loc_percentile: o.god_component_loc_percentile.unwrap_or(base.god_component_loc_percentile),
         pagerank: base.pagerank,
         community: base.community,
-        max_arch_findings_reported: o
-            .max_arch_findings_reported
-            .unwrap_or(base.max_arch_findings_reported),
+        max_arch_findings_reported: o.max_arch_findings_reported.unwrap_or(base.max_arch_findings_reported),
     }
 }
 

@@ -95,8 +95,8 @@ fn findings_logged_to_jsonl() {
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     pulse(&["--hook"], bl.path(), &json);
     let log = std::fs::read_to_string(bl.path().join("findings.jsonl")).unwrap();
     assert!(!log.is_empty(), "findings should be logged");
@@ -113,8 +113,8 @@ fn module_level_finding_logged_with_null_function() {
     // (PostToolUse excludes module-level), but checkpoint mode does
     // This test just verifies the log format for function-level findings
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     pulse(&["--hook"], bl.path(), &json);
     let log = std::fs::read_to_string(bl.path().join("findings.jsonl")).unwrap();
     let entry: serde_json::Value = serde_json::from_str(log.lines().next().unwrap()).unwrap();
@@ -135,8 +135,8 @@ fn resolved_as_addressed_when_finding_gone() {
     let p = dir.path().join("t.py");
     // Step 1: Create smelly file, trigger hook to log finding
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     pulse(&["--hook"], bl.path(), &json);
     // Step 2: Fix the smell
     std::fs::write(&p, "def f(a):\n    return a\n").unwrap();
@@ -148,7 +148,10 @@ fn resolved_as_addressed_when_finding_gone() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let analytics_content = read_analytics(analytics.path());
     assert!(analytics_content.contains("\"addressed\""), "fixed finding should be addressed, got: {analytics_content}");
@@ -161,8 +164,8 @@ fn resolved_as_removed_when_function_deleted() {
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     pulse(&["--hook"], bl.path(), &json);
     // The function `f` is removed entirely (replaced by a different, clean function).
     std::fs::write(&p, "def other():\n    return 0\n").unwrap();
@@ -173,7 +176,10 @@ fn resolved_as_removed_when_function_deleted() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let analytics_content = read_analytics(analytics.path());
     assert!(
@@ -208,7 +214,10 @@ fn resolved_as_moved_when_function_relocates() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
 
     let content = read_analytics(analytics.path());
@@ -226,8 +235,8 @@ fn resolved_as_ignored_when_finding_persists() {
     let p = dir.path().join("t.py");
     // Step 1: Create smelly file, trigger hook
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     pulse(&["--hook"], bl.path(), &json);
     // Step 2: Don't fix — file still smelly
     // Step 3: Run stop
@@ -238,7 +247,10 @@ fn resolved_as_ignored_when_finding_persists() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let analytics_content = read_analytics(analytics.path());
     assert!(analytics_content.contains("\"ignored\""), "unfixed finding should be ignored, got: {analytics_content}");
@@ -263,7 +275,10 @@ fn analytics_includes_session_id() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let content = read_analytics(analytics.path());
     assert!(content.contains("analytics-test"), "should include session_id, got: {content}");
@@ -276,8 +291,8 @@ fn analytics_deduplicates_same_finding() {
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
-    let json = hook_json(p.to_str().unwrap(),
-        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    let json =
+        hook_json(p.to_str().unwrap(), "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
     // Trigger hook twice — same finding logged twice
     pulse(&["--hook"], bl.path(), &json);
     pulse(&["--hook"], bl.path(), &json);
@@ -288,7 +303,10 @@ fn analytics_deduplicates_same_finding() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let content = read_analytics(analytics.path());
     let lines: Vec<&str> = content.lines().collect();
@@ -313,7 +331,10 @@ fn no_analytics_when_no_findings() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
-        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
         .unwrap();
     let content = read_analytics(analytics.path());
     assert!(content.is_empty(), "no findings should produce no analytics, got: {content}");

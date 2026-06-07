@@ -39,10 +39,7 @@ pub struct HistoryCliOverrides {
     pub arch_trend: bool,
 }
 
-pub fn resolve_history_thresholds(
-    config: Option<&PulseConfig>,
-    overrides: HistoryCliOverrides,
-) -> HistoryThresholds {
+pub fn resolve_history_thresholds(config: Option<&PulseConfig>, overrides: HistoryCliOverrides) -> HistoryThresholds {
     let mut t = HistoryThresholds::DEFAULTS;
     if let Some(c) = config {
         apply_config_overrides(&mut t, c);

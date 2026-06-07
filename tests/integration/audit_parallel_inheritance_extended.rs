@@ -25,10 +25,7 @@ fn def(file: &str, class: &str, parent: Option<&str>) -> DefinitionRecord {
     }
 }
 
-fn detect_with(
-    defs: Vec<DefinitionRecord>,
-    th: &pulse::thresholds::AuditThresholds,
-) -> Vec<AuditFinding> {
+fn detect_with(defs: Vec<DefinitionRecord>, th: &pulse::thresholds::AuditThresholds) -> Vec<AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let inh = build_inheritance_graph(&registry);
@@ -155,20 +152,13 @@ fn diamond_inheritance_handled_safely() {
 
 #[test]
 fn cyclic_inheritance_a_b_a_does_not_panic() {
-    let defs = vec![
-        def("a.py", "A", Some("B")),
-        def("b.py", "B", Some("A")),
-    ];
+    let defs = vec![def("a.py", "A", Some("B")), def("b.py", "B", Some("A"))];
     let _ = detect_with(defs, &t().audit);
 }
 
 #[test]
 fn three_way_cycle_does_not_panic() {
-    let defs = vec![
-        def("a.py", "A", Some("B")),
-        def("b.py", "B", Some("C")),
-        def("c.py", "C", Some("A")),
-    ];
+    let defs = vec![def("a.py", "A", Some("B")), def("b.py", "B", Some("C")), def("c.py", "C", Some("A"))];
     let _ = detect_with(defs, &t().audit);
 }
 
@@ -300,11 +290,7 @@ fn shared_prefix_token_match_works() {
 
 #[test]
 fn empty_token_after_prefix_strip_handled() {
-    let defs = vec![
-        def("a.py", "A", None),
-        def("aa.py", "A", Some("A")),
-        def("b.py", "B", None),
-    ];
+    let defs = vec![def("a.py", "A", None), def("aa.py", "A", Some("A")), def("b.py", "B", None)];
     let _ = detect_with(defs, &t().audit);
 }
 
@@ -341,10 +327,7 @@ fn descendants_in_different_files_still_pair() {
 
 #[test]
 fn isolated_class_no_finding() {
-    let defs = vec![
-        def("a.py", "Lone", None),
-        def("b.py", "Other", None),
-    ];
+    let defs = vec![def("a.py", "Lone", None), def("b.py", "Other", None)];
     let findings = detect_with(defs, &t().audit);
     assert!(findings.is_empty());
 }
@@ -423,10 +406,7 @@ fn matched_pairs_contain_actual_class_names() {
     let findings = detect_with(defs, &t().audit);
     assert!(!findings.is_empty());
     let pairs = &pi(&findings[0]).matched_descendants;
-    let names: std::collections::BTreeSet<String> = pairs
-        .iter()
-        .flat_map(|(a, b)| [a.clone(), b.clone()])
-        .collect();
+    let names: std::collections::BTreeSet<String> = pairs.iter().flat_map(|(a, b)| [a.clone(), b.clone()]).collect();
     assert!(names.contains("XmlReader"));
     assert!(names.contains("XmlWriter"));
 }
@@ -440,11 +420,7 @@ fn stress_thirty_hierarchies_completes_quickly() {
         let root = format!("Root{h}");
         defs.push(def(&format!("r_{h}.py"), &root, None));
         for s in suffixes {
-            defs.push(def(
-                &format!("d_{h}_{s}.py"),
-                &format!("{s}{root}"),
-                Some(&root),
-            ));
+            defs.push(def(&format!("d_{h}_{s}.py"), &format!("{s}{root}"), Some(&root)));
         }
     }
     let started = Instant::now();

@@ -1,8 +1,11 @@
-
 use crate::common::*;
 
-fn check(code: &str, ext: &str) -> String { pulse_check_code(code, ext) }
-fn dbg(code: &str, ext: &str) -> String { pulse_debug_code(code, ext) }
+fn check(code: &str, ext: &str) -> String {
+    pulse_check_code(code, ext)
+}
+fn dbg(code: &str, ext: &str) -> String {
+    pulse_debug_code(code, ext)
+}
 
 // ===========================================================================
 // Large Struct — Rust
@@ -11,7 +14,9 @@ fn dbg(code: &str, ext: &str) -> String { pulse_debug_code(code, ext) }
 #[test]
 fn rust_large_struct_detected() {
     let mut code = String::from("struct Big {\n");
-    for i in 0..struct_fields_above() { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..struct_fields_above() {
+        code.push_str(&format!("    f{i}: i32,\n"));
+    }
     code.push_str("}\n");
     let out = check(&code, "rs");
     assert!(has_smell(&out, "Large Struct"), "{} fields should trigger, got: {}", struct_fields_above(), out);
@@ -26,7 +31,9 @@ fn rust_small_struct_clean() {
 #[test]
 fn rust_struct_at_threshold_not_flagged() {
     let mut code = String::from("struct Exact {\n");
-    for i in 0..struct_fields_at() { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..struct_fields_at() {
+        code.push_str(&format!("    f{i}: i32,\n"));
+    }
     code.push_str("}\n");
     let out = check(&code, "rs");
     assert!(!has_smell(&out, "Large Struct"), "{} fields = threshold, should NOT flag", struct_fields_at());
@@ -35,7 +42,9 @@ fn rust_struct_at_threshold_not_flagged() {
 #[test]
 fn rust_struct_field_count_in_debug() {
     let mut code = String::from("struct S {\n");
-    for i in 0..8 { code.push_str(&format!("    f{i}: u32,\n")); }
+    for i in 0..8 {
+        code.push_str(&format!("    f{i}: u32,\n"));
+    }
     code.push_str("}\nfn f() {}\n");
     let out = dbg(&code, "rs");
     assert!(out.contains("Module:"), "debug should work");
@@ -48,8 +57,12 @@ fn rust_struct_field_count_in_debug() {
 #[test]
 fn python_short_vars_detected() {
     let mut code = String::from("def func():\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    {c} = 1\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    var{i} = {i}\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    {c} = 1\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    var{i} = {i}\n"));
+    }
     code.push_str("    return 0\n");
     assert!(has_smell(&check(&code, "py"), "Short Variable Names"));
 }
@@ -57,7 +70,9 @@ fn python_short_vars_detected() {
 #[test]
 fn python_short_vars_exempt_ijk() {
     let mut code = String::from("def func():\n    i = 0\n    j = 0\n    k = 0\n");
-    for n in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    x{n} = {n}\n")); }
+    for n in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    x{n} = {n}\n"));
+    }
     code.push_str("    return 0\n");
     assert!(!has_smell(&check(&code, "py"), "Short Variable Names"), "exempt vars should not trigger");
 }
@@ -71,8 +86,12 @@ fn python_short_vars_below_loc_threshold_clean() {
 #[test]
 fn python_short_vars_count_in_debug() {
     let mut code = String::from("def func():\n");
-    for c in "abcdef".chars() { code.push_str(&format!("    {c} = 1\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    x{i} = {i}\n")); }
+    for c in "abcdef".chars() {
+        code.push_str(&format!("    {c} = 1\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    x{i} = {i}\n"));
+    }
     code.push_str("    return 0\n");
     let out = dbg(&code, "py");
     let sv = function_metric(&out, "func", "short_vars").unwrap_or(0);
@@ -86,8 +105,12 @@ fn python_short_vars_count_in_debug() {
 #[test]
 fn rust_short_vars_detected() {
     let mut code = String::from("fn func() -> i32 {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    let {c} = 1;\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    let v{i} = {i};\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    let {c} = 1;\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    let v{i} = {i};\n"));
+    }
     code.push_str("    0\n}\n");
     assert!(has_smell(&check(&code, "rs"), "Short Variable Names"));
 }
@@ -95,7 +118,9 @@ fn rust_short_vars_detected() {
 #[test]
 fn rust_short_vars_exempt_loop_counter() {
     let mut code = String::from("fn func() -> i32 {\n    let i = 0;\n    let j = 0;\n    let k = 0;\n");
-    for n in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    let v{n} = {n};\n")); }
+    for n in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    let v{n} = {n};\n"));
+    }
     code.push_str("    0\n}\n");
     assert!(!has_smell(&check(&code, "rs"), "Short Variable Names"));
 }
@@ -107,8 +132,12 @@ fn rust_short_vars_exempt_loop_counter() {
 #[test]
 fn ts_short_vars_detected() {
     let mut code = String::from("function func(): number {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    let {c} = 1;\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    let v{i} = {i};\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    let {c} = 1;\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    let v{i} = {i};\n"));
+    }
     code.push_str("    return 0;\n}\n");
     assert!(has_smell(&check(&code, "ts"), "Short Variable Names"));
 }
@@ -120,8 +149,12 @@ fn ts_short_vars_detected() {
 #[test]
 fn go_short_vars_detected() {
     let mut code = String::from("package main\n\nfunc process() int {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    {c} := 1\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    v{i} := {i}\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    {c} := 1\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    v{i} := {i}\n"));
+    }
     code.push_str("    return 0\n}\n");
     assert!(has_smell(&check(&code, "go"), "Short Variable Names"));
 }
@@ -133,8 +166,12 @@ fn go_short_vars_detected() {
 #[test]
 fn java_short_vars_detected() {
     let mut code = String::from("class T {\n    int func() {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("        int {c} = 1;\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("        int v{i} = {i};\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("        int {c} = 1;\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("        int v{i} = {i};\n"));
+    }
     code.push_str("        return 0;\n    }\n}\n");
     assert!(has_smell(&check(&code, "java"), "Short Variable Names"));
 }
@@ -146,8 +183,12 @@ fn java_short_vars_detected() {
 #[test]
 fn c_short_vars_detected() {
     let mut code = String::from("int func() {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    int {c} = 1;\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    int v{i} = {i};\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    int {c} = 1;\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    int v{i} = {i};\n"));
+    }
     code.push_str("    return 0;\n}\n");
     assert!(has_smell(&check(&code, "c"), "Short Variable Names"));
 }
@@ -159,8 +200,12 @@ fn c_short_vars_detected() {
 #[test]
 fn swift_short_vars_detected() {
     let mut code = String::from("func process() -> Int {\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    let {c} = 1\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    let v{i} = {i}\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    let {c} = 1\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    let v{i} = {i}\n"));
+    }
     code.push_str("    return 0\n}\n");
     assert!(has_smell(&check(&code, "swift"), "Short Variable Names"));
 }
@@ -218,7 +263,6 @@ fn go_string_switch_detected() {
         "    case \"d\":\n        return 4\n",
         "    case \"e\":\n        return 5\n",
         "    case \"f\":\n        return 6\n",
-
         "    }\n",
         "}\n",
     );
@@ -240,7 +284,6 @@ fn swift_string_switch_detected() {
         "    case \"d\":\n        return 4\n",
         "    case \"e\":\n        return 5\n",
         "    case \"f\":\n        return 6\n",
-
         "    }\n",
         "}\n",
     );
@@ -254,7 +297,9 @@ fn swift_string_switch_detected() {
 #[test]
 fn large_struct_shows_threshold() {
     let mut code = String::from("struct Big {\n");
-    for i in 0..struct_fields_above() { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..struct_fields_above() {
+        code.push_str(&format!("    f{i}: i32,\n"));
+    }
     code.push_str("}\n");
     assert!(check(&code, "rs").contains(&format!("threshold: {}", t().module.max_struct_fields)));
 }
@@ -262,8 +307,12 @@ fn large_struct_shows_threshold() {
 #[test]
 fn short_vars_shows_threshold() {
     let mut code = String::from("def func():\n");
-    for c in "abcdefgh".chars() { code.push_str(&format!("    {c} = 1\n")); }
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    x{i} = {i}\n")); }
+    for c in "abcdefgh".chars() {
+        code.push_str(&format!("    {c} = 1\n"));
+    }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    x{i} = {i}\n"));
+    }
     code.push_str("    return 0\n");
     assert!(check(&code, "py").contains(&format!("threshold: {}", t().analysis.short_var_max_count)));
 }
@@ -283,7 +332,9 @@ fn stringly_typed_shows_threshold() {
 #[test]
 fn struct_at_12_fields_not_flagged() {
     let mut code = String::from("struct S {\n");
-    for i in 0..struct_fields_at() { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..struct_fields_at() {
+        code.push_str(&format!("    f{i}: i32,\n"));
+    }
     code.push_str("}\n");
     assert!(!has_smell(&check(&code, "rs"), "Large Struct"));
 }
@@ -291,7 +342,9 @@ fn struct_at_12_fields_not_flagged() {
 #[test]
 fn struct_at_13_fields_flagged() {
     let mut code = String::from("struct S {\n");
-    for i in 0..=struct_fields_at() { code.push_str(&format!("    f{i}: i32,\n")); }
+    for i in 0..=struct_fields_at() {
+        code.push_str(&format!("    f{i}: i32,\n"));
+    }
     code.push_str("}\n");
     assert!(has_smell(&check(&code, "rs"), "Large Struct"));
 }
@@ -299,7 +352,9 @@ fn struct_at_13_fields_flagged() {
 #[test]
 fn short_vars_at_3_not_flagged() {
     let mut code = String::from("def func():\n    a = 1\n    b = 2\n    c = 3\n");
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    v{i} = {i}\n")); }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    v{i} = {i}\n"));
+    }
     code.push_str("    return 0\n");
     assert!(!has_smell(&check(&code, "py"), "Short Variable Names"), "3 short vars = threshold, should NOT flag");
 }
@@ -307,7 +362,9 @@ fn short_vars_at_3_not_flagged() {
 #[test]
 fn short_vars_at_4_flagged() {
     let mut code = String::from("def func():\n    a = 1\n    b = 2\n    c = 3\n    d = 4\n");
-    for i in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    v{i} = {i}\n")); }
+    for i in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    v{i} = {i}\n"));
+    }
     code.push_str("    return 0\n");
     assert!(has_smell(&check(&code, "py"), "Short Variable Names"), "4 short vars > threshold, should flag");
 }

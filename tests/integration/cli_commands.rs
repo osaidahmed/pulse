@@ -1,12 +1,8 @@
-
 use crate::common::*;
 use std::process::Command;
 
 fn pulse(args: &[&str]) -> (String, String, i32) {
-    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
-        .args(args)
-        .output()
-        .expect("pulse failed");
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse")).args(args).output().expect("pulse failed");
     (
         String::from_utf8(output.stdout).unwrap(),
         String::from_utf8(output.stderr).unwrap(),
@@ -124,7 +120,8 @@ fn check_all_skips_test_files_by_default() {
     let smelly = "def f(a, b, c, d, e, f, g, h):\n    return a\n";
     std::fs::write(tests_dir.join("test_thing.py"), smelly).unwrap();
     std::fs::write(dir.path().join("test_top.py"), smelly).unwrap();
-    std::fs::write(dir.path().join("foo_test.go"), "package x\nfunc F(a, b, c, d, e, f, g, h int) int { return a }\n").unwrap();
+    std::fs::write(dir.path().join("foo_test.go"), "package x\nfunc F(a, b, c, d, e, f, g, h int) int { return a }\n")
+        .unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", "-a"])
         .current_dir(dir.path())
@@ -224,7 +221,9 @@ fn large_struct_detected_in_rust() {
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("t.rs");
     let mut code = String::from("struct Big {\n");
-    for i in 0..struct_fields_above() { code.push_str(&format!("    field_{i}: i32,\n")); }
+    for i in 0..struct_fields_above() {
+        code.push_str(&format!("    field_{i}: i32,\n"));
+    }
     code.push_str("}\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
@@ -250,7 +249,9 @@ fn short_vars_detected_in_python() {
     for c in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] {
         code.push_str(&format!("    {c} = 1\n"));
     }
-    for line in 0..10 { code.push_str(&format!("    x_{line} = {line}\n")); }
+    for line in 0..10 {
+        code.push_str(&format!("    x_{line} = {line}\n"));
+    }
     code.push_str("    return 0\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
@@ -264,8 +265,12 @@ fn short_vars_exempt_loop_counters() {
     let p = dir.path().join("t.py");
     let mut code = String::from("def func():\n");
     // Only exempt vars: i, j, k, _
-    for c in ['i', 'j', 'k'] { code.push_str(&format!("    {c} = 1\n")); }
-    for line in 0..t().analysis.short_var_min_fn_loc as usize { code.push_str(&format!("    var_{line} = {line}\n")); }
+    for c in ['i', 'j', 'k'] {
+        code.push_str(&format!("    {c} = 1\n"));
+    }
+    for line in 0..t().analysis.short_var_min_fn_loc as usize {
+        code.push_str(&format!("    var_{line} = {line}\n"));
+    }
     code.push_str("    return 0\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
@@ -319,7 +324,9 @@ fn threshold_values_shown_in_complex_method() {
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("t.py");
     let mut code = String::from("def f(x):\n");
-    for i in 0..10 { code.push_str(&format!("    if x > {i}:\n        pass\n")); }
+    for i in 0..10 {
+        code.push_str(&format!("    if x > {i}:\n        pass\n"));
+    }
     code.push_str("    return x\n");
     std::fs::write(&p, &code).unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
@@ -332,7 +339,10 @@ fn threshold_values_shown_in_excess_args() {
     let p = dir.path().join("t.py");
     std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
     let (stdout, _, _) = pulse(&["check", p.to_str().unwrap()]);
-    assert!(stdout.contains(&format!("threshold: {}", t().function.arg_max)), "excess args should show threshold, got: {stdout}");
+    assert!(
+        stdout.contains(&format!("threshold: {}", t().function.arg_max)),
+        "excess args should show threshold, got: {stdout}"
+    );
 }
 
 #[test]

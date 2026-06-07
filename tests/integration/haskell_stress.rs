@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("hs");
@@ -174,7 +173,9 @@ fn nesting_deep_exceeds_threshold() {
 
 #[test]
 fn nesting_case_in_if() {
-    let out = debug("f :: Bool -> Int -> String\nf b x = if b then case x of\n  0 -> \"zero\"\n  _ -> \"other\" else \"no\"\n");
+    let out = debug(
+        "f :: Bool -> Int -> String\nf b x = if b then case x of\n  0 -> \"zero\"\n  _ -> \"other\" else \"no\"\n",
+    );
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(n >= 2, "expected nesting >= 2, got: {n}");
 }
@@ -187,7 +188,9 @@ fn nesting_do_transparent() {
 
 #[test]
 fn nesting_case_with_nested_conditional() {
-    let out = debug("f :: Int -> Bool -> String\nf x b = case x of\n  1 -> if b then \"yes\" else \"no\"\n  _ -> \"other\"\n");
+    let out = debug(
+        "f :: Int -> Bool -> String\nf x b = case x of\n  1 -> if b then \"yes\" else \"no\"\n  _ -> \"other\"\n",
+    );
     let n = function_metric(&out, "f", "nesting").unwrap_or(0);
     assert!(n >= 2, "expected nesting >= 2, got: {n}");
 }
@@ -283,7 +286,9 @@ fn duplication_mixed_test_and_prod_flagged() {
     for i in 0..loc {
         body.push_str(&format!("      v{i} = {i}\n"));
     }
-    let code = format!("test_a :: Int -> Int\ntest_a x =\n  let\n{body}  in x\n\nprod :: Int -> Int\nprod x =\n  let\n{body}  in x\n");
+    let code = format!(
+        "test_a :: Int -> Int\ntest_a x =\n  let\n{body}  in x\n\nprod :: Int -> Int\nprod x =\n  let\n{body}  in x\n"
+    );
     let out = check(&code);
     assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
@@ -780,7 +785,9 @@ fn nested_where_functions() {
 
 #[test]
 fn multiple_pattern_equations_with_guards() {
-    let out = debug("f :: Int -> Int -> Int\nf 0 y\n  | y > 0 = 1\n  | otherwise = 0\nf x _\n  | x > 0 = x\n  | otherwise = 0\n");
+    let out = debug(
+        "f :: Int -> Int -> Int\nf 0 y\n  | y > 0 = 1\n  | otherwise = 0\nf x _\n  | x > 0 = x\n  | otherwise = 0\n",
+    );
     let cc = function_metric(&out, "f", "cc").unwrap_or(0);
     // 2 equations (+1) + 2 non-otherwise guards (+2) + base = 4
     assert!(cc >= 4, "expected cc >= 4, got: {cc}");
@@ -829,7 +836,8 @@ fn args_at_threshold_not_flagged() {
 
 #[test]
 fn bind_with_complex_body() {
-    let out = debug("result :: String\nresult = case 42 of\n  0 -> \"zero\"\n  _ -> if True then \"yes\" else \"no\"\n");
+    let out =
+        debug("result :: String\nresult = case 42 of\n  0 -> \"zero\"\n  _ -> if True then \"yes\" else \"no\"\n");
     let cc = function_metric(&out, "result", "cc").unwrap_or(0);
     assert!(cc >= 3, "bind with case+if should have cc >= 3, got: {cc}");
 }
@@ -890,7 +898,8 @@ fn three_equations_add_two_cc() {
 
 #[test]
 fn where_function_with_guard() {
-    let out = debug("f :: Int -> Int\nf x = helper x\n  where\n    helper n\n      | n > 0 = n\n      | otherwise = 0\n");
+    let out =
+        debug("f :: Int -> Int\nf x = helper x\n  where\n    helper n\n      | n > 0 = n\n      | otherwise = 0\n");
     let cc = function_metric(&out, "f.helper", "cc").unwrap_or(0);
     assert_eq!(cc, 2, "where func with guard should have cc=2, got: {cc}");
 }

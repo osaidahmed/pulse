@@ -28,10 +28,28 @@ pub enum Language {
 }
 
 const CONFIG_KEYS: &[&str] = &[
-    "python", "typescript", "javascript", "rust", "c", "cpp",
-    "java", "csharp", "go", "swift", "zig", "ruby", "objc",
-    "tcl", "kotlin", "haskell", "lua", "r", "php", "cobol",
-    "d", "groovy",
+    "python",
+    "typescript",
+    "javascript",
+    "rust",
+    "c",
+    "cpp",
+    "java",
+    "csharp",
+    "go",
+    "swift",
+    "zig",
+    "ruby",
+    "objc",
+    "tcl",
+    "kotlin",
+    "haskell",
+    "lua",
+    "r",
+    "php",
+    "cobol",
+    "d",
+    "groovy",
 ];
 
 impl Language {
@@ -102,10 +120,7 @@ static DISPATCH: [(LangInit, WalkFn); 22] = [
 
 pub fn detect_language(path: &std::path::Path) -> Option<Language> {
     let ext = path.extension()?.to_str()?;
-    EXTENSION_MAP
-        .iter()
-        .find(|(exts, _)| exts.contains(&ext))
-        .map(|(_, lang)| *lang)
+    EXTENSION_MAP.iter().find(|(exts, _)| exts.contains(&ext)).map(|(_, lang)| *lang)
 }
 
 pub fn parse_only(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
@@ -161,9 +176,7 @@ pub fn parse_and_walk_scoped(
     match (edit_byte_range, cpg_enabled) {
         (None, false) => parse_and_walk_guarded(source, lang),
         (range, cpg) => run_guarded(source, || {
-            walk::with_cpg_enabled(cpg, || {
-                walk::with_edit_scope(range, || parse_and_walk(source, lang))
-            })
+            walk::with_cpg_enabled(cpg, || walk::with_edit_scope(range, || parse_and_walk(source, lang)))
         }),
     }
 }

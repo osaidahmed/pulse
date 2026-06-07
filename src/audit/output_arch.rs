@@ -73,12 +73,8 @@ fn render_remod(out: &mut String, kind: &AuditKind, root: Option<&Path>) -> bool
             let _ = writeln!(out, "audit: file to relocate — {}", display_path(&e.file, root));
             let _ = writeln!(out, "  current dir:   {}", display_path(&e.current_dir, root));
             let _ = writeln!(out, "  target dir:    {}", display_path(&e.target_dir, root));
-            let _ = writeln!(
-                out,
-                "  community:     {} files, {:.0}% in target",
-                e.community_size,
-                e.home_share * 100.0
-            );
+            let _ =
+                writeln!(out, "  community:     {} files, {:.0}% in target", e.community_size, e.home_share * 100.0);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
         AuditKind::MergeComponents(e) => {

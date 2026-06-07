@@ -13,12 +13,7 @@ fn cfg_of(src: &str, lang: Language, ext: &str, fname: &str) -> Cfg {
     let cfg = cpg_config();
     let path = format!("t.{ext}");
     let result = analyze_source(&path, src, lang, Some(&cfg), ScanOptions::check()).expect("analyze");
-    let func = result
-        .metrics
-        .functions
-        .iter()
-        .find(|f| f.name == fname)
-        .expect("function present");
+    let func = result.metrics.functions.iter().find(|f| f.name == fname).expect("function present");
     func.cpg.as_ref().expect("cpg populated when enabled").cfg.clone()
 }
 
@@ -66,10 +61,7 @@ fn python_statement_after_return_is_unreachable() {
     let src = "def f():\n    return 1\n    dead = 2\n";
     let cfg = cfg_of(src, Language::Python, "py", "f");
     let orphan = cfg.nodes.iter().any(|n| {
-        n.kind == NodeKind::Stmt
-            && n.id != cfg.entry
-            && n.id != cfg.exit
-            && !cfg.edges.iter().any(|e| e.to == n.id)
+        n.kind == NodeKind::Stmt && n.id != cfg.entry && n.id != cfg.exit && !cfg.edges.iter().any(|e| e.to == n.id)
     });
     assert!(orphan, "code after return should have no incoming edge: {cfg:?}");
 }
@@ -166,9 +158,7 @@ fn def_use_empty_when_cpg_disabled() {
 
 fn smells_of(src: &str, lang: Language, ext: &str) -> Vec<Finding> {
     let cfg = cpg_config();
-    analyze_source(&format!("t.{ext}"), src, lang, Some(&cfg), ScanOptions::check())
-        .expect("analyze")
-        .findings
+    analyze_source(&format!("t.{ext}"), src, lang, Some(&cfg), ScanOptions::check()).expect("analyze").findings
 }
 
 fn has_finding(findings: &[Finding], smell: Smell) -> bool {
@@ -261,11 +251,7 @@ fn smell_arrays_are_index_aligned() {
         assert!(!s.as_str().is_empty(), "{s:?} display name");
         assert!(!s.snake_name().is_empty(), "{s:?} snake name");
         assert!(!pulse::output::action_for(s, "").is_empty(), "{s:?} action");
-        assert_eq!(
-            pulse::smells::smell_from_snake_case(s.snake_name()),
-            Some(s),
-            "{s:?} snake round-trip"
-        );
+        assert_eq!(pulse::smells::smell_from_snake_case(s.snake_name()), Some(s), "{s:?} snake round-trip");
     }
 }
 

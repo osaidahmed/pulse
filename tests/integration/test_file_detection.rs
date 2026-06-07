@@ -7,17 +7,10 @@ fn assert_cases(cases: Cases) {
     for (path, expected, desc) in cases {
         let actual = is_test_file(path);
         if actual != *expected {
-            failures.push(format!(
-                "  [{desc}] path={path:?} expected={expected} actual={actual}"
-            ));
+            failures.push(format!("  [{desc}] path={path:?} expected={expected} actual={actual}"));
         }
     }
-    assert!(
-        failures.is_empty(),
-        "{} case(s) failed:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
+    assert!(failures.is_empty(), "{} case(s) failed:\n{}", failures.len(), failures.join("\n"));
 }
 
 // ==========================================================================

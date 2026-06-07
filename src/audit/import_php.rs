@@ -29,9 +29,7 @@ const KIND_HANDLERS: &[KindHandler] = &[
 ];
 
 pub fn match_node(node: Node, source: &str) -> Option<RawImport> {
-    let handler = KIND_HANDLERS
-        .iter()
-        .find(|h| h.parent_kinds.contains(&node.kind()))?;
+    let handler = KIND_HANDLERS.iter().find(|h| h.parent_kinds.contains(&node.kind()))?;
     let target = descend_apply(node, &|n| extract_for(n, source, handler))?;
     Some(RawImport { target, line: line_of(node) })
 }
@@ -54,10 +52,7 @@ pub fn candidates(raw: &str, source_file: &Path, project_root: &Path) -> Vec<Pat
 }
 
 pub fn path_suffix(raw: &str) -> Option<String> {
-    let parts: Vec<&str> = raw
-        .split(&['\\', '/'][..])
-        .filter(|s| !s.is_empty())
-        .collect();
+    let parts: Vec<&str> = raw.split(&['\\', '/'][..]).filter(|s| !s.is_empty()).collect();
     if parts.is_empty() {
         return None;
     }

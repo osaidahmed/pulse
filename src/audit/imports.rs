@@ -6,8 +6,7 @@ use crate::parse::Language;
 
 use super::finding::ImportConfidence;
 use super::{
-    import_call_form, import_command_form, import_jsts, import_kinds, import_php,
-    import_preprocessor, import_python,
+    import_call_form, import_command_form, import_jsts, import_kinds, import_php, import_preprocessor, import_python,
 };
 
 #[derive(Debug, Clone)]
@@ -71,26 +70,15 @@ fn is_low_confidence(lang: Language) -> bool {
 }
 
 fn is_best_effort(lang: Language) -> bool {
-    matches!(
-        lang,
-        Language::Lua | Language::R | Language::Tcl | Language::Cobol
-    )
+    matches!(lang, Language::Lua | Language::R | Language::Tcl | Language::Cobol)
 }
 
 pub fn has_extractor(lang: Language) -> bool {
-    is_high_confidence(lang)
-        || is_medium_confidence(lang)
-        || is_low_confidence(lang)
-        || is_best_effort(lang)
+    is_high_confidence(lang) || is_medium_confidence(lang) || is_low_confidence(lang) || is_best_effort(lang)
 }
 
 #[allow(clippy::manual_find)]
-pub fn resolve_target(
-    raw: &str,
-    source_file: &Path,
-    project_root: &Path,
-    lang: Language,
-) -> Option<PathBuf> {
+pub fn resolve_target(raw: &str, source_file: &Path, project_root: &Path, lang: Language) -> Option<PathBuf> {
     for candidate in candidate_paths(raw, source_file, project_root, lang) {
         if candidate.is_file() {
             return Some(candidate);
@@ -99,17 +87,9 @@ pub fn resolve_target(
     None
 }
 
-pub fn resolve_by_suffix(
-    raw: &str,
-    lang: Language,
-    typed_set: &std::collections::HashSet<PathBuf>,
-) -> Option<PathBuf> {
+pub fn resolve_by_suffix(raw: &str, lang: Language, typed_set: &std::collections::HashSet<PathBuf>) -> Option<PathBuf> {
     let suffix = path_suffix_for(raw, lang)?;
-    typed_set
-        .iter()
-        .filter(|p| p.to_string_lossy().ends_with(&suffix))
-        .min()
-        .cloned()
+    typed_set.iter().filter(|p| p.to_string_lossy().ends_with(&suffix)).min().cloned()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,32 +119,18 @@ const GROUP_TABLE: &[(Language, DispatchGroup)] = &[
 ];
 
 fn dispatch_group(lang: Language) -> DispatchGroup {
-    GROUP_TABLE
-        .iter()
-        .find(|(l, _)| *l == lang)
-        .map_or(DispatchGroup::StructuredImport, |(_, g)| *g)
+    GROUP_TABLE.iter().find(|(l, _)| *l == lang).map_or(DispatchGroup::StructuredImport, |(_, g)| *g)
 }
 
-fn candidate_paths(
-    raw: &str,
-    source_file: &Path,
-    project_root: &Path,
-    lang: Language,
-) -> Vec<PathBuf> {
+fn candidate_paths(raw: &str, source_file: &Path, project_root: &Path, lang: Language) -> Vec<PathBuf> {
     match dispatch_group(lang) {
         DispatchGroup::CallForm => import_call_form::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::CommandForm => {
-            import_command_form::candidates(raw, source_file, project_root, lang)
-        }
-        DispatchGroup::Preprocessor => {
-            import_preprocessor::candidates(raw, source_file, project_root, lang)
-        }
+        DispatchGroup::CommandForm => import_command_form::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::Preprocessor => import_preprocessor::candidates(raw, source_file, project_root, lang),
         DispatchGroup::Python => import_python::candidates(raw, source_file, project_root),
         DispatchGroup::Php => import_php::candidates(raw, source_file, project_root),
         DispatchGroup::JsTs => import_jsts::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::StructuredImport => {
-            import_kinds::candidates(raw, source_file, project_root, lang)
-        }
+        DispatchGroup::StructuredImport => import_kinds::candidates(raw, source_file, project_root, lang),
     }
 }
 

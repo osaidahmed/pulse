@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -58,10 +57,7 @@ fn comments_only_file() {
 
 #[test]
 fn simple_function_not_flagged() {
-    let out = pulse_check_code(
-        "class T { int add(int a, int b) { return a + b } }\n",
-        "groovy",
-    );
+    let out = pulse_check_code("class T { int add(int a, int b) { return a + b } }\n", "groovy");
     assert!(out.is_empty(), "got: {out}");
 }
 
@@ -71,10 +67,7 @@ fn simple_function_not_flagged() {
 
 #[test]
 fn cc_base_case_is_1() {
-    let debug = pulse_debug_code(
-        "class T { int add(int a, int b) { return a + b } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class T { int add(int a, int b) { return a + b } }\n", "groovy");
     let cc = function_metric(&debug, "add", "cc").unwrap_or(99);
     assert_eq!(cc, 1);
 }
@@ -167,7 +160,8 @@ fn god_method_detected() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"), "got: {stdout}");
 }
@@ -187,7 +181,8 @@ fn god_method_not_reported_as_separate() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "God Method"));
     assert!(!has_smell(&stdout, "Complex Method"), "should suppress Complex");
@@ -206,7 +201,8 @@ fn large_method_detected() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "Large Method"), "got: {stdout}");
 }
@@ -272,19 +268,13 @@ fn embedded_block_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.groovy");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
 fn low_cohesion_detected() {
     let output = run_check(LANG, "low_cohesion.groovy");
-    assert!(
-        has_smell(&output, "Low Cohesion") || has_smell(&output, "Code Duplication"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Low Cohesion") || has_smell(&output, "Code Duplication"), "got: {output}");
 }
 
 #[test]
@@ -309,7 +299,8 @@ fn overall_function_size_at_threshold() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "Overall Function Size"), "got: {stdout}");
 }
@@ -330,7 +321,8 @@ fn overall_function_size_below_threshold() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(!has_smell(&stdout, "Overall Function Size"));
 }
@@ -367,10 +359,7 @@ fn hook_nonexistent_file_silent() {
 
 #[test]
 fn closure_not_walked() {
-    let debug = pulse_debug_code(
-        "class T { void f() { def fn = { x -> if (x > 0) { if (x > 1) {} } } } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class T { void f() { def fn = { x -> if (x > 0) { if (x > 1) {} } } } }\n", "groovy");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(99);
     assert_eq!(cc, 1, "closure body should not contribute to outer cc, got: {cc}");
 }
@@ -396,29 +385,20 @@ fn gstring_embedded_block() {
 
 #[test]
 fn enhanced_for_increments_cc() {
-    let debug = pulse_debug_code(
-        "class T { void f(int[] data) { for (int item : data) {} } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class T { void f(int[] data) { for (int item : data) {} } }\n", "groovy");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
 
 #[test]
 fn class_method_name_prefixed() {
-    let debug = pulse_debug_code(
-        "class Foo { void bar() { int x = 1 } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class Foo { void bar() { int x = 1 } }\n", "groovy");
     assert!(debug.contains("Foo.bar"), "got: {debug}");
 }
 
 #[test]
 fn constructor_detected() {
-    let debug = pulse_debug_code(
-        "class Foo { Foo(int x) { int y = x } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class Foo { Foo(int x) { int y = x } }\n", "groovy");
     assert!(debug.contains("Foo.Foo"), "got: {debug}");
 }
 
@@ -434,39 +414,28 @@ fn switch_case_increments_cc() {
 
 #[test]
 fn try_catch_increments_cc() {
-    let debug = pulse_debug_code(
-        "class T { void f() { try { int x = 1 } catch (Exception e) { int y = 2 } } }\n",
-        "groovy",
-    );
+    let debug =
+        pulse_debug_code("class T { void f() { try { int x = 1 } catch (Exception e) { int y = 2 } } }\n", "groovy");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
 
 #[test]
 fn empty_catch_detected() {
-    let out = pulse_check_code(
-        "class T { void f() { try { int x = 1 } catch (Exception e) { } } }\n",
-        "groovy",
-    );
+    let out = pulse_check_code("class T { void f() { try { int x = 1 } catch (Exception e) { } } }\n", "groovy");
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
 fn do_while_increments_cc() {
-    let debug = pulse_debug_code(
-        "class T { void f(int x) { do { x = x + 1 } while (x < 10) } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class T { void f(int x) { do { x = x + 1 } while (x < 10) } }\n", "groovy");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
 
 #[test]
 fn while_increments_cc() {
-    let debug = pulse_debug_code(
-        "class T { void f(int x) { while (x > 0) { x = x - 1 } } }\n",
-        "groovy",
-    );
+    let debug = pulse_debug_code("class T { void f(int x) { while (x > 0) { x = x - 1 } } }\n", "groovy");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 2);
 }
@@ -654,10 +623,7 @@ fn cc_8_not_flagged() {
 
 #[test]
 fn single_boolean_op_not_compound() {
-    let out = pulse_check_code(
-        "class T { void f(boolean a, boolean b) { if (a && b) { println(1) } } }\n",
-        "groovy",
-    );
+    let out = pulse_check_code("class T { void f(boolean a, boolean b) { if (a && b) { println(1) } } }\n", "groovy");
     assert!(!has_smell(&out, "Complex Conditional"));
 }
 
@@ -685,10 +651,7 @@ fn non_duplicate_functions_not_flagged() {
 
 #[test]
 fn small_string_not_embedded_block() {
-    let out = pulse_check_code(
-        "class T { void f() { String x = \"hello\"; String y = \"world\" } }\n",
-        "groovy",
-    );
+    let out = pulse_check_code("class T { void f() { String x = \"hello\"; String y = \"world\" } }\n", "groovy");
     assert!(!has_smell(&out, "Large Embedded Block"));
 }
 
@@ -740,10 +703,8 @@ fn single_bump_not_nested_chunks() {
 
 #[test]
 fn six_args_triggers_excess() {
-    let out = pulse_check_code(
-        "class T { void f(int a, int b, int c, int d, int e, int g) { println(a) } }\n",
-        "groovy",
-    );
+    let out =
+        pulse_check_code("class T { void f(int a, int b, int c, int d, int e, int g) { println(a) } }\n", "groovy");
     assert!(has_smell(&out, "Excess Arguments"), "got: {out}");
 }
 
@@ -759,7 +720,8 @@ fn too_many_functions_detected() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "Too Many Functions"), "got: {stdout}");
 }
@@ -775,7 +737,8 @@ fn file_too_large_detected() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(has_smell(&stdout, "File Too Large"), "got: {stdout}");
 }
@@ -796,12 +759,10 @@ fn overall_code_complexity_detected() {
     std::fs::write(&path, &code).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["check", path.to_str().unwrap()])
-        .output().expect("failed to run");
+        .output()
+        .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"), "got: {stdout}");
 }
 
 #[test]
@@ -849,7 +810,8 @@ fn duplicated_assertion_blocks_above_threshold() {
     code.push_str("  }\n}\n");
     let out = pulse_check_code(&code, "groovy");
     assert!(
-        has_smell(&out, "Duplicated Assertion Blocks") || has_smell(&out, "Large Assertion Block")
+        has_smell(&out, "Duplicated Assertion Blocks")
+            || has_smell(&out, "Large Assertion Block")
             || has_smell(&out, "Code Duplication"),
         "got: {out}"
     );
@@ -881,10 +843,7 @@ fn complex_conditional_detected() {
         ),
         "groovy",
     );
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]

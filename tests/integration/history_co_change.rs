@@ -14,12 +14,7 @@ fn t() -> Thresholds {
 }
 
 fn commit(hash: &str, author: &str, ts: i64, files: &[&str]) -> Commit {
-    Commit {
-        hash: hash.into(),
-        author: author.into(),
-        timestamp: ts,
-        files: files.iter().map(PathBuf::from).collect(),
-    }
+    Commit { hash: hash.into(), author: author.into(), timestamp: ts, files: files.iter().map(PathBuf::from).collect() }
 }
 
 fn empty_graph() -> ImportGraph {
@@ -185,10 +180,7 @@ fn rank_drift_filters_below_min_support() {
     let mut th = t().history;
     th.co_change.min_support = 3;
     relax(&mut th);
-    let commits = vec![
-        commit("h1", "a@x", 1, &["a.py", "b.py"]),
-        commit("h2", "a@x", 2, &["a.py", "b.py"]),
-    ];
+    let commits = vec![commit("h1", "a@x", 1, &["a.py", "b.py"]), commit("h2", "a@x", 2, &["a.py", "b.py"])];
     let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     assert!(findings.is_empty());
 }
@@ -268,10 +260,7 @@ fn rank_drift_sorts_by_confidence_desc() {
 fn rank_drift_lex_tiebreak_for_equal_confidence() {
     let mut th = t().history;
     th.co_change.min_support = 1;
-    let commits = vec![
-        commit("h1", "a@x", 1, &["x.py", "y.py"]),
-        commit("h2", "a@x", 2, &["a.py", "b.py"]),
-    ];
+    let commits = vec![commit("h1", "a@x", 1, &["x.py", "y.py"]), commit("h2", "a@x", 2, &["a.py", "b.py"])];
     let typed_paths = typed(&["a.py", "b.py", "x.py", "y.py"]);
     let findings = ranked(&commits, &typed_paths, &th);
     assert_eq!(findings.len(), 2);
@@ -297,13 +286,7 @@ fn rank_drift_truncates_at_max_findings() {
 #[test]
 fn rank_drift_empty_pairs_returns_empty() {
     let scope = revisions_in_scope(&[], &t().history);
-    let findings = rank_drift(
-        std::collections::HashMap::new(),
-        &scope,
-        &empty_graph(),
-        &typed(&[]),
-        &t().history,
-    );
+    let findings = rank_drift(std::collections::HashMap::new(), &scope, &empty_graph(), &typed(&[]), &t().history);
     assert!(findings.is_empty());
 }
 
@@ -351,10 +334,7 @@ fn rank_drift_last_seen_in_evidence() {
     let mut th = t().history;
     th.co_change.min_support = 1;
     relax(&mut th);
-    let commits = vec![
-        commit("h1", "a@x", 100, &["a.py", "b.py"]),
-        commit("h2", "a@x", 500, &["a.py", "b.py"]),
-    ];
+    let commits = vec![commit("h1", "a@x", 100, &["a.py", "b.py"]), commit("h2", "a@x", 500, &["a.py", "b.py"])];
     let findings = ranked(&commits, &typed(&["a.py", "b.py"]), &th);
     let HistoryKind::ArchitecturalDrift(e) = &findings[0].kind else { panic!() };
     assert_eq!(e.last_seen_unix, 500);

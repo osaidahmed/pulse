@@ -37,10 +37,7 @@ fn def_full(
         },
         cc,
         field_accesses: fields.into_iter().map(String::from).collect(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: parent.map(String::from),
         is_constructor: is_ctor,
     }
@@ -162,23 +159,9 @@ fn diamond_inheritance_5_levels_handled() {
     defs.push(def_full("top.py", Some("Top"), "m", 1, 1, vec![], vec![], None, false));
     for level in 0..5 {
         for branch in 0..(1 << level) {
-            let parent = if level == 0 {
-                "Top".to_string()
-            } else {
-                format!("L{}_B{}", level - 1, branch / 2)
-            };
+            let parent = if level == 0 { "Top".to_string() } else { format!("L{}_B{}", level - 1, branch / 2) };
             let cls = format!("L{level}_B{branch}");
-            defs.push(def_full(
-                &format!("{cls}.py"),
-                Some(&cls),
-                "m",
-                1,
-                1,
-                vec![],
-                vec![],
-                Some(&parent),
-                false,
-            ));
+            defs.push(def_full(&format!("{cls}.py"), Some(&cls), "m", 1, 1, vec![], vec![], Some(&parent), false));
         }
     }
     let graph = CallGraph::build(defs.clone(), Vec::new());
@@ -218,9 +201,7 @@ fn determinism_property_call_graph_build_is_idempotent() {
     let defs: Vec<_> = (0..20)
         .map(|i| def_full(&format!("f_{i}.py"), Some(&format!("C{i}")), "m", 1, 1, vec![], vec![], None, false))
         .collect();
-    let calls: Vec<LocatedCall> = (1..20)
-        .map(|i| empty_call(&defs[i - 1], "m", Some(&format!("C{i}"))))
-        .collect();
+    let calls: Vec<LocatedCall> = (1..20).map(|i| empty_call(&defs[i - 1], "m", Some(&format!("C{i}")))).collect();
     let g1 = CallGraph::build(defs.clone(), calls.clone());
     let g2 = CallGraph::build(defs.clone(), calls);
     assert_eq!(g1.registry.methods.len(), g2.registry.methods.len());
@@ -291,9 +272,7 @@ fn lowering_threshold_monotonically_increases_findings_divergent() {
 
 #[test]
 fn raising_threshold_monotonically_decreases_findings_feature_envy() {
-    let foreign = vec![
-        ("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6"),
-    ];
+    let foreign = vec![("b", "f1"), ("b", "f2"), ("b", "f3"), ("b", "f4"), ("b", "f5"), ("b", "f6")];
     let m = def_full("a.py", Some("A"), "m", 1, 1, vec![], foreign, None, false);
     let other = def_full("b.py", Some("B"), "do", 1, 1, vec![], vec![], None, false);
     let calls: Vec<LocatedCall> = (0..4).map(|_| empty_call(&m, "do", Some("B"))).collect();
@@ -338,12 +317,72 @@ fn unicode_identifiers_round_trip_through_all_detectors() {
 #[test]
 fn five_run_determinism_each_detector_yields_same_count() {
     let defs = vec![
-        def_full("g.py", Some("G"), "m1", 10, 10, vec!["f0"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
-        def_full("g.py", Some("G"), "m2", 11, 10, vec!["f1"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
-        def_full("g.py", Some("G"), "m3", 12, 10, vec!["f2"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
-        def_full("g.py", Some("G"), "m4", 13, 10, vec!["f3"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
-        def_full("g.py", Some("G"), "m5", 14, 10, vec!["f4"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
-        def_full("g.py", Some("G"), "m6", 15, 10, vec!["f5"], vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")], None, false),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m1",
+            10,
+            10,
+            vec!["f0"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m2",
+            11,
+            10,
+            vec!["f1"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m3",
+            12,
+            10,
+            vec!["f2"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m4",
+            13,
+            10,
+            vec!["f3"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m5",
+            14,
+            10,
+            vec!["f4"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
+        def_full(
+            "g.py",
+            Some("G"),
+            "m6",
+            15,
+            10,
+            vec!["f5"],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            None,
+            false,
+        ),
     ];
     let mut counts = Vec::new();
     for _ in 0..5 {
@@ -405,14 +444,8 @@ fn one_hundred_god_classes_all_emit() {
 fn confidence_aggregation_across_mixed_edges() {
     use pulse::audit::finding::ImportConfidence;
     assert_eq!(ImportConfidence::High.min(ImportConfidence::Low), ImportConfidence::Low);
-    assert_eq!(
-        ImportConfidence::Medium.min(ImportConfidence::BestEffort),
-        ImportConfidence::BestEffort
-    );
-    assert_eq!(
-        ImportConfidence::High.min(ImportConfidence::NaAbstraction),
-        ImportConfidence::NaAbstraction
-    );
+    assert_eq!(ImportConfidence::Medium.min(ImportConfidence::BestEffort), ImportConfidence::BestEffort);
+    assert_eq!(ImportConfidence::High.min(ImportConfidence::NaAbstraction), ImportConfidence::NaAbstraction);
 }
 
 #[test]

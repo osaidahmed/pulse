@@ -17,13 +17,7 @@ pub struct DefUseRecord {
     pub line: u32,
 }
 
-pub(crate) fn collect(
-    node: Node,
-    source: &str,
-    block: u32,
-    lang: &CfgLang,
-    out: &mut Vec<DefUseRecord>,
-) {
+pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
     if lang.def_kinds.contains(&k) {
@@ -42,13 +36,7 @@ pub(crate) fn collect(
     }
 }
 
-pub(crate) fn loop_header(
-    node: Node,
-    source: &str,
-    block: u32,
-    lang: &CfgLang,
-    out: &mut Vec<DefUseRecord>,
-) {
+pub(crate) fn loop_header(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     if let Some(c) = node.child_by_field_name("condition") {
         collect(c, source, block, lang, out);
     }
@@ -109,10 +97,5 @@ fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec
 }
 
 fn rec(node: Node, source: &str, block: u32, kind: DefUse) -> DefUseRecord {
-    DefUseRecord {
-        name: node_text(node, source).to_string(),
-        block,
-        kind,
-        line: node.start_position().row as u32 + 1,
-    }
+    DefUseRecord { name: node_text(node, source).to_string(), block, kind, line: node.start_position().row as u32 + 1 }
 }

@@ -1,9 +1,9 @@
 pub mod c;
 pub mod cobol;
 pub mod counters;
-pub mod d;
 pub mod cpp;
 pub mod csharp;
+pub mod d;
 pub mod field_access;
 pub mod fingerprint;
 pub mod go;
@@ -32,14 +32,14 @@ mod scope;
 // Re-export fingerprint and shared items so existing walker imports work unchanged.
 pub use field_access::{collect_field_accesses_for, collect_foreign_field_accesses_for};
 pub use fingerprint::{
-    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint,
-    count_consecutive_asserts, count_distinct_node_kinds, count_distinct_node_kinds_multi,
+    compute_assert_fingerprint, compute_skeleton_hash, compute_structural_fingerprint, count_consecutive_asserts,
+    count_distinct_node_kinds, count_distinct_node_kinds_multi,
 };
-pub use simhash::compute_simhash;
 pub use shared::is_catch_body_empty;
+pub use simhash::compute_simhash;
 
-pub use guards::{with_cpg_enabled, with_edit_scope};
 pub(crate) use guards::{cpg_enabled, extras_enabled, DepthGuard};
+pub use guards::{with_cpg_enabled, with_edit_scope};
 
 use tree_sitter::Node;
 
@@ -124,8 +124,7 @@ pub(crate) fn cpg_for(
 }
 
 pub fn track_embedded_block(max: &mut u32, node: Node) {
-    let lines =
-        node.end_position().row.saturating_sub(node.start_position().row) as u32 + 1;
+    let lines = node.end_position().row.saturating_sub(node.start_position().row) as u32 + 1;
     update_max(max, lines);
 }
 
@@ -165,7 +164,6 @@ mod metrics {
 
 pub use metrics::FunctionMetrics;
 
-
 #[derive(Debug, Clone)]
 pub struct ModuleMetrics {
     pub total_loc: u32,
@@ -185,25 +183,16 @@ pub struct FileMetrics {
 // ─── Shared utilities ──────────────────────────────────────────────────
 
 pub fn count_code_lines(source: &str, comment_prefixes: &[&str]) -> u32 {
-    source
-        .lines()
-        .filter(|line| is_code_line(line.as_bytes(), comment_prefixes))
-        .count() as u32
+    source.lines().filter(|line| is_code_line(line.as_bytes(), comment_prefixes)).count() as u32
 }
 
 fn is_code_line(line: &[u8], comment_prefixes: &[&str]) -> bool {
     let trimmed = trim_leading_whitespace(line);
-    !trimmed.is_empty()
-        && !comment_prefixes
-            .iter()
-            .any(|p| trimmed.starts_with(p.as_bytes()))
+    !trimmed.is_empty() && !comment_prefixes.iter().any(|p| trimmed.starts_with(p.as_bytes()))
 }
 
 fn trim_leading_whitespace(line: &[u8]) -> &[u8] {
-    let skip = line
-        .iter()
-        .take_while(|&&b| b == b' ' || b == b'\t')
-        .count();
+    let skip = line.iter().take_while(|&&b| b == b' ' || b == b'\t').count();
     &line[skip..]
 }
 
@@ -232,7 +221,17 @@ pub fn measure_nesting_depth(node: Node, current: u32, branch_kinds: &[&str]) ->
     for child in node.children(&mut cursor) {
         let child_depth = if branch_kinds.contains(&child.kind()) {
             measure_nesting_depth(child, current + 1, branch_kinds)
-        } else if matches!(child.kind(), "block" | "statement_block" | "block_statement" | "body_statement" | "then" | "do" | "braced_word" | "braced_expression") {
+        } else if matches!(
+            child.kind(),
+            "block"
+                | "statement_block"
+                | "block_statement"
+                | "body_statement"
+                | "then"
+                | "do"
+                | "braced_word"
+                | "braced_expression"
+        ) {
             measure_nesting_depth(child, current, branch_kinds)
         } else {
             current

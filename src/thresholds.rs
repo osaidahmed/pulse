@@ -65,7 +65,6 @@ pub struct DuplicationThresholds {
     pub min_distinct_kinds: u32,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AuditThresholds {
     pub pattern_mining: PatternMiningThresholds,
@@ -227,12 +226,7 @@ impl AnalysisThresholds {
 }
 
 impl DuplicationThresholds {
-    pub const DEFAULTS: Self = Self {
-        min_loc: 6,
-        skeleton_min_loc: 20,
-        min_group: 2,
-        min_distinct_kinds: 3,
-    };
+    pub const DEFAULTS: Self = Self { min_loc: 6, skeleton_min_loc: 20, min_group: 2, min_distinct_kinds: 3 };
 }
 
 impl PatternMiningThresholds {
@@ -249,25 +243,15 @@ impl PatternMiningThresholds {
 }
 
 impl VendorThresholds {
-    pub const DEFAULTS: Self = Self {
-        zscore_cutoff: 3.0,
-        min_features_failed: 2,
-        min_size_bytes: 200,
-    };
+    pub const DEFAULTS: Self = Self { zscore_cutoff: 3.0, min_features_failed: 2, min_size_bytes: 200 };
 }
 
 impl ComplexityFloorThresholds {
-    pub const DEFAULTS: Self = Self {
-        distinct_kind_floor: 2,
-        branching_factor_floor: 0.5,
-    };
+    pub const DEFAULTS: Self = Self { distinct_kind_floor: 2, branching_factor_floor: 0.5 };
 }
 
 impl MdlThresholds {
-    pub const DEFAULTS: Self = Self {
-        compression_floor_bits: 0.0,
-        max_iterations: 1000,
-    };
+    pub const DEFAULTS: Self = Self { compression_floor_bits: 0.0, max_iterations: 1000 };
 }
 
 impl PackageMetricsThresholds {
@@ -288,47 +272,27 @@ impl PackageMetricsThresholds {
 }
 
 impl ShotgunSurgeryThresholds {
-    pub const DEFAULTS: Self = Self {
-        changing_classes: 5,
-        changing_methods: 10,
-        fanout: 5,
-    };
+    pub const DEFAULTS: Self = Self { changing_classes: 5, changing_methods: 10, fanout: 5 };
 }
 
 impl DivergentChangeThresholds {
-    pub const DEFAULTS: Self = Self {
-        changing_classes: 6,
-        fanout: 6,
-        method_count: 5,
-    };
+    pub const DEFAULTS: Self = Self { changing_classes: 6, fanout: 6, method_count: 5 };
 }
 
 impl FeatureEnvyThresholds {
-    pub const DEFAULTS: Self = Self {
-        atfd: 5,
-        foreign_ratio: 0.6,
-    };
+    pub const DEFAULTS: Self = Self { atfd: 5, foreign_ratio: 0.6 };
 }
 
 impl GodClassThresholds {
-    pub const DEFAULTS: Self = Self {
-        wmc: 47,
-        tcc: 0.33,
-        atfd: 5,
-    };
+    pub const DEFAULTS: Self = Self { wmc: 47, tcc: 0.33, atfd: 5 };
 }
 
 impl ParallelInheritanceThresholds {
-    pub const DEFAULTS: Self = Self {
-        min_overlap: 3,
-    };
+    pub const DEFAULTS: Self = Self { min_overlap: 3 };
 }
 
 impl RefusedBequestThresholds {
-    pub const DEFAULTS: Self = Self {
-        max_override_ratio: 0.3,
-        min_parent_methods: 3,
-    };
+    pub const DEFAULTS: Self = Self { max_override_ratio: 0.3, min_parent_methods: 3 };
 }
 
 impl NamedSmellThresholds {
@@ -345,11 +309,7 @@ impl NamedSmellThresholds {
 }
 
 impl TaintThresholds {
-    pub const DEFAULTS: Self = Self {
-        visit_cap: 2,
-        max_depth: 16,
-        max_findings: 50,
-    };
+    pub const DEFAULTS: Self = Self { visit_cap: 2, max_depth: 16, max_findings: 50 };
 }
 
 impl AuditThresholds {

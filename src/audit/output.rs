@@ -5,22 +5,15 @@ use crate::config::AuditSuppression;
 use crate::thresholds::AuditThresholds;
 
 use super::finding::{
-    action_for_kind, finding_confidence, pass_for, AuditFinding, AuditKind, PatternCategory,
-    ShotgunSurgeryEvidence,
+    action_for_kind, finding_confidence, pass_for, AuditFinding, AuditKind, PatternCategory, ShotgunSurgeryEvidence,
 };
-use super::output_helpers::{
-    confidence_str, display_path, write_capped_list, ListLayout,
-};
+use super::output_helpers::{confidence_str, display_path, write_capped_list, ListLayout};
 use super::output_named_smells::WriterCtx;
 use super::output_package_metrics::{
     cycle_json, martin_json, write_cycle, write_martin, write_zero_edge, zero_edge_json,
 };
 
-pub fn format_findings(
-    findings: &[AuditFinding],
-    root: Option<&Path>,
-    thresholds: &AuditThresholds,
-) -> String {
+pub fn format_findings(findings: &[AuditFinding], root: Option<&Path>, thresholds: &AuditThresholds) -> String {
     let mut out = String::new();
     let collected: Vec<&AuditFinding> = findings.iter().collect();
     let (pattern_findings, other_findings) = super::output_grouped::split(&collected);
@@ -62,10 +55,7 @@ pub fn format_findings_filtered(
 }
 
 pub fn format_findings_json(findings: &[AuditFinding], root: Option<&Path>) -> String {
-    let entries: Vec<serde_json::Value> = findings
-        .iter()
-        .map(|f| enrich_json(render_json(f, root), f))
-        .collect();
+    let entries: Vec<serde_json::Value> = findings.iter().map(|f| enrich_json(render_json(f, root), f)).collect();
     serde_json::Value::Array(entries).to_string()
 }
 
@@ -76,10 +66,7 @@ pub fn format_findings_json_filtered(
     suppression: &AuditSuppression,
 ) -> String {
     let visible = filter_visible(findings, show_noise, suppression);
-    let entries: Vec<serde_json::Value> = visible
-        .iter()
-        .map(|f| enrich_json(render_json(f, root), f))
-        .collect();
+    let entries: Vec<serde_json::Value> = visible.iter().map(|f| enrich_json(render_json(f, root), f)).collect();
     if findings.is_empty() {
         return serde_json::Value::Array(entries).to_string();
     }
@@ -92,11 +79,7 @@ fn filter_visible<'a>(
     show_noise: bool,
     suppression: &AuditSuppression,
 ) -> Vec<&'a AuditFinding> {
-    findings
-        .iter()
-        .filter(|f| show_noise || !is_hidden_noise(f))
-        .filter(|f| !suppression.is_hidden(f))
-        .collect()
+    findings.iter().filter(|f| show_noise || !is_hidden_noise(f)).filter(|f| !suppression.is_hidden(f)).collect()
 }
 
 fn is_hidden_noise(f: &AuditFinding) -> bool {
@@ -108,29 +91,18 @@ fn enrich_json(mut v: serde_json::Value, f: &AuditFinding) -> serde_json::Value 
         obj.insert("pass".into(), serde_json::Value::String(pass_for(&f.kind).into()));
         obj.insert(
             "category".into(),
-            f.pattern_category.map_or(serde_json::Value::Null, |c| {
-                serde_json::Value::String(c.slug().into())
-            }),
+            f.pattern_category.map_or(serde_json::Value::Null, |c| serde_json::Value::String(c.slug().into())),
         );
-        obj.insert(
-            "confidence".into(),
-            serde_json::Value::String(confidence_str(finding_confidence(f)).into()),
-        );
+        obj.insert("confidence".into(), serde_json::Value::String(confidence_str(finding_confidence(f)).into()));
         obj.insert(
             "action".into(),
-            f.action_label.map_or(serde_json::Value::Null, |a| {
-                serde_json::Value::String(a.into())
-            }),
+            f.action_label.map_or(serde_json::Value::Null, |a| serde_json::Value::String(a.into())),
         );
     }
     v
 }
 
-fn build_summary(
-    all: &[AuditFinding],
-    visible: &[&AuditFinding],
-    root: Option<&Path>,
-) -> serde_json::Value {
+fn build_summary(all: &[AuditFinding], visible: &[&AuditFinding], root: Option<&Path>) -> serde_json::Value {
     let hidden = all.len().saturating_sub(visible.len());
     let mut by_pass: std::collections::BTreeMap<&'static str, u32> = std::collections::BTreeMap::new();
     let mut by_confidence: std::collections::BTreeMap<&'static str, u32> = std::collections::BTreeMap::new();
@@ -147,44 +119,27 @@ fn build_summary(
     })
 }
 
-fn write_human_header(
-    out: &mut String,
-    all: &[AuditFinding],
-    visible: &[&AuditFinding],
-    ctx: &RenderCtx,
-) {
+fn write_human_header(out: &mut String, all: &[AuditFinding], visible: &[&AuditFinding], ctx: &RenderCtx) {
     let total = visible.len();
     let hidden_total = all.len().saturating_sub(total);
-    let suppressed = if ctx.suppression.is_empty() {
-        0
-    } else {
-        all.iter().filter(|f| ctx.suppression.is_hidden(f)).count()
-    };
+    let suppressed =
+        if ctx.suppression.is_empty() { 0 } else { all.iter().filter(|f| ctx.suppression.is_hidden(f)).count() };
     let noise_hidden = hidden_total.saturating_sub(suppressed);
     let counts = aggregate_counts(visible);
     let root_label = ctx.root.map_or_else(String::new, |r| r.display().to_string());
     let _ = writeln!(out, "audit: {root_label} — {total} findings");
-    let _ = writeln!(
-        out,
-        "       {} high · {} medium · {} low confidence",
-        counts.high, counts.medium, counts.low
-    );
+    let _ = writeln!(out, "       {} high · {} medium · {} low confidence", counts.high, counts.medium, counts.low);
     let _ = writeln!(
         out,
         "       {} pattern-mining · {} package-metrics · {} named-smells",
         counts.pattern, counts.package, counts.named
     );
     if noise_hidden > 0 && !ctx.show_noise {
-        let _ = writeln!(
-            out,
-            "       {noise_hidden} hidden under noise categories  (run with --show-noise to surface)"
-        );
+        let _ =
+            writeln!(out, "       {noise_hidden} hidden under noise categories  (run with --show-noise to surface)");
     }
     if suppressed > 0 {
-        let _ = writeln!(
-            out,
-            "       {suppressed} hidden by .pulse.toml [audit] suppression rules"
-        );
+        let _ = writeln!(out, "       {suppressed} hidden by .pulse.toml [audit] suppression rules");
     }
     let _ = writeln!(out);
 }
@@ -215,7 +170,6 @@ fn aggregate_counts(visible: &[&AuditFinding]) -> HeaderCounts {
     c
 }
 
-
 fn render_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) {
     if dispatch_known_variants_human(out, f, root, t) {
         return;
@@ -223,12 +177,7 @@ fn render_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &Aud
     render_pattern_human(out, f, root, t);
 }
 
-fn dispatch_known_variants_human(
-    out: &mut String,
-    f: &AuditFinding,
-    root: Option<&Path>,
-    t: &AuditThresholds,
-) -> bool {
+fn dispatch_known_variants_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) -> bool {
     let action = action_for_kind(&f.kind, f.pattern_category);
     if let AuditKind::DistanceFromMainSequence(m) = &f.kind {
         write_martin(out, m, root, action);
@@ -257,11 +206,7 @@ fn dispatch_known_variants_human(
 }
 
 fn render_pattern_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) {
-    let _ = writeln!(
-        out,
-        "audit: cross-file pattern in {} files ({} occurrences)",
-        f.file_count, f.support
-    );
+    let _ = writeln!(out, "audit: cross-file pattern in {} files ({} occurrences)", f.file_count, f.support);
     let _ = writeln!(out, "  representative: {}", f.representative_snippet);
     let unique = unique_file_locations(f);
     let layout = ListLayout {
@@ -287,9 +232,7 @@ fn render_json(f: &AuditFinding, root: Option<&Path>) -> serde_json::Value {
     if let Some(v) = super::output_named_smells::dispatch_json(&f.kind, root, confidence_str, display_path) {
         return v;
     }
-    let AuditKind::UncategorizedPattern { fingerprint } = &f.kind else {
-        unreachable!()
-    };
+    let AuditKind::UncategorizedPattern { fingerprint } = &f.kind else { unreachable!() };
     pattern_json(f, *fingerprint, root)
 }
 
@@ -322,26 +265,14 @@ fn write_shotgun(
     t: &AuditThresholds,
     action: &'static str,
 ) {
-    let label = e.method_class.as_deref().map_or_else(
-        || e.method_name.clone(),
-        |c| format!("{c}.{}", e.method_name),
-    );
+    let label = e.method_class.as_deref().map_or_else(|| e.method_name.clone(), |c| format!("{c}.{}", e.method_name));
     if e.name_collision_count > 1 {
-        let _ = writeln!(
-            out,
-            "audit: shotgun surgery — {label} ({} same-named definitions)",
-            e.name_collision_count
-        );
+        let _ = writeln!(out, "audit: shotgun surgery — {label} ({} same-named definitions)", e.name_collision_count);
         let _ = writeln!(out, "  note: name-collision; review per-definition fanout");
     } else {
         let _ = writeln!(out, "audit: shotgun surgery — {label}");
     }
-    let _ = writeln!(
-        out,
-        "  defined at:    {}:{}",
-        display_path(&e.method_file, root),
-        e.method_line
-    );
+    let _ = writeln!(out, "  defined at:    {}:{}", display_path(&e.method_file, root), e.method_line);
     if !e.additional_definitions.is_empty() {
         let layout = ListLayout {
             prefix_first: "  also defined:  ",

@@ -59,27 +59,21 @@ fn match_cobol_statement(node: Node, source: &str) -> Option<RawImport> {
     let kind = node.kind();
     if kind == "copy_statement" {
         let mut cursor = node.walk();
-        let word = node
-            .children(&mut cursor)
-            .find(|c| c.is_named() && c.kind() == "WORD")?;
+        let word = node.children(&mut cursor).find(|c| c.is_named() && c.kind() == "WORD")?;
         return Some(RawImport { target: node_text(word, source), line: line_of(node) });
     }
     if kind != "call_statement" {
         return None;
     }
     let mut cursor = node.walk();
-    let string_node = node
-        .children(&mut cursor)
-        .find(|c| c.is_named() && c.kind() == "string")?;
+    let string_node = node.children(&mut cursor).find(|c| c.is_named() && c.kind() == "string")?;
     let raw = node_text(string_node, source);
     let stripped = strip_double_quotes(&raw)?;
     Some(RawImport { target: stripped, line: line_of(node) })
 }
 
 fn strip_double_quotes(s: &str) -> Option<String> {
-    s.strip_prefix('"')
-        .and_then(|r| r.strip_suffix('"'))
-        .map(str::to_string)
+    s.strip_prefix('"').and_then(|r| r.strip_suffix('"')).map(str::to_string)
 }
 
 fn script_paths(raw: &str, parent: &Path, project_root: &Path, exts: &[&str]) -> Vec<PathBuf> {

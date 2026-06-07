@@ -1,4 +1,3 @@
-
 use crate::common::*;
 use std::process::Command;
 
@@ -96,10 +95,8 @@ fn function_below_cc_boundary_not_flagged() {
 
 #[test]
 fn boolean_operators_increment_cc() {
-    let debug = pulse_debug_code(
-        "f <- function(a, b, c) {\n  if (a && b && c) {\n    return(TRUE)\n  }\n  FALSE\n}\n",
-        "r",
-    );
+    let debug =
+        pulse_debug_code("f <- function(a, b, c) {\n  if (a && b && c) {\n    return(TRUE)\n  }\n  FALSE\n}\n", "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "got: {cc}");
 }
@@ -158,10 +155,7 @@ fn large_method_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Large Method") || has_smell(&stdout, "God Method"), "got: {stdout}");
 }
 
 // ===========================================================================
@@ -231,10 +225,7 @@ fn embedded_block_detected() {
 #[test]
 fn bumpy_road_detected() {
     let output = run_check(LANG, "bumpy_road.r");
-    assert!(
-        has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"),
-        "got: {output}"
-    );
+    assert!(has_smell(&output, "Nested Conditional Chunks") || has_smell(&output, "Deep Nested"), "got: {output}");
 }
 
 #[test]
@@ -291,23 +282,23 @@ fn simple_string_not_flagged() {
 
 #[test]
 fn complex_conditional_detected() {
-    let out = pulse_check_code(concat!(
-        "check <- function(age, score, active) {\n",
-        "  if (age > 18 && score > 50 && active) {\n",
-        "    if (score > 80 || (age > 25 && active)) {\n",
-        "      return(TRUE)\n",
-        "    }\n",
-        "  }\n",
-        "  if (age > 65 || score < 10) {\n",
-        "    return(TRUE)\n",
-        "  }\n",
-        "  FALSE\n",
-        "}\n",
-    ), "r");
-    assert!(
-        has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "check <- function(age, score, active) {\n",
+            "  if (age > 18 && score > 50 && active) {\n",
+            "    if (score > 80 || (age > 25 && active)) {\n",
+            "      return(TRUE)\n",
+            "    }\n",
+            "  }\n",
+            "  if (age > 65 || score < 10) {\n",
+            "    return(TRUE)\n",
+            "  }\n",
+            "  FALSE\n",
+            "}\n",
+        ),
+        "r",
     );
+    assert!(has_smell(&out, "Complex Conditional") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -357,93 +348,85 @@ fn hook_nonexistent_file_silent() {
 
 #[test]
 fn switch_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "f <- function(x) {\n",
-        "  switch(x,\n",
-        "    a = 1,\n",
-        "    b = 2,\n",
-        "    c = 3\n",
-        "  )\n",
-        "}\n",
-    ), "r");
+    let debug = pulse_debug_code(
+        concat!("f <- function(x) {\n", "  switch(x,\n", "    a = 1,\n", "    b = 2,\n", "    c = 3\n", "  )\n", "}\n",),
+        "r",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 4, "switch with 3 cases should have cc>=4, got: {cc}");
 }
 
 #[test]
 fn try_catch_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "f <- function(x) {\n",
-        "  tryCatch(\n",
-        "    as.numeric(x),\n",
-        "    error = function(e) -1,\n",
-        "    warning = function(w) -2\n",
-        "  )\n",
-        "}\n",
-    ), "r");
+    let debug = pulse_debug_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  tryCatch(\n",
+            "    as.numeric(x),\n",
+            "    error = function(e) -1,\n",
+            "    warning = function(w) -2\n",
+            "  )\n",
+            "}\n",
+        ),
+        "r",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 3, "tryCatch with 2 handlers should have cc>=3, got: {cc}");
 }
 
 #[test]
 fn empty_try_catch_handler_detected() {
-    let out = pulse_check_code(concat!(
-        "f <- function(x) {\n",
-        "  tryCatch(\n",
-        "    as.numeric(x),\n",
-        "    error = function(e) {}\n",
-        "  )\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  tryCatch(\n",
+            "    as.numeric(x),\n",
+            "    error = function(e) {}\n",
+            "  )\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
 }
 
 #[test]
 fn repeat_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "f <- function() {\n",
-        "  repeat {\n",
-        "    break\n",
-        "  }\n",
-        "}\n",
-    ), "r");
+    let debug = pulse_debug_code(concat!("f <- function() {\n", "  repeat {\n", "    break\n", "  }\n", "}\n",), "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "repeat should add CC, got: {cc}");
 }
 
 #[test]
 fn for_loop_increments_cc() {
-    let debug = pulse_debug_code(
-        "f <- function(items) {\n  for (item in items) {\n    print(item)\n  }\n}\n",
-        "r",
-    );
+    let debug = pulse_debug_code("f <- function(items) {\n  for (item in items) {\n    print(item)\n  }\n}\n", "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "for should increment cc, got: {cc}");
 }
 
 #[test]
 fn while_loop_increments_cc() {
-    let debug = pulse_debug_code(
-        "f <- function(x) {\n  n <- x\n  while (n > 0) {\n    n <- n - 1\n  }\n}\n",
-        "r",
-    );
+    let debug = pulse_debug_code("f <- function(x) {\n  n <- x\n  while (n > 0) {\n    n <- n - 1\n  }\n}\n", "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 2, "while should increment cc, got: {cc}");
 }
 
 #[test]
 fn else_if_increments_cc() {
-    let debug = pulse_debug_code(concat!(
-        "f <- function(x) {\n",
-        "  if (x == 1) {\n",
-        "    1\n",
-        "  } else if (x == 2) {\n",
-        "    2\n",
-        "  } else {\n",
-        "    3\n",
-        "  }\n",
-        "}\n",
-    ), "r");
+    let debug = pulse_debug_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  if (x == 1) {\n",
+            "    1\n",
+            "  } else if (x == 2) {\n",
+            "    2\n",
+            "  } else {\n",
+            "    3\n",
+            "  }\n",
+            "}\n",
+        ),
+        "r",
+    );
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert!(cc >= 3, "else-if should add CC, got: {cc}");
 }
@@ -468,55 +451,58 @@ fn global_conditionals_detected() {
 
 #[test]
 fn code_duplication_inline() {
-    let out = pulse_check_code(concat!(
-        "rpt_a <- function(data) {\n",
-        "  r <- 0\n",
-        "  for (v in data) {\n    r <- r + v\n  }\n",
-        "  r <- r * 2\n  r\n",
-        "}\n\n",
-        "rpt_b <- function(data) {\n",
-        "  r <- 0\n",
-        "  for (v in data) {\n    r <- r + v\n  }\n",
-        "  r <- r * 2\n  r\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "rpt_a <- function(data) {\n",
+            "  r <- 0\n",
+            "  for (v in data) {\n    r <- r + v\n  }\n",
+            "  r <- r * 2\n  r\n",
+            "}\n\n",
+            "rpt_b <- function(data) {\n",
+            "  r <- 0\n",
+            "  for (v in data) {\n    r <- r + v\n  }\n",
+            "  r <- r * 2\n  r\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(has_smell(&out, "Code Duplication"), "got: {out}");
 }
 
 #[test]
 fn nested_conditional_chunks_detected() {
-    let out = pulse_check_code(concat!(
-        "validate <- function(data) {\n",
-        "  if (length(data) > 0) {\n",
-        "    if (data[1] > 0) {\n",
-        "      if (data[1] > 10) {\n",
-        "        x <- 1\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  gap <- 1\n",
-        "  if (length(data) > 5) {\n",
-        "    if (data[5] > 0) {\n",
-        "      if (data[5] > 10) {\n",
-        "        y <- 2\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  gap2 <- 2\n",
-        "  if (length(data) > 10) {\n",
-        "    if (data[10] > 0) {\n",
-        "      if (data[10] > 10) {\n",
-        "        z <- 3\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  0\n",
-        "}\n",
-    ), "r");
-    assert!(
-        has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"),
-        "got: {out}"
+    let out = pulse_check_code(
+        concat!(
+            "validate <- function(data) {\n",
+            "  if (length(data) > 0) {\n",
+            "    if (data[1] > 0) {\n",
+            "      if (data[1] > 10) {\n",
+            "        x <- 1\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  gap <- 1\n",
+            "  if (length(data) > 5) {\n",
+            "    if (data[5] > 0) {\n",
+            "      if (data[5] > 10) {\n",
+            "        y <- 2\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  gap2 <- 2\n",
+            "  if (length(data) > 10) {\n",
+            "    if (data[10] > 0) {\n",
+            "      if (data[10] > 10) {\n",
+            "        z <- 3\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  0\n",
+            "}\n",
+        ),
+        "r",
     );
+    assert!(has_smell(&out, "Nested Conditional Chunks") || has_smell(&out, "Complex Method"), "got: {out}");
 }
 
 #[test]
@@ -561,20 +547,14 @@ fn large_method_loc_verification() {
 
 #[test]
 fn vectorized_and_not_cc() {
-    let debug = pulse_debug_code(
-        "f <- function(a, b) {\n  a & b\n}\n",
-        "r",
-    );
+    let debug = pulse_debug_code("f <- function(a, b) {\n  a & b\n}\n", "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 1, "vectorized & should not increment CC, got: {cc}");
 }
 
 #[test]
 fn vectorized_or_not_cc() {
-    let debug = pulse_debug_code(
-        "f <- function(a, b) {\n  a | b\n}\n",
-        "r",
-    );
+    let debug = pulse_debug_code("f <- function(a, b) {\n  a | b\n}\n", "r");
     let cc = function_metric(&debug, "f", "cc").unwrap_or(0);
     assert_eq!(cc, 1, "vectorized | should not increment CC, got: {cc}");
 }
@@ -619,7 +599,10 @@ fn production_service_nested_chunks() {
 #[test]
 fn production_service_no_false_duplication() {
     let output = run_check(LANG, "production_service.r");
-    assert!(!has_smell(&output, "Code Duplication"), "size-disparate functions must not be flagged as duplicates, got: {output}");
+    assert!(
+        !has_smell(&output, "Code Duplication"),
+        "size-disparate functions must not be flagged as duplicates, got: {output}"
+    );
 }
 
 #[test]
@@ -669,7 +652,10 @@ fn production_api_empty_handler() {
 #[test]
 fn production_api_no_false_duplication() {
     let output = run_check(LANG, "production_api_service.r");
-    assert!(!has_smell(&output, "Code Duplication"), "size-disparate functions must not be flagged as duplicates, got: {output}");
+    assert!(
+        !has_smell(&output, "Code Duplication"),
+        "size-disparate functions must not be flagged as duplicates, got: {output}"
+    );
 }
 
 #[test]
@@ -709,17 +695,20 @@ fn five_args_not_flagged() {
 
 #[test]
 fn nesting_depth_3_not_flagged() {
-    let out = pulse_check_code(concat!(
-        "f <- function(a, b, c) {\n",
-        "  if (a) {\n",
-        "    if (b) {\n",
-        "      if (c) {\n",
-        "        1\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(a, b, c) {\n",
+            "  if (a) {\n",
+            "    if (b) {\n",
+            "      if (c) {\n",
+            "        1\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Deep Nested"), "depth=3 should not flag, got: {out}");
 }
 
@@ -736,89 +725,101 @@ fn cc_8_not_flagged() {
 
 #[test]
 fn single_boolean_op_not_compound() {
-    let out = pulse_check_code(
-        "f <- function(a, b) {\n  if (a && b) {\n    TRUE\n  }\n}\n",
-        "r",
-    );
+    let out = pulse_check_code("f <- function(a, b) {\n  if (a && b) {\n    TRUE\n  }\n}\n", "r");
     assert!(!has_smell(&out, "Complex Conditional"));
 }
 
 #[test]
 fn non_duplicate_functions_not_flagged() {
-    let out = pulse_check_code(concat!(
-        "alpha <- function(x) {\n",
-        "  x + 1\n",
-        "}\n",
-        "beta <- function(items) {\n",
-        "  total <- 0\n",
-        "  for (v in items) {\n",
-        "    if (v > 0) {\n",
-        "      total <- total + v\n",
-        "    } else {\n",
-        "      total <- total - v\n",
-        "    }\n",
-        "  }\n",
-        "  while (total > 100) {\n",
-        "    total <- total / 2\n",
-        "  }\n",
-        "  total\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "alpha <- function(x) {\n",
+            "  x + 1\n",
+            "}\n",
+            "beta <- function(items) {\n",
+            "  total <- 0\n",
+            "  for (v in items) {\n",
+            "    if (v > 0) {\n",
+            "      total <- total + v\n",
+            "    } else {\n",
+            "      total <- total - v\n",
+            "    }\n",
+            "  }\n",
+            "  while (total > 100) {\n",
+            "    total <- total / 2\n",
+            "  }\n",
+            "  total\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Code Duplication"), "structurally different functions should not trigger, got: {out}");
 }
 
 #[test]
 fn small_string_not_embedded_block() {
-    let out = pulse_check_code(concat!(
-        "f <- function() {\n",
-        "  x <- \"a short string\"\n",
-        "  y <- \"another short one\"\n",
-        "  paste(x, y)\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function() {\n",
+            "  x <- \"a short string\"\n",
+            "  y <- \"another short one\"\n",
+            "  paste(x, y)\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Large Embedded Block"));
 }
 
 #[test]
 fn no_global_conditionals_when_inside_functions() {
-    let out = pulse_check_code(concat!(
-        "f <- function(x) {\n",
-        "  if (x > 0) 1 else 0\n",
-        "}\n",
-        "g <- function(y) {\n",
-        "  if (y > 0) 2 else 0\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  if (x > 0) 1 else 0\n",
+            "}\n",
+            "g <- function(y) {\n",
+            "  if (y > 0) 2 else 0\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Global Conditionals"));
 }
 
 #[test]
 fn try_catch_with_body_not_empty() {
-    let out = pulse_check_code(concat!(
-        "f <- function(x) {\n",
-        "  tryCatch(\n",
-        "    log(x),\n",
-        "    error = function(e) { message(e$message) }\n",
-        "  )\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  tryCatch(\n",
+            "    log(x),\n",
+            "    error = function(e) { message(e$message) }\n",
+            "  )\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
 #[test]
 fn single_bump_not_nested_chunks() {
-    let out = pulse_check_code(concat!(
-        "f <- function(x) {\n",
-        "  if (x > 0) {\n",
-        "    if (x > 10) {\n",
-        "      if (x > 100) {\n",
-        "        1\n",
-        "      }\n",
-        "    }\n",
-        "  }\n",
-        "  0\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(x) {\n",
+            "  if (x > 0) {\n",
+            "    if (x > 10) {\n",
+            "      if (x > 100) {\n",
+            "        1\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "  0\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Nested Conditional Chunks"));
 }
 
@@ -828,10 +829,7 @@ fn single_bump_not_nested_chunks() {
 
 #[test]
 fn six_args_triggers_excess() {
-    let out = pulse_check_code(
-        "f <- function(a, b, c, d, e, g) {\n  a + b + c + d + e + g\n}\n",
-        "r",
-    );
+    let out = pulse_check_code("f <- function(a, b, c, d, e, g) {\n  a + b + c + d + e + g\n}\n", "r");
     assert!(has_smell(&out, "Excess Arguments"), "6 args should trigger, got: {out}");
 }
 
@@ -887,10 +885,7 @@ fn overall_code_complexity_detected() {
         .output()
         .expect("failed to run");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(
-        has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"),
-        "got: {stdout}"
-    );
+    assert!(has_smell(&stdout, "Overall Code Complexity") || has_smell(&stdout, "Complex Method"), "got: {stdout}");
 }
 
 #[test]
@@ -909,15 +904,18 @@ fn short_variable_names_inline() {
 
 #[test]
 fn short_vars_not_triggered_with_long_names() {
-    let out = pulse_check_code(concat!(
-        "f <- function(data) {\n",
-        "  total <- data[1]\n",
-        "  count <- data[2]\n",
-        "  value <- data[3]\n",
-        "  score <- data[4]\n",
-        "  total + count + value + score\n",
-        "}\n",
-    ), "r");
+    let out = pulse_check_code(
+        concat!(
+            "f <- function(data) {\n",
+            "  total <- data[1]\n",
+            "  count <- data[2]\n",
+            "  value <- data[3]\n",
+            "  score <- data[4]\n",
+            "  total + count + value + score\n",
+            "}\n",
+        ),
+        "r",
+    );
     assert!(!has_smell(&out, "Short Variable Names"));
 }
 
@@ -933,8 +931,5 @@ fn duplicated_assertion_blocks_above_threshold() {
     }
     code.push_str("}\n");
     let out = pulse_check_code(&code, "r");
-    assert!(
-        has_smell(&out, "Duplicated Assertion Blocks") || has_smell(&out, "Large Assertion Block"),
-        "got: {out}"
-    );
+    assert!(has_smell(&out, "Duplicated Assertion Blocks") || has_smell(&out, "Large Assertion Block"), "got: {out}");
 }

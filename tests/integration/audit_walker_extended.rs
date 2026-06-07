@@ -3,7 +3,9 @@ use pulse::parse::{self, Language};
 use pulse::thresholds::Thresholds;
 use std::path::Path;
 
-fn t() -> Thresholds { Thresholds::default() }
+fn t() -> Thresholds {
+    Thresholds::default()
+}
 
 fn ext(src: &str, lang: Language) -> Vec<SubtreeRecord> {
     let tree = parse::parse_only(src, lang).unwrap();
@@ -160,7 +162,8 @@ fn walker_handles_python_global_function_with_nonlocal_inner() {
 
 #[test]
 fn walker_handles_python_class_with_metaclass() {
-    let src = "class A(metaclass=Meta):\n    def m(self, x):\n        if x == 1:\n            return x\n        return 0\n";
+    let src =
+        "class A(metaclass=Meta):\n    def m(self, x):\n        if x == 1:\n            return x\n        return 0\n";
     let r = ext(src, Language::Python);
     assert!(!r.is_empty());
 }
@@ -195,7 +198,8 @@ fn walker_handles_typescript_abstract_class() {
 
 #[test]
 fn walker_handles_rust_trait_with_default_methods() {
-    let src = "trait Greet { fn name(&self) -> String; fn hello(&self) -> String { format!(\"hi {}\", self.name()) } }\n";
+    let src =
+        "trait Greet { fn name(&self) -> String; fn hello(&self) -> String { format!(\"hi {}\", self.name()) } }\n";
     let r = ext(src, Language::Rust);
     assert!(!r.is_empty());
 }

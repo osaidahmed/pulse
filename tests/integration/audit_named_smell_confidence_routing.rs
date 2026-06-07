@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use pulse::audit::finding::{
-    AuditFinding, AuditKind, AuditLocation, ClassIdentityRef, DivergentChangeEvidence,
-    FeatureEnvyEvidence, GodClassEvidence, ImportConfidence, ParallelInheritanceEvidence,
-    PatternCategory, RefusedBequestEvidence, ShotgunSurgeryEvidence,
+    AuditFinding, AuditKind, AuditLocation, ClassIdentityRef, DivergentChangeEvidence, FeatureEnvyEvidence,
+    GodClassEvidence, ImportConfidence, ParallelInheritanceEvidence, PatternCategory, RefusedBequestEvidence,
+    ShotgunSurgeryEvidence,
 };
 use pulse::audit::output::{format_findings_filtered, format_findings_json_filtered};
 use pulse::config::AuditSuppression;
@@ -121,15 +121,10 @@ fn label_for(c: ImportConfidence) -> &'static str {
     }
 }
 
-fn check_routing(
-    name: &str,
-    build: impl Fn(ImportConfidence) -> AuditFinding,
-) {
-    for (conf, label) in [
-        (ImportConfidence::High, "high"),
-        (ImportConfidence::Medium, "medium"),
-        (ImportConfidence::Low, "low"),
-    ] {
+fn check_routing(name: &str, build: impl Fn(ImportConfidence) -> AuditFinding) {
+    for (conf, label) in
+        [(ImportConfidence::High, "high"), (ImportConfidence::Medium, "medium"), (ImportConfidence::Low, "low")]
+    {
         let human = render_human(vec![build(conf)]);
         assert!(
             human.contains(label),

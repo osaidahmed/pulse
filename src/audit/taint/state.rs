@@ -48,18 +48,8 @@ pub(super) fn merge(a: Option<Taint>, b: Option<Taint>) -> Option<Taint> {
 }
 
 pub(super) fn source_rhs(name: &str, line: u32, in_sanitizer: bool) -> Rhs {
-    let t = Taint {
-        source_name: name.to_string(),
-        source_line: line,
-        via_var: None,
-        opaque: false,
-        depth: 0,
-    };
-    Rhs {
-        strict: if in_sanitizer { None } else { Some(t.clone()) },
-        loose: Some(t),
-        opaque: false,
-    }
+    let t = Taint { source_name: name.to_string(), source_line: line, via_var: None, opaque: false, depth: 0 };
+    Rhs { strict: if in_sanitizer { None } else { Some(t.clone()) }, loose: Some(t), opaque: false }
 }
 
 pub(super) fn sanitized(r: Rhs) -> Rhs {

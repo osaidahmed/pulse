@@ -24,9 +24,7 @@ fn mean_of_satisfied(parts: &[(bool, f64)]) -> f64 {
 }
 
 pub fn for_finding(smell: Smell, f: &FunctionMetrics, t: &Thresholds) -> f64 {
-    complexity_intensity(smell, f, &t.function)
-        .or_else(|| structural_intensity(smell, f, t))
-        .unwrap_or(0.0)
+    complexity_intensity(smell, f, &t.function).or_else(|| structural_intensity(smell, f, t)).unwrap_or(0.0)
 }
 
 fn complexity_intensity(smell: Smell, f: &FunctionMetrics, fun: &FunctionThresholds) -> Option<f64> {
@@ -36,11 +34,7 @@ fn complexity_intensity(smell: Smell, f: &FunctionMetrics, fun: &FunctionThresho
     );
     let cogc = (
         f.cognitive_complexity >= fun.cogc_warning,
-        normalize_exceedance(
-            f64::from(f.cognitive_complexity),
-            f64::from(fun.cogc_warning),
-            f64::from(fun.cogc_alert),
-        ),
+        normalize_exceedance(f64::from(f.cognitive_complexity), f64::from(fun.cogc_warning), f64::from(fun.cogc_alert)),
     );
     let loc = (
         f.loc >= fun.fn_loc_warning,
@@ -70,24 +64,18 @@ fn structural_intensity(smell: Smell, f: &FunctionMetrics, t: &Thresholds) -> Op
 }
 
 pub fn rank_findings(findings: &[Finding], metrics: &FileMetrics, t: &Thresholds) -> Vec<Finding> {
-    let by_loc: HashMap<(&str, u32), &FunctionMetrics> = metrics
-        .functions
-        .iter()
-        .map(|fm| ((fm.name.as_str(), fm.start_line), fm))
-        .collect();
-    let mut keyed: Vec<(f64, Finding)> = findings
-        .iter()
-        .map(|f| (finding_score(f, &by_loc, t), f.clone()))
-        .collect();
+    let by_loc: HashMap<(&str, u32), &FunctionMetrics> =
+        metrics.functions.iter().map(|fm| ((fm.name.as_str(), fm.start_line), fm)).collect();
+    let mut keyed: Vec<(f64, Finding)> = findings.iter().map(|f| (finding_score(f, &by_loc, t), f.clone())).collect();
     keyed.sort_by(|a, b| b.0.total_cmp(&a.0));
     keyed.into_iter().map(|(_, f)| f).collect()
 }
 
 fn finding_score(f: &Finding, by_loc: &HashMap<(&str, u32), &FunctionMetrics>, t: &Thresholds) -> f64 {
     match &f.location {
-        Location::Function { name, start_line, .. } => by_loc
-            .get(&(name.as_str(), *start_line))
-            .map_or(0.0, |fm| for_finding(f.smell, fm, t)),
+        Location::Function { name, start_line, .. } => {
+            by_loc.get(&(name.as_str(), *start_line)).map_or(0.0, |fm| for_finding(f.smell, fm, t))
+        }
         Location::Module => 0.0,
     }
 }

@@ -4,11 +4,15 @@ use pulse::audit::scoring::apply_idf;
 use pulse::thresholds::Thresholds;
 use std::path::PathBuf;
 
-fn t() -> Thresholds { Thresholds::default() }
+fn t() -> Thresholds {
+    Thresholds::default()
+}
 
 fn cluster(fp: u64, support: u32, files: u32, snippet: &str) -> RawCluster {
     RawCluster {
-        fingerprint: fp, support, file_count: files,
+        fingerprint: fp,
+        support,
+        file_count: files,
         representative_snippet: snippet.to_string(),
         locations: (0..support).map(|i| (PathBuf::from(format!("f{}.py", i % files.max(1))), 1)).collect(),
     }
@@ -67,8 +71,14 @@ fn scoring_idf_score_distinct_for_distinct_file_counts() {
     let c2 = cluster(2, 5, 5, "y");
     let r = apply_idf(vec![c1, c2], 100, &t().audit);
     assert_eq!(r.len(), 2);
-    let s1 = r.iter().find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 1)).unwrap();
-    let s2 = r.iter().find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 2)).unwrap();
+    let s1 = r
+        .iter()
+        .find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 1))
+        .unwrap();
+    let s2 = r
+        .iter()
+        .find(|f| matches!(f.kind, AuditKind::UncategorizedPattern { fingerprint } if fingerprint == 2))
+        .unwrap();
     assert!(s1.idf_score.unwrap() > s2.idf_score.unwrap());
 }
 
@@ -235,7 +245,9 @@ fn scoring_max_findings_one_with_zero_clusters_returns_empty() {
 #[test]
 fn scoring_handles_empty_locations_in_cluster() {
     let c = RawCluster {
-        fingerprint: 7, support: 5, file_count: 1,
+        fingerprint: 7,
+        support: 5,
+        file_count: 1,
         representative_snippet: "x".to_string(),
         locations: vec![],
     };
@@ -247,7 +259,9 @@ fn scoring_handles_empty_locations_in_cluster() {
 #[test]
 fn scoring_handles_cluster_with_locations_count_mismatching_support() {
     let c = RawCluster {
-        fingerprint: 7, support: 100, file_count: 1,
+        fingerprint: 7,
+        support: 100,
+        file_count: 1,
         representative_snippet: "x".to_string(),
         locations: vec![(PathBuf::from("a.py"), 1)],
     };

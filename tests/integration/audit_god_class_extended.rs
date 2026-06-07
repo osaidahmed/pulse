@@ -28,19 +28,13 @@ fn def(
         },
         cc,
         field_accesses: fields.into_iter().map(String::from).collect(),
-        foreign_field_accesses: foreign
-            .into_iter()
-            .map(|(r, f)| (r.to_string(), f.to_string()))
-            .collect(),
+        foreign_field_accesses: foreign.into_iter().map(|(r, f)| (r.to_string(), f.to_string())).collect(),
         parent_class: None,
         is_constructor: is_ctor,
     }
 }
 
-fn detect_with(
-    defs: Vec<DefinitionRecord>,
-    th: &pulse::thresholds::AuditThresholds,
-) -> Vec<AuditFinding> {
+fn detect_with(defs: Vec<DefinitionRecord>, th: &pulse::thresholds::AuditThresholds) -> Vec<AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lookup = build_method_idx_lookup(&graph, &defs);
@@ -78,9 +72,7 @@ fn boundary_method_count_strictly_above_three() {
 
 #[test]
 fn boundary_method_count_three_evaluates() {
-    let defs = (0..3)
-        .map(|i| high_atfd_method("g.py", "G", &format!("m{i}"), 10 + i, 30, &format!("f{i}")))
-        .collect();
+    let defs = (0..3).map(|i| high_atfd_method("g.py", "G", &format!("m{i}"), 10 + i, 30, &format!("f{i}"))).collect();
     let _ = detect_with(defs, &t().audit);
 }
 
@@ -102,10 +94,7 @@ fn boundary_wmc_at_threshold_does_not_fire() {
     for i in 0..6 {
         defs.push(high_atfd_method("g.py", "G", &format!("m{i}"), 10 + i, 7, &format!("f{i}")));
     }
-    assert!(
-        detect_with(defs, &t().audit).is_empty(),
-        "wmc=42 (6×7), below default 47, should not fire"
-    );
+    assert!(detect_with(defs, &t().audit).is_empty(), "wmc=42 (6×7), below default 47, should not fire");
 }
 
 #[test]
@@ -134,7 +123,11 @@ fn boundary_atfd_threshold_strict() {
     let mut defs = Vec::new();
     for i in 0..10 {
         defs.push(def(
-            "g.py", Some("G"), &format!("m{i}"), 10 + i, 10,
+            "g.py",
+            Some("G"),
+            &format!("m{i}"),
+            10 + i,
+            10,
             vec![&format!("f{i}")],
             vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v")],
             false,
@@ -170,7 +163,11 @@ fn low_atfd_no_finding_even_with_god_wmc() {
     let mut defs = Vec::new();
     for i in 0..10 {
         defs.push(def(
-            "g.py", Some("G"), &format!("m{i}"), 10 + i, 20,
+            "g.py",
+            Some("G"),
+            &format!("m{i}"),
+            10 + i,
+            20,
             vec![&format!("f{i}")],
             vec![("a", "x")],
             false,
@@ -213,14 +210,7 @@ fn multiple_god_classes_sorted_descending_by_wmc() {
     let mut defs = Vec::new();
     for (cls, cc) in [("G1", 8), ("G2", 12), ("G3", 6)] {
         for i in 0..10 {
-            defs.push(high_atfd_method(
-                &format!("{cls}.py"),
-                cls,
-                &format!("m{i}"),
-                10 + i,
-                cc,
-                &format!("f{i}"),
-            ));
+            defs.push(high_atfd_method(&format!("{cls}.py"), cls, &format!("m{i}"), 10 + i, cc, &format!("f{i}")));
         }
     }
     let findings = detect_with(defs, &t().audit);
@@ -312,8 +302,7 @@ fn classes_with_partial_class_pattern_treated_per_file() {
         defs.push(high_atfd_method("part2.cs", "Partial", &format!("n{i}"), 10 + i, 10, &format!("g{i}")));
     }
     let findings = detect_with(defs, &t().audit);
-    let files: std::collections::BTreeSet<PathBuf> =
-        findings.iter().map(|f| god(f).class_file.clone()).collect();
+    let files: std::collections::BTreeSet<PathBuf> = findings.iter().map(|f| god(f).class_file.clone()).collect();
     assert!(files.contains(&PathBuf::from("part1.cs")) || files.contains(&PathBuf::from("part2.cs")));
 }
 
@@ -394,7 +383,11 @@ fn atfd_dedup_across_methods_same_class() {
     let mut defs = Vec::new();
     for i in 0..10 {
         defs.push(def(
-            "g.py", Some("G"), &format!("m{i}"), 10 + i, 10,
+            "g.py",
+            Some("G"),
+            &format!("m{i}"),
+            10 + i,
+            10,
             vec![&format!("f{i}")],
             vec![("a", "x"), ("a", "x"), ("a", "x")],
             false,

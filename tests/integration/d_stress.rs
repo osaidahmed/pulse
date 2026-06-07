@@ -1,4 +1,3 @@
-
 use crate::common::*;
 
 lang_helpers!("d");
@@ -105,7 +104,8 @@ fn cc_nested_if_counted_once() {
 
 #[test]
 fn cc_switch_default_not_counted() {
-    let d = debug("int f(int x) {\n    switch (x) {\n        case 1: return 1;\n        default: return 0;\n    }\n}\n");
+    let d =
+        debug("int f(int x) {\n    switch (x) {\n        case 1: return 1;\n        default: return 0;\n    }\n}\n");
     assert_eq!(function_metric(&d, "f", "cc"), Some(2));
 }
 
@@ -176,7 +176,8 @@ fn cogc_do_while_nested() {
 
 #[test]
 fn cogc_switch_counted() {
-    let d = debug("int f(int x) {\n    switch (x) {\n        case 1: return 1;\n        default: return 0;\n    }\n}\n");
+    let d =
+        debug("int f(int x) {\n    switch (x) {\n        case 1: return 1;\n        default: return 0;\n    }\n}\n");
     assert_eq!(function_metric(&d, "f", "cogc"), Some(1));
 }
 
@@ -243,7 +244,8 @@ fn nesting_sequential_not_accumulated() {
 
 #[test]
 fn nesting_foreach_for() {
-    let d = debug("void f(int[] data) {\n    foreach (item; data) {\n        for (int i = 0; i < 10; i++) {}\n    }\n}\n");
+    let d =
+        debug("void f(int[] data) {\n    foreach (item; data) {\n        for (int i = 0; i < 10; i++) {}\n    }\n}\n");
     assert_eq!(function_metric(&d, "f", "nesting"), Some(2));
 }
 
@@ -461,7 +463,8 @@ fn empty_catch_detected() {
 
 #[test]
 fn non_empty_catch_ok() {
-    let out = check("void f() {\n    try {\n        int x = 1;\n    } catch (Exception e) {\n        int y = 2;\n    }\n}\n");
+    let out =
+        check("void f() {\n    try {\n        int x = 1;\n    } catch (Exception e) {\n        int y = 2;\n    }\n}\n");
     assert!(!has_smell(&out, "Empty Error Handler"));
 }
 
@@ -548,7 +551,9 @@ fn lambda_not_walked() {
 
 #[test]
 fn compound_condition_two_ops() {
-    let d = debug("bool f(int a, int b, int c) {\n    if (a > 0 && b > 0 || c > 0) { return true; }\n    return false;\n}\n");
+    let d = debug(
+        "bool f(int a, int b, int c) {\n    if (a > 0 && b > 0 || c > 0) { return true; }\n    return false;\n}\n",
+    );
     let cc_count = function_metric(&d, "f", "conditions").unwrap_or(0);
     assert!(cc_count >= 1, "got: {cc_count}");
 }

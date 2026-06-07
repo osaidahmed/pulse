@@ -100,12 +100,7 @@ fn is_git_repo_false_for_plain_dir() {
 #[test]
 fn collect_commits_returns_not_a_repo_error() {
     let dir = tempfile::tempdir().unwrap();
-    let opts = GitOpts {
-        root: dir.path(),
-        since: None,
-        max_commits: None,
-        max_commit_files: cap(),
-    };
+    let opts = GitOpts { root: dir.path(), since: None, max_commits: None, max_commit_files: cap() };
     let err = collect_commits(&opts).unwrap_err();
     assert!(matches!(err, HistoryError::NotAGitRepo(_)));
 }
@@ -113,16 +108,8 @@ fn collect_commits_returns_not_a_repo_error() {
 #[test]
 fn collect_commits_zero_commits_returns_empty() {
     let dir = tempfile::tempdir().unwrap();
-    let _ = std::process::Command::new("git")
-        .arg("-C").arg(dir.path())
-        .args(["init", "-q", "-b", "main"])
-        .status();
-    let opts = GitOpts {
-        root: dir.path(),
-        since: None,
-        max_commits: None,
-        max_commit_files: cap(),
-    };
+    let _ = std::process::Command::new("git").arg("-C").arg(dir.path()).args(["init", "-q", "-b", "main"]).status();
+    let opts = GitOpts { root: dir.path(), since: None, max_commits: None, max_commit_files: cap() };
     let commits = collect_commits(&opts).unwrap();
     assert!(commits.is_empty());
 }
@@ -135,12 +122,7 @@ fn collect_commits_single_commit() {
         writes: &[("src/a.py", "x = 1\n"), ("src/b.py", "y = 2\n")],
         deletes: &[],
     }]);
-    let opts = GitOpts {
-        root: repo.path(),
-        since: None,
-        max_commits: None,
-        max_commit_files: cap(),
-    };
+    let opts = GitOpts { root: repo.path(), since: None, max_commits: None, max_commit_files: cap() };
     let commits = collect_commits(&opts).unwrap();
     assert_eq!(commits.len(), 1);
     assert_eq!(commits[0].author, "alice@example.com");
@@ -153,25 +135,10 @@ fn collect_commits_single_commit() {
 #[test]
 fn collect_commits_multi_commit_in_reverse_chronological_order() {
     let repo = build_repo(&[
-        CommitSpec {
-            author: "Alice <alice@x>",
-            message: "first",
-            writes: &[("a.py", "1\n")],
-            deletes: &[],
-        },
-        CommitSpec {
-            author: "Bob <bob@x>",
-            message: "second",
-            writes: &[("b.py", "2\n")],
-            deletes: &[],
-        },
+        CommitSpec { author: "Alice <alice@x>", message: "first", writes: &[("a.py", "1\n")], deletes: &[] },
+        CommitSpec { author: "Bob <bob@x>", message: "second", writes: &[("b.py", "2\n")], deletes: &[] },
     ]);
-    let opts = GitOpts {
-        root: repo.path(),
-        since: None,
-        max_commits: None,
-        max_commit_files: cap(),
-    };
+    let opts = GitOpts { root: repo.path(), since: None, max_commits: None, max_commit_files: cap() };
     let commits = collect_commits(&opts).unwrap();
     assert_eq!(commits.len(), 2);
     assert_eq!(commits[0].author, "bob@x");
@@ -185,12 +152,7 @@ fn collect_commits_max_commits_caps_result() {
         CommitSpec { author: "A <a@x>", message: "2", writes: &[("a.py", "2\n")], deletes: &[] },
         CommitSpec { author: "A <a@x>", message: "3", writes: &[("a.py", "3\n")], deletes: &[] },
     ]);
-    let opts = GitOpts {
-        root: repo.path(),
-        since: None,
-        max_commits: Some(2),
-        max_commit_files: cap(),
-    };
+    let opts = GitOpts { root: repo.path(), since: None, max_commits: Some(2), max_commit_files: cap() };
     let commits = collect_commits(&opts).unwrap();
     assert_eq!(commits.len(), 2);
 }

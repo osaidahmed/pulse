@@ -6,12 +6,7 @@ use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 use crate::walk::ModuleMetrics;
 
-pub fn detect_module_smells(
-    m: &ModuleMetrics,
-    t: &Thresholds,
-    has_god_method: bool,
-    findings: &mut Vec<Finding>,
-) {
+pub fn detect_module_smells(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     detect_size_smells(m, t, has_god_method, findings);
     detect_global_scope_smells(m, findings);
     detect_large_structs(m, t, findings);
@@ -27,56 +22,54 @@ fn detect_large_structs(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Fi
     }));
 }
 
-fn detect_size_smells(
-    m: &ModuleMetrics,
-    t: &Thresholds,
-    has_god_method: bool,
-    findings: &mut Vec<Finding>,
-) {
+fn detect_size_smells(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     if m.total_loc > t.module.file_loc_warning {
         let sev = if m.total_loc > t.module.file_loc_alert { "alert" } else { "warning" };
-        emit_module(Smell::FileTooLarge, format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.module.file_loc_warning), findings);
+        emit_module(
+            Smell::FileTooLarge,
+            format!("{} LOC [{sev}] (threshold: {})", m.total_loc, t.module.file_loc_warning),
+            findings,
+        );
     }
-    emit_module_if(m.total_functions > t.module.file_function_count,
-        Smell::TooManyFunctions, || format!("{} functions (threshold: {})", m.total_functions, t.module.file_function_count), findings);
-    emit_module_if(m.sum_cc > t.module.file_total_cc,
-        Smell::OverallCodeComplexity, || format!("total cc={} (threshold: {})", m.sum_cc, t.module.file_total_cc), findings);
+    emit_module_if(
+        m.total_functions > t.module.file_function_count,
+        Smell::TooManyFunctions,
+        || format!("{} functions (threshold: {})", m.total_functions, t.module.file_function_count),
+        findings,
+    );
+    emit_module_if(
+        m.sum_cc > t.module.file_total_cc,
+        Smell::OverallCodeComplexity,
+        || format!("total cc={} (threshold: {})", m.sum_cc, t.module.file_total_cc),
+        findings,
+    );
     check_god_class(m, t, has_god_method, findings);
-    emit_module_if(m.declaration_count > t.module.max_declarations,
-        Smell::ExcessiveDeclarations, || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.module.max_declarations), findings);
+    emit_module_if(
+        m.declaration_count > t.module.max_declarations,
+        Smell::ExcessiveDeclarations,
+        || format!("{} declarations in one file (threshold: {})", m.declaration_count, t.module.max_declarations),
+        findings,
+    );
 }
 
 fn emit_module(smell: Smell, detail: String, findings: &mut Vec<Finding>) {
     findings.push(Finding { smell, location: Location::Module, detail });
 }
 
-fn emit_module_if(
-    condition: bool,
-    smell: Smell,
-    detail: impl FnOnce() -> String,
-    findings: &mut Vec<Finding>,
-) {
+fn emit_module_if(condition: bool, smell: Smell, detail: impl FnOnce() -> String, findings: &mut Vec<Finding>) {
     if condition {
         emit_module(smell, detail(), findings);
     }
 }
 
-fn check_god_class(
-    m: &ModuleMetrics,
-    t: &Thresholds,
-    has_god_method: bool,
-    findings: &mut Vec<Finding>,
-) {
+fn check_god_class(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     let is_god_class =
         m.total_loc > t.module.file_loc_warning && m.total_functions > t.module.file_function_count && has_god_method;
     if is_god_class {
         findings.push(Finding {
             smell: Smell::GodClass,
             location: Location::Module,
-            detail: format!(
-                "{} LOC, {} functions, contains god method(s)",
-                m.total_loc, m.total_functions
-            ),
+            detail: format!("{} LOC, {} functions, contains god method(s)", m.total_loc, m.total_functions),
         });
     }
 }
@@ -101,11 +94,7 @@ fn detect_global_scope_smells(m: &ModuleMetrics, findings: &mut Vec<Finding>) {
 
 // ─── Overall function size ─────────────────────────────────────────────
 
-pub fn detect_overall_function_size(
-    functions: &[FunctionMetrics],
-    t: &Thresholds,
-    findings: &mut Vec<Finding>,
-) {
+pub fn detect_overall_function_size(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     let large_count = functions.iter().filter(|f| f.loc >= t.module.large_fn_loc).count() as u32;
     if large_count < t.module.large_fn_count {
         return;
@@ -118,7 +107,13 @@ pub fn detect_overall_function_size(
     findings.push(Finding {
         smell: Smell::OverallFunctionSize,
         location: Location::Module,
-        detail: format!("{} large functions (>{} LOC, threshold: {}+ functions): {}", large_count, t.module.large_fn_loc, t.module.large_fn_count, names.join(", ")),
+        detail: format!(
+            "{} large functions (>{} LOC, threshold: {}+ functions): {}",
+            large_count,
+            t.module.large_fn_loc,
+            t.module.large_fn_count,
+            names.join(", ")
+        ),
     });
 }
 
@@ -131,9 +126,7 @@ pub fn detect_lcom4(functions: &[FunctionMetrics], t: &Thresholds, findings: &mu
             findings.push(Finding {
                 smell: Smell::LowCohesion,
                 location: Location::Module,
-                detail: format!(
-                    "{class_name}: LCOM4={components} ({components} disconnected method groups)"
-                ),
+                detail: format!("{class_name}: LCOM4={components} ({components} disconnected method groups)"),
             });
         }
     }
@@ -167,9 +160,8 @@ fn compute_lcom4(methods: &[&FunctionMetrics]) -> u32 {
     let calls_method = |caller: usize, callee: usize| -> bool {
         non_init[caller].field_accesses.iter().any(|f| f == unqualified[callee])
     };
-    let connected = |i: usize, j: usize| -> bool {
-        i != j && (shared_field(i, j) || calls_method(i, j) || calls_method(j, i))
-    };
+    let connected =
+        |i: usize, j: usize| -> bool { i != j && (shared_field(i, j) || calls_method(i, j) || calls_method(j, i)) };
 
     count_connected_components(n, connected)
 }
@@ -211,15 +203,9 @@ fn visit_component(start: usize, visited: &mut [bool], connected: &impl Fn(usize
 
 // ─── Duplicated assertion blocks ───────────────────────────────────────
 
-pub fn detect_duplicated_assertion_blocks(
-    functions: &[FunctionMetrics],
-    findings: &mut Vec<Finding>,
-) {
-    let test_fns: Vec<(usize, &FunctionMetrics)> = functions
-        .iter()
-        .enumerate()
-        .filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts > 5)
-        .collect();
+pub fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
+    let test_fns: Vec<(usize, &FunctionMetrics)> =
+        functions.iter().enumerate().filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts > 5).collect();
 
     if test_fns.len() < 2 {
         return;
@@ -238,11 +224,7 @@ pub fn detect_duplicated_assertion_blocks(
         findings.push(Finding {
             smell: Smell::DuplicatedAssertionBlocks,
             location: Location::Module,
-            detail: format!(
-                "{} test functions with identical assertion structure: {}",
-                names.len(),
-                names.join(", ")
-            ),
+            detail: format!("{} test functions with identical assertion structure: {}", names.len(), names.join(", ")),
         });
     }
 }

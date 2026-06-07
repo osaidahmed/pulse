@@ -70,11 +70,7 @@ fn intensity_in_range_for_real_findings() {
     let findings = smells::detect(&metrics, &code, &t());
     for f in &findings {
         if let Location::Function { name, start_line, .. } = &f.location {
-            let fm = metrics
-                .functions
-                .iter()
-                .find(|m| &m.name == name && m.start_line == *start_line)
-                .unwrap();
+            let fm = metrics.functions.iter().find(|m| &m.name == name && m.start_line == *start_line).unwrap();
             let score = for_finding(f.smell, fm, &t());
             assert!((0.0..=10.0).contains(&score), "{:?} intensity {score}", f.smell);
         }
@@ -83,23 +79,15 @@ fn intensity_in_range_for_real_findings() {
 
 #[test]
 fn god_method_outranks_large_method_in_block_order() {
-    let large = format!(
-        "fn the_large(b: &mut i32) {{\n{}}}\n",
-        rust_lines(t().function.fn_loc_warning + 5)
-    );
-    let god = format!(
-        "fn the_god(a: i32, b: &mut i32) {{\n{}}}\n",
-        rust_ifs(t().function.fn_loc_alert + 5)
-    );
+    let large = format!("fn the_large(b: &mut i32) {{\n{}}}\n", rust_lines(t().function.fn_loc_warning + 5));
+    let god = format!("fn the_god(a: i32, b: &mut i32) {{\n{}}}\n", rust_ifs(t().function.fn_loc_alert + 5));
     let code = format!("{large}\n{god}");
     let metrics = analyze(&code, "rs");
     let findings = smells::detect(&metrics, &code, &t());
     let ranked = rank_findings(&findings, &metrics, &t());
     assert!(!ranked.is_empty());
     let top = &ranked[0];
-    let Location::Function { name, .. } = &top.location else {
-        panic!("expected function finding first")
-    };
+    let Location::Function { name, .. } = &top.location else { panic!("expected function finding first") };
     assert_eq!(name, "the_god", "highest-intensity finding ranks first, got {ranked:?}");
 }
 
