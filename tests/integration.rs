@@ -362,6 +362,8 @@ mod r_smells;
 mod r_stress;
 #[path = "integration/r_walker_extended.rs"]
 mod r_walker_extended;
+#[path = "integration/refmine.rs"]
+mod refmine;
 #[path = "integration/regression_detection.rs"]
 mod regression_detection;
 #[path = "integration/ruby_smells.rs"]
