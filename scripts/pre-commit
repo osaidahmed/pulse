@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Clippy pre-commit hook. Runs `cargo clippy` and blocks the commit if
-# any warnings or errors are reported.
+# Pre-commit hook. Runs `cargo fmt --check` and `cargo clippy` and blocks the
+# commit if either reports a problem.
 #
 # Install:
 #   ln -s ../../scripts/pre-commit .git/hooks/pre-commit
@@ -15,8 +15,13 @@ if ! git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.rs$|^Cargo\.
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
-  echo "pre-commit: cargo not found on PATH; skipping clippy" >&2
+  echo "pre-commit: cargo not found on PATH; skipping checks" >&2
   exit 0
+fi
+
+if ! cargo fmt --check; then
+  echo "pre-commit: formatting check failed — run 'cargo fmt' to fix" >&2
+  exit 1
 fi
 
 exec cargo clippy --quiet -- -D warnings
