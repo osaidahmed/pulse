@@ -13,6 +13,7 @@ pub enum HistoryKind {
     KnowledgeFragmentation(FragmentationEvidence),
     FileBlob(BlobEvidence),
     ChangeShotgun(ChangeShotgunEvidence),
+    CatalystWarning(CatalystEvidence),
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +62,11 @@ pub struct ChangeShotgunEvidence {
     pub packages: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CatalystEvidence {
+    pub members: Vec<PathBuf>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistoryPillar {
     Drift,
@@ -70,6 +76,7 @@ pub enum HistoryPillar {
 }
 
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub struct VariantInfo {
     pub pillar: HistoryPillar,
     pub slug: &'static str,
@@ -77,37 +84,56 @@ pub struct VariantInfo {
     pub action: &'static str,
 }
 
+const VARIANT_TABLE: [VariantInfo; 6] = [
+    VariantInfo {
+        pillar: HistoryPillar::Drift,
+        slug: "architectural_drift",
+        label: "architectural drift",
+        action: "introduce a static link or co-locate",
+    },
+    VariantInfo {
+        pillar: HistoryPillar::Complexity,
+        slug: "hotspot",
+        label: "hotspot",
+        action: "refactor for testability — 80% of value in top decile",
+    },
+    VariantInfo {
+        pillar: HistoryPillar::Ownership,
+        slug: "knowledge_fragmentation",
+        label: "knowledge fragmentation",
+        action: "assign a code owner or schedule pair-programming",
+    },
+    VariantInfo {
+        pillar: HistoryPillar::Evolution,
+        slug: "file_blob",
+        label: "file blob",
+        action: "split this file's responsibilities — it changes with everything",
+    },
+    VariantInfo {
+        pillar: HistoryPillar::Evolution,
+        slug: "change_shotgun",
+        label: "change shotgun",
+        action: "consolidate this responsibility — its changes ripple across many packages",
+    },
+    VariantInfo {
+        pillar: HistoryPillar::Evolution,
+        slug: "catalyst_cycle",
+        label: "newly-introduced cycle",
+        action: "break this fresh dependency cycle early — cycles tend to precede other smells",
+    },
+];
+
 pub fn variant_info(k: &HistoryKind) -> VariantInfo {
+    VARIANT_TABLE[variant_index(k)]
+}
+
+fn variant_index(k: &HistoryKind) -> usize {
     match k {
-        HistoryKind::ArchitecturalDrift(_) => VariantInfo {
-            pillar: HistoryPillar::Drift,
-            slug: "architectural_drift",
-            label: "architectural drift",
-            action: "introduce a static link or co-locate",
-        },
-        HistoryKind::Hotspot(_) => VariantInfo {
-            pillar: HistoryPillar::Complexity,
-            slug: "hotspot",
-            label: "hotspot",
-            action: "refactor for testability — 80% of value in top decile",
-        },
-        HistoryKind::KnowledgeFragmentation(_) => VariantInfo {
-            pillar: HistoryPillar::Ownership,
-            slug: "knowledge_fragmentation",
-            label: "knowledge fragmentation",
-            action: "assign a code owner or schedule pair-programming",
-        },
-        HistoryKind::FileBlob(_) => VariantInfo {
-            pillar: HistoryPillar::Evolution,
-            slug: "file_blob",
-            label: "file blob",
-            action: "split this file's responsibilities — it changes with everything",
-        },
-        HistoryKind::ChangeShotgun(_) => VariantInfo {
-            pillar: HistoryPillar::Evolution,
-            slug: "change_shotgun",
-            label: "change shotgun",
-            action: "consolidate this responsibility — its changes ripple across many packages",
-        },
+        HistoryKind::ArchitecturalDrift(_) => 0,
+        HistoryKind::Hotspot(_) => 1,
+        HistoryKind::KnowledgeFragmentation(_) => 2,
+        HistoryKind::FileBlob(_) => 3,
+        HistoryKind::ChangeShotgun(_) => 4,
+        HistoryKind::CatalystWarning(_) => 5,
     }
 }

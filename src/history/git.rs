@@ -61,6 +61,39 @@ pub fn collect_commits(opts: &GitOpts) -> Result<Vec<Commit>, HistoryError> {
     Ok(parse_log_output(&stdout, opts.max_commit_files))
 }
 
+pub fn files_at_commit(root: &Path, rev: &str) -> Vec<PathBuf> {
+    let Ok(output) = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["ls-tree", "-r", "--name-only", rev])
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(PathBuf::from)
+        .collect()
+}
+
+pub fn file_at_commit(root: &Path, rev: &str, path: &Path) -> Option<String> {
+    let spec = format!("{rev}:{}", path.to_string_lossy());
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["show", &spec])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        String::from_utf8(output.stdout).ok()
+    } else {
+        None
+    }
+}
+
 fn build_log_args(opts: &GitOpts) -> Vec<String> {
     let mut args = vec![
         "-C".to_string(),

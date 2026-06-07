@@ -36,6 +36,7 @@ pub struct HistoryCliOverrides {
     pub hotspot_top: Option<u32>,
     pub contributors_top: Option<u32>,
     pub hist: bool,
+    pub arch_trend: bool,
 }
 
 pub fn resolve_history_thresholds(
@@ -57,6 +58,9 @@ pub fn resolve_history_thresholds(
     }
     if overrides.hist {
         t.hist.enabled = true;
+    }
+    if overrides.arch_trend {
+        t.arch_trend = true;
     }
     t
 }

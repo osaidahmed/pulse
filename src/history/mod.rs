@@ -11,6 +11,7 @@ pub mod hist_smells;
 pub mod finding;
 pub mod output;
 pub mod cmd;
+pub mod arch_trend;
 
 use finding::HistoryFinding;
 use thresholds::HistoryThresholds;
@@ -67,6 +68,9 @@ pub fn run_with_filter(
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
     findings.extend(hist);
+    if t.arch_trend {
+        findings.extend(arch_trend::catalyst_findings(&opts.root, &commits));
+    }
     Ok(findings)
 }
 

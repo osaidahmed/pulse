@@ -107,7 +107,8 @@ pub fn resolve_by_suffix(
     let suffix = path_suffix_for(raw, lang)?;
     typed_set
         .iter()
-        .find(|p| p.to_string_lossy().ends_with(&suffix))
+        .filter(|p| p.to_string_lossy().ends_with(&suffix))
+        .min()
         .cloned()
 }
 

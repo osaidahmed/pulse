@@ -4,6 +4,7 @@ pub struct HistoryThresholds {
     pub hotspot: HotspotThresholds,
     pub contributors: ContributorThresholds,
     pub hist: HistSmellThresholds,
+    pub arch_trend: bool,
     pub max_commit_files: u32,
 }
 
@@ -81,6 +82,7 @@ impl HistoryThresholds {
         hotspot: HotspotThresholds::DEFAULTS,
         contributors: ContributorThresholds::DEFAULTS,
         hist: HistSmellThresholds::DEFAULTS,
+        arch_trend: false,
         max_commit_files: 40,
     };
 }

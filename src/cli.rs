@@ -101,6 +101,10 @@ pub struct HistoryArgs {
     /// Surface evolutionary (HIST) smells such as file blobs (opt-in).
     #[arg(long)]
     pub hist: bool,
+
+    /// Flag dependency cycles newly introduced across the analyzed history window (opt-in).
+    #[arg(long = "arch-trend")]
+    pub arch_trend: bool,
 }
 
 pub enum Dispatch {

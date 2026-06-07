@@ -143,6 +143,7 @@ mod history_common;
 #[path = "integration/history_e2e_scenarios.rs"] mod history_e2e_scenarios;
 #[path = "integration/history_edge_cases.rs"] mod history_edge_cases;
 #[path = "integration/history_edges.rs"] mod history_edges;
+#[path = "integration/history_arch_trend.rs"] mod history_arch_trend;
 #[path = "integration/history_finding.rs"] mod history_finding;
 #[path = "integration/history_git.rs"] mod history_git;
 #[path = "integration/history_hotspots.rs"] mod history_hotspots;

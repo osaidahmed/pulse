@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::finding::{
-    self, BlobEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding,
-    HistoryKind, HistoryPillar, HotspotEvidence,
+    self, BlobEvidence, CatalystEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence,
+    HistoryFinding, HistoryKind, HistoryPillar, HotspotEvidence,
 };
 
 const PILLAR_ORDER: [(HistoryPillar, &str); 4] = [
@@ -74,40 +74,49 @@ fn write_section(out: &mut String, findings: &[HistoryFinding], pillar: HistoryP
         return;
     }
     for f in &in_section {
-        match &f.kind {
-            HistoryKind::ArchitecturalDrift(e) => out.push_str(&format!(
-                "  {} ↔ {}   ({} co-changes, conf {:.2}, lift {:.1}, {} authors)\n",
-                e.file_a.display(),
-                e.file_b.display(),
-                e.support,
-                e.confidence,
-                e.lift,
-                e.distinct_authors
-            )),
-            HistoryKind::Hotspot(e) => out.push_str(&format!(
-                "  {}   {} revisions × cc={} = {}\n",
-                e.file.display(),
-                e.revisions,
-                e.sum_cc,
-                e.score
-            )),
-            HistoryKind::KnowledgeFragmentation(e) => render_ownership(e, out),
-            HistoryKind::FileBlob(e) => out.push_str(&format!(
-                "  {}   {} of {} multi-file commits ({:.0}%)\n",
-                e.file.display(),
-                e.multi_file_commits,
-                e.total_multi_file_commits,
-                e.blob_ratio * 100.0
-            )),
-            HistoryKind::ChangeShotgun(e) => out.push_str(&format!(
-                "  {}   {} confident partners across {} packages\n",
-                e.file.display(),
-                e.partner_count,
-                e.package_count
-            )),
-        }
+        render_finding_line(out, f);
     }
     out.push('\n');
+}
+
+fn render_finding_line(out: &mut String, f: &HistoryFinding) {
+    match &f.kind {
+        HistoryKind::ArchitecturalDrift(e) => out.push_str(&format!(
+            "  {} ↔ {}   ({} co-changes, conf {:.2}, lift {:.1}, {} authors)\n",
+            e.file_a.display(),
+            e.file_b.display(),
+            e.support,
+            e.confidence,
+            e.lift,
+            e.distinct_authors
+        )),
+        HistoryKind::Hotspot(e) => out.push_str(&format!(
+            "  {}   {} revisions × cc={} = {}\n",
+            e.file.display(),
+            e.revisions,
+            e.sum_cc,
+            e.score
+        )),
+        HistoryKind::KnowledgeFragmentation(e) => render_ownership(e, out),
+        HistoryKind::FileBlob(e) => out.push_str(&format!(
+            "  {}   {} of {} multi-file commits ({:.0}%)\n",
+            e.file.display(),
+            e.multi_file_commits,
+            e.total_multi_file_commits,
+            e.blob_ratio * 100.0
+        )),
+        HistoryKind::ChangeShotgun(e) => out.push_str(&format!(
+            "  {}   {} confident partners across {} packages\n",
+            e.file.display(),
+            e.partner_count,
+            e.package_count
+        )),
+        HistoryKind::CatalystWarning(e) => out.push_str(&format!(
+            "  fresh cycle ({} modules): {}\n",
+            e.members.len(),
+            e.members.iter().map(|m| m.display().to_string()).collect::<Vec<_>>().join(" → ")
+        )),
+    }
 }
 
 fn render_ownership(e: &FragmentationEvidence, out: &mut String) {
@@ -151,6 +160,7 @@ fn finding_to_json(f: &HistoryFinding) -> serde_json::Value {
         HistoryKind::KnowledgeFragmentation(e) => ownership_to_json(e),
         HistoryKind::FileBlob(e) => blob_to_json(e),
         HistoryKind::ChangeShotgun(e) => shotgun_to_json(e),
+        HistoryKind::CatalystWarning(e) => catalyst_to_json(e),
     };
     if let (serde_json::Value::Object(ref mut map), Some(action)) = (&mut obj, f.action_label) {
         map.insert("action".to_string(), serde_json::Value::String(action.to_string()));
@@ -197,6 +207,11 @@ fn shotgun_to_json(e: &ChangeShotgunEvidence) -> serde_json::Value {
     let pkgs: Vec<String> = e.packages.iter().map(|p| p.display().to_string()).collect();
     let fields = [("partner_count", e.partner_count.into()), ("package_count", e.package_count.into()), ("packages", pkgs.into())];
     evidence_json("ChangeShotgun", &e.file, &fields)
+}
+
+fn catalyst_to_json(e: &CatalystEvidence) -> serde_json::Value {
+    let members: Vec<String> = e.members.iter().map(|m| m.display().to_string()).collect();
+    serde_json::json!({ "kind": "CatalystWarning", "members": members })
 }
 
 fn ownership_to_json(e: &FragmentationEvidence) -> serde_json::Value {

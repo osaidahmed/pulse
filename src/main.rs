@@ -97,6 +97,7 @@ fn dispatch_subcommand(d: cli::Dispatch) {
                     hotspot_top: args.hotspot_top,
                     contributors_top: args.contributors_top,
                     hist: args.hist,
+                    arch_trend: args.arch_trend,
                 },
                 include_tests,
             });
