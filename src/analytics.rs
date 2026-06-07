@@ -5,8 +5,10 @@ use std::path::PathBuf;
 use crate::baselines;
 use crate::hook::HookInput;
 use crate::interaction::tier_for;
-use crate::smells::{Finding, Location};
+use crate::smells::{Finding, Location, Smell};
 use crate::walk::FunctionMetrics;
+
+const PRESERVED_THRESHOLD: f64 = 0.8;
 
 pub fn analytics_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("PULSE_ANALYTICS_DIR") {
@@ -28,7 +30,13 @@ pub fn save_session_id(hook: &HookInput) {
     let _ = std::fs::write(path, sid);
 }
 
-pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, functions: &[FunctionMetrics]) {
+pub fn log_findings(
+    hook: &HookInput,
+    findings: &[Finding],
+    filename: &str,
+    functions: &[FunctionMetrics],
+    source: &str,
+) {
     let log_path = baselines::baseline_dir().join("findings.jsonl");
     let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(log_path) else {
         return;
@@ -37,6 +45,10 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, func
     let ts = timestamp_secs();
 
     for f in findings {
+        let meta = function_meta(&f.location, functions);
+        if let Some(fm) = meta {
+            maybe_store_body(f.smell, fm, source, body_key(&hook.file_path, &fm.name, fm.start_line));
+        }
         let (func_name, start_line) = match &f.location {
             Location::Function { name, start_line, .. } => (Some(name.as_str()), Some(*start_line)),
             Location::Module => (None, None),
@@ -49,20 +61,37 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, func
             "tier": tier_for(f.smell).as_str(),
             "fn": func_name,
             "line": start_line,
-            "hash": structural_hash_of(&f.location, functions),
+            "hash": meta.map(|fm| fm.structural_hash),
             "detail": f.detail,
         });
         let _ = writeln!(file, "{record}");
     }
 }
 
-fn structural_hash_of(location: &Location, functions: &[FunctionMetrics]) -> Option<u64> {
-    match location {
-        Location::Function { name, start_line, .. } => {
-            functions.iter().find(|fm| &fm.name == name && fm.start_line == *start_line).map(|fm| fm.structural_hash)
-        }
-        Location::Module => None,
+fn function_meta<'a>(location: &Location, functions: &'a [FunctionMetrics]) -> Option<&'a FunctionMetrics> {
+    let Location::Function { name, start_line, .. } = location else {
+        return None;
+    };
+    functions.iter().find(|fm| &fm.name == name && fm.start_line == *start_line)
+}
+
+fn maybe_store_body(smell: Smell, fm: &FunctionMetrics, source: &str, key: u64) {
+    if !matches!(smell, Smell::GodMethod | Smell::ComplexMethod | Smell::LargeMethod | Smell::DeepNestedComplexity) {
+        return;
     }
+    let lines: Vec<&str> = source.lines().collect();
+    let start = (fm.start_line as usize).saturating_sub(1);
+    let end = (fm.end_line as usize).min(lines.len());
+    if start < end {
+        crate::refmine::store_body(key, &lines[start..end].join("\n"));
+    }
+}
+
+fn body_key(path: &str, name: &str, start_line: u32) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    (path, name, start_line).hash(&mut hasher);
+    hasher.finish()
 }
 
 pub fn resolve(
@@ -92,7 +121,8 @@ pub fn resolve(
     for (file_path, file_entries) in &by_file {
         let (current, functions) = analyze_fn(file_path).unwrap_or_default();
         for entry in file_entries {
-            let outcome = outcome_for(entry, &current, &functions, moved_pool);
+            let base = outcome_for(entry, &current, &functions, moved_pool);
+            let outcome = refine_outcome(base, entry, file_path);
             write_outcome(&mut out, entry, outcome, &session_id, ts);
         }
     }
@@ -172,6 +202,25 @@ fn smell_still_present(entry: &serde_json::Value, current_findings: &[Finding]) 
                 _ => false,
             }
     })
+}
+
+fn refine_outcome(base: &'static str, entry: &serde_json::Value, file_path: &str) -> &'static str {
+    if base != "addressed" && base != "removed" {
+        return base;
+    }
+    match body_preservation(entry, file_path) {
+        Some(ratio) if ratio >= PRESERVED_THRESHOLD => "redistributed",
+        _ => base,
+    }
+}
+
+fn body_preservation(entry: &serde_json::Value, file_path: &str) -> Option<f64> {
+    let name = entry.get("fn").and_then(|v| v.as_str())?;
+    let start = entry.get("line").and_then(serde_json::Value::as_u64)? as u32;
+    let pre_body = crate::refmine::load_body(body_key(file_path, name, start))?;
+    let cur = std::fs::read_to_string(file_path).ok()?;
+    let lang = crate::parse::detect_language(std::path::Path::new(file_path))?;
+    crate::refmine::body_match_ratio(&pre_body, &cur, lang)
 }
 
 fn write_outcome(out: &mut std::fs::File, entry: &serde_json::Value, outcome: &str, session_id: &str, ts: u64) {

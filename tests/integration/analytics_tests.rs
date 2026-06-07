@@ -396,3 +396,72 @@ fn outcome_record_carries_tier() {
     let content = read_analytics(analytics.path());
     assert!(content.contains(r#""tier":"blocking""#), "resolved outcome carries the tier: {content}");
 }
+
+// ===========================================================================
+// N14 gaming classification — redistributed vs genuinely simplified
+// ===========================================================================
+
+fn ifs(range: std::ops::Range<u32>) -> String {
+    range.map(|i| format!("    if x == {i}: return {i}")).collect::<Vec<_>>().join("\n")
+}
+
+fn complex_fn() -> String {
+    format!("def f(x):\n{}\n    return x\n", ifs(0..12))
+}
+
+fn split_fn() -> String {
+    format!(
+        "def f(x):\n    pa = part_a(x)\n    pb = part_b(x)\n    return pa or pb\ndef part_a(x):\n{}\n    return x\ndef part_b(x):\n{}\n    return x\n",
+        ifs(0..6),
+        ifs(6..12)
+    )
+}
+
+fn run_stop(baseline: &Path, analytics: &Path) {
+    let _ = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", baseline)
+        .env("PULSE_ANALYTICS_DIR", analytics)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(b"{}").unwrap();
+            c.wait_with_output()
+        })
+        .unwrap();
+}
+
+#[test]
+fn resolved_as_redistributed_when_body_is_split_not_simplified() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    let complex = complex_fn();
+    std::fs::write(&p, &complex).unwrap();
+    pulse(&["--hook"], bl.path(), &hook_json(p.to_str().unwrap(), "def f(x):\n    return x", &complex));
+    std::fs::write(&p, split_fn()).unwrap();
+    run_stop(bl.path(), analytics.path());
+    let content = read_analytics(analytics.path());
+    assert!(
+        content.contains("\"redistributed\""),
+        "a complex body split across helpers (preserved, not simplified) should be redistributed, got: {content}"
+    );
+}
+
+#[test]
+fn resolved_as_addressed_when_body_genuinely_simplified() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    let complex = complex_fn();
+    std::fs::write(&p, &complex).unwrap();
+    pulse(&["--hook"], bl.path(), &hook_json(p.to_str().unwrap(), "def f(x):\n    return x", &complex));
+    std::fs::write(&p, "def f(x):\n    return x % 12\n").unwrap();
+    run_stop(bl.path(), analytics.path());
+    let content = read_analytics(analytics.path());
+    assert!(!content.contains("\"redistributed\""), "a genuinely simplified body is not redistributed, got: {content}");
+    assert!(content.contains("\"addressed\""), "a genuinely simplified function should be addressed, got: {content}");
+}

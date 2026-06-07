@@ -20,6 +20,7 @@ mod module_smells;
 mod naturalness;
 mod output;
 mod parse;
+mod refmine;
 mod setup;
 mod smells;
 mod test_detection;

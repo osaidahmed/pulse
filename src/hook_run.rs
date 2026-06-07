@@ -54,7 +54,7 @@ pub fn run_hook(h: hook::HookInput) {
     if findings.is_empty() {
         process::exit(0);
     }
-    analytics::log_findings(&h, &findings, &analysis.filename, &analysis.metrics.functions);
+    analytics::log_findings(&h, &findings, &analysis.filename, &analysis.metrics.functions, &source);
     emit_findings(&findings, &analysis, &source, path);
 }
 

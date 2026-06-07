@@ -6,6 +6,20 @@ use crate::parse::{self, Language};
 
 const MAX_DEPTH: u32 = 2000;
 
+pub fn store_body(key: u64, body: &str) {
+    let dir = crate::baselines::baseline_dir();
+    let path = dir.join(format!("{key:016x}.body"));
+    if path.exists() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(path, body);
+}
+
+pub fn load_body(key: u64) -> Option<String> {
+    std::fs::read_to_string(crate::baselines::baseline_dir().join(format!("{key:016x}.body"))).ok()
+}
+
 pub fn body_match_ratio(pre: &str, cur: &str, lang: Language) -> Option<f64> {
     let block_kinds = block_kinds(lang)?;
     let pre_stmts = statements(pre, lang, block_kinds);
