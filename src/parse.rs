@@ -1,6 +1,6 @@
 use crate::walk::{self, FileMetrics};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumCount)]
 #[repr(usize)]
 pub enum Language {
     Python,
@@ -53,7 +53,7 @@ const CONFIG_KEYS: [&str; Language::COUNT] = [
 ];
 
 impl Language {
-    pub const COUNT: usize = 22;
+    pub const COUNT: usize = <Self as strum::EnumCount>::COUNT;
 
     #[allow(dead_code)]
     pub const ALL: [Language; Self::COUNT] = [
