@@ -155,6 +155,34 @@ fn resolved_as_addressed_when_finding_gone() {
 }
 
 #[test]
+fn resolved_as_removed_when_function_deleted() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    let json = hook_json(p.to_str().unwrap(),
+        "def f(a):\n    return a", "def f(a, b, c, d, e, f, g, h):\n    return a");
+    pulse(&["--hook"], bl.path(), &json);
+    // The function `f` is removed entirely (replaced by a different, clean function).
+    std::fs::write(&p, "def other():\n    return 0\n").unwrap();
+    let _ = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", bl.path())
+        .env("PULSE_ANALYTICS_DIR", analytics.path())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .unwrap();
+    let analytics_content = read_analytics(analytics.path());
+    assert!(
+        analytics_content.contains("\"removed\""),
+        "a finding whose function vanished should be removed, not addressed, got: {analytics_content}"
+    );
+}
+
+#[test]
 fn resolved_as_ignored_when_finding_persists() {
     let bl = tempfile::tempdir().unwrap();
     let analytics = tempfile::tempdir().unwrap();

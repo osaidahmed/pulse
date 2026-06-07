@@ -232,7 +232,12 @@ pub fn run_stop() {
         println!("{decision}");
     }
 
-    analytics::resolve(|p| analyze(p).map(|r| (r.findings.clone(), r.filename.clone())));
+    analytics::resolve(|p| {
+        analyze(p).map(|r| {
+            let functions = r.metrics.functions.iter().map(|f| f.name.clone()).collect();
+            (r.findings.clone(), functions)
+        })
+    });
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }
 

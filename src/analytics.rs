@@ -60,7 +60,7 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str) {
     }
 }
 
-pub fn resolve(analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, String)>) {
+pub fn resolve(analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, Vec<String>)>) {
     let log_path = baselines::baseline_dir().join("findings.jsonl");
     let Ok(log_content) = std::fs::read_to_string(&log_path) else {
         return;
@@ -86,12 +86,10 @@ pub fn resolve(analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, String)>) {
     let ts = timestamp_secs();
 
     for (file_path, file_entries) in &by_file {
-        let current = analyze_fn(file_path)
-            .map(|(f, _)| f)
-            .unwrap_or_default();
-
+        let (current, functions) = analyze_fn(file_path).unwrap_or_default();
         for entry in file_entries {
-            write_outcome(&mut out, entry, &current, &session_id, ts);
+            let outcome = outcome_for(entry, &current, &functions);
+            write_outcome(&mut out, entry, outcome, &session_id, ts);
         }
     }
 }
@@ -126,34 +124,48 @@ fn group_by_file(entries: &[serde_json::Value]) -> HashMap<String, Vec<&serde_js
     by_file
 }
 
-fn write_outcome(
-    out: &mut std::fs::File,
+fn outcome_for(
     entry: &serde_json::Value,
     current_findings: &[Finding],
-    session_id: &str,
-    ts: u64,
-) {
+    functions: &[String],
+) -> &'static str {
+    if smell_still_present(entry, current_findings) {
+        return "ignored";
+    }
+    match entry.get("fn").and_then(|v| v.as_str()) {
+        Some(name) if functions.iter().any(|f| f == name) => "addressed",
+        Some(_) => "removed",
+        None => "addressed",
+    }
+}
+
+fn smell_still_present(entry: &serde_json::Value, current_findings: &[Finding]) -> bool {
     let smell = entry.get("smell").and_then(|v| v.as_str()).unwrap_or("");
     let func = entry.get("fn").and_then(|v| v.as_str());
-
-    let still_present = current_findings.iter().any(|cf| {
+    current_findings.iter().any(|cf| {
         cf.smell.as_str() == smell
             && match (&cf.location, func) {
                 (Location::Function { name, .. }, Some(fn_name)) => name == fn_name,
                 (Location::Module, None) => true,
                 _ => false,
             }
-    });
+    })
+}
 
-    let outcome = if still_present { "ignored" } else { "addressed" };
-
+fn write_outcome(
+    out: &mut std::fs::File,
+    entry: &serde_json::Value,
+    outcome: &str,
+    session_id: &str,
+    ts: u64,
+) {
     let record = serde_json::json!({
         "ts": ts,
         "session": session_id,
         "file": entry.get("file").and_then(|v| v.as_str()).unwrap_or(""),
-        "smell": smell,
+        "smell": entry.get("smell").and_then(|v| v.as_str()).unwrap_or(""),
         "tier": entry.get("tier").and_then(|v| v.as_str()).unwrap_or(""),
-        "fn": func,
+        "fn": entry.get("fn").and_then(|v| v.as_str()),
         "detail": entry.get("detail").and_then(|v| v.as_str()).unwrap_or(""),
         "outcome": outcome,
     });
