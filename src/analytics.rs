@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -6,6 +6,7 @@ use crate::baselines;
 use crate::hook::HookInput;
 use crate::interaction::tier_for;
 use crate::smells::{Finding, Location};
+use crate::walk::FunctionMetrics;
 
 pub fn analytics_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("PULSE_ANALYTICS_DIR") {
@@ -27,7 +28,7 @@ pub fn save_session_id(hook: &HookInput) {
     let _ = std::fs::write(path, sid);
 }
 
-pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str) {
+pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str, functions: &[FunctionMetrics]) {
     let log_path = baselines::baseline_dir().join("findings.jsonl");
     let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
@@ -54,13 +55,27 @@ pub fn log_findings(hook: &HookInput, findings: &[Finding], filename: &str) {
             "tier": tier_for(f.smell).as_str(),
             "fn": func_name,
             "line": start_line,
+            "hash": structural_hash_of(&f.location, functions),
             "detail": f.detail,
         });
         let _ = writeln!(file, "{record}");
     }
 }
 
-pub fn resolve(analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, Vec<String>)>) {
+fn structural_hash_of(location: &Location, functions: &[FunctionMetrics]) -> Option<u64> {
+    match location {
+        Location::Function { name, start_line, .. } => functions
+            .iter()
+            .find(|fm| &fm.name == name && fm.start_line == *start_line)
+            .map(|fm| fm.structural_hash),
+        Location::Module => None,
+    }
+}
+
+pub fn resolve(
+    moved_pool: &HashMap<u64, HashSet<String>>,
+    analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, Vec<String>)>,
+) {
     let log_path = baselines::baseline_dir().join("findings.jsonl");
     let Ok(log_content) = std::fs::read_to_string(&log_path) else {
         return;
@@ -88,7 +103,7 @@ pub fn resolve(analyze_fn: impl Fn(&str) -> Option<(Vec<Finding>, Vec<String>)>)
     for (file_path, file_entries) in &by_file {
         let (current, functions) = analyze_fn(file_path).unwrap_or_default();
         for entry in file_entries {
-            let outcome = outcome_for(entry, &current, &functions);
+            let outcome = outcome_for(entry, &current, &functions, moved_pool);
             write_outcome(&mut out, entry, outcome, &session_id, ts);
         }
     }
@@ -128,15 +143,38 @@ fn outcome_for(
     entry: &serde_json::Value,
     current_findings: &[Finding],
     functions: &[String],
+    moved_pool: &HashMap<u64, HashSet<String>>,
 ) -> &'static str {
     if smell_still_present(entry, current_findings) {
         return "ignored";
     }
-    match entry.get("fn").and_then(|v| v.as_str()) {
-        Some(name) if functions.iter().any(|f| f == name) => "addressed",
-        Some(_) => "removed",
-        None => "addressed",
+    let Some(name) = entry.get("fn").and_then(|v| v.as_str()) else {
+        return "addressed";
+    };
+    if functions.iter().any(|f| f == name) {
+        return "addressed";
     }
+    if moved_to_other_file(entry, moved_pool) {
+        return "moved";
+    }
+    "removed"
+}
+
+fn moved_to_other_file(entry: &serde_json::Value, moved_pool: &HashMap<u64, HashSet<String>>) -> bool {
+    let Some(hash) = entry.get("hash").and_then(serde_json::Value::as_u64) else {
+        return false;
+    };
+    let path = canonical(entry.get("path").and_then(|v| v.as_str()).unwrap_or(""));
+    moved_pool
+        .get(&hash)
+        .is_some_and(|files| files.iter().any(|f| f != &path))
+}
+
+fn canonical(path: &str) -> String {
+    std::fs::canonicalize(path)
+        .ok()
+        .and_then(|p| p.to_str().map(String::from))
+        .unwrap_or_else(|| path.to_string())
 }
 
 fn smell_still_present(entry: &serde_json::Value, current_findings: &[Finding]) -> bool {

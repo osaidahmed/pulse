@@ -183,6 +183,42 @@ fn resolved_as_removed_when_function_deleted() {
 }
 
 #[test]
+fn resolved_as_moved_when_function_relocates() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let a = dir.path().join("a.py");
+    let b = dir.path().join("b.py");
+    let smelly = "def f(a, b, c, d, e, f, g, h):\n    return a\n";
+
+    // f is smelly in a.py — the hook logs it with its structural hash.
+    std::fs::write(&a, smelly).unwrap();
+    pulse(&["--hook"], bl.path(), &hook_json(a.to_str().unwrap(), "def f(a):\n    return a", smelly));
+
+    // f is relocated verbatim to b.py; a.py keeps only a clean function.
+    std::fs::write(&a, "def stay():\n    return 0\n").unwrap();
+    std::fs::write(&b, smelly).unwrap();
+    pulse(&["--hook"], bl.path(), &hook_json(a.to_str().unwrap(), smelly, "def stay():\n    return 0"));
+    pulse(&["--hook"], bl.path(), &hook_json(b.to_str().unwrap(), "", smelly));
+
+    let _ = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["--stop"])
+        .env("PULSE_BASELINE_DIR", bl.path())
+        .env("PULSE_ANALYTICS_DIR", analytics.path())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut c| { c.stdin.take().unwrap().write_all(b"{}").unwrap(); c.wait_with_output() })
+        .unwrap();
+
+    let content = read_analytics(analytics.path());
+    assert!(
+        content.contains("\"moved\""),
+        "a function relocated to another session file should be moved, got: {content}"
+    );
+}
+
+#[test]
 fn resolved_as_ignored_when_finding_persists() {
     let bl = tempfile::tempdir().unwrap();
     let analytics = tempfile::tempdir().unwrap();

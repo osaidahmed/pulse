@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::rc::Rc;
@@ -59,7 +59,7 @@ pub fn run_hook(h: hook::HookInput) {
     if findings.is_empty() {
         process::exit(0);
     }
-    analytics::log_findings(&h, &findings, &analysis.filename);
+    analytics::log_findings(&h, &findings, &analysis.filename, &analysis.metrics.functions);
     emit_findings(&findings, &analysis);
 }
 
@@ -232,13 +232,37 @@ pub fn run_stop() {
         println!("{decision}");
     }
 
-    analytics::resolve(|p| {
+    let move_pool = build_move_pool(&manifest, &analyze);
+    analytics::resolve(&move_pool, |p| {
         analyze(p).map(|r| {
             let functions = r.metrics.functions.iter().map(|f| f.name.clone()).collect();
             (r.findings.clone(), functions)
         })
     });
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
+}
+
+fn build_move_pool<F: Fn(&str) -> Option<Rc<AnalysisResultFull>>>(
+    manifest: &str,
+    analyze: &F,
+) -> HashMap<u64, HashSet<String>> {
+    let mut pool: HashMap<u64, HashSet<String>> = HashMap::new();
+    for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
+        if let Some(r) = analyze(file_path) {
+            let key = canonical(file_path);
+            for fm in &r.metrics.functions {
+                pool.entry(fm.structural_hash).or_default().insert(key.clone());
+            }
+        }
+    }
+    pool
+}
+
+fn canonical(path: &str) -> String {
+    std::fs::canonicalize(path)
+        .ok()
+        .and_then(|p| p.to_str().map(String::from))
+        .unwrap_or_else(|| path.to_string())
 }
 
 fn detect_regressions(
