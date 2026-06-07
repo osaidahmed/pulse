@@ -65,6 +65,7 @@ pub struct AuditArgs {
 }
 
 #[derive(clap::Args, Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct HistoryArgs {
     /// Emit findings as JSON (envelope with summary + findings array).
     #[arg(long)]
@@ -101,6 +102,10 @@ pub struct HistoryArgs {
     /// Flag dependency cycles newly introduced across the analyzed history window (opt-in).
     #[arg(long = "arch-trend")]
     pub arch_trend: bool,
+
+    /// Compute and persist JIT edit-risk calibration (LT/AGE percentiles) for the repo.
+    #[arg(long = "jit-calibrate")]
+    pub jit_calibrate: bool,
 }
 
 pub enum Dispatch {

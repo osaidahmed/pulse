@@ -1,3 +1,5 @@
+use super::jit_thresholds::JitThresholds;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HistoryThresholds {
     pub co_change: CoChangeThresholds,
@@ -6,6 +8,7 @@ pub struct HistoryThresholds {
     pub hist: HistSmellThresholds,
     pub arch_trend: bool,
     pub max_commit_files: u32,
+    pub jit: JitThresholds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -71,6 +74,7 @@ impl HistoryThresholds {
         hist: HistSmellThresholds::DEFAULTS,
         arch_trend: false,
         max_commit_files: 40,
+        jit: JitThresholds::DEFAULTS,
     };
 }
 

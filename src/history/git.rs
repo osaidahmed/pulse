@@ -29,6 +29,16 @@ pub fn is_git_repo(root: &Path) -> bool {
     git_check_succeeds(root, &["rev-parse", "--git-dir"])
 }
 
+pub fn repo_toplevel(root: &Path) -> Option<PathBuf> {
+    let output = Command::new("git").arg("-C").arg(root).args(["rev-parse", "--show-toplevel"]).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let top = String::from_utf8(output.stdout).ok()?;
+    let trimmed = top.trim();
+    (!trimmed.is_empty()).then(|| PathBuf::from(trimmed))
+}
+
 fn has_any_commit(root: &Path) -> bool {
     git_check_succeeds(root, &["rev-parse", "--verify", "HEAD"])
 }

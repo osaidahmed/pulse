@@ -10,6 +10,8 @@ pub mod finding;
 pub mod git;
 pub mod hist_smells;
 pub mod hotspots;
+pub mod jit_risk;
+pub mod jit_thresholds;
 pub mod output;
 pub mod thresholds;
 
@@ -68,6 +70,37 @@ pub fn run_with_filter(
         findings.extend(arch_trend::catalyst_findings(&opts.root, &commits));
     }
     Ok(findings)
+}
+
+pub fn calibrate_with_filter(
+    opts: &HistoryOpts,
+    t: &HistoryThresholds,
+    filter: &crate::audit::IgnoreFilter<'_>,
+    now_secs: i64,
+) -> Result<jit_risk::JitCalibration, HistoryError> {
+    if !git::is_git_repo(&opts.root) {
+        return Err(HistoryError::NotAGitRepo(opts.root.clone()));
+    }
+    let git_opts = git::GitOpts {
+        root: &opts.root,
+        since: opts.since.as_deref(),
+        max_commits: opts.max_commits,
+        max_commit_files: t.max_commit_files,
+    };
+    let commits = absolutize_commits(git::collect_commits(&git_opts)?, &opts.root);
+    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    Ok(jit_risk::calibrate(&typed_files, &commits, now_secs, t.jit))
+}
+
+#[allow(dead_code)]
+pub fn calibrate(
+    opts: &HistoryOpts,
+    t: &HistoryThresholds,
+    now_secs: i64,
+) -> Result<jit_risk::JitCalibration, HistoryError> {
+    let matcher = crate::config::IgnoreMatcher::from_patterns(&[]);
+    let filter = crate::audit::IgnoreFilter::new(&matcher, &opts.root);
+    calibrate_with_filter(opts, t, &filter, now_secs)
 }
 
 fn absolutize_commits(commits: Vec<git::Commit>, root: &Path) -> Vec<git::Commit> {

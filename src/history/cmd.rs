@@ -51,6 +51,41 @@ pub fn run(args: RunArgs) {
     process::exit(i32::from(!findings.is_empty()));
 }
 
+pub fn calibrate(args: RunArgs) {
+    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
+    let cfg_with_root = config::load_config_with_root(&root);
+    let (cfg_ref, ignore_base) = match &cfg_with_root {
+        Some((c, base)) => (Some(c), base.clone()),
+        None => (None, root.clone()),
+    };
+    let history_thresholds = config::resolve_history_thresholds(cfg_ref, args.overrides);
+    let ignore_patterns = config::combined_history_ignore_patterns(cfg_ref);
+    let matcher = config::IgnoreMatcher::from_patterns(&ignore_patterns);
+    let filter = audit::IgnoreFilter::new(&matcher, &ignore_base);
+    let opts = HistoryOpts {
+        root: root.clone(),
+        include_tests: args.include_tests,
+        since: args.since,
+        max_commits: args.max_commits,
+    };
+    match super::calibrate_with_filter(&opts, &history_thresholds, &filter, now_secs()) {
+        Ok(calib) => match super::jit_risk::write_calibration(&root, &calib) {
+            Ok(()) => println!("jit calibration written: {}", super::jit_risk::calib_path(&root).display()),
+            Err(e) => {
+                eprintln!("history: failed to write jit calibration: {e}");
+                process::exit(2);
+            }
+        },
+        Err(e) => handle_error(&e),
+    }
+}
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+}
+
 fn handle_error(e: &HistoryError) {
     use HistoryError::{GitFailed, GitNotInstalled, NotAGitRepo};
     match e {

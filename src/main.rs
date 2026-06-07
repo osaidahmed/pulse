@@ -80,23 +80,31 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
-        cli::Dispatch::History { args, include_tests } => {
-            history::cmd::run(history::cmd::RunArgs {
-                root: args.root,
-                json: args.json,
-                since: args.since,
-                max_commits: args.max_commits,
-                overrides: config::HistoryCliOverrides {
-                    co_change_top: args.co_change_top,
-                    hotspot_top: args.hotspot_top,
-                    contributors_top: args.contributors_top,
-                    hist: args.hist,
-                    arch_trend: args.arch_trend,
-                },
-                include_tests,
-            });
-        }
+        cli::Dispatch::History { args, include_tests } => run_history_cmd(args, include_tests),
         _ => unreachable!(),
+    }
+}
+
+fn run_history_cmd(args: cli::HistoryArgs, include_tests: bool) {
+    let calibrate = args.jit_calibrate;
+    let run_args = history::cmd::RunArgs {
+        root: args.root,
+        json: args.json,
+        since: args.since,
+        max_commits: args.max_commits,
+        overrides: config::HistoryCliOverrides {
+            co_change_top: args.co_change_top,
+            hotspot_top: args.hotspot_top,
+            contributors_top: args.contributors_top,
+            hist: args.hist,
+            arch_trend: args.arch_trend,
+        },
+        include_tests,
+    };
+    if calibrate {
+        history::cmd::calibrate(run_args);
+    } else {
+        history::cmd::run(run_args);
     }
 }
 

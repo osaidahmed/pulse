@@ -308,6 +308,8 @@ mod java_stress;
 mod javascript_smells;
 #[path = "integration/javascript_stress.rs"]
 mod javascript_stress;
+#[path = "integration/jit_calibration.rs"]
+mod jit_calibration;
 #[path = "integration/kotlin_smells.rs"]
 mod kotlin_smells;
 #[path = "integration/kotlin_stress.rs"]
