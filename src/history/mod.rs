@@ -103,7 +103,6 @@ pub fn calibrate(
     calibrate_with_filter(opts, t, &filter, now_secs)
 }
 
-#[allow(dead_code)]
 pub fn changeshotgun_files(
     opts: &HistoryOpts,
     t: &HistoryThresholds,

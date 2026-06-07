@@ -5,11 +5,13 @@ use pulse::audit::finding::{
     AuditFinding, AuditKind, DivergentChangeEvidence, GodClassEvidence, ImportConfidence, ShotgunSurgeryEvidence,
 };
 use pulse::audit::hist_crossval::{apply_crossval, crossval_confidence};
-use pulse::audit::{walk_typed_source_files_filtered, IgnoreFilter};
-use pulse::config::IgnoreMatcher;
+use pulse::audit::{self, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
+use pulse::config::{resolve_base_thresholds, AuditSuppression, IgnoreMatcher, PulseConfig};
 use pulse::history::thresholds::HistoryThresholds;
 use pulse::history::{changeshotgun_files, HistoryOpts};
+use pulse::thresholds::AuditThresholds;
 
+use crate::audit_common::t;
 use crate::history_common::{build_repo, CommitSpec};
 
 fn wrap(kind: AuditKind) -> AuditFinding {
@@ -218,4 +220,38 @@ fn changeshotgun_files_paths_match_the_audit_walk_form() {
             "flagged path {f:?} must match the audit walk form — the cross-val matching contract"
         );
     }
+}
+
+#[test]
+fn audit_cross_validate_history_config_is_reachable() {
+    let cfg: PulseConfig = toml::from_str("[audit]\ncross_validate_history = true\n").expect("parse config");
+    let thr = resolve_base_thresholds(Some(&cfg));
+    assert!(thr.audit.cross_validate_history, "[audit] cross_validate_history must reach the resolved thresholds");
+}
+
+#[test]
+fn audit_cross_validate_history_defaults_off() {
+    assert!(!resolve_base_thresholds(None).audit.cross_validate_history);
+    let cfg: PulseConfig = toml::from_str("").expect("parse empty config");
+    assert!(!resolve_base_thresholds(Some(&cfg)).audit.cross_validate_history, "default is opt-in (off)");
+}
+
+#[test]
+fn audit_with_cross_validation_runs_deterministically_on_a_git_repo() {
+    let repo = co_change_repo();
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&matcher, repo.path());
+    let opts = AuditOpts {
+        root: repo.path().to_path_buf(),
+        pass: Some(PassChoice::NamedSmells),
+        json: false,
+        include_tests: true,
+        show_noise: false,
+        suppression: AuditSuppression::new(),
+    };
+    let thresholds = AuditThresholds { cross_validate_history: true, ..t().audit };
+
+    let r1 = audit::run_with_filter(&opts, &thresholds, &filter);
+    let r2 = audit::run_with_filter(&opts, &thresholds, &filter);
+    assert_eq!(r1.len(), r2.len(), "cross-validation over a git repo must be deterministic");
 }

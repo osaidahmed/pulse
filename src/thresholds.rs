@@ -74,6 +74,7 @@ pub struct AuditThresholds {
     pub clone_cluster: CloneClusterThresholds,
     pub naturalness: NaturalnessThresholds,
     pub max_locations_per_finding: usize,
+    pub cross_validate_history: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -321,6 +322,7 @@ impl AuditThresholds {
         clone_cluster: CloneClusterThresholds::DEFAULTS,
         naturalness: NaturalnessThresholds::DEFAULTS,
         max_locations_per_finding: 10,
+        cross_validate_history: false,
     };
 }
 

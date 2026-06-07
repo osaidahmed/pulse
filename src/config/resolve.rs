@@ -22,7 +22,9 @@ pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thres
 pub fn resolve_base_thresholds(config: Option<&PulseConfig>) -> Thresholds {
     let base = Thresholds::default();
     let Some(config) = config else { return base };
-    apply_overrides(&base, &config.thresholds)
+    let mut t = apply_overrides(&base, &config.thresholds);
+    t.audit.cross_validate_history = config.audit.cross_validate_history.unwrap_or(t.audit.cross_validate_history);
+    t
 }
 
 fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {

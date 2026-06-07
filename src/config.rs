@@ -45,6 +45,8 @@ pub struct AuditConfig {
     pub hide_smells: Vec<String>,
     #[serde(default)]
     pub hide_patterns: Vec<String>,
+    #[serde(default)]
+    pub cross_validate_history: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

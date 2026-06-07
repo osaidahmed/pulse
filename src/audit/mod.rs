@@ -147,9 +147,34 @@ pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &
     if passes.contains(&PassChoice::VulnClones) {
         findings.extend(vuln_clones::run(&typed_files, thresholds));
     }
+    maybe_cross_validate(&mut findings, opts, thresholds, filter, &passes);
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
+}
+
+fn maybe_cross_validate(
+    findings: &mut [AuditFinding],
+    opts: &AuditOpts,
+    thresholds: &AuditThresholds,
+    filter: &IgnoreFilter,
+    passes: &[PassChoice],
+) {
+    if !thresholds.cross_validate_history || !passes.contains(&PassChoice::NamedSmells) {
+        return;
+    }
+    let hist_opts = crate::history::HistoryOpts {
+        root: opts.root.clone(),
+        include_tests: opts.include_tests,
+        since: None,
+        max_commits: None,
+    };
+    let flagged = crate::history::changeshotgun_files(
+        &hist_opts,
+        &crate::history::thresholds::HistoryThresholds::DEFAULTS,
+        filter,
+    );
+    hist_crossval::apply_crossval(findings, flagged.as_ref());
 }
 
 fn populate_action_labels(findings: &mut [AuditFinding]) {
