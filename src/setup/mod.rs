@@ -1,6 +1,10 @@
 use std::path::{Path, PathBuf};
 
+use xxhash_rust::xxh3::xxh3_64;
+
 use crate::thresholds::Thresholds;
+
+mod uninstall;
 
 const HOOKS: &[(&str, Option<&str>, &str)] = &[
     ("PostToolUse", Some("Edit|Write|MultiEdit"), "pulse --hook"),
@@ -8,8 +12,17 @@ const HOOKS: &[(&str, Option<&str>, &str)] = &[
     ("SessionStart", None, "pulse --cleanup"),
 ];
 
-pub fn run_setup() {
+const MD_START: &str = "<!-- pulse:setup";
+const MD_END: &str = "<!-- /pulse:setup -->";
+const LEGACY_SIGNATURE: &str = "Pulse fires as a PostToolUse hook";
+const VERSION_KEY: &str = "_pulse_version";
+
+pub fn run_setup(uninstall: bool) {
     let dir = claude_dir();
+    if uninstall {
+        uninstall::run(&dir);
+        return;
+    }
     let _ = std::fs::create_dir_all(&dir);
 
     let hooks_changed = configure_hooks(&dir);
@@ -30,15 +43,19 @@ fn configure_hooks(dir: &Path) -> bool {
     let mut root: serde_json::Value = std::fs::read_to_string(&path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
+        .filter(serde_json::Value::is_object)
         .unwrap_or_else(|| serde_json::json!({}));
 
+    let mut changed = false;
     let hooks = root
         .as_object_mut()
         .unwrap()
         .entry("hooks")
         .or_insert_with(|| serde_json::json!({}));
+    if !hooks.is_object() {
+        *hooks = serde_json::json!({});
+    }
 
-    let mut changed = false;
     for &(event, matcher, command) in HOOKS {
         let groups = hooks
             .as_object_mut()
@@ -51,6 +68,10 @@ fn configure_hooks(dir: &Path) -> bool {
         }
     }
 
+    if set_version(&mut root) {
+        changed = true;
+    }
+
     if changed {
         let json = serde_json::to_string_pretty(&root).unwrap_or_default();
         let _ = std::fs::write(&path, json.as_bytes());
@@ -58,6 +79,18 @@ fn configure_hooks(dir: &Path) -> bool {
         eprintln!("  . hooks already configured in {}", path.display());
     }
     changed
+}
+
+fn set_version(root: &mut serde_json::Value) -> bool {
+    let ver = serde_json::json!(env!("CARGO_PKG_VERSION"));
+    let Some(obj) = root.as_object_mut() else {
+        return false;
+    };
+    if obj.get(VERSION_KEY) == Some(&ver) {
+        return false;
+    }
+    obj.insert(VERSION_KEY.to_string(), ver);
+    true
 }
 
 fn ensure_hook_entry(groups: &mut serde_json::Value, matcher: Option<&str>, command: &str) -> bool {
@@ -133,21 +166,72 @@ fn build_group_object(matcher: Option<&str>, command: &str) -> serde_json::Value
 fn configure_claude_md(dir: &Path) -> bool {
     let path = dir.join("CLAUDE.md");
     let existing = std::fs::read_to_string(&path).unwrap_or_default();
+    let block = render_md_block();
 
-    if existing.contains("\n# Pulse") || existing.starts_with("# Pulse") {
-        eprintln!("  . Pulse instructions already in {}", path.display());
-        return false;
-    }
-
-    let content = format!("{}{}", existing, pulse_instructions());
-    let _ = std::fs::write(&path, content);
-    eprintln!("  + added Pulse instructions to {}", path.display());
+    let new_content = match locate_pulse_md(&existing) {
+        Some((s, e)) if existing[s..e] == *block => {
+            eprintln!("  . Pulse instructions already current in {}", path.display());
+            return false;
+        }
+        Some((s, e)) => {
+            eprintln!("  ~ updated Pulse instructions in {}", path.display());
+            format!("{}{}{}", &existing[..s], block, &existing[e..])
+        }
+        None => {
+            eprintln!("  + added Pulse instructions to {}", path.display());
+            append_md_block(&existing, &block)
+        }
+    };
+    let _ = std::fs::write(&path, new_content);
     true
+}
+
+fn append_md_block(existing: &str, block: &str) -> String {
+    if existing.is_empty() {
+        block.to_string()
+    } else {
+        format!("{existing}\n{block}")
+    }
+}
+
+fn render_md_block() -> String {
+    let body = pulse_instructions();
+    let hash = xxh3_64(body.as_bytes());
+    format!(
+        "{MD_START} v={} hash={hash:016x} -->\n{body}{MD_END}\n",
+        env!("CARGO_PKG_VERSION")
+    )
+}
+
+fn locate_pulse_md(content: &str) -> Option<(usize, usize)> {
+    if let Some(s) = content.find(MD_START) {
+        let Some(rel) = content[s..].find(MD_END) else {
+            return Some((s, content.len()));
+        };
+        let mut e = s + rel + MD_END.len();
+        if content[e..].starts_with('\n') {
+            e += 1;
+        }
+        return Some((s, e));
+    }
+    locate_legacy_md(content)
+}
+
+fn locate_legacy_md(content: &str) -> Option<(usize, usize)> {
+    let sig = content.find(LEGACY_SIGNATURE)?;
+    let head = content[..sig].rfind("# Pulse")?;
+    if head != 0 && !content[..head].ends_with('\n') {
+        return None;
+    }
+    let e = content[sig..]
+        .find("\n# ")
+        .map_or(content.len(), |r| sig + r + 1);
+    Some((head, e))
 }
 
 fn pulse_instructions() -> String {
     format!(
-        "\n# Pulse\n\n\
+        "# Pulse\n\n\
         Pulse fires as a PostToolUse hook on every file edit. When it reports \
         `error[pulse]` findings, fix them before moving to your next step. \
         Pulse findings are blocking \u{2014} treat them as linter errors that must be \

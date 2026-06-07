@@ -182,6 +182,7 @@ mod history_common;
 #[path = "integration/rust_smells.rs"] mod rust_smells;
 #[path = "integration/rust_stress.rs"] mod rust_stress;
 #[path = "integration/setup_tests.rs"] mod setup_tests;
+#[path = "integration/setup_idempotency.rs"] mod setup_idempotency;
 #[path = "integration/swift_smells.rs"] mod swift_smells;
 #[path = "integration/swift_stress.rs"] mod swift_stress;
 #[path = "integration/tcl_smells.rs"] mod tcl_smells;

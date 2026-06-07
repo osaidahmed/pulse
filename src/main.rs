@@ -71,8 +71,8 @@ fn dispatch_session(d: cli::Dispatch) -> Option<cli::Dispatch> {
 
 fn dispatch_subcommand(d: cli::Dispatch) {
     match d {
-        cli::Dispatch::Setup => {
-            setup::run_setup();
+        cli::Dispatch::Setup { uninstall } => {
+            setup::run_setup(uninstall);
             process::exit(0);
         }
         cli::Dispatch::Check(p) => run_check(&p),

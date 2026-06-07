@@ -22,8 +22,12 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum SubCmd {
-    /// Install pulse hooks into ~/.claude.
-    Setup,
+    /// Install pulse hooks into ~/.claude (or remove them with --uninstall).
+    Setup {
+        /// Remove pulse hooks and the Pulse CLAUDE.md block.
+        #[arg(long)]
+        uninstall: bool,
+    },
     /// Analyze a single file (or use -a for whole project).
     Check {
         file: Option<String>,
@@ -103,7 +107,7 @@ pub enum Dispatch {
     Hook,
     Stop,
     Cleanup,
-    Setup,
+    Setup { uninstall: bool },
     Check(String),
     CheckAll { include_tests: bool },
     Debug(String),
@@ -146,7 +150,7 @@ fn dispatch_from_clap(cli: Cli) -> Dispatch {
 
 fn dispatch_subcmd(sub: SubCmd, all: bool, include_tests: bool) -> Dispatch {
     match sub {
-        SubCmd::Setup => Dispatch::Setup,
+        SubCmd::Setup { uninstall } => Dispatch::Setup { uninstall },
         SubCmd::Check { file } => fileful_dispatch(file, all, Dispatch::Check, || Dispatch::CheckAll { include_tests }),
         SubCmd::Debug { file } => Dispatch::Debug(file),
         SubCmd::Budget { file, new } => fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None)),
