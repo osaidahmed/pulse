@@ -38,11 +38,11 @@ fn lt_values(typed_files: &[(PathBuf, Language)]) -> Vec<f64> {
 
 fn age_values(typed_files: &[(PathBuf, Language)], commits: &[Commit], now_secs: i64) -> Vec<f64> {
     let last = last_commit_ts(commits);
-    typed_files
-        .iter()
-        .filter_map(|(p, _)| last.get(p))
-        .map(|&ts| f64::from(i32::try_from((now_secs - ts).max(0)).unwrap_or(i32::MAX)) / 86_400.0)
-        .collect()
+    typed_files.iter().filter_map(|(p, _)| last.get(p)).map(|&ts| age_days_since(ts, now_secs)).collect()
+}
+
+fn age_days_since(ts: i64, now_secs: i64) -> f64 {
+    f64::from(i32::try_from((now_secs - ts).max(0)).unwrap_or(i32::MAX)) / 86_400.0
 }
 
 fn last_commit_ts(commits: &[Commit]) -> HashMap<PathBuf, i64> {
@@ -91,12 +91,43 @@ pub fn read_calibration(repo_root: &Path) -> Option<JitCalibration> {
     serde_json::from_str(&std::fs::read_to_string(calib_path(repo_root)).ok()?).ok()
 }
 
+pub fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+}
+
 pub fn hook_advisory(source: &str, file_path: &Path) -> Option<String> {
     if !crate::analytics::analytics_dir().join("jit").is_dir() {
         return None;
     }
-    let lt = read_calibration(file_path.parent()?)?.lt?;
-    lt_band_message(source.lines().count(), &lt)
+    let calib = read_calibration(file_path.parent()?)?;
+    let lt = calib.lt.and_then(|q| lt_band_message(source.lines().count(), &q));
+    let age = calib.age_days.and_then(|q| age_band_message(file_age_days(file_path, now_secs()), &q));
+    join_advisory(lt, age)
+}
+
+fn join_advisory(lt: Option<String>, age: Option<String>) -> Option<String> {
+    match (lt, age) {
+        (Some(a), Some(b)) => Some(format!("{a}\n{b}")),
+        (Some(a), None) | (None, Some(a)) => Some(a),
+        (None, None) => None,
+    }
+}
+
+fn file_age_days(file_path: &Path, now_secs: i64) -> Option<f64> {
+    let ts = super::git::last_commit_unix(file_path.parent()?, Path::new(file_path.file_name()?))?;
+    (ts <= now_secs).then(|| age_days_since(ts, now_secs))
+}
+
+fn age_band_message(file_age: Option<f64>, age: &Quintiles) -> Option<String> {
+    let value = file_age?;
+    (value < age.p20).then(|| {
+        format!(
+            "[risk] file age is below the repo's 20th percentile (AGE {value:.0}d < p20 {:.0}d); recently changed code churns and is defect-prone — change carefully",
+            age.p20
+        )
+    })
 }
 
 fn lt_band_message(file_lt: usize, lt: &Quintiles) -> Option<String> {

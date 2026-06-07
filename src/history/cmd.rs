@@ -68,7 +68,7 @@ pub fn calibrate(args: RunArgs) {
         since: args.since,
         max_commits: args.max_commits,
     };
-    match super::calibrate_with_filter(&opts, &history_thresholds, &filter, now_secs()) {
+    match super::calibrate_with_filter(&opts, &history_thresholds, &filter, super::jit_risk::now_secs()) {
         Ok(calib) => match super::jit_risk::write_calibration(&root, &calib) {
             Ok(()) => println!("jit calibration written: {}", super::jit_risk::calib_path(&root).display()),
             Err(e) => {
@@ -78,12 +78,6 @@ pub fn calibrate(args: RunArgs) {
         },
         Err(e) => handle_error(&e),
     }
-}
-
-fn now_secs() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
 fn handle_error(e: &HistoryError) {

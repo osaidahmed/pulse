@@ -2,7 +2,7 @@ use pulse::history::jit_risk::{calib_path, hook_advisory, percentiles, write_cal
 use pulse::history::thresholds::HistoryThresholds;
 use pulse::history::{calibrate, HistoryOpts};
 
-use crate::history_common::{build_repo, CommitSpec};
+use crate::history_common::{build_repo, commit_file_dated, CommitSpec};
 
 #[test]
 fn percentiles_use_nearest_rank() {
@@ -65,4 +65,68 @@ fn hook_advisory_flags_smallest_and_largest_quintile_files() {
     let large = hook_advisory(&"y = 1\n".repeat(200), &file).expect("large file flagged");
     assert!(large.contains("above the repo's 80th percentile"), "got: {large}");
     assert!(hook_advisory(&"z = 1\n".repeat(50), &file).is_none(), "mid-range file must not flag");
+}
+
+#[test]
+fn hook_advisory_flags_a_recently_committed_file_against_the_age_band() {
+    let analytics = tempfile::tempdir().unwrap();
+    std::env::set_var("PULSE_ANALYTICS_DIR", analytics.path());
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
+    let calib = JitCalibration { lt: None, age_days: Some(Quintiles { p20: 3650.0, p50: 7300.0, p80: 10950.0 }) };
+    write_calibration(repo.path(), &calib).expect("write calibration");
+    let file = repo.path().join("a.py");
+
+    let msg = hook_advisory("x = 1\n", &file).expect("just-committed file flagged by the age band");
+    assert!(msg.contains("file age is below the repo's 20th percentile"), "got: {msg}");
+}
+
+#[test]
+fn hook_advisory_skips_the_age_band_for_an_untracked_file() {
+    let analytics = tempfile::tempdir().unwrap();
+    std::env::set_var("PULSE_ANALYTICS_DIR", analytics.path());
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
+    let calib = JitCalibration { lt: None, age_days: Some(Quintiles { p20: 3650.0, p50: 7300.0, p80: 10950.0 }) };
+    write_calibration(repo.path(), &calib).expect("write calibration");
+    let untracked = repo.path().join("untracked.py");
+    std::fs::write(&untracked, "x = 1\n").unwrap();
+
+    assert!(hook_advisory("x = 1\n", &untracked).is_none(), "an untracked file has no commit age to band");
+}
+
+#[test]
+fn hook_advisory_fails_open_when_the_last_commit_is_future_dated() {
+    let analytics = tempfile::tempdir().unwrap();
+    std::env::set_var("PULSE_ANALYTICS_DIR", analytics.path());
+    let repo =
+        build_repo(&[CommitSpec { author: "a <a@x>", message: "init", writes: &[("a.py", "x = 1\n")], deletes: &[] }]);
+    commit_file_dated(repo.path(), "a.py", "x = 2\n", 4_000_000_000);
+    let calib = JitCalibration { lt: None, age_days: Some(Quintiles { p20: 3650.0, p50: 7300.0, p80: 10950.0 }) };
+    write_calibration(repo.path(), &calib).expect("write calibration");
+    let file = repo.path().join("a.py");
+
+    assert!(
+        hook_advisory("x = 2\n", &file).is_none(),
+        "a future-dated last commit (now < commit ts) must fail open, not clamp to age 0 and flag"
+    );
+}
+
+#[test]
+fn hook_advisory_bands_age_for_a_file_in_a_subdirectory() {
+    let analytics = tempfile::tempdir().unwrap();
+    std::env::set_var("PULSE_ANALYTICS_DIR", analytics.path());
+    let repo = build_repo(&[CommitSpec {
+        author: "a <a@x>",
+        message: "init",
+        writes: &[("pkg/a.py", "x = 1\n")],
+        deletes: &[],
+    }]);
+    let calib = JitCalibration { lt: None, age_days: Some(Quintiles { p20: 3650.0, p50: 7300.0, p80: 10950.0 }) };
+    write_calibration(repo.path(), &calib).expect("write calibration");
+    let file = repo.path().join("pkg").join("a.py");
+
+    let msg =
+        hook_advisory("x = 1\n", &file).expect("a subdir file resolves its commit age and the toplevel-keyed calib");
+    assert!(msg.contains("file age is below the repo's 20th percentile"), "got: {msg}");
 }

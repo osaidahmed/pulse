@@ -39,6 +39,15 @@ pub fn repo_toplevel(root: &Path) -> Option<PathBuf> {
     (!trimmed.is_empty()).then(|| PathBuf::from(trimmed))
 }
 
+pub fn last_commit_unix(dir: &Path, pathspec: &Path) -> Option<i64> {
+    let output =
+        Command::new("git").arg("-C").arg(dir).args(["log", "-1", "--format=%at", "--"]).arg(pathspec).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8(output.stdout).ok()?.trim().parse::<i64>().ok()
+}
+
 fn has_any_commit(root: &Path) -> bool {
     git_check_succeeds(root, &["rev-parse", "--verify", "HEAD"])
 }

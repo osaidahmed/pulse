@@ -42,6 +42,16 @@ pub fn build_repo(commits: &[CommitSpec]) -> TempDir {
     dir
 }
 
+pub fn commit_file_dated(repo: &Path, rel: &str, content: &str, unix_ts: i64) {
+    apply_writes(repo, &[(rel, content)]);
+    run_git(repo, &["add", "-A"]);
+    commit_with_identity(
+        repo,
+        &CommitSpec { author: "alice <alice@x>", message: "dated", writes: &[], deletes: &[] },
+        &format!("{unix_ts} +0000"),
+    );
+}
+
 fn init_repo(path: &Path) {
     run_git(path, &["init", "-q", "-b", "main"]);
 }
