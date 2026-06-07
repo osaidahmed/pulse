@@ -2,6 +2,34 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]
 #[serde(deny_unknown_fields)]
+pub struct TaintConfig {
+    pub visit_cap: Option<u32>,
+    pub max_depth: Option<u32>,
+    pub max_findings: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct CloneClusterConfig {
+    pub max_sim_threshold: Option<u32>,
+    pub min_cluster_size: Option<u32>,
+    pub loc_window_pct: Option<u32>,
+    pub min_loc: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct NaturalnessConfig {
+    pub enabled: Option<bool>,
+    pub ngram_order: Option<u32>,
+    pub cache_k: Option<u32>,
+    pub jm_gamma: Option<f64>,
+    pub min_fn_tokens: Option<u32>,
+    pub zscore_cutoff: Option<f64>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
 pub struct PackageMetricsConfig {
     pub martin_distance_warning: Option<f64>,
     pub martin_distance_alert: Option<f64>,

@@ -1,7 +1,13 @@
 use crate::parse::Language;
-use crate::thresholds::{AuditThresholds, PackageMetricsThresholds, Thresholds};
+use crate::thresholds::{
+    AuditThresholds, CloneClusterThresholds, NaturalnessThresholds, PackageMetricsThresholds,
+    TaintThresholds, Thresholds,
+};
 
-use super::{ConfigThresholds, CpgConfig, DuplicationThresholds, PackageMetricsConfig, PulseConfig};
+use super::{
+    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig,
+    PackageMetricsConfig, PulseConfig, TaintConfig,
+};
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
     let base = Thresholds::default();
@@ -75,14 +81,20 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),
             max_string_match_arms: a.max_string_match_arms.unwrap_or(ba.max_string_match_arms),
         },
-        audit: resolve_audit(&base.audit, &o.package_metrics),
+        audit: resolve_audit(&base.audit, o),
         history: base.history,
         cpg: resolve_cpg(&o.cpg, &base.cpg),
     }
 }
 
-fn resolve_audit(base: &AuditThresholds, pm: &PackageMetricsConfig) -> AuditThresholds {
-    AuditThresholds { package_metrics: resolve_package_metrics(pm, &base.package_metrics), ..*base }
+fn resolve_audit(base: &AuditThresholds, o: &ConfigThresholds) -> AuditThresholds {
+    AuditThresholds {
+        package_metrics: resolve_package_metrics(&o.package_metrics, &base.package_metrics),
+        taint: resolve_taint(&o.taint, &base.taint),
+        clone_cluster: resolve_clone_cluster(&o.clone_cluster, &base.clone_cluster),
+        naturalness: resolve_naturalness(&o.naturalness, &base.naturalness),
+        ..*base
+    }
 }
 
 fn resolve_package_metrics(
@@ -136,5 +148,24 @@ field_resolvers! {
         skeleton_min_loc <- skeleton_duplication_min_loc,
         min_group <- duplication_min_group,
         min_distinct_kinds <- duplication_min_distinct_kinds,
+    }
+    fn resolve_taint(TaintConfig => TaintThresholds) {
+        visit_cap <- visit_cap,
+        max_depth <- max_depth,
+        max_findings <- max_findings,
+    }
+    fn resolve_clone_cluster(CloneClusterConfig => CloneClusterThresholds) {
+        max_sim_threshold <- max_sim_threshold,
+        min_cluster_size <- min_cluster_size,
+        loc_window_pct <- loc_window_pct,
+        min_loc <- min_loc,
+    }
+    fn resolve_naturalness(NaturalnessConfig => NaturalnessThresholds) {
+        enabled <- enabled,
+        ngram_order <- ngram_order,
+        cache_k <- cache_k,
+        jm_gamma <- jm_gamma,
+        min_fn_tokens <- min_fn_tokens,
+        zscore_cutoff <- zscore_cutoff,
     }
 }

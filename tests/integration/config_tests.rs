@@ -62,6 +62,44 @@ fn unknown_package_metrics_key_is_rejected() {
 }
 
 #[test]
+fn audit_feature_thresholds_are_overridable() {
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds.taint]
+        max_depth = 32
+        [thresholds.clone_cluster]
+        min_loc = 10
+        [thresholds.naturalness]
+        enabled = true
+        zscore_cutoff = 4.0
+        ",
+    )
+    .unwrap();
+    let r = config::resolve_base_thresholds(Some(&cfg)).audit;
+    assert_eq!(r.taint.max_depth, 32);
+    assert_eq!(r.clone_cluster.min_loc, 10);
+    assert!(r.naturalness.enabled);
+    assert!((r.naturalness.zscore_cutoff - 4.0).abs() < 1e-9);
+    let d = t().audit;
+    assert_eq!(r.taint.visit_cap, d.taint.visit_cap, "untouched taint field keeps default");
+    assert_eq!(
+        r.clone_cluster.max_sim_threshold, d.clone_cluster.max_sim_threshold,
+        "untouched clone field keeps default"
+    );
+}
+
+#[test]
+fn unknown_taint_key_is_rejected() {
+    let result = toml::from_str::<PulseConfig>(
+        r"
+        [thresholds.taint]
+        bogus = 1
+        ",
+    );
+    assert!(result.is_err(), "unknown taint keys must be rejected");
+}
+
+#[test]
 fn disable_section_parses() {
     let cfg: PulseConfig = toml::from_str(
         r#"
