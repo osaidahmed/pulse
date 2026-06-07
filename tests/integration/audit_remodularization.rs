@@ -136,7 +136,7 @@ fn two_directories_in_one_community_are_flagged_for_merge() {
         .iter()
         .find(|e| e.components.len() == 2)
         .expect("the two directories form a single dependency community");
-    let comps: Vec<&Path> = merge.components.iter().map(|p| p.as_path()).collect();
+    let comps: Vec<&Path> = merge.components.iter().map(std::path::PathBuf::as_path).collect();
     assert!(comps.contains(&Path::new("core")), "got: {comps:?}");
     assert!(comps.contains(&Path::new("shared")), "got: {comps:?}");
     assert_eq!(merge.community_files, 4);

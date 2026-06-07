@@ -42,8 +42,7 @@ fn has_catalyst(findings: &[pulse::history::finding::HistoryFinding]) -> bool {
 #[test]
 fn catalyst_flags_a_newly_introduced_cycle() {
     let repo = cyclic_repo();
-    let mut t = HistoryThresholds::default();
-    t.arch_trend = true;
+    let t = HistoryThresholds { arch_trend: true, ..HistoryThresholds::default() };
     let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
     assert!(
         has_catalyst(&findings),
@@ -71,8 +70,7 @@ fn decay_flags_a_growing_cycle() {
             deletes: &[],
         },
     ]);
-    let mut t = HistoryThresholds::default();
-    t.arch_trend = true;
+    let t = HistoryThresholds { arch_trend: true, ..HistoryThresholds::default() };
     let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
 
     assert!(

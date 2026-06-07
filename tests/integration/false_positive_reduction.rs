@@ -71,26 +71,37 @@ fn switch_arms() -> usize {
 }
 
 fn rust_switch(default: bool) -> String {
-    let arms: String = (0..switch_arms()).map(|i| format!("        \"k{i}\" => {{}}\n")).collect();
+    let mut arms = String::new();
+    for i in 0..switch_arms() {
+        arms.push_str(&format!("        \"k{i}\" => {{}}\n"));
+    }
     let tail = if default { "        _ => {}\n" } else { "" };
     format!("fn f(s: &str) {{\n    match s {{\n{arms}{tail}    }}\n}}\n")
 }
 
 fn go_switch(default: bool) -> String {
-    let arms: String = (0..switch_arms()).map(|i| format!("    case \"k{i}\":\n        x()\n")).collect();
+    let mut arms = String::new();
+    for i in 0..switch_arms() {
+        arms.push_str(&format!("    case \"k{i}\":\n        x()\n"));
+    }
     let tail = if default { "    default:\n        x()\n" } else { "" };
     format!("package main\nfunc f(s string) {{\n    switch s {{\n{arms}{tail}    }}\n}}\n")
 }
 
 fn ts_switch(default: bool) -> String {
-    let arms: String = (0..switch_arms()).map(|i| format!("    case \"k{i}\": break;\n")).collect();
+    let mut arms = String::new();
+    for i in 0..switch_arms() {
+        arms.push_str(&format!("    case \"k{i}\": break;\n"));
+    }
     let tail = if default { "    default: break;\n" } else { "" };
     format!("function f(s: string) {{\n  switch (s) {{\n{arms}{tail}  }}\n}}\n")
 }
 
 fn py_switch(default: bool) -> String {
-    let arms: String =
-        (0..switch_arms()).map(|i| format!("        case \"k{i}\":\n            pass\n")).collect();
+    let mut arms = String::new();
+    for i in 0..switch_arms() {
+        arms.push_str(&format!("        case \"k{i}\":\n            pass\n"));
+    }
     let tail = if default { "        case _:\n            pass\n" } else { "" };
     format!("def f(s):\n    match s:\n{arms}{tail}")
 }

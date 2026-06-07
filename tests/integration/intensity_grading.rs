@@ -51,7 +51,11 @@ fn normalize_exceedance_monotone_in_value() {
 }
 
 fn rust_ifs(n: u32) -> String {
-    (0..n).map(|i| format!("    if a == {i} {{ b += 1; }}\n")).collect()
+    let mut s = String::new();
+    for i in 0..n {
+        s.push_str(&format!("    if a == {i} {{ b += 1; }}\n"));
+    }
+    s
 }
 
 fn rust_lines(n: u32) -> String {
