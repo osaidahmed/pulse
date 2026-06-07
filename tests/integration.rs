@@ -107,6 +107,7 @@ mod history_common;
 #[path = "integration/baseline_filtering.rs"] mod baseline_filtering;
 #[path = "integration/boundary_thresholds.rs"] mod boundary_thresholds;
 #[path = "integration/cross_lang_complexity.rs"] mod cross_lang_complexity;
+#[path = "integration/module_boundary_thresholds.rs"] mod module_boundary_thresholds;
 #[path = "integration/budget_command.rs"] mod budget_command;
 #[path = "integration/c_smells.rs"] mod c_smells;
 #[path = "integration/c_stress.rs"] mod c_stress;
