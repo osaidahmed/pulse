@@ -71,6 +71,7 @@ mod history_common;
 #[path = "integration/audit_output_feature_envy.rs"] mod audit_output_feature_envy;
 #[path = "integration/audit_output_god_class.rs"] mod audit_output_god_class;
 #[path = "integration/audit_output_martin.rs"] mod audit_output_martin;
+#[path = "integration/audit_output_remodularization.rs"] mod audit_output_remodularization;
 #[path = "integration/audit_output_named_smells.rs"] mod audit_output_named_smells;
 #[path = "integration/audit_output_parallel_inheritance.rs"] mod audit_output_parallel_inheritance;
 #[path = "integration/audit_output_refused_bequest.rs"] mod audit_output_refused_bequest;
