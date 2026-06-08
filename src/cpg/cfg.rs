@@ -99,6 +99,71 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
 
 pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
 
+pub const JAVA: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "enhanced_for_statement", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &["try_statement"],
+    handler_kinds: &["catch_clause"],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["block", "constructor_body"],
+};
+
+pub const CSHARP: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "foreach_statement", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &["try_statement"],
+    handler_kinds: &["catch_clause"],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["block"],
+};
+
+pub const GO: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["for_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &[],
+    handler_kinds: &[],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["block"],
+};
+
+pub const C: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &[],
+    handler_kinds: &[],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["compound_statement"],
+};
+
+pub const CPP: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "for_range_loop", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &["try_statement"],
+    handler_kinds: &["catch_clause"],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["compound_statement"],
+};
+
 type Incoming = Option<(u32, EdgeLabel)>;
 
 #[derive(Clone, Copy)]
@@ -154,9 +219,10 @@ impl Builder<'_> {
 
     fn seq(&mut self, block: Node, incoming: Incoming) -> Option<u32> {
         let _g = DepthGuard::enter()?;
+        let seq_node = stmt_seq_node(block);
         let mut cur = incoming;
-        let mut cursor = block.walk();
-        for child in block.children(&mut cursor) {
+        let mut cursor = seq_node.walk();
+        for child in seq_node.children(&mut cursor) {
             if !child.is_named() {
                 continue;
             }
@@ -261,6 +327,9 @@ impl Builder<'_> {
         if self.lang.if_kinds.contains(&alt.kind()) {
             return self.do_if(alt, Some((p, EdgeLabel::False)));
         }
+        if self.lang.block_kinds.contains(&alt.kind()) {
+            return self.seq(alt, Some((p, EdgeLabel::False)));
+        }
         let mut cursor = alt.walk();
         for child in alt.children(&mut cursor) {
             if self.lang.if_kinds.contains(&child.kind()) {
@@ -341,6 +410,16 @@ fn line(node: Node) -> u32 {
 
 fn end_line(node: Node) -> u32 {
     node.end_position().row as u32 + 1
+}
+
+fn stmt_seq_node(block: Node) -> Node {
+    let mut cursor = block.walk();
+    for child in block.children(&mut cursor) {
+        if child.kind() == "statement_list" {
+            return child;
+        }
+    }
+    block
 }
 
 fn unwrap_stmt(node: Node) -> Node {

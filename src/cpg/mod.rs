@@ -6,6 +6,6 @@ pub mod defuse;
 pub mod reaching;
 mod types;
 
-pub use cfg::{build_cfg, CfgLang, JAVASCRIPT, PYTHON, RUST, TYPESCRIPT};
+pub use cfg::{build_cfg, CfgLang, C, CPP, CSHARP, GO, JAVA, JAVASCRIPT, PYTHON, RUST, TYPESCRIPT};
 pub use cpg_smells::detect_all;
 pub use types::CpgMetrics;

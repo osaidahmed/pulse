@@ -316,3 +316,71 @@ fn javascript_clean_function_has_no_cpg_smells() {
     assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
     assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
 }
+
+#[test]
+fn go_unreachable_after_return_flagged() {
+    let f = smells_of("package main\nfunc f() {\n\treturn\n\tg()\n}\n", Language::Go, "go");
+    assert!(
+        has_finding(&f, Smell::UnreachableCode),
+        "go wraps statements in statement_list; the builder must descend: {f:?}"
+    );
+}
+
+#[test]
+fn go_if_else_clean_has_no_cpg_smells() {
+    let src = "package main\nfunc f(a int) int {\n\tif a > 0 {\n\t\treturn 1\n\t} else {\n\t\treturn 2\n\t}\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "both branches return; nothing follows: {f:?}");
+}
+
+#[test]
+fn java_unreachable_after_return_flagged() {
+    let f = smells_of("class C {\n  void f() {\n    return;\n    int dead = 2;\n  }\n}\n", Language::Java, "java");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn java_if_else_clean_has_no_cpg_smells() {
+    let src = "class C {\n  int f(int a) {\n    if (a > 0) {\n      return 1;\n    } else {\n      return 2;\n    }\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "an unwrapped else block must be walked, not orphaned: {f:?}");
+}
+
+#[test]
+fn csharp_unreachable_after_return_flagged() {
+    let f = smells_of("class C {\n  void F() {\n    return;\n    int dead = 2;\n  }\n}\n", Language::CSharp, "cs");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn csharp_if_else_clean_has_no_cpg_smells() {
+    let src = "class C {\n  int F(int a) {\n    if (a > 0) {\n      return 1;\n    } else {\n      return 2;\n    }\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn c_unreachable_after_return_flagged() {
+    let f = smells_of("int f() {\n  return 1;\n  int dead = 2;\n}\n", Language::C, "c");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn c_if_else_clean_has_no_cpg_smells() {
+    let src = "int f(int a) {\n  if (a > 0) {\n    return 1;\n  } else {\n    return 2;\n  }\n}\n";
+    let f = smells_of(src, Language::C, "c");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn cpp_unreachable_after_return_flagged() {
+    let f = smells_of("int f() {\n  return 1;\n  int dead = 2;\n}\n", Language::Cpp, "cpp");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn cpp_if_else_clean_has_no_cpg_smells() {
+    let src = "int f(int a) {\n  if (a > 0) {\n    return 1;\n  } else {\n    return 2;\n  }\n}\n";
+    let f = smells_of(src, Language::Cpp, "cpp");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}

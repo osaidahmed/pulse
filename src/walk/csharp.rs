@@ -146,6 +146,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
     let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, cfg.body_kind).or_else(|| find_child_by_kind(node, "block"))?;
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::CSHARP);
 
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
@@ -190,7 +191,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
             &["string_literal", "verbatim_string_literal", "interpolated_string_expression"],
             &[],
         ),
-        cpg: None,
+        cpg,
     })
 }
 

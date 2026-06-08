@@ -84,6 +84,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         count_parameters(declarator, source);
 
     let body = find_child_by_kind(node, "compound_statement")?;
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::C);
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
@@ -127,7 +128,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
             &["string_literal", "concatenated_string"],
             &[],
         ),
-        cpg: None,
+        cpg,
     })
 }
 

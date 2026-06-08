@@ -165,6 +165,7 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
     let loc = end_line.saturating_sub(start_line) + 1;
 
     let body = find_child_by_kind(node, "block")?;
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::GO);
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
@@ -202,7 +203,7 @@ fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<Functi
             &["interpreted_string_literal", "raw_string_literal"],
             &["default_case"],
         ),
-        cpg: None,
+        cpg,
     })
 }
 

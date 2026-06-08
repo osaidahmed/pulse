@@ -123,6 +123,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, "compound_statement")?;
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::CPP);
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
 
@@ -166,7 +167,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
             &["string_literal", "raw_string_literal", "concatenated_string"],
             &[],
         ),
-        cpg: None,
+        cpg,
     })
 }
 
