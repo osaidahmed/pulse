@@ -455,3 +455,37 @@ fn python_multi_subject_match_reads_all_subjects() {
     let f = smells_of(src, Language::Python, "py");
     assert!(!has_finding(&f, Smell::DeadStore), "both subjects of `match a, b` are read: {f:?}");
 }
+
+#[test]
+fn python_if_elif_without_else_falls_through() {
+    let src = "def f(x):\n    if x > 0:\n        return 1\n    elif x < 0:\n        return 2\n    return 0\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "`return 0` is reachable when x == 0; the elif chain must preserve the fall-through: {f:?}"
+    );
+}
+
+#[test]
+fn python_elif_guard_read_is_not_a_dead_store() {
+    let src =
+        "def f(x):\n    g = 7\n    if x > 0:\n        return 1\n    elif x > g:\n        return 2\n    return 0\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "g is read in the elif condition: {f:?}");
+}
+
+#[test]
+fn php_unreachable_after_return_flagged() {
+    let f = smells_of("<?php\nfunction f() {\n  return 1;\n  $dead = 2;\n}\n", Language::Php, "php");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn php_if_elseif_without_else_falls_through() {
+    let src = "<?php\nfunction f($a) {\n  if ($a > 0) {\n    return 1;\n  } elseif ($a < 0) {\n    return 2;\n  }\n  log_it();\n}\n";
+    let f = smells_of(src, Language::Php, "php");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "log_it() is reachable when $a == 0; the elseif chain must preserve the fall-through: {f:?}"
+    );
+}

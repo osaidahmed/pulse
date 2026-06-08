@@ -119,6 +119,22 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
 
 pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
 
+pub const PHP: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "foreach_statement", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &["try_statement"],
+    handler_kinds: &["catch_clause"],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["compound_statement", "colon_block"],
+    nested_fn_kinds: &["anonymous_function", "arrow_function"],
+    switch_kinds: &[],
+    case_kinds: &[],
+};
+
 pub const JAVA: CfgLang = CfgLang {
     if_kinds: &["if_statement"],
     loop_kinds: &["while_statement", "for_statement", "enhanced_for_statement", "do_statement"],
@@ -382,12 +398,12 @@ impl Builder<'_> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
         self.record_cond(node, p);
-        let then_end = self.seq_opt_block(node.child_by_field_name("consequence"), Some((p, EdgeLabel::True)));
-        let alt = node.child_by_field_name("alternative");
-        let else_end = match alt {
-            Some(a) => self.do_else(a, p),
-            None => Some(p),
-        };
+        let consequence = node.child_by_field_name("consequence").or_else(|| node.child_by_field_name("body"));
+        let then_end = self.seq_opt_block(consequence, Some((p, EdgeLabel::True)));
+        let mut alt_cursor = node.walk();
+        let alts: Vec<Node> = node.children_by_field_name("alternative", &mut alt_cursor).collect();
+        let had_alt = !alts.is_empty();
+        let else_end = self.do_else_chain(&alts, p);
         if then_end.is_none() && else_end.is_none() {
             return None;
         }
@@ -396,7 +412,7 @@ impl Builder<'_> {
             self.edge(e, merge, EdgeLabel::Epsilon);
         }
         if let Some(e) = else_end {
-            let label = if alt.is_some() { EdgeLabel::Epsilon } else { EdgeLabel::False };
+            let label = if had_alt { EdgeLabel::Epsilon } else { EdgeLabel::False };
             self.edge(e, merge, label);
         }
         Some(merge)
@@ -409,15 +425,21 @@ impl Builder<'_> {
         }
     }
 
-    fn do_else(&mut self, alt: Node, p: u32) -> Option<u32> {
-        if self.lang.if_kinds.contains(&alt.kind()) {
-            return self.do_if(alt, Some((p, EdgeLabel::False)));
+    fn do_else_chain(&mut self, alts: &[Node], p: u32) -> Option<u32> {
+        let Some((first, rest)) = alts.split_first() else {
+            return Some(p);
+        };
+        if self.lang.if_kinds.contains(&first.kind()) {
+            return self.do_if(*first, Some((p, EdgeLabel::False)));
         }
-        if self.lang.block_kinds.contains(&alt.kind()) {
-            return self.seq(alt, Some((p, EdgeLabel::False)));
+        if first.child_by_field_name("condition").is_some() {
+            return self.do_elseif(*first, rest, p);
         }
-        let mut cursor = alt.walk();
-        for child in alt.children(&mut cursor) {
+        if self.lang.block_kinds.contains(&first.kind()) {
+            return self.seq(*first, Some((p, EdgeLabel::False)));
+        }
+        let mut cursor = first.walk();
+        for child in first.children(&mut cursor) {
             if self.lang.if_kinds.contains(&child.kind()) {
                 return self.do_if(child, Some((p, EdgeLabel::False)));
             }
@@ -426,6 +448,27 @@ impl Builder<'_> {
             }
         }
         Some(p)
+    }
+
+    fn do_elseif(&mut self, clause: Node, rest: &[Node], p: u32) -> Option<u32> {
+        let q = self.add(NodeKind::Predicate, line(clause));
+        self.edge(p, q, EdgeLabel::False);
+        self.record_cond(clause, q);
+        let body = clause.child_by_field_name("consequence").or_else(|| clause.child_by_field_name("body"));
+        let then_end = self.seq_opt_block(body, Some((q, EdgeLabel::True)));
+        let else_end = self.do_else_chain(rest, q);
+        if then_end.is_none() && else_end.is_none() {
+            return None;
+        }
+        let merge = self.add(NodeKind::Stmt, end_line(clause));
+        if let Some(e) = then_end {
+            self.edge(e, merge, EdgeLabel::Epsilon);
+        }
+        if let Some(e) = else_end {
+            let label = if rest.is_empty() { EdgeLabel::False } else { EdgeLabel::Epsilon };
+            self.edge(e, merge, label);
+        }
+        Some(merge)
     }
 
     #[allow(clippy::unnecessary_wraps)]
