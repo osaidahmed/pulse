@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub mod cfg;
+mod cfg_nodes;
 pub mod cpg_smells;
 pub mod defuse;
 pub mod reaching;

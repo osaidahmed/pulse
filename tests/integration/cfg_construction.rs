@@ -416,3 +416,42 @@ fn python_match_case_local_is_not_a_false_positive() {
     assert!(!has_finding(&f, Smell::DeadStore), "a match-case local defined-then-used must not be a dead store: {f:?}");
     assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
 }
+
+#[test]
+fn python_pre_match_store_survives_no_match_path() {
+    let src = "def f(k):\n    r = 0\n    match k:\n        case 1:\n            r = 1\n    return r\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "r=0 is read when no case matches; modeling the match must preserve it: {f:?}"
+    );
+}
+
+#[test]
+fn rust_pre_match_store_survives_no_match_path() {
+    let src = "fn f(k: i32) -> i32 {\n    let mut r = 0;\n    match k {\n        1 => r = 1,\n        _ => {}\n    }\n    r\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "r=0 survives the no-match path: {f:?}");
+}
+
+#[test]
+fn rust_match_guard_read_is_not_a_dead_store() {
+    let src =
+        "fn f(k: i32) -> i32 {\n    let g = 7;\n    match k {\n        n if n > g => 1,\n        _ => 0,\n    }\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "g is read in the match-arm guard: {f:?}");
+}
+
+#[test]
+fn python_match_guard_read_is_not_a_dead_store() {
+    let src = "def f(k):\n    g = 7\n    match k:\n        case n if n > g:\n            return 1\n        case _:\n            return 0\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "g is read in the case guard: {f:?}");
+}
+
+#[test]
+fn python_multi_subject_match_reads_all_subjects() {
+    let src = "def f(x):\n    a = x\n    b = x\n    match a, b:\n        case (1, 2):\n            return 1\n        case _:\n            return 0\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "both subjects of `match a, b` are read: {f:?}");
+}

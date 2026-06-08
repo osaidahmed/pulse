@@ -1,5 +1,6 @@
 use tree_sitter::Node;
 
+use crate::cpg::cfg_nodes::{end_line, line, stmt_seq_node, unwrap_stmt};
 use crate::cpg::defuse::{self, DefUseRecord};
 use crate::walk::{find_child_by_kinds, DepthGuard};
 
@@ -57,6 +58,8 @@ pub struct CfgLang {
     pub aug_kinds: &'static [&'static str],
     pub block_kinds: &'static [&'static str],
     pub nested_fn_kinds: &'static [&'static str],
+    pub switch_kinds: &'static [&'static str],
+    pub case_kinds: &'static [&'static str],
 }
 
 pub const PYTHON: CfgLang = CfgLang {
@@ -71,6 +74,8 @@ pub const PYTHON: CfgLang = CfgLang {
     aug_kinds: &["augmented_assignment"],
     block_kinds: &["block"],
     nested_fn_kinds: &["lambda", "function_definition"],
+    switch_kinds: &["match_statement"],
+    case_kinds: &["case_clause"],
 };
 
 pub const RUST: CfgLang = CfgLang {
@@ -85,6 +90,8 @@ pub const RUST: CfgLang = CfgLang {
     aug_kinds: &["compound_assignment_expr"],
     block_kinds: &["block"],
     nested_fn_kinds: &["closure_expression", "function_item"],
+    switch_kinds: &["match_expression"],
+    case_kinds: &["match_arm"],
 };
 
 pub const TYPESCRIPT: CfgLang = CfgLang {
@@ -106,6 +113,8 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
         "generator_function",
         "generator_function_declaration",
     ],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
@@ -122,6 +131,8 @@ pub const JAVA: CfgLang = CfgLang {
     aug_kinds: &[],
     block_kinds: &["block", "constructor_body"],
     nested_fn_kinds: &["lambda_expression"],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 pub const CSHARP: CfgLang = CfgLang {
@@ -136,6 +147,8 @@ pub const CSHARP: CfgLang = CfgLang {
     aug_kinds: &[],
     block_kinds: &["block"],
     nested_fn_kinds: &["lambda_expression", "anonymous_method_expression", "local_function_statement"],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 pub const GO: CfgLang = CfgLang {
@@ -150,6 +163,8 @@ pub const GO: CfgLang = CfgLang {
     aug_kinds: &[],
     block_kinds: &["block"],
     nested_fn_kinds: &["func_literal"],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 pub const C: CfgLang = CfgLang {
@@ -164,6 +179,8 @@ pub const C: CfgLang = CfgLang {
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
     nested_fn_kinds: &[],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 pub const CPP: CfgLang = CfgLang {
@@ -178,6 +195,8 @@ pub const CPP: CfgLang = CfgLang {
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
     nested_fn_kinds: &["lambda_expression"],
+    switch_kinds: &[],
+    case_kinds: &[],
 };
 
 type Incoming = Option<(u32, EdgeLabel)>;
@@ -265,6 +284,9 @@ impl Builder<'_> {
         if self.lang.try_kinds.contains(&k) {
             return self.do_try(node, incoming);
         }
+        if self.lang.switch_kinds.contains(&k) {
+            return self.do_switch(node, incoming);
+        }
         if let Some(to) = self.jump_kind(k) {
             return self.do_jump(node, incoming, to);
         }
@@ -305,6 +327,54 @@ impl Builder<'_> {
     fn record_cond(&mut self, node: Node, block: u32) {
         if let Some(c) = node.child_by_field_name("condition") {
             defuse::collect(c, self.source, block, self.lang, &mut self.def_use);
+        }
+    }
+
+    #[allow(clippy::unnecessary_wraps)]
+    fn do_switch(&mut self, node: Node, incoming: Incoming) -> Option<u32> {
+        let p = self.add(NodeKind::Predicate, line(node));
+        self.link(incoming, p);
+        let mut subj_cursor = node.walk();
+        let mut had_subject = false;
+        for subject in node.children_by_field_name("subject", &mut subj_cursor) {
+            defuse::collect(subject, self.source, p, self.lang, &mut self.def_use);
+            had_subject = true;
+        }
+        if !had_subject {
+            if let Some(value) = node.child_by_field_name("value") {
+                defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
+            }
+        }
+        let after = self.add(NodeKind::Stmt, end_line(node));
+        self.edge(p, after, EdgeLabel::False);
+        let continue_head = self.loops.last().map_or(after, |l| l.head);
+        self.loops.push(LoopCtx { head: continue_head, after });
+        if let Some(body) = node.child_by_field_name("body") {
+            let mut cursor = body.walk();
+            for case in body.children(&mut cursor) {
+                if self.lang.case_kinds.contains(&case.kind()) {
+                    self.do_case(case, p, after);
+                }
+            }
+        }
+        self.loops.pop();
+        Some(after)
+    }
+
+    fn do_case(&mut self, case: Node, p: u32, after: u32) {
+        if let Some(guard) = case.child_by_field_name("guard").or_else(|| case.child_by_field_name("pattern")) {
+            defuse::collect(guard, self.source, p, self.lang, &mut self.def_use);
+        }
+        let Some(body) = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value")) else {
+            return;
+        };
+        let end = if self.lang.block_kinds.contains(&body.kind()) {
+            self.seq(body, Some((p, EdgeLabel::True)))
+        } else {
+            self.stmt(body, Some((p, EdgeLabel::True)))
+        };
+        if let Some(e) = end {
+            self.edge(e, after, EdgeLabel::Epsilon);
         }
     }
 
@@ -418,33 +488,4 @@ impl Builder<'_> {
             }
         }
     }
-}
-
-fn line(node: Node) -> u32 {
-    node.start_position().row as u32 + 1
-}
-
-fn end_line(node: Node) -> u32 {
-    node.end_position().row as u32 + 1
-}
-
-fn stmt_seq_node(block: Node) -> Node {
-    let mut cursor = block.walk();
-    for child in block.children(&mut cursor) {
-        if child.kind() == "statement_list" {
-            return child;
-        }
-    }
-    block
-}
-
-fn unwrap_stmt(node: Node) -> Node {
-    if node.kind() == "expression_statement" {
-        let mut cursor = node.walk();
-        let inner = node.children(&mut cursor).find(tree_sitter::Node::is_named);
-        if let Some(n) = inner {
-            return n;
-        }
-    }
-    node
 }

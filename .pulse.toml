@@ -2,6 +2,7 @@
 fn_loc_warning = 80
 file_loc_warning = 600
 large_fn_loc = 50
+max_struct_fields = 14
 
 [ignore]
 paths = [
