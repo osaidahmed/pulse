@@ -21,6 +21,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
     if lang.nested_fn_kinds.contains(&k) {
+        push_idents(node, source, block, DefUse::Use, out);
         return;
     }
     if lang.def_kinds.contains(&k) {
@@ -67,12 +68,7 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
         return;
     }
     if lang.hoist_kinds.contains(&k) {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if let Some(name) = child.child_by_field_name("name") {
-                push_idents(name, source, entry, DefUse::Def, out);
-            }
-        }
+        seed_hoist_names(node, source, entry, out);
         return;
     }
     let mut cursor = node.walk();
@@ -83,12 +79,22 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
     }
 }
 
+fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        let Some(name) = child.child_by_field_name("name") else { continue };
+        if !is_destructure_pattern(name.kind()) {
+            push_idents(name, source, entry, DefUse::Def, out);
+        }
+    }
+}
+
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let right = binding_right(node);
     if let Some(l) = binding_left(node) {
         if is_field_or_index_target(l.kind()) {
             collect(l, source, block, lang, out);
-        } else if right.is_some() {
+        } else if right.is_some() && !is_destructure_pattern(l.kind()) {
             push_idents(l, source, block, DefUse::Def, out);
             if lang.aug_kinds.contains(&node.kind()) {
                 push_idents(l, source, block, DefUse::Use, out);
@@ -102,6 +108,10 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
 
 fn is_field_or_index_target(kind: &str) -> bool {
     matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression")
+}
+
+fn is_destructure_pattern(kind: &str) -> bool {
+    matches!(kind, "array_pattern" | "object_pattern" | "tuple_pattern" | "list_pattern")
 }
 
 pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {

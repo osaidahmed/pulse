@@ -371,6 +371,48 @@ fn javascript_dead_store_on_redefinition() {
 }
 
 #[test]
+fn typescript_closure_capture_is_not_a_dead_store() {
+    let src = "function f() {\n  let x = expensive();\n  const g = () => x;\n  return g();\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is captured and read by the closure body: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn javascript_closure_capture_is_not_a_dead_store() {
+    let src = "function f() {\n  var x = expensive();\n  setTimeout(function () {\n    use(x);\n  });\n}\n";
+    let f = smells_of(src, Language::JavaScript, "js");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is captured by the nested function: {f:?}");
+}
+
+#[test]
+fn typescript_partial_array_destructure_is_not_a_dead_store() {
+    let src = "function f() {\n  const [a, b] = getArr();\n  return a;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "destructuring is one atomic bind; an unused element is not a dead store: {f:?}"
+    );
+}
+
+#[test]
+fn typescript_partial_object_destructure_is_not_a_dead_store() {
+    let src = "function f() {\n  const { a, b } = getObj();\n  return a;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "an unused destructured property is not a dead store: {f:?}");
+}
+
+#[test]
+fn typescript_empty_switch_case_preserves_fallthrough() {
+    let src = "function f(k) {\n  switch (k) {\n    case 1:\n      let x = 1;\n      use2(x);\n    case 2:\n    case 3:\n      use(x);\n      break;\n  }\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "x defined in case 1 reaches case 3 through the empty case 2; the chain must hold: {f:?}"
+    );
+}
+
+#[test]
 fn go_unreachable_after_return_flagged() {
     let f = smells_of("package main\nfunc f() {\n\treturn\n\tg()\n}\n", Language::Go, "go");
     assert!(

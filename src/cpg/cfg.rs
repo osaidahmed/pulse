@@ -396,9 +396,9 @@ impl Builder<'_> {
         if let Some(guard) = case.child_by_field_name("guard").or_else(|| case.child_by_field_name("pattern")) {
             defuse::collect(guard, self.source, p, self.lang, &mut self.def_use);
         }
-        let mut body_cursor = case.walk();
-        let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
-        if !body_stmts.is_empty() {
+        if matches!(case.kind(), "switch_case" | "switch_default") {
+            let mut body_cursor = case.walk();
+            let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
             return self.do_switch_case(case, p, &body_stmts, fall_in);
         }
         let body = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value"))?;
