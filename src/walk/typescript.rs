@@ -160,6 +160,8 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
     let body = find_child_by_kind(node, "statement_block")?;
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
+    let cpg_lang = if has_types { &crate::cpg::TYPESCRIPT } else { &crate::cpg::JAVASCRIPT };
+    let cpg = super::cpg_for(body, node, source, cpg_lang);
 
     let (
         structural_hash,
@@ -217,7 +219,7 @@ fn analyze_function(node: Node, source: &str, has_types: bool) -> Option<Functio
         parent_class: None,
         short_var_count,
         string_match_arms,
-        cpg: None,
+        cpg,
     })
 }
 

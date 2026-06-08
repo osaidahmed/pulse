@@ -203,6 +203,12 @@ pub fn find_child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     result
 }
 
+pub fn find_child_by_kinds<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
+    let result = node.children(&mut cursor).find(|c| kinds.contains(&c.kind()));
+    result
+}
+
 pub fn node_text<'a>(node: Node, source: &'a str) -> &'a str {
     &source[node.byte_range()]
 }

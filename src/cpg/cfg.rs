@@ -1,7 +1,7 @@
 use tree_sitter::Node;
 
 use crate::cpg::defuse::{self, DefUseRecord};
-use crate::walk::{find_child_by_kind, DepthGuard};
+use crate::walk::{find_child_by_kinds, DepthGuard};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EdgeLabel {
@@ -55,6 +55,7 @@ pub struct CfgLang {
     pub handler_kinds: &'static [&'static str],
     pub def_kinds: &'static [&'static str],
     pub aug_kinds: &'static [&'static str],
+    pub block_kinds: &'static [&'static str],
 }
 
 pub const PYTHON: CfgLang = CfgLang {
@@ -67,6 +68,7 @@ pub const PYTHON: CfgLang = CfgLang {
     handler_kinds: &["except_clause"],
     def_kinds: &["assignment", "augmented_assignment"],
     aug_kinds: &["augmented_assignment"],
+    block_kinds: &["block"],
 };
 
 pub const RUST: CfgLang = CfgLang {
@@ -79,7 +81,23 @@ pub const RUST: CfgLang = CfgLang {
     handler_kinds: &[],
     def_kinds: &["let_declaration", "assignment_expression", "compound_assignment_expr"],
     aug_kinds: &["compound_assignment_expr"],
+    block_kinds: &["block"],
 };
+
+pub const TYPESCRIPT: CfgLang = CfgLang {
+    if_kinds: &["if_statement"],
+    loop_kinds: &["while_statement", "for_statement", "for_in_statement", "do_statement"],
+    return_kinds: &["return_statement"],
+    break_kinds: &["break_statement"],
+    continue_kinds: &["continue_statement"],
+    try_kinds: &["try_statement"],
+    handler_kinds: &["catch_clause"],
+    def_kinds: &[],
+    aug_kinds: &[],
+    block_kinds: &["statement_block"],
+};
+
+pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
 
 type Incoming = Option<(u32, EdgeLabel)>;
 
@@ -248,7 +266,7 @@ impl Builder<'_> {
             if self.lang.if_kinds.contains(&child.kind()) {
                 return self.do_if(child, Some((p, EdgeLabel::False)));
             }
-            if child.kind() == "block" {
+            if self.lang.block_kinds.contains(&child.kind()) {
                 return self.seq(child, Some((p, EdgeLabel::False)));
             }
         }
@@ -287,7 +305,7 @@ impl Builder<'_> {
                 self.handler(child, entry, body_end, after);
             } else if k == "else_clause" {
                 let inc = normal.map(|n| (n, EdgeLabel::Epsilon));
-                normal = self.seq_opt_block(find_child_by_kind(child, "block"), inc);
+                normal = self.seq_opt_block(find_child_by_kinds(child, self.lang.block_kinds), inc);
             } else if k == "finally_clause" {
                 finalizer = Some(child);
             }
@@ -296,7 +314,9 @@ impl Builder<'_> {
             self.edge(e, after, EdgeLabel::Epsilon);
         }
         match finalizer {
-            Some(fc) => self.seq_opt_block(find_child_by_kind(fc, "block"), Some((after, EdgeLabel::Epsilon))),
+            Some(fc) => {
+                self.seq_opt_block(find_child_by_kinds(fc, self.lang.block_kinds), Some((after, EdgeLabel::Epsilon)))
+            }
             None => Some(after),
         }
     }
@@ -307,7 +327,7 @@ impl Builder<'_> {
         if let Some(b) = body_end {
             self.edge(b, h, EdgeLabel::ToHandler);
         }
-        if let Some(hb) = find_child_by_kind(child, "block") {
+        if let Some(hb) = find_child_by_kinds(child, self.lang.block_kinds) {
             if let Some(e) = self.seq(hb, Some((h, EdgeLabel::Epsilon))) {
                 self.edge(e, after, EdgeLabel::Epsilon);
             }

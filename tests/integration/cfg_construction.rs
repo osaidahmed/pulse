@@ -263,3 +263,56 @@ fn cfg_entry_and_exit_distinct() {
     assert_eq!(cfg.nodes[cfg.entry as usize].kind, NodeKind::Entry);
     assert_eq!(cfg.nodes[cfg.exit as usize].kind, NodeKind::Exit);
 }
+
+#[test]
+fn typescript_if_else_has_predicate_and_branches() {
+    let src = "function f(x) {\n  if (x) {\n    let y = 1;\n  } else {\n    let y = 2;\n  }\n  return 0;\n}\n";
+    let cfg = cfg_of(src, Language::TypeScript, "ts", "f");
+    assert!(has_kind(&cfg, NodeKind::Predicate));
+    assert!(has_label(&cfg, EdgeLabel::True), "{cfg:?}");
+    assert!(has_label(&cfg, EdgeLabel::False), "{cfg:?}");
+}
+
+#[test]
+fn typescript_unreachable_after_return_flagged() {
+    let f = smells_of("function f() {\n  return 1;\n  let dead = 2;\n}\n", Language::TypeScript, "ts");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn typescript_clean_function_has_no_cpg_smells() {
+    let src = "function f(a, b) {\n  let s = a + b;\n  if (a) {\n    s = s + 1;\n  }\n  return s;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn typescript_arrow_switch_for_have_no_cpg_false_positive() {
+    let src = "function f(items, k) {\n  items.forEach((item) => {\n    const label = item.name;\n    render(label);\n  });\n  let r = 0;\n  switch (k) {\n    case 1:\n      r = 1;\n      break;\n  }\n  for (let i = 0; i < 10; i += 1) {\n    use(i);\n  }\n  return r;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "arrow/switch/for must not produce a spurious dead store: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn javascript_unreachable_after_return_flagged() {
+    let f = smells_of("function f() {\n  return 1;\n  var dead = 2;\n}\n", Language::JavaScript, "js");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn javascript_var_hoisting_is_not_use_before_def() {
+    let f = smells_of("function f() {\n  log(x);\n  var x = 1;\n  return x;\n}\n", Language::JavaScript, "js");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "var is hoisted; reading it before the declaration is legal: {f:?}");
+}
+
+#[test]
+fn javascript_clean_function_has_no_cpg_smells() {
+    let f = smells_of("function f(a) {\n  var x = a + 1;\n  return x;\n}\n", Language::JavaScript, "js");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
