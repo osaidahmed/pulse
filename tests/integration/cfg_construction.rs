@@ -499,6 +499,16 @@ fn java_lambda_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn java_switch_pattern_binding_is_a_def_not_use_before_def() {
+    let src = "class C {\n  void f(Object o) {\n    switch (o) {\n      case String s:\n        println(s);\n        break;\n      default:\n        break;\n    }\n    int s = compute();\n    use(s);\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "a pattern binding defines its name; it must not collide with a separate local: {f:?}"
+    );
+}
+
+#[test]
 fn typescript_field_write_is_not_a_dead_store() {
     let src = "function f(obj) {\n  obj.x = 1;\n  return 0;\n}\n";
     let f = smells_of(src, Language::TypeScript, "ts");

@@ -246,14 +246,24 @@ struct Builder<'a> {
     edges: Vec<CfgEdge>,
     loops: Vec<LoopCtx>,
     def_use: Vec<DefUseRecord>,
+    entry: u32,
     exit: u32,
 }
 
 pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRecord>) {
-    let mut b =
-        Builder { lang, source, nodes: Vec::new(), edges: Vec::new(), loops: Vec::new(), def_use: Vec::new(), exit: 0 };
+    let mut b = Builder {
+        lang,
+        source,
+        nodes: Vec::new(),
+        edges: Vec::new(),
+        loops: Vec::new(),
+        def_use: Vec::new(),
+        entry: 0,
+        exit: 0,
+    };
     let entry = b.add(NodeKind::Entry, line(body));
     let exit = b.add(NodeKind::Exit, end_line(body));
+    b.entry = entry;
     b.exit = exit;
     if let Some(e) = b.seq(body, Some((entry, EdgeLabel::Epsilon))) {
         b.edge(e, exit, EdgeLabel::Epsilon);
@@ -412,6 +422,7 @@ impl Builder<'_> {
             }
             return None;
         }
+        defuse::seed_case_bindings(case, self.source, self.entry, &mut self.def_use);
         let mut kids_cursor = case.walk();
         let kids: Vec<Node> = case.children(&mut kids_cursor).filter(Node::is_named).collect();
         self.do_switch_case(case, p, &kids, fall_in)

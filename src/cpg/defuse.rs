@@ -79,6 +79,21 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
     }
 }
 
+pub(crate) fn seed_case_bindings(case: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+    let mut label_cursor = case.walk();
+    for label in case.children(&mut label_cursor) {
+        if label.kind() != "switch_label" {
+            continue;
+        }
+        let mut pat_cursor = label.walk();
+        for child in label.children(&mut pat_cursor) {
+            if matches!(child.kind(), "pattern" | "type_pattern" | "record_pattern") {
+                push_idents(child, source, entry, DefUse::Def, out);
+            }
+        }
+    }
+}
+
 fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
