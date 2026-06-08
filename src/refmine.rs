@@ -31,11 +31,8 @@ pub fn body_match_ratio(pre: &str, cur: &str, lang: Language) -> Option<f64> {
 }
 
 fn block_kinds(lang: Language) -> Option<&'static [&'static str]> {
-    match lang {
-        Language::Rust | Language::Python => Some(&["block"]),
-        Language::TypeScript => Some(&["statement_block"]),
-        _ => None,
-    }
+    let kinds = crate::langkinds::block_kinds(lang);
+    (!kinds.is_empty()).then_some(kinds)
 }
 
 fn statements(src: &str, lang: Language, block_kinds: &[&str]) -> Vec<String> {

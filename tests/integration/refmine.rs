@@ -53,9 +53,35 @@ fn typescript_rename_preserves_body() {
 }
 
 #[test]
-fn unsupported_language_is_none() {
-    let src = "package main\nfunc f() { a := 1\n _ = a }";
-    assert!(body_match_ratio(src, src, Language::Go).is_none(), "refmine is front-loaded to a few languages");
+fn a_language_without_a_block_kind_is_none() {
+    assert!(
+        body_match_ratio("PROGRAM-ID. X.", "PROGRAM-ID. X.", Language::Cobol).is_none(),
+        "refmine no-ops for languages without a statement-block kind"
+    );
+}
+
+#[test]
+fn go_rename_preserves_body() {
+    let pre = "package main\nfunc foo() {\n    a := 1\n    bar(a)\n}\n";
+    let cur = "package main\nfunc renamed() {\n    a := 1\n    bar(a)\n}\n";
+    let r = body_match_ratio(pre, cur, Language::Go).expect("statements exist");
+    assert!(approx(r, 1.0), "a go rename preserves the body: {r}");
+}
+
+#[test]
+fn go_rewrite_is_detected() {
+    let pre = "package main\nfunc f() {\n    a := 1\n    bar(a)\n}\n";
+    let cur = "package main\nfunc f() {\n    compute()\n    finish()\n}\n";
+    let r = body_match_ratio(pre, cur, Language::Go).expect("statements exist");
+    assert!(r < 1.0, "a rewritten go body is detected, not masked: {r}");
+}
+
+#[test]
+fn java_rename_preserves_body() {
+    let pre = "class C {\n    void foo() {\n        int a = 1;\n        bar(a);\n    }\n}\n";
+    let cur = "class C {\n    void renamed() {\n        int a = 1;\n        bar(a);\n    }\n}\n";
+    let r = body_match_ratio(pre, cur, Language::Java).expect("statements exist");
+    assert!(approx(r, 1.0), "a java rename preserves the body: {r}");
 }
 
 #[test]

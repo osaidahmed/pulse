@@ -49,11 +49,8 @@ fn run_language(
 }
 
 fn fn_kinds_for(lang: Language) -> Option<&'static [&'static str]> {
-    match lang {
-        Language::Python => Some(&["function_definition"]),
-        Language::Rust => Some(&["function_item"]),
-        _ => None,
-    }
+    let kinds = crate::langkinds::function_kinds(lang);
+    (!kinds.is_empty()).then_some(kinds)
 }
 
 fn collect_docs(

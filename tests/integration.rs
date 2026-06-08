@@ -318,6 +318,8 @@ mod jit_calibration;
 mod kotlin_smells;
 #[path = "integration/kotlin_stress.rs"]
 mod kotlin_stress;
+#[path = "integration/langkinds.rs"]
+mod langkinds;
 #[path = "integration/lua_smells.rs"]
 mod lua_smells;
 #[path = "integration/lua_stress.rs"]

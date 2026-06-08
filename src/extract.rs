@@ -22,16 +22,8 @@ pub fn suggest_extract(source: &str, lang: Language, span: LineSpan) -> Option<E
 }
 
 fn control_flow_kinds(lang: Language) -> Option<&'static [&'static str]> {
-    match lang {
-        Language::Rust => {
-            Some(&["if_expression", "for_expression", "while_expression", "loop_expression", "match_expression"])
-        }
-        Language::Python => Some(&["if_statement", "for_statement", "while_statement", "with_statement"]),
-        Language::TypeScript => {
-            Some(&["if_statement", "for_statement", "for_in_statement", "while_statement", "switch_statement"])
-        }
-        _ => None,
-    }
+    let kinds = crate::langkinds::control_flow_kinds(lang);
+    (!kinds.is_empty()).then_some(kinds)
 }
 
 fn enclosing_function(root: Node, span: LineSpan) -> Option<Node> {

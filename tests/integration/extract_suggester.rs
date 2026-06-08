@@ -39,11 +39,35 @@ fn a_flat_function_yields_no_suggestion() {
 }
 
 #[test]
-fn unsupported_language_yields_no_suggestion() {
-    let src = "package main\nfunc f() {\n    if a {\n        for {\n        }\n    }\n}\n";
+fn go_deepest_nested_region_is_reported() {
+    let src = "package main\nfunc f() {\n    if a {\n        for {\n            work()\n        }\n    }\n}\n";
+    let r = suggest_extract(src, Language::Go, span(2, 8)).expect("a nested region exists");
+    assert_eq!(r.start_line, 4, "the for-loop nested in the if is the deepest region");
+    assert_eq!(r.nesting, 2);
+}
+
+#[test]
+fn java_deepest_nested_region_is_reported() {
+    let src = "class C {\n    void f() {\n        if (a) {\n            while (b) {\n                work();\n            }\n        }\n    }\n}\n";
+    let r = suggest_extract(src, Language::Java, span(1, 9)).expect("a nested region exists");
+    assert_eq!(r.start_line, 4);
+    assert_eq!(r.nesting, 2);
+}
+
+#[test]
+fn csharp_deepest_nested_region_is_reported() {
+    let src = "class C {\n    void F() {\n        if (a) {\n            foreach (var x in xs) {\n                Work(x);\n            }\n        }\n    }\n}\n";
+    let r = suggest_extract(src, Language::CSharp, span(1, 9)).expect("a nested region exists");
+    assert_eq!(r.start_line, 4);
+    assert_eq!(r.nesting, 2);
+}
+
+#[test]
+fn a_flat_newly_covered_function_yields_no_suggestion() {
+    let src = "package main\nfunc f() {\n    work()\n}\n";
     assert!(
-        suggest_extract(src, Language::Go, span(2, 7)).is_none(),
-        "extract suggestions are front-loaded to a few languages; others no-op"
+        suggest_extract(src, Language::Go, span(2, 4)).is_none(),
+        "a function with no nested control flow is not worth an extract suggestion"
     );
 }
 
