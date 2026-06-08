@@ -384,3 +384,19 @@ fn cpp_if_else_clean_has_no_cpg_smells() {
     let f = smells_of(src, Language::Cpp, "cpp");
     assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
 }
+
+#[test]
+fn python_nested_function_local_is_not_a_false_positive() {
+    let src = "def outer():\n    def inner():\n        tmp = make()\n        return tmp\n    return inner()\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "a nested fn local must not leak into the outer block: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn rust_closure_local_is_not_a_false_positive() {
+    let src = "fn outer() -> i32 {\n    let g = || {\n        let r = make();\n        r\n    };\n    g()\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "a closure local must not leak into the outer block: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}

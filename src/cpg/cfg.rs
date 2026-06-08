@@ -56,6 +56,7 @@ pub struct CfgLang {
     pub def_kinds: &'static [&'static str],
     pub aug_kinds: &'static [&'static str],
     pub block_kinds: &'static [&'static str],
+    pub nested_fn_kinds: &'static [&'static str],
 }
 
 pub const PYTHON: CfgLang = CfgLang {
@@ -69,6 +70,7 @@ pub const PYTHON: CfgLang = CfgLang {
     def_kinds: &["assignment", "augmented_assignment"],
     aug_kinds: &["augmented_assignment"],
     block_kinds: &["block"],
+    nested_fn_kinds: &["lambda", "function_definition"],
 };
 
 pub const RUST: CfgLang = CfgLang {
@@ -82,6 +84,7 @@ pub const RUST: CfgLang = CfgLang {
     def_kinds: &["let_declaration", "assignment_expression", "compound_assignment_expr"],
     aug_kinds: &["compound_assignment_expr"],
     block_kinds: &["block"],
+    nested_fn_kinds: &["closure_expression", "function_item"],
 };
 
 pub const TYPESCRIPT: CfgLang = CfgLang {
@@ -95,6 +98,14 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["statement_block"],
+    nested_fn_kinds: &[
+        "arrow_function",
+        "function_declaration",
+        "function_expression",
+        "method_definition",
+        "generator_function",
+        "generator_function_declaration",
+    ],
 };
 
 pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
@@ -110,6 +121,7 @@ pub const JAVA: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["block", "constructor_body"],
+    nested_fn_kinds: &["lambda_expression"],
 };
 
 pub const CSHARP: CfgLang = CfgLang {
@@ -123,6 +135,7 @@ pub const CSHARP: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["block"],
+    nested_fn_kinds: &["lambda_expression", "anonymous_method_expression", "local_function_statement"],
 };
 
 pub const GO: CfgLang = CfgLang {
@@ -136,6 +149,7 @@ pub const GO: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["block"],
+    nested_fn_kinds: &["func_literal"],
 };
 
 pub const C: CfgLang = CfgLang {
@@ -149,6 +163,7 @@ pub const C: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
+    nested_fn_kinds: &[],
 };
 
 pub const CPP: CfgLang = CfgLang {
@@ -162,6 +177,7 @@ pub const CPP: CfgLang = CfgLang {
     def_kinds: &[],
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
+    nested_fn_kinds: &["lambda_expression"],
 };
 
 type Incoming = Option<(u32, EdgeLabel)>;

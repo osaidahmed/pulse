@@ -20,6 +20,9 @@ pub struct DefUseRecord {
 pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
+    if lang.nested_fn_kinds.contains(&k) {
+        return;
+    }
     if lang.def_kinds.contains(&k) {
         handle_binding(node, source, block, lang, out);
         return;
