@@ -139,6 +139,70 @@ fn go_sanitized_flow_is_not_flagged() {
 }
 
 #[test]
+fn typescript_request_property_source_to_sink_is_flagged() {
+    let body = "function handler(db, req) {\n  const q = req.query;\n  db.query(q);\n}\n";
+    let found = taint_findings("app.ts", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "query");
+    assert_eq!(found[0].sink_name, "query");
+    assert_eq!(found[0].tainted_var, "q");
+    assert_eq!(found[0].confidence, ImportConfidence::Low);
+}
+
+#[test]
+fn typescript_sanitized_flow_is_not_flagged() {
+    let body = "function handler(db, req) {\n  const q = req.body;\n  const safe = escape(q);\n  db.query(safe);\n}\n";
+    assert!(taint_findings("app.ts", body).is_empty(), "escape() sanitizes the flow");
+}
+
+#[test]
+fn typescript_method_callee_is_not_a_phantom_source() {
+    let body = "function handler(db, other, x) {\n  const r = db.query(x);\n  other.exec(r);\n}\n";
+    assert!(taint_findings("app.ts", body).is_empty(), "a `.query` in callee position is a method, not a source");
+}
+
+#[test]
+fn javascript_request_property_source_to_sink_is_flagged() {
+    let body = "function handler(db, req) {\n  var q = req.body;\n  db.query(q);\n}\n";
+    let found = taint_findings("app.js", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "body");
+    assert_eq!(found[0].sink_name, "query");
+}
+
+#[test]
+fn csharp_request_property_source_to_sink_is_flagged() {
+    let body = "class C {\n  void Handler(SqlCommand cmd) {\n    var q = Request.Form[\"id\"];\n    cmd.ExecuteReader(q);\n  }\n}\n";
+    let found = taint_findings("App.cs", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "Form");
+    assert_eq!(found[0].sink_name, "ExecuteReader");
+    assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn csharp_sanitized_flow_is_not_flagged() {
+    let body = "class C {\n  void Handler(SqlCommand cmd) {\n    var q = Request.QueryString[\"id\"];\n    var safe = Encode(q);\n    cmd.ExecuteReader(safe);\n  }\n}\n";
+    assert!(taint_findings("App.cs", body).is_empty(), "Encode() sanitizes the flow");
+}
+
+#[test]
+fn php_superglobal_source_to_sink_is_flagged() {
+    let body = "<?php\nfunction handler($db) {\n  $q = $_GET['id'];\n  $db->query($q);\n}\n";
+    let found = taint_findings("app.php", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "$_GET");
+    assert_eq!(found[0].sink_name, "query");
+    assert_eq!(found[0].tainted_var, "$q");
+}
+
+#[test]
+fn php_sanitized_flow_is_not_flagged() {
+    let body = "<?php\nfunction handler($db, $conn) {\n  $q = $_POST['id'];\n  $safe = mysqli_real_escape_string($conn, $q);\n  $db->query($safe);\n}\n";
+    assert!(taint_findings("app.php", body).is_empty(), "mysqli_real_escape_string sanitizes the flow");
+}
+
+#[test]
 fn taint_is_opt_in_not_in_default_passes() {
     let dir = tempfile::tempdir().unwrap();
     let body = "def handler(cursor):\n    q = input()\n    cursor.execute(q)\n";

@@ -5,7 +5,10 @@ use tree_sitter::Node;
 use crate::audit::finding::{AuditFinding, AuditKind, ImportConfidence, InjectionEvidence};
 use crate::walk::{node_text, DepthGuard};
 
-use super::nodes::{binding_left, binding_right, callee_name, idents_in, is_field_or_index_target, is_in, line};
+use super::nodes::{
+    binding_left, binding_right, callee_name, idents_in, is_callee, is_field_or_index_target, is_in, line,
+    prop_source_name,
+};
 use super::state::{resolve_taint, sanitized, source_rhs, Rhs, Taint};
 use super::FileCtx;
 
@@ -65,7 +68,7 @@ impl<'a> Analyzer<'a> {
     }
 
     fn apply_targets(&mut self, lhs: Node, taint: Option<Taint>, aug: bool) {
-        if lhs.kind() == "identifier" {
+        if self.ctx.lang.ident_kinds.contains(&lhs.kind()) {
             let name = node_text(lhs, self.ctx.source).to_string();
             self.apply_one(name, taint, AssignMode { augmented: aug, opaque: false });
             return;
@@ -73,7 +76,7 @@ impl<'a> Analyzer<'a> {
         if is_field_or_index_target(lhs.kind()) {
             return;
         }
-        let names = idents_in(lhs, self.ctx.source);
+        let names = idents_in(lhs, self.ctx.source, self.ctx.lang.ident_kinds);
         let opaque = names.len() > 1;
         for name in names {
             self.apply_one(name, taint.clone(), AssignMode { augmented: aug, opaque });
@@ -156,8 +159,11 @@ impl<'a> Analyzer<'a> {
         if self.ctx.lang.call_kinds.contains(&node.kind()) {
             return self.analyze_call(node, in_sanitizer);
         }
+        if let Some(r) = self.prop_source(node, in_sanitizer) {
+            return r;
+        }
         let mut r = self.analyze_children(node, in_sanitizer);
-        if node.kind() == "identifier" {
+        if self.ctx.lang.ident_kinds.contains(&node.kind()) {
             self.absorb_ident(node, in_sanitizer, &mut r);
         }
         if self.ctx.lang.opacity_kinds.contains(&node.kind()) {
@@ -165,6 +171,14 @@ impl<'a> Analyzer<'a> {
         }
         r.finalize();
         r
+    }
+
+    fn prop_source(&self, node: Node, in_sanitizer: bool) -> Option<Rhs> {
+        if !self.ctx.lang.source_kinds.contains(&node.kind()) || is_callee(node, self.ctx.lang.call_kinds) {
+            return None;
+        }
+        let name = prop_source_name(node, self.ctx.source);
+        self.ctx.lang.prop_sources.contains(&name.as_str()).then(|| source_rhs(&name, line(node), in_sanitizer))
     }
 
     fn analyze_call(&self, node: Node, in_sanitizer: bool) -> Rhs {

@@ -19,6 +19,9 @@ pub struct TaintLang {
     pub aug_kinds: &'static [&'static str],
     pub call_kinds: &'static [&'static str],
     pub sources: &'static [&'static str],
+    pub prop_sources: &'static [&'static str],
+    pub source_kinds: &'static [&'static str],
+    pub ident_kinds: &'static [&'static str],
     pub sinks: &'static [&'static str],
     pub sanitizers: &'static [&'static str],
     pub opacity_kinds: &'static [&'static str],
@@ -45,6 +48,9 @@ const PYTHON: TaintLang = TaintLang {
     aug_kinds: &["augmented_assignment"],
     call_kinds: &["call"],
     sources: &["input", "raw_input", "getenv"],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
     sinks: &["execute", "executemany", "executescript", "system", "popen", "eval", "exec"],
     sanitizers: &["escape", "quote", "sanitize", "clean", "shlex_quote"],
     opacity_kinds: &["dictionary_splat", "list_splat", "dictionary_splat_pattern", "list_splat_pattern"],
@@ -58,6 +64,9 @@ const RUST: TaintLang = TaintLang {
     aug_kinds: &["compound_assignment_expr"],
     call_kinds: &["call_expression"],
     sources: &["var", "args", "read_line", "read_to_string"],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
     sinks: &["execute", "query", "query_unchecked", "batch_execute"],
     sanitizers: &["escape", "sanitize", "quote"],
     opacity_kinds: &["closure_expression"],
@@ -79,6 +88,9 @@ const JAVA: TaintLang = TaintLang {
         "nextLine",
         "readLine",
     ],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
     sinks: &["executeQuery", "executeUpdate", "execute", "exec", "eval"],
     sanitizers: &["escapeHtml", "escapeSql", "encode", "quote", "escape"],
     opacity_kinds: &["lambda_expression"],
@@ -92,20 +104,85 @@ const GO: TaintLang = TaintLang {
     aug_kinds: &[],
     call_kinds: &["call_expression"],
     sources: &["FormValue", "PostFormValue", "Param"],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
     sinks: &["Query", "QueryRow", "Exec", "QueryContext", "ExecContext", "Command"],
     sanitizers: &["EscapeString", "QuoteIdentifier", "HTMLEscapeString", "Escape"],
     opacity_kinds: &["func_literal"],
     opacity_calls: &["ValueOf"],
 };
 
+const TYPESCRIPT: TaintLang = TaintLang {
+    fn_kinds: &["function_declaration", "method_definition", "arrow_function", "function_expression"],
+    body_kind: "statement_block",
+    assign_kinds: &["assignment_expression", "augmented_assignment_expression", "variable_declarator"],
+    aug_kinds: &["augmented_assignment_expression"],
+    call_kinds: &["call_expression"],
+    sources: &[],
+    prop_sources: &["query", "body", "params"],
+    source_kinds: &["member_expression"],
+    ident_kinds: &["identifier"],
+    sinks: &["query", "execute", "exec", "eval"],
+    sanitizers: &["escape", "encode", "sanitize", "escapeHtml", "encodeURIComponent"],
+    opacity_kinds: &["arrow_function", "function_expression"],
+    opacity_calls: &[],
+};
+
+const JAVASCRIPT: TaintLang = TYPESCRIPT;
+
+const CSHARP: TaintLang = TaintLang {
+    fn_kinds: &["method_declaration", "constructor_declaration", "local_function_statement"],
+    body_kind: "block",
+    assign_kinds: &["assignment_expression", "variable_declarator"],
+    aug_kinds: &[],
+    call_kinds: &["invocation_expression"],
+    sources: &[],
+    prop_sources: &["Form", "QueryString", "Params", "Query", "Headers"],
+    source_kinds: &["member_access_expression"],
+    ident_kinds: &["identifier"],
+    sinks: &["ExecuteReader", "ExecuteNonQuery", "ExecuteScalar", "ExecuteQuery", "Execute"],
+    sanitizers: &["Encode", "HtmlEncode", "Escape"],
+    opacity_kinds: &["lambda_expression"],
+    opacity_calls: &["Invoke", "GetMethod"],
+};
+
+const PHP: TaintLang = TaintLang {
+    fn_kinds: &["function_definition", "method_declaration"],
+    body_kind: "compound_statement",
+    assign_kinds: &["assignment_expression", "augmented_assignment_expression"],
+    aug_kinds: &["augmented_assignment_expression"],
+    call_kinds: &["function_call_expression", "member_call_expression", "scoped_call_expression"],
+    sources: &[],
+    prop_sources: &["$_GET", "$_POST", "$_REQUEST", "$_COOKIE"],
+    source_kinds: &["variable_name"],
+    ident_kinds: &["identifier", "variable_name"],
+    sinks: &["query", "mysqli_query", "mysql_query", "exec", "system", "shell_exec", "eval", "passthru"],
+    sanitizers: &[
+        "mysqli_real_escape_string",
+        "real_escape_string",
+        "htmlspecialchars",
+        "htmlentities",
+        "addslashes",
+        "escapeshellarg",
+        "intval",
+    ],
+    opacity_kinds: &["dynamic_variable_name"],
+    opacity_calls: &["extract", "call_user_func", "compact"],
+};
+
 fn lang_for(lang: Language) -> Option<&'static TaintLang> {
-    match lang {
-        Language::Python => Some(&PYTHON),
-        Language::Rust => Some(&RUST),
-        Language::Java => Some(&JAVA),
-        Language::Go => Some(&GO),
-        _ => None,
-    }
+    const TABLE: &[(Language, &TaintLang)] = &[
+        (Language::Python, &PYTHON),
+        (Language::Rust, &RUST),
+        (Language::Java, &JAVA),
+        (Language::Go, &GO),
+        (Language::TypeScript, &TYPESCRIPT),
+        (Language::JavaScript, &JAVASCRIPT),
+        (Language::CSharp, &CSHARP),
+        (Language::Php, &PHP),
+    ];
+    TABLE.iter().find(|(l, _)| *l == lang).map(|(_, tl)| *tl)
 }
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
@@ -154,6 +231,7 @@ fn collect_functions<'a>(node: Node<'a>, fn_kinds: &[&str], out: &mut Vec<Node<'
 fn analyze_function(ctx: &FileCtx, f: Node, out: &mut Vec<AuditFinding>) {
     let Some(body) = find_child_by_kind(f, ctx.lang.body_kind) else { return };
     let name = find_child_by_kind(f, "identifier")
+        .or_else(|| find_child_by_kind(f, "name"))
         .map_or_else(|| "<anonymous>".to_string(), |n| node_text(n, ctx.source).to_string());
     let mut analyzer = flow::Analyzer::new(ctx, name);
     analyzer.visit(body);
