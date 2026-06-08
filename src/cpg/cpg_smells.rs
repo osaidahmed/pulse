@@ -52,12 +52,17 @@ fn unreachable_code(cfg: &Cfg, flow: &Flow, func: &FunctionMetrics, out: &mut Ve
 }
 
 fn reaches_a_use(def_idx: usize, var: &str, cpg: &CpgMetrics, flow: &Flow) -> bool {
+    let def = &cpg.def_use[def_idx];
     cpg.def_use.iter().any(|u| {
         u.kind == DefUse::Use
             && u.name == var
             && flow.reachable.contains(&u.block)
-            && flow.reaching_in[u.block as usize].contains(&def_idx)
+            && (flow.reaching_in[u.block as usize].contains(&def_idx) || (u.block == def.block && def.line <= u.line))
     })
+}
+
+fn same_block_def_reaches(cpg: &CpgMetrics, u: &crate::cpg::defuse::DefUseRecord) -> bool {
+    cpg.def_use.iter().any(|d| d.kind == DefUse::Def && d.name == u.name && d.block == u.block && d.line <= u.line)
 }
 
 fn dead_stores(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {
@@ -84,7 +89,8 @@ fn use_before_def(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &m
         if !local.contains(u.name.as_str()) {
             continue;
         }
-        let reached = flow.reaching_in[u.block as usize].iter().any(|&d| cpg.def_use[d].name == u.name);
+        let reached = flow.reaching_in[u.block as usize].iter().any(|&d| cpg.def_use[d].name == u.name)
+            || same_block_def_reaches(cpg, u);
         if !reached {
             out.push(finding(
                 Smell::UseBeforeDef,

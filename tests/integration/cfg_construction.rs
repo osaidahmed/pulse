@@ -400,3 +400,19 @@ fn rust_closure_local_is_not_a_false_positive() {
     assert!(!has_finding(&f, Smell::DeadStore), "a closure local must not leak into the outer block: {f:?}");
     assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
 }
+
+#[test]
+fn rust_match_arm_local_is_not_a_false_positive() {
+    let src = "fn f(k: i32) -> i32 {\n    let y = match k {\n        1 => {\n            let r = compute();\n            r\n        }\n        _ => 0,\n    };\n    y\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "a match-arm local defined-then-used must not be a dead store: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn python_match_case_local_is_not_a_false_positive() {
+    let src = "def f(k):\n    match k:\n        case 1:\n            r = compute()\n            return r\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::DeadStore), "a match-case local defined-then-used must not be a dead store: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
