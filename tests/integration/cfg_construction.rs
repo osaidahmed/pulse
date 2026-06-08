@@ -442,6 +442,70 @@ fn java_if_else_clean_has_no_cpg_smells() {
 }
 
 #[test]
+fn java_dead_store_on_redefinition() {
+    let src = "class C {\n  int f() {\n    int x = 1;\n    x = 2;\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 1 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn java_use_before_def_flagged() {
+    let src = "class C {\n  int f() {\n    int y = x;\n    int x = 1;\n    return y;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "x is read before its declaration: {f:?}");
+}
+
+#[test]
+fn java_clean_function_has_no_cpg_smells() {
+    let src = "class C {\n  int f(int a) {\n    int x = a + 1;\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn java_pre_switch_store_survives_no_match_path() {
+    let src = "class C {\n  int f(int k) {\n    int x = 0;\n    switch (k) {\n      case 1:\n        x = 1;\n        break;\n    }\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "x = 0 is read when no case matches; the switch must not unconditionally kill it: {f:?}"
+    );
+}
+
+#[test]
+fn java_augmented_assignment_counter_is_not_a_dead_store() {
+    let src = "class C {\n  int f(int[] xs) {\n    int sum = 0;\n    for (int x : xs) {\n      sum += x;\n    }\n    return sum;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(!has_finding(&f, Smell::DeadStore), "sum is read by the += accumulation: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn java_field_write_is_not_a_dead_store() {
+    let src = "class C {\n  int f(Obj o) {\n    o.field = 1;\n    return 0;\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a field write reads the receiver; it is not a local dead store: {f:?}"
+    );
+}
+
+#[test]
+fn java_lambda_capture_is_not_a_dead_store() {
+    let src = "class C {\n  Runnable f() {\n    int x = compute();\n    return () -> use(x);\n  }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is captured and read by the lambda: {f:?}");
+}
+
+#[test]
+fn typescript_field_write_is_not_a_dead_store() {
+    let src = "function f(obj) {\n  obj.x = 1;\n  return 0;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "a member write reads the receiver; it is not a dead store: {f:?}");
+}
+
+#[test]
 fn csharp_unreachable_after_return_flagged() {
     let f = smells_of("class C {\n  void F() {\n    return;\n    int dead = 2;\n  }\n}\n", Language::CSharp, "cs");
     assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");

@@ -148,12 +148,12 @@ pub const JAVA: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["catch_clause"],
-    def_kinds: &[],
+    def_kinds: &["variable_declarator", "assignment_expression"],
     aug_kinds: &[],
     block_kinds: &["block", "constructor_body"],
     nested_fn_kinds: &["lambda_expression"],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_expression"],
+    case_kinds: &["switch_block_statement_group", "switch_rule"],
     hoist_kinds: &[],
 };
 
@@ -369,7 +369,7 @@ impl Builder<'_> {
         for subject in node.children_by_field_name("subject", &mut subj_cursor) {
             defuse::collect(subject, self.source, p, self.lang, &mut self.def_use);
         }
-        if let Some(value) = node.child_by_field_name("value") {
+        if let Some(value) = node.child_by_field_name("value").or_else(|| node.child_by_field_name("condition")) {
             defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
         }
         let after = self.add(NodeKind::Stmt, end_line(node));
@@ -401,16 +401,20 @@ impl Builder<'_> {
             let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
             return self.do_switch_case(case, p, &body_stmts, fall_in);
         }
-        let body = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value"))?;
-        let end = if self.lang.block_kinds.contains(&body.kind()) {
-            self.seq(body, Some((p, EdgeLabel::True)))
-        } else {
-            self.stmt(body, Some((p, EdgeLabel::True)))
-        };
-        if let Some(e) = end {
-            self.edge(e, after, EdgeLabel::Epsilon);
+        if let Some(body) = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value")) {
+            let end = if self.lang.block_kinds.contains(&body.kind()) {
+                self.seq(body, Some((p, EdgeLabel::True)))
+            } else {
+                self.stmt(body, Some((p, EdgeLabel::True)))
+            };
+            if let Some(e) = end {
+                self.edge(e, after, EdgeLabel::Epsilon);
+            }
+            return None;
         }
-        None
+        let mut kids_cursor = case.walk();
+        let kids: Vec<Node> = case.children(&mut kids_cursor).filter(Node::is_named).collect();
+        self.do_switch_case(case, p, &kids, fall_in)
     }
 
     fn do_switch_case(&mut self, case: Node, p: u32, body_stmts: &[Node], fall_in: Option<u32>) -> Option<u32> {

@@ -96,7 +96,7 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
             collect(l, source, block, lang, out);
         } else if right.is_some() && !is_destructure_pattern(l.kind()) {
             push_idents(l, source, block, DefUse::Def, out);
-            if lang.aug_kinds.contains(&node.kind()) {
+            if is_augmented(node, source, lang) {
                 push_idents(l, source, block, DefUse::Use, out);
             }
         }
@@ -106,8 +106,23 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     }
 }
 
+fn is_augmented(node: Node, source: &str, lang: &CfgLang) -> bool {
+    lang.aug_kinds.contains(&node.kind())
+        || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=")
+}
+
 fn is_field_or_index_target(kind: &str) -> bool {
-    matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression")
+    matches!(
+        kind,
+        "attribute"
+            | "subscript"
+            | "subscript_expression"
+            | "field_expression"
+            | "index_expression"
+            | "member_expression"
+            | "field_access"
+            | "array_access"
+    )
 }
 
 fn is_destructure_pattern(kind: &str) -> bool {
