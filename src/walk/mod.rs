@@ -120,6 +120,7 @@ pub(crate) fn cpg_for(
     }
     let (cfg, mut def_use) = crate::cpg::build_cfg(body, source, lang);
     crate::cpg::defuse::seed_params(fn_node, source, cfg.entry, &mut def_use);
+    crate::cpg::defuse::seed_hoisted(body, source, cfg.entry, lang, &mut def_use);
     Some(crate::cpg::CpgMetrics { cfg, def_use, ..Default::default() })
 }
 

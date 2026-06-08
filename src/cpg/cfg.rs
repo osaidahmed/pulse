@@ -60,6 +60,7 @@ pub struct CfgLang {
     pub nested_fn_kinds: &'static [&'static str],
     pub switch_kinds: &'static [&'static str],
     pub case_kinds: &'static [&'static str],
+    pub hoist_kinds: &'static [&'static str],
 }
 
 pub const PYTHON: CfgLang = CfgLang {
@@ -76,6 +77,7 @@ pub const PYTHON: CfgLang = CfgLang {
     nested_fn_kinds: &["lambda", "function_definition"],
     switch_kinds: &["match_statement"],
     case_kinds: &["case_clause"],
+    hoist_kinds: &[],
 };
 
 pub const RUST: CfgLang = CfgLang {
@@ -92,6 +94,7 @@ pub const RUST: CfgLang = CfgLang {
     nested_fn_kinds: &["closure_expression", "function_item"],
     switch_kinds: &["match_expression"],
     case_kinds: &["match_arm"],
+    hoist_kinds: &[],
 };
 
 pub const TYPESCRIPT: CfgLang = CfgLang {
@@ -102,8 +105,8 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["catch_clause"],
-    def_kinds: &[],
-    aug_kinds: &[],
+    def_kinds: &["variable_declarator", "assignment_expression", "augmented_assignment_expression"],
+    aug_kinds: &["augmented_assignment_expression"],
     block_kinds: &["statement_block"],
     nested_fn_kinds: &[
         "arrow_function",
@@ -113,8 +116,9 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
         "generator_function",
         "generator_function_declaration",
     ],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_statement"],
+    case_kinds: &["switch_case", "switch_default"],
+    hoist_kinds: &["variable_declaration"],
 };
 
 pub const JAVASCRIPT: CfgLang = TYPESCRIPT;
@@ -133,6 +137,7 @@ pub const PHP: CfgLang = CfgLang {
     nested_fn_kinds: &["anonymous_function", "arrow_function"],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 pub const JAVA: CfgLang = CfgLang {
@@ -149,6 +154,7 @@ pub const JAVA: CfgLang = CfgLang {
     nested_fn_kinds: &["lambda_expression"],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 pub const CSHARP: CfgLang = CfgLang {
@@ -165,6 +171,7 @@ pub const CSHARP: CfgLang = CfgLang {
     nested_fn_kinds: &["lambda_expression", "anonymous_method_expression", "local_function_statement"],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 pub const GO: CfgLang = CfgLang {
@@ -181,6 +188,7 @@ pub const GO: CfgLang = CfgLang {
     nested_fn_kinds: &["func_literal"],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 pub const C: CfgLang = CfgLang {
@@ -197,6 +205,7 @@ pub const C: CfgLang = CfgLang {
     nested_fn_kinds: &[],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 pub const CPP: CfgLang = CfgLang {
@@ -213,6 +222,7 @@ pub const CPP: CfgLang = CfgLang {
     nested_fn_kinds: &["lambda_expression"],
     switch_kinds: &[],
     case_kinds: &[],
+    hoist_kinds: &[],
 };
 
 type Incoming = Option<(u32, EdgeLabel)>;
@@ -269,11 +279,16 @@ impl Builder<'_> {
     }
 
     fn seq(&mut self, block: Node, incoming: Incoming) -> Option<u32> {
-        let _g = DepthGuard::enter()?;
         let seq_node = stmt_seq_node(block);
-        let mut cur = incoming;
         let mut cursor = seq_node.walk();
-        for child in seq_node.children(&mut cursor) {
+        let nodes: Vec<Node> = seq_node.children(&mut cursor).collect();
+        self.thread_stmts(&nodes, incoming)
+    }
+
+    fn thread_stmts(&mut self, nodes: &[Node], incoming: Incoming) -> Option<u32> {
+        let _g = DepthGuard::enter()?;
+        let mut cur = incoming;
+        for &child in nodes {
             if !child.is_named() {
                 continue;
             }
@@ -351,15 +366,11 @@ impl Builder<'_> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
         let mut subj_cursor = node.walk();
-        let mut had_subject = false;
         for subject in node.children_by_field_name("subject", &mut subj_cursor) {
             defuse::collect(subject, self.source, p, self.lang, &mut self.def_use);
-            had_subject = true;
         }
-        if !had_subject {
-            if let Some(value) = node.child_by_field_name("value") {
-                defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
-            }
+        if let Some(value) = node.child_by_field_name("value") {
+            defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
         }
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(p, after, EdgeLabel::False);
@@ -367,23 +378,30 @@ impl Builder<'_> {
         self.loops.push(LoopCtx { head: continue_head, after });
         if let Some(body) = node.child_by_field_name("body") {
             let mut cursor = body.walk();
+            let mut fall: Option<u32> = None;
             for case in body.children(&mut cursor) {
                 if self.lang.case_kinds.contains(&case.kind()) {
-                    self.do_case(case, p, after);
+                    fall = self.do_case(case, p, after, fall);
                 }
+            }
+            if let Some(end) = fall {
+                self.edge(end, after, EdgeLabel::Epsilon);
             }
         }
         self.loops.pop();
         Some(after)
     }
 
-    fn do_case(&mut self, case: Node, p: u32, after: u32) {
+    fn do_case(&mut self, case: Node, p: u32, after: u32, fall_in: Option<u32>) -> Option<u32> {
         if let Some(guard) = case.child_by_field_name("guard").or_else(|| case.child_by_field_name("pattern")) {
             defuse::collect(guard, self.source, p, self.lang, &mut self.def_use);
         }
-        let Some(body) = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value")) else {
-            return;
-        };
+        let mut body_cursor = case.walk();
+        let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
+        if !body_stmts.is_empty() {
+            return self.do_switch_case(case, p, &body_stmts, fall_in);
+        }
+        let body = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value"))?;
         let end = if self.lang.block_kinds.contains(&body.kind()) {
             self.seq(body, Some((p, EdgeLabel::True)))
         } else {
@@ -392,6 +410,19 @@ impl Builder<'_> {
         if let Some(e) = end {
             self.edge(e, after, EdgeLabel::Epsilon);
         }
+        None
+    }
+
+    fn do_switch_case(&mut self, case: Node, p: u32, body_stmts: &[Node], fall_in: Option<u32>) -> Option<u32> {
+        if let Some(label) = case.child_by_field_name("value") {
+            defuse::collect(label, self.source, p, self.lang, &mut self.def_use);
+        }
+        let entry = self.add(NodeKind::Stmt, line(case));
+        self.edge(p, entry, EdgeLabel::True);
+        if let Some(prev) = fall_in {
+            self.edge(prev, entry, EdgeLabel::Epsilon);
+        }
+        self.thread_stmts(body_stmts, Some((entry, EdgeLabel::Epsilon)))
     }
 
     fn do_if(&mut self, node: Node, incoming: Incoming) -> Option<u32> {

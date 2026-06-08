@@ -318,6 +318,59 @@ fn javascript_clean_function_has_no_cpg_smells() {
 }
 
 #[test]
+fn typescript_dead_store_on_redefinition() {
+    let f = smells_of("function f() {\n  let x = 1;\n  x = 2;\n  return x;\n}\n", Language::TypeScript, "ts");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 1 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn typescript_use_before_def_with_let_is_flagged() {
+    let f = smells_of("function f() {\n  log(x);\n  let x = 1;\n  return x;\n}\n", Language::TypeScript, "ts");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "reading a let binding before its declaration is a TDZ error: {f:?}");
+}
+
+#[test]
+fn typescript_declaration_without_initializer_is_not_a_dead_store() {
+    let src = "function f(c) {\n  let x;\n  if (c) {\n    x = 1;\n  } else {\n    x = 2;\n  }\n  return x;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a bare declaration is not a store; the branch assignments are read: {f:?}"
+    );
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn typescript_for_counter_is_not_a_dead_store() {
+    let src =
+        "function f(n) {\n  let sum = 0;\n  for (let i = 0; i < n; i += 1) {\n    sum += i;\n  }\n  return sum;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "the loop counter and accumulator are both read: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn typescript_switch_fallthrough_preserves_earlier_store() {
+    let src = "function f(k) {\n  let r = 0;\n  switch (k) {\n    case 1:\n      r = 1;\n    case 2:\n      r = r + 1;\n      break;\n  }\n  return r;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "case 1 falls through to case 2, which reads r: {f:?}");
+}
+
+#[test]
+fn typescript_dead_store_inside_switch_case_flagged() {
+    let src =
+        "function f(k) {\n  switch (k) {\n    case 1:\n      let tmp = compute();\n      break;\n  }\n  return 0;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(has_finding(&f, Smell::DeadStore), "tmp is computed inside the case and never read: {f:?}");
+}
+
+#[test]
+fn javascript_dead_store_on_redefinition() {
+    let f = smells_of("function f() {\n  var x = 1;\n  x = 2;\n  return x;\n}\n", Language::JavaScript, "js");
+    assert!(has_finding(&f, Smell::DeadStore), "var x = 1 is overwritten before any read: {f:?}");
+}
+
+#[test]
 fn go_unreachable_after_return_flagged() {
     let f = smells_of("package main\nfunc f() {\n\treturn\n\tg()\n}\n", Language::Go, "go");
     assert!(

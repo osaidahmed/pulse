@@ -40,8 +40,14 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
 }
 
 pub(crate) fn loop_header(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
-    if let Some(c) = node.child_by_field_name("condition") {
-        collect(c, source, block, lang, out);
+    let mut cursor = node.walk();
+    for cond in node.children_by_field_name("condition", &mut cursor) {
+        collect(cond, source, block, lang, out);
+    }
+    for field in ["initializer", "increment"] {
+        if let Some(n) = node.child_by_field_name(field) {
+            collect(n, source, block, lang, out);
+        }
     }
     if let Some(p) = binding_left(node) {
         push_idents(p, source, block, DefUse::Def, out);
@@ -51,18 +57,45 @@ pub(crate) fn loop_header(node: Node, source: &str, block: u32, lang: &CfgLang, 
     }
 }
 
+pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    if lang.hoist_kinds.is_empty() {
+        return;
+    }
+    let Some(_g) = DepthGuard::enter() else { return };
+    let k = node.kind();
+    if lang.nested_fn_kinds.contains(&k) {
+        return;
+    }
+    if lang.hoist_kinds.contains(&k) {
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(name) = child.child_by_field_name("name") {
+                push_idents(name, source, entry, DefUse::Def, out);
+            }
+        }
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            seed_hoisted(child, source, entry, lang, out);
+        }
+    }
+}
+
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    let right = binding_right(node);
     if let Some(l) = binding_left(node) {
         if is_field_or_index_target(l.kind()) {
             collect(l, source, block, lang, out);
-        } else {
+        } else if right.is_some() {
             push_idents(l, source, block, DefUse::Def, out);
             if lang.aug_kinds.contains(&node.kind()) {
                 push_idents(l, source, block, DefUse::Use, out);
             }
         }
     }
-    if let Some(r) = binding_right(node) {
+    if let Some(r) = right {
         collect(r, source, block, lang, out);
     }
 }
@@ -78,7 +111,9 @@ pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec
 }
 
 fn binding_left(node: Node) -> Option<Node> {
-    node.child_by_field_name("left").or_else(|| node.child_by_field_name("pattern"))
+    node.child_by_field_name("left")
+        .or_else(|| node.child_by_field_name("pattern"))
+        .or_else(|| node.child_by_field_name("name"))
 }
 
 fn binding_right(node: Node) -> Option<Node> {
