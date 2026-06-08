@@ -39,14 +39,10 @@ pub(super) fn is_field_or_index_target(kind: &str) -> bool {
     matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression")
 }
 
-pub(super) fn prop_source_name(node: Node, source: &str) -> String {
-    let target = node.child_by_field_name("property").or_else(|| node.child_by_field_name("name")).unwrap_or(node);
-    node_text(target, source).to_string()
-}
-
 pub(super) fn is_callee(node: Node, call_kinds: &[&str]) -> bool {
     node.parent().is_some_and(|p| {
-        call_kinds.contains(&p.kind()) && p.child_by_field_name("function").is_some_and(|f| f.id() == node.id())
+        call_kinds.contains(&p.kind())
+            && ["function", "name"].iter().any(|f| p.child_by_field_name(f).is_some_and(|c| c.id() == node.id()))
     })
 }
 

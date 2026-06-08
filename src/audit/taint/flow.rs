@@ -7,7 +7,6 @@ use crate::walk::{node_text, DepthGuard};
 
 use super::nodes::{
     binding_left, binding_right, callee_name, idents_in, is_callee, is_field_or_index_target, is_in, line,
-    prop_source_name,
 };
 use super::state::{resolve_taint, sanitized, source_rhs, Rhs, Taint};
 use super::FileCtx;
@@ -177,8 +176,8 @@ impl<'a> Analyzer<'a> {
         if !self.ctx.lang.source_kinds.contains(&node.kind()) || is_callee(node, self.ctx.lang.call_kinds) {
             return None;
         }
-        let name = prop_source_name(node, self.ctx.source);
-        self.ctx.lang.prop_sources.contains(&name.as_str()).then(|| source_rhs(&name, line(node), in_sanitizer))
+        let name = node_text(node, self.ctx.source);
+        self.ctx.lang.prop_sources.contains(&name).then(|| source_rhs(name, line(node), in_sanitizer))
     }
 
     fn analyze_call(&self, node: Node, in_sanitizer: bool) -> Rhs {

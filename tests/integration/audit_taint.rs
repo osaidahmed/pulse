@@ -143,10 +143,18 @@ fn typescript_request_property_source_to_sink_is_flagged() {
     let body = "function handler(db, req) {\n  const q = req.query;\n  db.query(q);\n}\n";
     let found = taint_findings("app.ts", body);
     assert_eq!(found.len(), 1, "{found:?}");
-    assert_eq!(found[0].source_name, "query");
+    assert_eq!(found[0].source_name, "req.query");
     assert_eq!(found[0].sink_name, "query");
     assert_eq!(found[0].tainted_var, "q");
     assert_eq!(found[0].confidence, ImportConfidence::Low);
+}
+
+#[test]
+fn typescript_non_request_property_is_not_a_source() {
+    let plain = "function f(config, db) {\n  const q = config.params;\n  db.query(q);\n}\n";
+    assert!(taint_findings("a.ts", plain).is_empty(), "config.params is not request data: {plain}");
+    let nested = "function f(results, db) {\n  const q = results.data.body;\n  db.query(q);\n}\n";
+    assert!(taint_findings("b.ts", nested).is_empty(), "a derived chain is not a request source: {nested}");
 }
 
 #[test]
@@ -166,7 +174,7 @@ fn javascript_request_property_source_to_sink_is_flagged() {
     let body = "function handler(db, req) {\n  var q = req.body;\n  db.query(q);\n}\n";
     let found = taint_findings("app.js", body);
     assert_eq!(found.len(), 1, "{found:?}");
-    assert_eq!(found[0].source_name, "body");
+    assert_eq!(found[0].source_name, "req.body");
     assert_eq!(found[0].sink_name, "query");
 }
 
@@ -175,9 +183,15 @@ fn csharp_request_property_source_to_sink_is_flagged() {
     let body = "class C {\n  void Handler(SqlCommand cmd) {\n    var q = Request.Form[\"id\"];\n    cmd.ExecuteReader(q);\n  }\n}\n";
     let found = taint_findings("App.cs", body);
     assert_eq!(found.len(), 1, "{found:?}");
-    assert_eq!(found[0].source_name, "Form");
+    assert_eq!(found[0].source_name, "Request.Form");
     assert_eq!(found[0].sink_name, "ExecuteReader");
     assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn csharp_non_request_property_is_not_a_source() {
+    let body = "class C {\n  void M(SqlCommand cmd, MyModel obj) {\n    var q = obj.Query;\n    cmd.ExecuteReader(q);\n  }\n}\n";
+    assert!(taint_findings("App.cs", body).is_empty(), "obj.Query on an app object is not a request source");
 }
 
 #[test]
@@ -200,6 +214,12 @@ fn php_superglobal_source_to_sink_is_flagged() {
 fn php_sanitized_flow_is_not_flagged() {
     let body = "<?php\nfunction handler($db, $conn) {\n  $q = $_POST['id'];\n  $safe = mysqli_real_escape_string($conn, $q);\n  $db->query($safe);\n}\n";
     assert!(taint_findings("app.php", body).is_empty(), "mysqli_real_escape_string sanitizes the flow");
+}
+
+#[test]
+fn php_superglobal_in_callee_position_is_not_a_source() {
+    let body = "<?php\nfunction handler($db, $x) {\n  $r = $db->$_GET($x);\n  $db->query($r);\n}\n";
+    assert!(taint_findings("app.php", body).is_empty(), "$_GET as a dynamic method name is a callee, not a source");
 }
 
 #[test]
