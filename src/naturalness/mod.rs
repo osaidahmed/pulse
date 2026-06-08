@@ -25,7 +25,7 @@ struct FnDoc {
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut out = Vec::new();
-    for lang in [Language::Python, Language::Rust] {
+    for lang in Language::ALL {
         run_language(typed_files, lang, &thresholds.naturalness, &mut out);
     }
     out

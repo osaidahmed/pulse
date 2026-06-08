@@ -34,9 +34,9 @@ fn homogeneous_source() -> String {
     s
 }
 
-fn run_naturalness(source: &str, pass: Option<PassChoice>) -> Vec<AuditFinding> {
+fn run_naturalness_named(filename: &str, source: &str, pass: Option<PassChoice>) -> Vec<AuditFinding> {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("corpus.py"), source).unwrap();
+    std::fs::write(dir.path().join(filename), source).unwrap();
     let matcher = IgnoreMatcher::from_patterns(&[]);
     let opts = AuditOpts {
         root: dir.path().to_path_buf(),
@@ -48,6 +48,52 @@ fn run_naturalness(source: &str, pass: Option<PassChoice>) -> Vec<AuditFinding> 
     };
     let filter = IgnoreFilter::new(&matcher, dir.path());
     audit::run_with_filter(&opts, &t().audit, &filter)
+}
+
+fn run_naturalness(source: &str, pass: Option<PassChoice>) -> Vec<AuditFinding> {
+    run_naturalness_named("corpus.py", source, pass)
+}
+
+const GO_WEIRD: &str = "func anomaly(qux int) int {\n\tzphwx := kkjlm(plover, frobnicate, bazqux, wibble, grault, snork)\n\twibblewobble := flibberty(zorch, splork, gnarl, frobozz, blorf, wamble)\n\tcrinkle := dweezil(narple, yegg, mungify, skronk, plugh, xyzzy)\n\tthud := grunt(waldo, fredly, ploverish, garply, sploosh, kerfuffle)\n\treturn zphwx + wibblewobble + crinkle + thud\n}\n";
+
+fn go_corpus(include_weird: bool, count: usize) -> String {
+    let ops = ["+", "-", "*", "%"];
+    let mut s = String::from("package main\n\n");
+    for i in 0..count {
+        let op = ops[i % ops.len()];
+        let _ = writeln!(s, "func calc{i}(alpha int, beta int, gamma int) int {{");
+        let _ = writeln!(s, "\tacc := alpha {op} beta");
+        for _ in 0..=(i % 4) {
+            let _ = writeln!(s, "\tacc = acc {op} gamma");
+        }
+        let _ = writeln!(s, "\trecord := alpha {op} beta {op} gamma {op} acc");
+        let _ = writeln!(s, "\treturn record\n}}\n");
+    }
+    if include_weird {
+        s.push_str(GO_WEIRD);
+    }
+    s
+}
+
+const TS_WEIRD: &str = "function anomaly(qux) {\n  let zphwx = kkjlm(plover, frobnicate, bazqux, wibble, grault, snork);\n  let wibblewobble = flibberty(zorch, splork, gnarl, frobozz, blorf, wamble);\n  let crinkle = dweezil(narple, yegg, mungify, skronk, plugh, xyzzy);\n  let thud = grunt(waldo, fredly, ploverish, garply, sploosh, kerfuffle);\n  return zphwx + wibblewobble + crinkle + thud;\n}\n";
+
+fn ts_corpus(include_weird: bool, count: usize) -> String {
+    let ops = ["+", "-", "*", "%"];
+    let mut s = String::new();
+    for i in 0..count {
+        let op = ops[i % ops.len()];
+        let _ = writeln!(s, "function calc{i}(alpha, beta, gamma) {{");
+        let _ = writeln!(s, "  let acc = alpha {op} beta;");
+        for _ in 0..=(i % 4) {
+            let _ = writeln!(s, "  acc = acc {op} gamma;");
+        }
+        let _ = writeln!(s, "  let record = alpha {op} beta {op} gamma {op} acc;");
+        let _ = writeln!(s, "  return record;\n}}\n");
+    }
+    if include_weird {
+        s.push_str(TS_WEIRD);
+    }
+    s
 }
 
 fn unnatural(findings: &[AuditFinding]) -> Vec<&NaturalnessEvidence> {
@@ -109,4 +155,29 @@ fn naturalness_is_deterministic() {
     let first = sig(&run_naturalness(&source, Some(PassChoice::Naturalness)));
     let second = sig(&run_naturalness(&source, Some(PassChoice::Naturalness)));
     assert_eq!(first, second, "naturalness scoring must be reproducible bit-for-bit");
+}
+
+#[test]
+fn flags_a_go_lexical_outlier() {
+    let found = run_naturalness_named("corpus.go", &go_corpus(true, 14), Some(PassChoice::Naturalness));
+    assert!(
+        unnatural(&found).iter().any(|e| e.function == "anomaly"),
+        "naturalness now covers Go: the all-unique-token function reads as unnatural"
+    );
+}
+
+#[test]
+fn go_normals_are_not_all_flagged() {
+    let found = run_naturalness_named("corpus.go", &go_corpus(true, 14), Some(PassChoice::Naturalness));
+    let normals = unnatural(&found).iter().filter(|e| e.function.starts_with("calc")).count();
+    assert!(normals < 14, "naturalness must not flag the whole go corpus as unnatural");
+}
+
+#[test]
+fn flags_a_typescript_lexical_outlier() {
+    let found = run_naturalness_named("corpus.ts", &ts_corpus(true, 14), Some(PassChoice::Naturalness));
+    assert!(
+        unnatural(&found).iter().any(|e| e.function == "anomaly"),
+        "naturalness now covers TypeScript: the all-unique-token function reads as unnatural"
+    );
 }
