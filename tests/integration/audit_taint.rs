@@ -107,6 +107,38 @@ fn rust_unsanitized_source_to_sink_is_flagged() {
 }
 
 #[test]
+fn java_unsanitized_source_to_sink_is_flagged() {
+    let body = "class C {\n  void handler(Statement stmt, Request req) {\n    String q = req.getParameter(\"id\");\n    stmt.executeQuery(q);\n  }\n}\n";
+    let found = taint_findings("App.java", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getParameter");
+    assert_eq!(found[0].sink_name, "executeQuery");
+    assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn java_sanitized_flow_is_not_flagged() {
+    let body = "class C {\n  void handler(Statement stmt, Request req) {\n    String q = req.getParameter(\"id\");\n    String safe = encode(q);\n    stmt.executeQuery(safe);\n  }\n}\n";
+    assert!(taint_findings("App.java", body).is_empty(), "encode() sanitizes the flow");
+}
+
+#[test]
+fn go_unsanitized_source_to_sink_is_flagged() {
+    let body = "package main\nfunc handler(db DB, r Req) {\n\tq := r.FormValue(\"id\")\n\tdb.Query(q)\n}\n";
+    let found = taint_findings("app.go", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "FormValue");
+    assert_eq!(found[0].sink_name, "Query");
+    assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn go_sanitized_flow_is_not_flagged() {
+    let body = "package main\nfunc handler(db DB, r Req) {\n\tq := r.FormValue(\"id\")\n\tsafe := Escape(q)\n\tdb.Query(safe)\n}\n";
+    assert!(taint_findings("app.go", body).is_empty(), "Escape() sanitizes the flow");
+}
+
+#[test]
 fn taint_is_opt_in_not_in_default_passes() {
     let dir = tempfile::tempdir().unwrap();
     let body = "def handler(cursor):\n    q = input()\n    cursor.execute(q)\n";

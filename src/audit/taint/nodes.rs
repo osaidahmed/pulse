@@ -11,7 +11,9 @@ pub(super) fn is_in(name: Option<&str>, set: &[&str]) -> bool {
 }
 
 pub(super) fn binding_left(node: Node) -> Option<Node> {
-    node.child_by_field_name("left").or_else(|| node.child_by_field_name("pattern"))
+    node.child_by_field_name("left")
+        .or_else(|| node.child_by_field_name("pattern"))
+        .or_else(|| node.child_by_field_name("name"))
 }
 
 pub(super) fn binding_right(node: Node) -> Option<Node> {
@@ -23,7 +25,7 @@ pub(super) fn is_field_or_index_target(kind: &str) -> bool {
 }
 
 pub(super) fn callee_name(call: Node, source: &str) -> Option<String> {
-    let f = call.child_by_field_name("function")?;
+    let f = call.child_by_field_name("function").or_else(|| call.child_by_field_name("name"))?;
     Some(trailing_name(f, source))
 }
 

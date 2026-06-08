@@ -73,8 +73,10 @@ impl<'a> Analyzer<'a> {
         if is_field_or_index_target(lhs.kind()) {
             return;
         }
-        for name in idents_in(lhs, self.ctx.source) {
-            self.apply_one(name, taint.clone(), AssignMode { augmented: aug, opaque: true });
+        let names = idents_in(lhs, self.ctx.source);
+        let opaque = names.len() > 1;
+        for name in names {
+            self.apply_one(name, taint.clone(), AssignMode { augmented: aug, opaque });
         }
     }
 

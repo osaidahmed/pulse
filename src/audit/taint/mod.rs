@@ -64,10 +64,46 @@ const RUST: TaintLang = TaintLang {
     opacity_calls: &["transmute"],
 };
 
+const JAVA: TaintLang = TaintLang {
+    fn_kinds: &["method_declaration", "constructor_declaration"],
+    body_kind: "block",
+    assign_kinds: &["assignment_expression", "variable_declarator"],
+    aug_kinds: &[],
+    call_kinds: &["method_invocation"],
+    sources: &[
+        "getParameter",
+        "getParameterValues",
+        "getHeader",
+        "getQueryString",
+        "getCookies",
+        "nextLine",
+        "readLine",
+    ],
+    sinks: &["executeQuery", "executeUpdate", "execute", "exec", "eval"],
+    sanitizers: &["escapeHtml", "escapeSql", "encode", "quote", "escape"],
+    opacity_kinds: &["lambda_expression"],
+    opacity_calls: &["invoke", "getMethod", "newInstance"],
+};
+
+const GO: TaintLang = TaintLang {
+    fn_kinds: &["function_declaration", "method_declaration"],
+    body_kind: "block",
+    assign_kinds: &["short_var_declaration", "assignment_statement", "var_spec"],
+    aug_kinds: &[],
+    call_kinds: &["call_expression"],
+    sources: &["FormValue", "PostFormValue", "Param"],
+    sinks: &["Query", "QueryRow", "Exec", "QueryContext", "ExecContext", "Command"],
+    sanitizers: &["EscapeString", "QuoteIdentifier", "HTMLEscapeString", "Escape"],
+    opacity_kinds: &["func_literal"],
+    opacity_calls: &["ValueOf"],
+};
+
 fn lang_for(lang: Language) -> Option<&'static TaintLang> {
     match lang {
         Language::Python => Some(&PYTHON),
         Language::Rust => Some(&RUST),
+        Language::Java => Some(&JAVA),
+        Language::Go => Some(&GO),
         _ => None,
     }
 }
