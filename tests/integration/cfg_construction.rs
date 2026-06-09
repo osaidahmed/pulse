@@ -665,6 +665,51 @@ fn c_if_else_clean_has_no_cpg_smells() {
 }
 
 #[test]
+fn c_dead_store_on_redefinition() {
+    let f = smells_of("int f() {\n  int x = 0;\n  x = 1;\n  return x;\n}\n", Language::C, "c");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn c_use_before_def_flagged() {
+    let f = smells_of("int f() {\n  int y = x;\n  int x = 1;\n  return y;\n}\n", Language::C, "c");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "x is read before its declaration: {f:?}");
+}
+
+#[test]
+fn c_clean_function_has_no_cpg_smells() {
+    let f = smells_of("int f(int a) {\n  int x = a + 1;\n  return x;\n}\n", Language::C, "c");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a param read is not use-before-def: {f:?}");
+}
+
+#[test]
+fn c_uninitialized_declaration_is_not_use_before_def() {
+    let f = smells_of("int f() {\n  int y;\n  y = 5;\n  return y;\n}\n", Language::C, "c");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a bare declaration is not a read of the variable: {f:?}");
+}
+
+#[test]
+fn c_pre_switch_store_survives_no_match_path() {
+    let src =
+        "int f(int k) {\n  int x = 0;\n  switch (k) {\n    case 1:\n      x = 1;\n      break;\n  }\n  return x;\n}\n";
+    let f = smells_of(src, Language::C, "c");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "x = 0 is read when no case matches; the switch must not unconditionally kill it: {f:?}"
+    );
+}
+
+#[test]
+fn c_field_write_is_not_a_dead_store() {
+    let f = smells_of("int f() {\n  struct S *o = get();\n  o->field = 1;\n  return 0;\n}\n", Language::C, "c");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a field write reads the receiver; it is not a local dead store: {f:?}"
+    );
+}
+
+#[test]
 fn cpp_unreachable_after_return_flagged() {
     let f = smells_of("int f() {\n  return 1;\n  int dead = 2;\n}\n", Language::Cpp, "cpp");
     assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
@@ -675,6 +720,20 @@ fn cpp_if_else_clean_has_no_cpg_smells() {
     let src = "int f(int a) {\n  if (a > 0) {\n    return 1;\n  } else {\n    return 2;\n  }\n}\n";
     let f = smells_of(src, Language::Cpp, "cpp");
     assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn cpp_dead_store_on_redefinition() {
+    let f = smells_of("int f() {\n  int x = 0;\n  x = 1;\n  return x;\n}\n", Language::Cpp, "cpp");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn cpp_range_for_is_clean() {
+    let src = "int f() {\n  int sum = 0;\n  for (auto v : getItems()) {\n    sum += v;\n  }\n  return sum;\n}\n";
+    let f = smells_of(src, Language::Cpp, "cpp");
+    assert!(!has_finding(&f, Smell::DeadStore), "the range var and accumulator are read: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
 }
 
 #[test]

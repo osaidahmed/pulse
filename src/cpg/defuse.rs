@@ -28,6 +28,10 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
         handle_binding(node, source, block, lang, out);
         return;
     }
+    if k == "declaration" {
+        collect_declaration(node, source, block, lang, out);
+        return;
+    }
     if matches!(k, "identifier" | "variable_name") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, DefUse::Use));
@@ -38,6 +42,17 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
     for child in node.children(&mut cursor) {
         if child.is_named() {
             collect(child, source, block, lang, out);
+        }
+    }
+}
+
+fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    let mut cursor = node.walk();
+    for d in node.children_by_field_name("declarator", &mut cursor) {
+        if d.kind() == "init_declarator" {
+            handle_binding(d, source, block, lang, out);
+        } else if let Some(size) = d.child_by_field_name("size") {
+            collect(size, source, block, lang, out);
         }
     }
 }
@@ -133,7 +148,8 @@ fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRe
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(r) = binding_right(node) else { return };
     collect(r, source, block, lang, out);
-    let aug = is_augmented(node, source, lang);
+    let aug = lang.aug_kinds.contains(&node.kind())
+        || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=");
     let mut targets: Vec<Node> = Vec::new();
     collect_binding_targets(node, &mut targets);
     for t in targets {
@@ -149,7 +165,7 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
 }
 
 fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
-    for field in ["left", "pattern", "name"] {
+    for field in ["left", "pattern", "name", "declarator"] {
         let mut cursor = node.walk();
         let mut any = false;
         for child in node.children_by_field_name(field, &mut cursor) {
@@ -165,11 +181,6 @@ fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
             return;
         }
     }
-}
-
-fn is_augmented(node: Node, source: &str, lang: &CfgLang) -> bool {
-    lang.aug_kinds.contains(&node.kind())
-        || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=")
 }
 
 fn is_field_or_index_target(kind: &str) -> bool {
@@ -195,7 +206,10 @@ fn is_destructure_pattern(kind: &str) -> bool {
 }
 
 pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
-    if let Some(params) = fn_node.child_by_field_name("parameters") {
+    let params = fn_node
+        .child_by_field_name("parameters")
+        .or_else(|| fn_node.child_by_field_name("declarator").and_then(|d| d.child_by_field_name("parameters")));
+    if let Some(params) = params {
         push_idents(params, source, entry, DefUse::Def, out);
     }
 }
@@ -204,6 +218,7 @@ fn binding_left(node: Node) -> Option<Node> {
     node.child_by_field_name("left")
         .or_else(|| node.child_by_field_name("pattern"))
         .or_else(|| node.child_by_field_name("name"))
+        .or_else(|| node.child_by_field_name("declarator"))
 }
 
 fn binding_right(node: Node) -> Option<Node> {

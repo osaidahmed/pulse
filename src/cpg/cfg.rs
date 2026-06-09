@@ -199,12 +199,12 @@ pub const C: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &[],
     handler_kinds: &[],
-    def_kinds: &[],
+    def_kinds: &["assignment_expression", "init_declarator"],
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
     nested_fn_kinds: &[],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_statement"],
+    case_kinds: &["case_statement"],
     hoist_kinds: &[],
 };
 
@@ -216,12 +216,12 @@ pub const CPP: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["catch_clause"],
-    def_kinds: &[],
+    def_kinds: &["assignment_expression", "init_declarator"],
     aug_kinds: &[],
     block_kinds: &["compound_statement"],
     nested_fn_kinds: &["lambda_expression"],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_statement"],
+    case_kinds: &["case_statement"],
     hoist_kinds: &[],
 };
 
