@@ -63,7 +63,7 @@ pub(super) fn callee_name(call: Node, source: &str) -> Option<String> {
         .child_by_field_name("function")
         .or_else(|| call.child_by_field_name("name"))
         .or_else(|| call.child_by_field_name("method"))
-        .or_else(|| call.named_child(0))?;
+        .or_else(|| call.child_by_field_name("receiver").is_none().then(|| call.named_child(0)).flatten())?;
     Some(trailing_name(f, source))
 }
 

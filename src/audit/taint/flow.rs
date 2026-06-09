@@ -161,6 +161,12 @@ impl<'a> Analyzer<'a> {
         if let Some(r) = self.prop_source(node, in_sanitizer) {
             return r;
         }
+        if node.kind() == "value_argument" {
+            let n = node.named_child_count();
+            if n > 0 {
+                return self.analyze(node.named_child(n - 1).unwrap(), in_sanitizer);
+            }
+        }
         let mut r = self.analyze_children(node, in_sanitizer);
         if self.ctx.lang.ident_kinds.contains(&node.kind()) {
             self.absorb_ident(node, in_sanitizer, &mut r);

@@ -359,3 +359,21 @@ fn kotlin_constant_query_is_not_flagged() {
     let body = "fun handler(stmt: Statement) {\n    val q = \"SELECT 1\"\n    stmt.executeQuery(q)\n}\n";
     assert!(taint_findings("App.kt", body).is_empty(), "a constant query is not tainted");
 }
+
+#[test]
+fn kotlin_named_argument_label_is_not_treated_as_the_value() {
+    let body = "fun h(stmt: Statement, req: Request) {\n    val id = req.getParameter(\"x\")\n    stmt.executeQuery(id = \"safe\")\n}\n";
+    assert!(
+        taint_findings("App.kt", body).is_empty(),
+        "the named-argument label `id` is not the argument value; the value is a constant"
+    );
+}
+
+#[test]
+fn ruby_proc_call_shorthand_receiver_is_not_a_sink() {
+    let body = "def run\n  q = params\n  execute.(q)\nend\n";
+    assert!(
+        taint_findings("app.rb", body).is_empty(),
+        "`execute.(q)` is Proc#call sugar; the receiver is not a method-named sink"
+    );
+}
