@@ -919,3 +919,161 @@ fn php_dynamic_variable_assignment_is_not_a_dead_store() {
     let f = smells_of("<?php\nfunction f() {\n  $x = 'foo';\n  $$x = 1;\n  echo $x;\n}\n", Language::Php, "php");
     assert!(!has_finding(&f, Smell::DeadStore), "$$x = 1 reads $x to compute the target; $x is not dead: {f:?}");
 }
+
+#[test]
+fn ruby_assignment_records_def_and_use() {
+    let du = def_use_of("def f(a)\n  x = a\n  x\nend\n", Language::Ruby, "rb", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "a", DefUse::Use), "{du:?}");
+    assert!(has(&du, "x", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn ruby_if_condition_use_recorded() {
+    let du = def_use_of("def f(flag)\n  if flag\n    return 1\n  end\n  0\nend\n", Language::Ruby, "rb", "f");
+    assert!(has(&du, "flag", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn ruby_if_else_has_predicate_and_both_branch_labels() {
+    let cfg = cfg_of("def f(x)\n  if x\n    y = 1\n  else\n    y = 2\n  end\n  y\nend\n", Language::Ruby, "rb", "f");
+    assert!(has_kind(&cfg, NodeKind::Predicate));
+    assert!(has_label(&cfg, EdgeLabel::True), "{cfg:?}");
+    assert!(has_label(&cfg, EdgeLabel::False), "{cfg:?}");
+}
+
+#[test]
+fn ruby_loop_has_loop_head_and_back_edge() {
+    let cfg = cfg_of(
+        "def f(xs)\n  total = 0\n  for x in xs do\n    total = total + x\n  end\n  total\nend\n",
+        Language::Ruby,
+        "rb",
+        "f",
+    );
+    assert!(has_kind(&cfg, NodeKind::LoopHead));
+    assert!(has_label(&cfg, EdgeLabel::Back), "{cfg:?}");
+}
+
+#[test]
+fn ruby_return_connects_to_exit() {
+    let cfg = cfg_of("def f\n  return 1\nend\n", Language::Ruby, "rb", "f");
+    assert!(cfg.edges.iter().any(|e| e.to == cfg.exit), "{cfg:?}");
+}
+
+#[test]
+fn ruby_unreachable_after_return_flagged() {
+    let f = smells_of("def f\n  return 1\n  dead = 2\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn ruby_dead_store_on_redefinition() {
+    let f = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn ruby_use_before_def_flagged() {
+    let f = smells_of("def f\n  puts y\n  y = 1\n  y\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "y is read before any assignment reaches it: {f:?}");
+}
+
+#[test]
+fn ruby_clean_method_has_no_cpg_smells() {
+    let f = smells_of("def f(a)\n  x = a + 1\n  x\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_operator_assignment_is_not_a_dead_store() {
+    let f = smells_of("def f(a)\n  x = 0\n  x += a\n  x\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is read by the += accumulation: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_unused_param_is_not_a_dead_store() {
+    let f = smells_of("def f(a)\n  1\nend\n", Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "an unused parameter is seeded at entry, not a local dead store: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_var_read_only_in_else_branch_is_not_a_dead_store() {
+    let src = "def f(a)\n  x = compute\n  if a\n    other\n  else\n    use(x)\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "x is read inside the else branch; the else body must be threaded: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_pre_case_store_survives_no_match_path() {
+    let src = "def f(k)\n  r = 0\n  case k\n  when 1 then r = 1\n  when 2 then r = 2\n  end\n  r\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "r = 0 is read when no `when` matches; the case must preserve the no-match path: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_case_when_arm_store_read_after_is_not_a_dead_store() {
+    let src = "def f(k)\n  case k\n  when 1\n    r = 1\n  when 2\n    r = 2\n  end\n  use(r)\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`when` arms do not fall through; r = 1 reaches the read and must not be killed by r = 2: {f:?}"
+    );
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_case_else_branch_read_is_not_a_dead_store() {
+    let src = "def f(k)\n  x = compute\n  case k\n  when 1\n    other\n  else\n    use(x)\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is read in the case `else`; that branch must be threaded: {f:?}");
+}
+
+#[test]
+fn ruby_block_capture_is_not_a_dead_store() {
+    let src = "def f(xs)\n  total = 0\n  xs.each { |i| total += i }\n  total\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "total is captured and read inside the block: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_loop_accumulator_is_not_a_dead_store() {
+    let src = "def f(xs)\n  total = 0\n  for x in xs do\n    total = total + x\n  end\n  total\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "the accumulator and loop var are read: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_while_body_and_condition_are_clean() {
+    let src = "def f(n)\n  i = 0\n  while i < n do\n    i = i + 1\n  end\n  i\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "i is read in the condition, body, and after the loop: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn ruby_begin_rescue_is_clean() {
+    let src = "def f\n  begin\n    x = risky\n    use(x)\n  rescue => e\n    log(e)\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "x is read inside the begin body: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "the rescue variable is not read before definition: {f:?}");
+}
+
+#[test]
+fn ruby_elsif_guard_read_is_not_a_dead_store() {
+    let src = "def f(x)\n  g = 7\n  if x > 0\n    return 1\n  elsif x > g\n    return 2\n  end\n  0\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "g is read in the elsif condition: {f:?}");
+}

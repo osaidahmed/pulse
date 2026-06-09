@@ -225,6 +225,23 @@ pub const CPP: CfgLang = CfgLang {
     hoist_kinds: &[],
 };
 
+pub const RUBY: CfgLang = CfgLang {
+    if_kinds: &["if", "unless", "elsif"],
+    loop_kinds: &["while", "until", "for"],
+    return_kinds: &["return"],
+    break_kinds: &["break"],
+    continue_kinds: &["next"],
+    try_kinds: &[],
+    handler_kinds: &[],
+    def_kinds: &["assignment", "operator_assignment"],
+    aug_kinds: &["operator_assignment"],
+    block_kinds: &["then", "else"],
+    nested_fn_kinds: &["block", "do_block", "lambda", "method", "singleton_method"],
+    switch_kinds: &["case", "case_match"],
+    case_kinds: &["when", "in_clause", "else"],
+    hoist_kinds: &[],
+};
+
 type Incoming = Option<(u32, EdgeLabel)>;
 
 #[derive(Clone, Copy)]
@@ -420,8 +437,11 @@ impl Builder<'_> {
             let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
             return self.do_switch_case(case, p, &body_stmts, fall_in);
         }
-        if matches!(case.kind(), "case_clause" | "match_arm") {
-            let body = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value"))?;
+        if matches!(case.kind(), "case_clause" | "match_arm" | "when" | "in_clause") {
+            let body = case
+                .child_by_field_name("consequence")
+                .or_else(|| case.child_by_field_name("value"))
+                .or_else(|| case.child_by_field_name("body"))?;
             let end = if self.lang.block_kinds.contains(&body.kind()) {
                 self.seq(body, Some((p, EdgeLabel::True)))
             } else {
