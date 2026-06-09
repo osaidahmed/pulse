@@ -126,29 +126,22 @@ fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRe
 }
 
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
-    if let Some(r) = binding_right(node) {
-        if let Some(l) = binding_left(node) {
-            record_targets(l, source, block, lang, out);
-            if is_augmented(node, source, lang) {
-                push_idents(l, source, block, DefUse::Use, out);
+    let Some(r) = binding_right(node) else { return };
+    collect(r, source, block, lang, out);
+    let Some(l) = binding_left(node) else { return };
+    let aug = is_augmented(node, source, lang);
+    let mut cursor = l.walk();
+    let targets: Vec<Node> =
+        if l.kind() == "expression_list" { l.children(&mut cursor).filter(Node::is_named).collect() } else { vec![l] };
+    for t in targets {
+        if is_field_or_index_target(t.kind()) {
+            collect(t, source, block, lang, out);
+        } else if !is_destructure_pattern(t.kind()) {
+            push_idents(t, source, block, DefUse::Def, out);
+            if aug {
+                push_idents(t, source, block, DefUse::Use, out);
             }
         }
-        collect(r, source, block, lang, out);
-    }
-}
-
-fn record_targets(lhs: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
-    if lhs.kind() == "expression_list" {
-        let mut cursor = lhs.walk();
-        for child in lhs.children(&mut cursor) {
-            if child.is_named() {
-                record_targets(child, source, block, lang, out);
-            }
-        }
-    } else if is_field_or_index_target(lhs.kind()) {
-        collect(lhs, source, block, lang, out);
-    } else if !is_destructure_pattern(lhs.kind()) {
-        push_idents(lhs, source, block, DefUse::Def, out);
     }
 }
 
