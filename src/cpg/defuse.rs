@@ -208,6 +208,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "dynamic_variable_name"
             | "pointer_expression"
             | "navigation_expression"
+            | "call_expression"
     )
 }
 

@@ -1355,3 +1355,40 @@ fn swift_switch_is_clean() {
     assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
     assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
 }
+
+#[test]
+fn swift_subscript_write_is_not_a_dead_store() {
+    let f = smells_of("func f(_ a: inout [Int], _ i: Int) {\n    a[i] = 9\n}\n", Language::Swift, "swift");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`a[i] = 9` writes an element; `a` and the index `i` are reads, not local stores: {f:?}"
+    );
+}
+
+#[test]
+fn swift_nested_subscript_write_is_not_a_dead_store() {
+    let f =
+        smells_of("func f(_ g: inout [[Int]], _ r: Int, _ c: Int) {\n    g[r][c] = 1\n}\n", Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "nested subscript indices are reads, not stores: {f:?}");
+}
+
+#[test]
+fn swift_multi_clause_if_threads_the_body() {
+    let src = "func g(a: Int, b: Int) -> Int {\n    let total = a + b\n    if a > 0, b > 0 {\n        return total\n    }\n    return 0\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "comma-separated conditions must not be mistaken for the then-body; `total` is read inside it: {f:?}"
+    );
+}
+
+#[test]
+fn swift_multi_clause_guard_is_clean() {
+    let src = "func f(a: Int?, b: Int) -> Int {\n    guard let x = a, b > 0 else {\n        return 0\n    }\n    return x + b\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "the second guard clause `b > 0` reads b; it is not the body: {f:?}"
+    );
+}

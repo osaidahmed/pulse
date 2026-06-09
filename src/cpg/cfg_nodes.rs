@@ -33,7 +33,8 @@ pub(super) fn if_bodies(node: Node) -> (Option<Node>, Option<Node>) {
     if let Some(c) = node.child_by_field_name("consequence").or_else(|| node.child_by_field_name("body")) {
         return (Some(c), None);
     }
-    let cond_id = node.child_by_field_name("condition").map(|c| c.id());
+    let mut cond_cursor = node.walk();
+    let cond_ids: Vec<usize> = node.children_by_field_name("condition", &mut cond_cursor).map(|c| c.id()).collect();
     let mut then_b: Option<Node> = None;
     let mut else_b: Option<Node> = None;
     let mut seen_else = false;
@@ -41,7 +42,7 @@ pub(super) fn if_bodies(node: Node) -> (Option<Node>, Option<Node>) {
     for child in node.children(&mut cursor) {
         if child.kind() == "else" {
             seen_else = true;
-        } else if child.is_named() && Some(child.id()) != cond_id {
+        } else if child.is_named() && !cond_ids.contains(&child.id()) {
             if seen_else {
                 else_b = else_b.or(Some(child));
             } else {

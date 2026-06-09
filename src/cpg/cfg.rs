@@ -208,7 +208,8 @@ impl Builder<'_> {
     }
 
     fn record_cond(&mut self, node: Node, block: u32) {
-        if let Some(c) = node.child_by_field_name("condition") {
+        let mut cursor = node.walk();
+        for c in node.children_by_field_name("condition", &mut cursor) {
             defuse::collect(c, self.source, block, self.lang, &mut self.def_use);
         }
     }
