@@ -162,7 +162,10 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
         parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment", "operator_assignment"])),
         string_match_arms: body.map_or(0, |b| count_string_match_arms(b, "case", "when", &["string"], &["else"])),
-        cpg: body.and_then(|b| super::cpg_for(b, node, source, &crate::cpg::RUBY)),
+        cpg: body.and_then(|b| super::cpg_for(b, node, source, &crate::cpg::RUBY)).map(|mut cpg| {
+            cpg.suppress_dead_store = true;
+            cpg
+        }),
     })
 }
 

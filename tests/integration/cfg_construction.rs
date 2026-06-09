@@ -967,9 +967,17 @@ fn ruby_unreachable_after_return_flagged() {
 }
 
 #[test]
-fn ruby_dead_store_on_redefinition() {
-    let f = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
-    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+fn ruby_dead_store_is_suppressed_even_on_clear_redefinition() {
+    let rb = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
+    assert!(
+        !has_finding(&rb, Smell::DeadStore),
+        "DeadStore is intentionally suppressed for Ruby (implicit-return/expression semantics make it FP-prone): {rb:?}"
+    );
+    let py = smells_of("def f():\n    x = 0\n    x = 1\n    return x\n", Language::Python, "py");
+    assert!(
+        has_finding(&py, Smell::DeadStore),
+        "the same shape is still flagged elsewhere; suppression is Ruby-only: {py:?}"
+    );
 }
 
 #[test]
@@ -1076,4 +1084,55 @@ fn ruby_elsif_guard_read_is_not_a_dead_store() {
     let src = "def f(x)\n  g = 7\n  if x > 0\n    return 1\n  elsif x > g\n    return 2\n  end\n  0\nend\n";
     let f = smells_of(src, Language::Ruby, "rb");
     assert!(!has_finding(&f, Smell::DeadStore), "g is read in the elsif condition: {f:?}");
+}
+
+#[test]
+fn ruby_attribute_write_is_not_a_dead_store() {
+    let f = smells_of("def f(o)\n  o.x = 1\nend\n", Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`o.x = 1` mutates an attribute; `o` is a read, `x` a method name: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_index_write_is_not_a_dead_store() {
+    let f = smells_of("def f(h, k, v)\n  h[k] = v\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "`h[k] = v` reads h and k; no local store occurs: {f:?}");
+}
+
+#[test]
+fn ruby_setter_chain_builder_is_not_a_dead_store() {
+    let src = "def configure(server, port)\n  config = Config.new\n  config.host = server\n  config.port = port\n  config\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "the builder receiver is configured via setters and returned: {f:?}");
+}
+
+#[test]
+fn ruby_implicit_return_assignment_is_not_a_dead_store() {
+    let f = smells_of("def fetch_user(id)\n  user = repository.find(id)\nend\n", Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "the trailing assignment's value is the method's implicit return; it is read by the caller: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_value_of_if_branch_assignments_are_not_dead_stores() {
+    let src = "def classify(n)\n  if n > 0\n    label = :positive\n  else\n    label = :negative\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "each branch's trailing assignment is the value of the if-expression and the implicit return: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_modifier_conditional_assignment_is_not_a_dead_store() {
+    let src = "def display_name(user)\n  name = user.login\n  name = user.full_name if user.full_name\n  name\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "the line-2 default is read when the postfix-if condition is falsy: {f:?}"
+    );
 }

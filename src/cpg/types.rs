@@ -7,4 +7,5 @@ pub struct CpgMetrics {
     pub def_use: Vec<DefUseRecord>,
     pub simhash: u64,
     pub surprisal: f64,
+    pub suppress_dead_store: bool,
 }

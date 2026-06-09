@@ -21,7 +21,7 @@ fn detect(cpg: &CpgMetrics, func: &FunctionMetrics, t: &Thresholds, out: &mut Ve
     if t.cpg.unreachable_code {
         unreachable_code(&cpg.cfg, &flow, func, out);
     }
-    if t.cpg.dead_store {
+    if t.cpg.dead_store && !cpg.suppress_dead_store {
         dead_stores(cpg, &flow, func, out);
     }
     if t.cpg.use_before_def {
