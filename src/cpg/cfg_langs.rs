@@ -163,8 +163,8 @@ pub const CPP: CfgLang = CfgLang {
 };
 
 pub const RUBY: CfgLang = CfgLang {
-    if_kinds: &["if", "unless", "elsif"],
-    loop_kinds: &["while", "until", "for"],
+    if_kinds: &["if", "unless", "elsif", "if_modifier", "unless_modifier"],
+    loop_kinds: &["while", "until", "for", "while_modifier", "until_modifier"],
     return_kinds: &["return"],
     break_kinds: &["break"],
     continue_kinds: &["next"],

@@ -209,6 +209,8 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "pointer_expression"
             | "navigation_expression"
             | "call_expression"
+            | "call"
+            | "element_reference"
     )
 }
 

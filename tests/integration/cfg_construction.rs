@@ -967,16 +967,23 @@ fn ruby_unreachable_after_return_flagged() {
 }
 
 #[test]
-fn ruby_dead_store_is_suppressed_even_on_clear_redefinition() {
-    let rb = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
+fn ruby_dead_store_flagged_on_redefinition() {
+    let f = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn ruby_unused_local_before_reassign_is_flagged() {
+    let f = smells_of("def f\n  x = compute\n  x = other\n  puts(x)\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::DeadStore), "x = compute is dead — overwritten by x = other before the read: {f:?}");
+}
+
+#[test]
+fn ruby_write_only_local_is_flagged() {
+    let f = smells_of("def f\n  x = compute\n  log(\"done\")\nend\n", Language::Ruby, "rb");
     assert!(
-        !has_finding(&rb, Smell::DeadStore),
-        "DeadStore is intentionally suppressed for Ruby (implicit-return/expression semantics make it FP-prone): {rb:?}"
-    );
-    let py = smells_of("def f():\n    x = 0\n    x = 1\n    return x\n", Language::Python, "py");
-    assert!(
-        has_finding(&py, Smell::DeadStore),
-        "the same shape is still flagged elsewhere; suppression is Ruby-only: {py:?}"
+        has_finding(&f, Smell::DeadStore),
+        "x is written but never read (it is not the implicit return — the trailing call is): {f:?}"
     );
 }
 
@@ -1092,6 +1099,27 @@ fn ruby_attribute_write_is_not_a_dead_store() {
     assert!(
         !has_finding(&f, Smell::DeadStore),
         "`o.x = 1` mutates an attribute; `o` is a read, `x` a method name: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_value_of_case_branch_assignments_are_not_dead_stores() {
+    let src = "def classify(n)\n  case n\n  when 1\n    label = :one\n  else\n    label = :other\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "each case-branch's trailing assignment is the implicit return value: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_nested_if_tail_assignments_are_not_dead_stores() {
+    let src =
+        "def f(a, b)\n  if a\n    if b\n      r = 1\n    else\n      r = 2\n    end\n  else\n    r = 3\n  end\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "tail assignments nested in if-branches are the implicit return: {f:?}"
     );
 }
 

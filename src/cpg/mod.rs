@@ -5,6 +5,7 @@ mod cfg_langs;
 mod cfg_nodes;
 pub mod cpg_smells;
 pub mod defuse;
+pub mod implicit_return;
 pub mod reaching;
 mod types;
 
