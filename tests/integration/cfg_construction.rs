@@ -1258,3 +1258,100 @@ fn kotlin_when_subject_binding_is_clean() {
     assert!(!has_finding(&f, Smell::UseBeforeDef), "the when-subject binding `k` must not be flagged: {f:?}");
     assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
 }
+
+#[test]
+fn swift_property_records_def_and_use() {
+    let du = def_use_of("func f(a: Int) -> Int {\n    let x = a\n    return x\n}\n", Language::Swift, "swift", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "a", DefUse::Use), "{du:?}");
+    assert!(has(&du, "x", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn swift_if_else_has_predicate_and_both_branch_labels() {
+    let src = "func f(c: Bool) -> Int {\n    if c {\n        return 1\n    } else {\n        return 2\n    }\n}\n";
+    let cfg = cfg_of(src, Language::Swift, "swift", "f");
+    assert!(has_kind(&cfg, NodeKind::Predicate));
+    assert!(has_label(&cfg, EdgeLabel::True), "{cfg:?}");
+    assert!(has_label(&cfg, EdgeLabel::False), "{cfg:?}");
+}
+
+#[test]
+fn swift_if_condition_use_recorded() {
+    let du = def_use_of(
+        "func f(flag: Bool) -> Int {\n    if flag {\n        return 1\n    }\n    return 0\n}\n",
+        Language::Swift,
+        "swift",
+        "f",
+    );
+    assert!(has(&du, "flag", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn swift_loop_has_loop_head_and_back_edge() {
+    let src = "func f(n: Int) {\n    var i = 0\n    while i < n {\n        i = i + 1\n    }\n}\n";
+    let cfg = cfg_of(src, Language::Swift, "swift", "f");
+    assert!(has_kind(&cfg, NodeKind::LoopHead));
+    assert!(has_label(&cfg, EdgeLabel::Back), "{cfg:?}");
+}
+
+#[test]
+fn swift_return_connects_to_exit() {
+    let cfg = cfg_of("func f() -> Int {\n    return 1\n}\n", Language::Swift, "swift", "f");
+    assert!(cfg.edges.iter().any(|e| e.to == cfg.exit), "{cfg:?}");
+}
+
+#[test]
+fn swift_unreachable_after_return_flagged() {
+    let f = smells_of("func f() -> Int {\n    return 1\n    let dead = 2\n}\n", Language::Swift, "swift");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn swift_dead_store_on_redefinition() {
+    let f = smells_of("func f() -> Int {\n    var x = 0\n    x = 1\n    return x\n}\n", Language::Swift, "swift");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn swift_use_before_def_flagged() {
+    let f = smells_of("func f() -> Int {\n    let a = b\n    let b = 1\n    return a\n}\n", Language::Swift, "swift");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "b is read before any declaration reaches it: {f:?}");
+}
+
+#[test]
+fn swift_clean_function_has_no_cpg_smells() {
+    let f = smells_of("func f(a: Int) -> Int {\n    let x = a + 1\n    return x\n}\n", Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn swift_attribute_write_is_not_a_dead_store() {
+    let f = smells_of("func f(o: Obj) {\n    o.x = 1\n}\n", Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "`o.x = 1` reads the receiver; it is not a local store: {f:?}");
+}
+
+#[test]
+fn swift_guard_binding_is_clean() {
+    let src = "func f(opt: Int?) -> Int {\n    guard let x = opt else {\n        return 0\n    }\n    return x\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "the guard-bound x must not be flagged: {f:?}");
+}
+
+#[test]
+fn swift_for_loop_accumulator_is_clean() {
+    let src = "func f(xs: [Int]) -> Int {\n    var sum = 0\n    for x in xs {\n        sum = sum + x\n    }\n    return sum\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "the accumulator and loop var are read: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn swift_switch_is_clean() {
+    let src = "func f(n: Int) -> String {\n    switch n {\n    case 0:\n        return \"zero\"\n    default:\n        return \"other\"\n    }\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}

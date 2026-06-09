@@ -195,7 +195,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
             &["line_string_literal"],
             &[],
         ),
-        cpg: None,
+        cpg: super::cpg_for(hash_node, node, source, &crate::cpg::SWIFT),
     })
 }
 

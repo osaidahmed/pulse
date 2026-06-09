@@ -32,7 +32,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
         collect_declaration(node, source, block, lang, out);
         return;
     }
-    if matches!(k, "identifier" | "variable_name") {
+    if matches!(k, "identifier" | "variable_name" | "simple_identifier") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, DefUse::Use));
         }
@@ -120,7 +120,11 @@ pub(crate) fn seed_case_bindings(case: Node, source: &str, entry: u32, out: &mut
 }
 
 fn pick_case_pattern(child: Node) -> Option<Node> {
-    is_case_pattern(child.kind()).then_some(child)
+    matches!(
+        child.kind(),
+        "pattern" | "type_pattern" | "record_pattern" | "declaration_pattern" | "recursive_pattern" | "var_pattern"
+    )
+    .then_some(child)
 }
 
 fn seed_children(
@@ -141,13 +145,6 @@ fn seed_children(
 pub(crate) fn seed_escaping(node: Node, source: &str, entry: u32, exit: u32, out: &mut Vec<DefUseRecord>) {
     push_idents(node, source, entry, DefUse::Def, out);
     push_idents(node, source, exit, DefUse::Use, out);
-}
-
-fn is_case_pattern(kind: &str) -> bool {
-    matches!(
-        kind,
-        "pattern" | "type_pattern" | "record_pattern" | "declaration_pattern" | "recursive_pattern" | "var_pattern"
-    )
 }
 
 fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
@@ -176,12 +173,12 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
 }
 
 fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
-    for field in ["left", "pattern", "name", "declarator"] {
+    for field in ["left", "pattern", "name", "declarator", "target"] {
         let mut cursor = node.walk();
         let mut any = false;
         for child in node.children_by_field_name(field, &mut cursor) {
             any = true;
-            if child.kind() == "expression_list" {
+            if matches!(child.kind(), "expression_list" | "directly_assignable_expression") {
                 let mut inner = child.walk();
                 out.extend(child.children(&mut inner).filter(tree_sitter::Node::is_named));
             } else {
@@ -210,6 +207,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "selector_expression"
             | "dynamic_variable_name"
             | "pointer_expression"
+            | "navigation_expression"
     )
 }
 
@@ -224,18 +222,24 @@ pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec
         .or_else(|| find_child_by_kind(fn_node, "function_value_parameters"));
     if let Some(params) = params {
         push_idents(params, source, entry, DefUse::Def, out);
+    } else {
+        let mut cursor = fn_node.walk();
+        for p in fn_node.children(&mut cursor).filter(|n| n.kind() == "parameter") {
+            push_idents(p, source, entry, DefUse::Def, out);
+        }
     }
 }
 
+fn first_field<'a>(node: Node<'a>, fields: &[&str]) -> Option<Node<'a>> {
+    fields.iter().find_map(|f| node.child_by_field_name(f))
+}
+
 fn binding_left(node: Node) -> Option<Node> {
-    node.child_by_field_name("left")
-        .or_else(|| node.child_by_field_name("pattern"))
-        .or_else(|| node.child_by_field_name("name"))
-        .or_else(|| node.child_by_field_name("declarator"))
+    first_field(node, &["left", "pattern", "name", "declarator", "item"])
 }
 
 fn binding_right(node: Node) -> Option<Node> {
-    node.child_by_field_name("right").or_else(|| node.child_by_field_name("value")).or_else(|| initializer_child(node))
+    first_field(node, &["right", "value", "result", "collection"]).or_else(|| initializer_child(node))
 }
 
 fn initializer_child(node: Node) -> Option<Node> {
@@ -255,7 +259,7 @@ fn initializer_child(node: Node) -> Option<Node> {
 
 pub(crate) fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
-    if matches!(node.kind(), "identifier" | "variable_name") {
+    if matches!(node.kind(), "identifier" | "variable_name" | "simple_identifier") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, kind));
         }
