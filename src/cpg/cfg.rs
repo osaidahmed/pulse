@@ -165,12 +165,12 @@ pub const CSHARP: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["catch_clause"],
-    def_kinds: &[],
+    def_kinds: &["assignment_expression", "variable_declarator"],
     aug_kinds: &[],
     block_kinds: &["block"],
     nested_fn_kinds: &["lambda_expression", "anonymous_method_expression", "local_function_statement"],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_statement"],
+    case_kinds: &["switch_section"],
     hoist_kinds: &[],
 };
 

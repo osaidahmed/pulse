@@ -80,28 +80,45 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
 }
 
 pub(crate) fn seed_case_bindings(case: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
-    let mut label_cursor = case.walk();
-    for label in case.children(&mut label_cursor) {
-        if label.kind() != "switch_label" {
-            continue;
-        }
-        let mut pat_cursor = label.walk();
-        for child in label.children(&mut pat_cursor) {
-            if matches!(child.kind(), "pattern" | "type_pattern" | "record_pattern") {
-                push_idents(child, source, entry, DefUse::Def, out);
-            }
+    seed_children(case, source, entry, out, pick_case_pattern);
+    let mut cursor = case.walk();
+    for child in case.children(&mut cursor) {
+        if child.kind() == "switch_label" {
+            seed_children(child, source, entry, out, pick_case_pattern);
         }
     }
 }
 
-fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+fn seed_children(
+    node: Node,
+    source: &str,
+    entry: u32,
+    out: &mut Vec<DefUseRecord>,
+    pick: impl Fn(Node) -> Option<Node>,
+) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        let Some(name) = child.child_by_field_name("name") else { continue };
-        if !is_destructure_pattern(name.kind()) {
-            push_idents(name, source, entry, DefUse::Def, out);
+        if let Some(target) = pick(child) {
+            push_idents(target, source, entry, DefUse::Def, out);
         }
     }
+}
+
+fn pick_case_pattern(child: Node) -> Option<Node> {
+    is_case_pattern(child.kind()).then_some(child)
+}
+
+fn is_case_pattern(kind: &str) -> bool {
+    matches!(
+        kind,
+        "pattern" | "type_pattern" | "record_pattern" | "declaration_pattern" | "recursive_pattern" | "var_pattern"
+    )
+}
+
+fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+    seed_children(node, source, entry, out, |child| {
+        child.child_by_field_name("name").filter(|n| !is_destructure_pattern(n.kind()))
+    });
 }
 
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
@@ -137,6 +154,8 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "member_expression"
             | "field_access"
             | "array_access"
+            | "member_access_expression"
+            | "element_access_expression"
     )
 }
 
@@ -157,7 +176,22 @@ fn binding_left(node: Node) -> Option<Node> {
 }
 
 fn binding_right(node: Node) -> Option<Node> {
-    node.child_by_field_name("right").or_else(|| node.child_by_field_name("value"))
+    node.child_by_field_name("right").or_else(|| node.child_by_field_name("value")).or_else(|| initializer_child(node))
+}
+
+fn initializer_child(node: Node) -> Option<Node> {
+    if node.kind() != "variable_declarator" {
+        return None;
+    }
+    let name_id = node.child_by_field_name("name").map(|n| n.id());
+    let mut cursor = node.walk();
+    let mut found = None;
+    for child in node.children(&mut cursor) {
+        if child.is_named() && Some(child.id()) != name_id {
+            found = Some(child);
+        }
+    }
+    found
 }
 
 fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {

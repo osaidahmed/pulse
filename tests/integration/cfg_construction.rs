@@ -529,6 +529,58 @@ fn csharp_if_else_clean_has_no_cpg_smells() {
 }
 
 #[test]
+fn csharp_var_initializer_dead_store_is_flagged() {
+    let src = "class C {\n  int F() {\n    var x = Compute();\n    x = 5;\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(has_finding(&f, Smell::DeadStore), "the var initializer is tracked and overwritten before any read: {f:?}");
+}
+
+#[test]
+fn csharp_use_before_def_flagged() {
+    let src = "class C {\n  int F() {\n    int y = x;\n    int x = 1;\n    return y;\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "x is read before its declaration: {f:?}");
+}
+
+#[test]
+fn csharp_clean_function_has_no_cpg_smells() {
+    let src = "class C {\n  int F(int a) {\n    var x = a + 1;\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn csharp_pre_switch_store_survives_no_match_path() {
+    let src = "class C {\n  int F(int k) {\n    int x = 0;\n    switch (k) {\n      case 1:\n        x = 1;\n        break;\n    }\n    return x;\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "x = 0 is read when no case matches; the switch must not unconditionally kill it: {f:?}"
+    );
+}
+
+#[test]
+fn csharp_switch_pattern_binding_is_a_def_not_use_before_def() {
+    let src = "class C {\n  void F(object o) {\n    switch (o) {\n      case string s:\n        Use(s);\n        break;\n      default:\n        break;\n    }\n    int s = Compute();\n    Use2(s);\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "a pattern binding defines its name; it must not collide with a separate local: {f:?}"
+    );
+}
+
+#[test]
+fn csharp_field_write_is_not_a_dead_store() {
+    let src = "class C {\n  int F(Obj o) {\n    o.Field = 1;\n    return 0;\n  }\n}\n";
+    let f = smells_of(src, Language::CSharp, "cs");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a member write reads the receiver; it is not a local dead store: {f:?}"
+    );
+}
+
+#[test]
 fn c_unreachable_after_return_flagged() {
     let f = smells_of("int f() {\n  return 1;\n  int dead = 2;\n}\n", Language::C, "c");
     assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
