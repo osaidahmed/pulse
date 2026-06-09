@@ -1234,3 +1234,27 @@ fn kotlin_attribute_write_is_not_a_dead_store() {
     let f = smells_of("fun f(o: Obj) {\n    o.x = 1\n}\n", Language::Kotlin, "kt");
     assert!(!has_finding(&f, Smell::DeadStore), "`o.x = 1` mutates an attribute; it is not a local store: {f:?}");
 }
+
+#[test]
+fn kotlin_braceless_if_return_keeps_following_code_reachable() {
+    let f = smells_of("fun f(c: Boolean) {\n    if (c) return\n    doSomething()\n}\n", Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "`doSomething()` runs when c is false; a dropped braceless return must not make it unreachable: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_braceless_for_body_is_clean() {
+    let f = smells_of("fun f(xs: List<Int>) {\n    for (x in xs) println(x)\n    done()\n}\n", Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "code after a braceless-body loop is reachable: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn kotlin_when_subject_binding_is_clean() {
+    let src = "fun g(n: Int): String {\n    val r = when (val k = n % 2) {\n        0 -> \"even\"\n        else -> \"odd\"\n    }\n    return r\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "the when-subject binding `k` must not be flagged: {f:?}");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
