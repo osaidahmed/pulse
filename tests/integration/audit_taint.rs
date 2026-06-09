@@ -271,3 +271,33 @@ fn cpp_unsanitized_source_to_sink_is_flagged() {
     assert_eq!(found[0].sink_name, "system");
     assert_eq!(found[0].tainted_var, "cmd");
 }
+
+#[test]
+fn ruby_params_source_to_sink_is_flagged() {
+    let body = "def handler(db)\n  q = params[:id]\n  db.execute(q)\nend\n";
+    let found = taint_findings("app.rb", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "params");
+    assert_eq!(found[0].sink_name, "execute");
+    assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn ruby_gets_source_to_system_is_flagged() {
+    let found = taint_findings("app.rb", "def run\n  cmd = gets\n  system(cmd)\nend\n");
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "gets");
+    assert_eq!(found[0].sink_name, "system");
+}
+
+#[test]
+fn ruby_sanitized_flow_is_not_flagged() {
+    let body = "def handler(db)\n  q = params[:id]\n  safe = sanitize(q)\n  db.execute(safe)\nend\n";
+    assert!(taint_findings("app.rb", body).is_empty(), "sanitize() cleans the flow");
+}
+
+#[test]
+fn ruby_constant_query_is_not_flagged() {
+    let body = "def handler(db)\n  q = \"SELECT 1\"\n  db.execute(q)\nend\n";
+    assert!(taint_findings("app.rb", body).is_empty(), "a constant query is not tainted");
+}

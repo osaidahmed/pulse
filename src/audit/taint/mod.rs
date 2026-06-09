@@ -189,6 +189,22 @@ const C: TaintLang = TaintLang {
 
 const CPP: TaintLang = C;
 
+const RUBY: TaintLang = TaintLang {
+    fn_kinds: &["method", "singleton_method"],
+    body_kind: "body_statement",
+    assign_kinds: &["assignment", "operator_assignment"],
+    aug_kinds: &["operator_assignment"],
+    call_kinds: &["call"],
+    sources: &["params", "gets", "cookies"],
+    prop_sources: &["params", "gets"],
+    source_kinds: &["identifier"],
+    ident_kinds: &["identifier"],
+    sinks: &["execute", "exec", "system", "eval", "popen", "spawn"],
+    sanitizers: &["sanitize", "escape", "quote", "sanitize_sql", "escape_html"],
+    opacity_kinds: &["block", "do_block"],
+    opacity_calls: &["send", "public_send", "instance_eval", "instance_exec"],
+};
+
 fn lang_for(lang: Language) -> Option<&'static TaintLang> {
     const TABLE: &[(Language, &TaintLang)] = &[
         (Language::Python, &PYTHON),
@@ -201,6 +217,7 @@ fn lang_for(lang: Language) -> Option<&'static TaintLang> {
         (Language::Php, &PHP),
         (Language::C, &C),
         (Language::Cpp, &CPP),
+        (Language::Ruby, &RUBY),
     ];
     TABLE.iter().find(|(l, _)| *l == lang).map(|(_, tl)| *tl)
 }

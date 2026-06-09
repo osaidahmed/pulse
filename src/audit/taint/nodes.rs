@@ -44,12 +44,17 @@ pub(super) fn is_field_or_index_target(kind: &str) -> bool {
 pub(super) fn is_callee(node: Node, call_kinds: &[&str]) -> bool {
     node.parent().is_some_and(|p| {
         call_kinds.contains(&p.kind())
-            && ["function", "name"].iter().any(|f| p.child_by_field_name(f).is_some_and(|c| c.id() == node.id()))
+            && ["function", "name", "method"]
+                .iter()
+                .any(|f| p.child_by_field_name(f).is_some_and(|c| c.id() == node.id()))
     })
 }
 
 pub(super) fn callee_name(call: Node, source: &str) -> Option<String> {
-    let f = call.child_by_field_name("function").or_else(|| call.child_by_field_name("name"))?;
+    let f = call
+        .child_by_field_name("function")
+        .or_else(|| call.child_by_field_name("name"))
+        .or_else(|| call.child_by_field_name("method"))?;
     Some(trailing_name(f, source))
 }
 
