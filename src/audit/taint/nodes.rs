@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use crate::walk::{node_text, DepthGuard};
+use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
 pub(super) fn line(node: Node) -> u32 {
     node.start_position().row as u32 + 1
@@ -16,6 +16,7 @@ fn first_field<'a>(node: Node<'a>, fields: &[&str]) -> Option<Node<'a>> {
 
 pub(super) fn binding_left(node: Node) -> Option<Node> {
     first_field(node, &["left", "pattern", "name", "declarator"])
+        .or_else(|| find_child_by_kind(node, "variable_declaration"))
 }
 
 pub(super) fn binding_right(node: Node) -> Option<Node> {
@@ -23,18 +24,25 @@ pub(super) fn binding_right(node: Node) -> Option<Node> {
 }
 
 fn initializer_child(node: Node) -> Option<Node> {
-    if node.kind() != "variable_declarator" {
-        return None;
-    }
-    let name_id = node.child_by_field_name("name").map(|n| n.id());
+    let name_id = match node.kind() {
+        "variable_declarator" => node.child_by_field_name("name").map(|n| n.id()),
+        "property_declaration" => None,
+        _ => return None,
+    };
     let mut cursor = node.walk();
     let mut found = None;
     for child in node.children(&mut cursor) {
-        if child.is_named() && Some(child.id()) != name_id {
+        let is_binding = Some(child.id()) == name_id
+            || matches!(child.kind(), "variable_declaration" | "multi_variable_declaration" | "modifiers");
+        if child.is_named() && !is_binding {
             found = Some(child);
         }
     }
     found
+}
+
+pub(super) fn call_args(call: Node) -> Option<Node> {
+    call.child_by_field_name("arguments").or_else(|| find_child_by_kind(call, "value_arguments"))
 }
 
 pub(super) fn is_field_or_index_target(kind: &str) -> bool {
@@ -54,7 +62,8 @@ pub(super) fn callee_name(call: Node, source: &str) -> Option<String> {
     let f = call
         .child_by_field_name("function")
         .or_else(|| call.child_by_field_name("name"))
-        .or_else(|| call.child_by_field_name("method"))?;
+        .or_else(|| call.child_by_field_name("method"))
+        .or_else(|| call.named_child(0))?;
     Some(trailing_name(f, source))
 }
 

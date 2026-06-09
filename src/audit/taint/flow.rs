@@ -6,7 +6,7 @@ use crate::audit::finding::{AuditFinding, AuditKind, ImportConfidence, Injection
 use crate::walk::{node_text, DepthGuard};
 
 use super::nodes::{
-    binding_left, binding_right, callee_name, idents_in, is_callee, is_field_or_index_target, is_in, line,
+    binding_left, binding_right, call_args, callee_name, idents_in, is_callee, is_field_or_index_target, is_in, line,
 };
 use super::state::{resolve_taint, sanitized, source_rhs, Rhs, Taint};
 use super::FileCtx;
@@ -117,7 +117,7 @@ impl<'a> Analyzer<'a> {
         if !self.ctx.lang.sinks.contains(&name.as_str()) {
             return;
         }
-        let Some(args) = node.child_by_field_name("arguments") else { return };
+        let Some(args) = call_args(node) else { return };
         if let Some(t) = resolve_taint(self.analyze(args, false)) {
             self.emit(&t, &name, line(node));
         }

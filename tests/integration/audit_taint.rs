@@ -319,3 +319,43 @@ fn ruby_index_write_does_not_overtaint_the_base() {
         "writing tainted data into h[:k] must not taint the whole `h` (consistent with the other languages)"
     );
 }
+
+#[test]
+fn kotlin_source_to_sink_is_flagged() {
+    let body = "fun handler(stmt: Statement, req: Request) {\n    val q = req.getParameter(\"id\")\n    stmt.executeQuery(q)\n}\n";
+    let found = taint_findings("App.kt", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getParameter");
+    assert_eq!(found[0].sink_name, "executeQuery");
+    assert_eq!(found[0].tainted_var, "q");
+}
+
+#[test]
+fn kotlin_direct_source_into_sink_is_flagged() {
+    let body = "fun handler(stmt: Statement, req: Request) {\n    stmt.executeQuery(req.getParameter(\"id\"))\n}\n";
+    let found = taint_findings("App.kt", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getParameter");
+    assert_eq!(found[0].sink_name, "executeQuery");
+}
+
+#[test]
+fn kotlin_readline_to_exec_is_flagged() {
+    let body = "fun run(rt: Runtime) {\n    val cmd = readLine()\n    rt.exec(cmd)\n}\n";
+    let found = taint_findings("App.kt", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "readLine");
+    assert_eq!(found[0].sink_name, "exec");
+}
+
+#[test]
+fn kotlin_sanitized_flow_is_not_flagged() {
+    let body = "fun handler(stmt: Statement, req: Request) {\n    val q = req.getParameter(\"id\")\n    val safe = escape(q)\n    stmt.executeQuery(safe)\n}\n";
+    assert!(taint_findings("App.kt", body).is_empty(), "escape() sanitizes the flow");
+}
+
+#[test]
+fn kotlin_constant_query_is_not_flagged() {
+    let body = "fun handler(stmt: Statement) {\n    val q = \"SELECT 1\"\n    stmt.executeQuery(q)\n}\n";
+    assert!(taint_findings("App.kt", body).is_empty(), "a constant query is not tainted");
+}

@@ -205,6 +205,22 @@ const RUBY: TaintLang = TaintLang {
     opacity_calls: &["send", "public_send", "instance_eval", "instance_exec"],
 };
 
+const KOTLIN: TaintLang = TaintLang {
+    fn_kinds: &["function_declaration"],
+    body_kind: "function_body",
+    assign_kinds: &["property_declaration", "assignment"],
+    aug_kinds: &[],
+    call_kinds: &["call_expression"],
+    sources: &["getParameter", "getHeader", "getQueryParameter", "readLine", "getenv"],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
+    sinks: &["executeQuery", "executeUpdate", "execute", "exec", "rawQuery", "compileStatement", "eval"],
+    sanitizers: &["escape", "encode", "sanitize", "escapeHtml", "encodeForSql"],
+    opacity_kinds: &["lambda_literal", "anonymous_function"],
+    opacity_calls: &[],
+};
+
 fn lang_for(lang: Language) -> Option<&'static TaintLang> {
     const TABLE: &[(Language, &TaintLang)] = &[
         (Language::Python, &PYTHON),
@@ -218,6 +234,7 @@ fn lang_for(lang: Language) -> Option<&'static TaintLang> {
         (Language::C, &C),
         (Language::Cpp, &CPP),
         (Language::Ruby, &RUBY),
+        (Language::Kotlin, &KOTLIN),
     ];
     TABLE.iter().find(|(l, _)| *l == lang).map(|(_, tl)| *tl)
 }
