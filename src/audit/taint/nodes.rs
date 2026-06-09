@@ -38,7 +38,7 @@ fn initializer_child(node: Node) -> Option<Node> {
 }
 
 pub(super) fn is_field_or_index_target(kind: &str) -> bool {
-    matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression")
+    matches!(kind, "attribute" | "subscript" | "field_expression" | "index_expression" | "element_reference")
 }
 
 pub(super) fn is_callee(node: Node, call_kinds: &[&str]) -> bool {

@@ -196,7 +196,7 @@ const RUBY: TaintLang = TaintLang {
     aug_kinds: &["operator_assignment"],
     call_kinds: &["call"],
     sources: &["params", "gets", "cookies"],
-    prop_sources: &["params", "gets"],
+    prop_sources: &["params", "gets", "cookies"],
     source_kinds: &["identifier"],
     ident_kinds: &["identifier"],
     sinks: &["execute", "exec", "system", "eval", "popen", "spawn"],

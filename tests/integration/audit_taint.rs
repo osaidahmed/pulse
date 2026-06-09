@@ -301,3 +301,21 @@ fn ruby_constant_query_is_not_flagged() {
     let body = "def handler(db)\n  q = \"SELECT 1\"\n  db.execute(q)\nend\n";
     assert!(taint_findings("app.rb", body).is_empty(), "a constant query is not tainted");
 }
+
+#[test]
+fn ruby_cookies_source_to_sink_is_flagged() {
+    let body = "def show(db)\n  id = cookies[:session]\n  db.execute(id)\nend\n";
+    let found = taint_findings("app.rb", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "cookies");
+    assert_eq!(found[0].sink_name, "execute");
+}
+
+#[test]
+fn ruby_index_write_does_not_overtaint_the_base() {
+    let body = "def f(db)\n  h = {}\n  h[:k] = params[:id]\n  db.execute(h)\nend\n";
+    assert!(
+        taint_findings("app.rb", body).is_empty(),
+        "writing tainted data into h[:k] must not taint the whole `h` (consistent with the other languages)"
+    );
+}
