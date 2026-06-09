@@ -198,6 +198,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "element_access_expression"
             | "selector_expression"
             | "dynamic_variable_name"
+            | "pointer_expression"
     )
 }
 

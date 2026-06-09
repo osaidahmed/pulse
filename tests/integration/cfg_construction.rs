@@ -710,6 +710,15 @@ fn c_field_write_is_not_a_dead_store() {
 }
 
 #[test]
+fn c_pointer_deref_write_is_not_a_dead_store() {
+    let f = smells_of("int f() {\n  int x = 0;\n  int *p = &x;\n  *p = 5;\n  return x;\n}\n", Language::C, "c");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "*p = v writes through p, reading it; the pointer is not a dead store: {f:?}"
+    );
+}
+
+#[test]
 fn cpp_unreachable_after_return_flagged() {
     let f = smells_of("int f() {\n  return 1;\n  int dead = 2;\n}\n", Language::Cpp, "cpp");
     assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
