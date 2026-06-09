@@ -436,6 +436,17 @@ fn go_dead_store_on_redefinition() {
 }
 
 #[test]
+fn go_multi_name_var_spec_defines_every_name() {
+    let src =
+        "package main\nfunc f() int {\n\tvar x, y int = 1, 2\n\tprintln(y)\n\ty = 5\n\tprintln(x)\n\treturn y\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "`var x, y` defines both names; the second must not be a use-before-def: {f:?}"
+    );
+}
+
+#[test]
 fn go_use_before_def_flagged() {
     let src = "package main\nfunc f() int {\n\ty := x\n\tx := 1\n\treturn y\n}\n";
     let f = smells_of(src, Language::Go, "go");

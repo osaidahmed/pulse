@@ -128,11 +128,9 @@ fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRe
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(r) = binding_right(node) else { return };
     collect(r, source, block, lang, out);
-    let Some(l) = binding_left(node) else { return };
     let aug = is_augmented(node, source, lang);
-    let mut cursor = l.walk();
-    let targets: Vec<Node> =
-        if l.kind() == "expression_list" { l.children(&mut cursor).filter(Node::is_named).collect() } else { vec![l] };
+    let mut targets: Vec<Node> = Vec::new();
+    collect_binding_targets(node, &mut targets);
     for t in targets {
         if is_field_or_index_target(t.kind()) {
             collect(t, source, block, lang, out);
@@ -141,6 +139,25 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
             if aug {
                 push_idents(t, source, block, DefUse::Use, out);
             }
+        }
+    }
+}
+
+fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
+    for field in ["left", "pattern", "name"] {
+        let mut cursor = node.walk();
+        let mut any = false;
+        for child in node.children_by_field_name(field, &mut cursor) {
+            any = true;
+            if child.kind() == "expression_list" {
+                let mut inner = child.walk();
+                out.extend(child.children(&mut inner).filter(tree_sitter::Node::is_named));
+            } else {
+                out.push(child);
+            }
+        }
+        if any {
+            return;
         }
     }
 }
