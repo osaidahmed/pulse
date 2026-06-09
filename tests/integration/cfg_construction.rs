@@ -1136,3 +1136,101 @@ fn ruby_modifier_conditional_assignment_is_not_a_dead_store() {
         "the line-2 default is read when the postfix-if condition is falsy: {f:?}"
     );
 }
+
+#[test]
+fn kotlin_property_records_def_and_use() {
+    let du = def_use_of("fun f(a: Int): Int {\n    val x = a\n    return x\n}\n", Language::Kotlin, "kt", "f");
+    assert!(has(&du, "x", DefUse::Def), "{du:?}");
+    assert!(has(&du, "a", DefUse::Use), "{du:?}");
+    assert!(has(&du, "x", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn kotlin_if_else_has_predicate_and_both_branch_labels() {
+    let src = "fun f(x: Boolean): Int {\n    if (x) {\n        return 1\n    } else {\n        return 2\n    }\n}\n";
+    let cfg = cfg_of(src, Language::Kotlin, "kt", "f");
+    assert!(has_kind(&cfg, NodeKind::Predicate));
+    assert!(has_label(&cfg, EdgeLabel::True), "{cfg:?}");
+    assert!(has_label(&cfg, EdgeLabel::False), "{cfg:?}");
+}
+
+#[test]
+fn kotlin_if_condition_use_recorded() {
+    let du = def_use_of(
+        "fun f(flag: Boolean): Int {\n    if (flag) {\n        return 1\n    }\n    return 0\n}\n",
+        Language::Kotlin,
+        "kt",
+        "f",
+    );
+    assert!(has(&du, "flag", DefUse::Use), "{du:?}");
+}
+
+#[test]
+fn kotlin_loop_has_loop_head_and_back_edge() {
+    let src = "fun f(n: Int) {\n    var i = 0\n    while (i < n) {\n        i = i + 1\n    }\n}\n";
+    let cfg = cfg_of(src, Language::Kotlin, "kt", "f");
+    assert!(has_kind(&cfg, NodeKind::LoopHead));
+    assert!(has_label(&cfg, EdgeLabel::Back), "{cfg:?}");
+}
+
+#[test]
+fn kotlin_return_connects_to_exit() {
+    let cfg = cfg_of("fun f(): Int {\n    return 1\n}\n", Language::Kotlin, "kt", "f");
+    assert!(cfg.edges.iter().any(|e| e.to == cfg.exit), "{cfg:?}");
+}
+
+#[test]
+fn kotlin_unreachable_after_return_flagged() {
+    let f = smells_of("fun f(): Int {\n    return 1\n    val dead = 2\n}\n", Language::Kotlin, "kt");
+    assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
+}
+
+#[test]
+fn kotlin_use_before_def_flagged() {
+    let f = smells_of("fun f(): Int {\n    val a = b\n    val b = 1\n    return a\n}\n", Language::Kotlin, "kt");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "b is read before any declaration reaches it: {f:?}");
+}
+
+#[test]
+fn kotlin_clean_function_has_no_cpg_smells() {
+    let f = smells_of("fun f(a: Int): Int {\n    val x = a + 1\n    return x\n}\n", Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn kotlin_expression_body_is_clean() {
+    let f = smells_of("fun f(a: Int): Int = a + 1\n", Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "the parameter is read in the expression body: {f:?}");
+}
+
+#[test]
+fn kotlin_for_loop_accumulator_is_clean() {
+    let src = "fun f(xs: List<Int>): Int {\n    var sum = 0\n    for (x in xs) {\n        sum = sum + x\n    }\n    return sum\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "the accumulator is defined before the loop: {f:?}");
+}
+
+#[test]
+fn kotlin_dead_store_is_suppressed_even_on_clear_redefinition() {
+    let f = smells_of("fun f(): Int {\n    var x = 0\n    x = 1\n    return x\n}\n", Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "DeadStore is intentionally suppressed for Kotlin (expression-oriented + positional bodies make it FP-prone): {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_value_of_when_assignment_is_not_a_dead_store() {
+    let src = "fun f(n: Int): String {\n    val label = when (n) {\n        1 -> \"one\"\n        else -> \"other\"\n    }\n    return label\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "label is assigned the when-expression value and returned: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn kotlin_attribute_write_is_not_a_dead_store() {
+    let f = smells_of("fun f(o: Obj) {\n    o.x = 1\n}\n", Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "`o.x = 1` mutates an attribute; it is not a local store: {f:?}");
+}

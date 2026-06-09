@@ -1,7 +1,7 @@
 use tree_sitter::Node;
 
 use crate::cpg::cfg::CfgLang;
-use crate::walk::{node_text, DepthGuard};
+use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefUse {
@@ -28,7 +28,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
         handle_binding(node, source, block, lang, out);
         return;
     }
-    if k == "declaration" {
+    if matches!(k, "declaration" | "property_declaration") {
         collect_declaration(node, source, block, lang, out);
         return;
     }
@@ -47,6 +47,17 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
 }
 
 fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    if node.kind() == "property_declaration" {
+        let mut c = node.walk();
+        for child in node.children(&mut c).filter(tree_sitter::Node::is_named) {
+            if matches!(child.kind(), "variable_declaration" | "multi_variable_declaration") {
+                push_idents(child, source, block, DefUse::Def, out);
+            } else {
+                collect(child, source, block, lang, out);
+            }
+        }
+        return;
+    }
     let mut cursor = node.walk();
     for d in node.children_by_field_name("declarator", &mut cursor) {
         if d.kind() == "init_declarator" {
@@ -209,7 +220,8 @@ fn is_destructure_pattern(kind: &str) -> bool {
 pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
     let params = fn_node
         .child_by_field_name("parameters")
-        .or_else(|| fn_node.child_by_field_name("declarator").and_then(|d| d.child_by_field_name("parameters")));
+        .or_else(|| fn_node.child_by_field_name("declarator").and_then(|d| d.child_by_field_name("parameters")))
+        .or_else(|| find_child_by_kind(fn_node, "function_value_parameters"));
     if let Some(params) = params {
         push_idents(params, source, entry, DefUse::Def, out);
     }

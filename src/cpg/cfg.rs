@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use crate::cpg::cfg_nodes::{end_line, line, stmt_seq_node, unwrap_stmt};
+use crate::cpg::cfg_nodes::{end_line, if_bodies, line, stmt_seq_node, unwrap_stmt};
 use crate::cpg::defuse::{self, DefUseRecord};
 use crate::walk::{find_child_by_kinds, DepthGuard};
 
@@ -242,6 +242,23 @@ pub const RUBY: CfgLang = CfgLang {
     hoist_kinds: &[],
 };
 
+pub const KOTLIN: CfgLang = CfgLang {
+    if_kinds: &["if_expression"],
+    loop_kinds: &["for_statement", "while_statement", "do_while_statement"],
+    return_kinds: &["return_expression"],
+    break_kinds: &[],
+    continue_kinds: &[],
+    try_kinds: &[],
+    handler_kinds: &[],
+    def_kinds: &["assignment"],
+    aug_kinds: &[],
+    block_kinds: &["block"],
+    nested_fn_kinds: &["lambda_literal", "anonymous_function", "function_declaration"],
+    switch_kinds: &["when_expression"],
+    case_kinds: &["when_entry"],
+    hoist_kinds: &[],
+};
+
 type Incoming = Option<(u32, EdgeLabel)>;
 
 #[derive(Clone, Copy)]
@@ -474,10 +491,13 @@ impl Builder<'_> {
         let p = self.add(NodeKind::Predicate, line(node));
         self.link(incoming, p);
         self.record_cond(node, p);
-        let consequence = node.child_by_field_name("consequence").or_else(|| node.child_by_field_name("body"));
-        let then_end = self.seq_opt_block(consequence, Some((p, EdgeLabel::True)));
         let mut alt_cursor = node.walk();
-        let alts: Vec<Node> = node.children_by_field_name("alternative", &mut alt_cursor).collect();
+        let mut alts: Vec<Node> = node.children_by_field_name("alternative", &mut alt_cursor).collect();
+        let (consequence, pos_else) = if_bodies(node);
+        if alts.is_empty() {
+            alts.extend(pos_else);
+        }
+        let then_end = self.seq_opt_block(consequence, Some((p, EdgeLabel::True)));
         let had_alt = !alts.is_empty();
         let else_end = self.do_else_chain(&alts, p);
         if then_end.is_none() && else_end.is_none() {
@@ -555,7 +575,8 @@ impl Builder<'_> {
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(head, after, EdgeLabel::False);
         self.loops.push(LoopCtx { head, after });
-        if let Some(b) = node.child_by_field_name("body") {
+        let body = node.child_by_field_name("body").or_else(|| find_child_by_kinds(node, self.lang.block_kinds));
+        if let Some(b) = body {
             if let Some(e) = self.seq(b, Some((head, EdgeLabel::True))) {
                 self.edge(e, head, EdgeLabel::Back);
             }
