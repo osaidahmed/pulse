@@ -29,7 +29,9 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
         return;
     }
     if k == "identifier" {
-        out.push(rec(node, source, block, DefUse::Use));
+        if node_text(node, source) != "_" {
+            out.push(rec(node, source, block, DefUse::Use));
+        }
         return;
     }
     let mut cursor = node.walk();
@@ -41,19 +43,21 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
 }
 
 pub(crate) fn loop_header(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
-    let mut cursor = node.walk();
-    for cond in node.children_by_field_name("condition", &mut cursor) {
+    let mut hc = node.walk();
+    let header = node.children(&mut hc).find(|c| matches!(c.kind(), "for_clause" | "range_clause")).unwrap_or(node);
+    let mut cursor = header.walk();
+    for cond in header.children_by_field_name("condition", &mut cursor) {
         collect(cond, source, block, lang, out);
     }
-    for field in ["initializer", "increment"] {
-        if let Some(n) = node.child_by_field_name(field) {
+    for field in ["initializer", "increment", "update"] {
+        if let Some(n) = header.child_by_field_name(field) {
             collect(n, source, block, lang, out);
         }
     }
-    if let Some(p) = binding_left(node) {
+    if let Some(p) = binding_left(header) {
         push_idents(p, source, block, DefUse::Def, out);
     }
-    if let Some(it) = binding_right(node) {
+    if let Some(it) = binding_right(header) {
         collect(it, source, block, lang, out);
     }
 }
@@ -122,20 +126,34 @@ fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRe
 }
 
 fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
-    let right = binding_right(node);
-    if let Some(l) = binding_left(node) {
-        if is_field_or_index_target(l.kind()) {
-            collect(l, source, block, lang, out);
-        } else if right.is_some() && !is_destructure_pattern(l.kind()) {
-            push_idents(l, source, block, DefUse::Def, out);
+    if let Some(r) = binding_right(node) {
+        if let Some(l) = binding_left(node) {
+            record_targets(l, source, block, lang, out);
             if is_augmented(node, source, lang) {
                 push_idents(l, source, block, DefUse::Use, out);
             }
         }
-    }
-    if let Some(r) = right {
         collect(r, source, block, lang, out);
     }
+}
+
+fn record_targets(lhs: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    if lhs.kind() == "expression_list" {
+        let mut cursor = lhs.walk();
+        for child in lhs.children(&mut cursor) {
+            if child.is_named() {
+                record_targets(child, source, block, lang, out);
+            }
+        }
+    } else if is_field_or_index_target(lhs.kind()) {
+        collect(lhs, source, block, lang, out);
+    } else if !is_destructure_pattern(lhs.kind()) {
+        push_idents(lhs, source, block, DefUse::Def, out);
+    }
+}
+
+pub(crate) fn seed_defs(node: Node, source: &str, block: u32, out: &mut Vec<DefUseRecord>) {
+    push_idents(node, source, block, DefUse::Def, out);
 }
 
 fn is_augmented(node: Node, source: &str, lang: &CfgLang) -> bool {
@@ -156,6 +174,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "array_access"
             | "member_access_expression"
             | "element_access_expression"
+            | "selector_expression"
     )
 }
 
@@ -197,7 +216,9 @@ fn initializer_child(node: Node) -> Option<Node> {
 fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     if node.kind() == "identifier" {
-        out.push(rec(node, source, block, kind));
+        if node_text(node, source) != "_" {
+            out.push(rec(node, source, block, kind));
+        }
         return;
     }
     let mut cursor = node.walk();

@@ -182,12 +182,12 @@ pub const GO: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &[],
     handler_kinds: &[],
-    def_kinds: &[],
+    def_kinds: &["short_var_declaration", "assignment_statement", "var_spec"],
     aug_kinds: &[],
     block_kinds: &["block"],
     nested_fn_kinds: &["func_literal"],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["expression_switch_statement", "type_switch_statement"],
+    case_kinds: &["expression_case", "default_case", "type_case"],
     hoist_kinds: &[],
 };
 
@@ -382,21 +382,26 @@ impl Builder<'_> {
         if let Some(value) = node.child_by_field_name("value").or_else(|| node.child_by_field_name("condition")) {
             defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
         }
+        if let Some(init) = node.child_by_field_name("initializer") {
+            defuse::collect(init, self.source, p, self.lang, &mut self.def_use);
+        }
+        if let Some(alias) = node.child_by_field_name("alias") {
+            defuse::seed_defs(alias, self.source, self.entry, &mut self.def_use);
+        }
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(p, after, EdgeLabel::False);
         let continue_head = self.loops.last().map_or(after, |l| l.head);
         self.loops.push(LoopCtx { head: continue_head, after });
-        if let Some(body) = node.child_by_field_name("body") {
-            let mut cursor = body.walk();
-            let mut fall: Option<u32> = None;
-            for case in body.children(&mut cursor) {
-                if self.lang.case_kinds.contains(&case.kind()) {
-                    fall = self.do_case(case, p, after, fall);
-                }
+        let body = node.child_by_field_name("body").unwrap_or(node);
+        let mut cursor = body.walk();
+        let mut fall: Option<u32> = None;
+        for case in body.children(&mut cursor) {
+            if self.lang.case_kinds.contains(&case.kind()) {
+                fall = self.do_case(case, p, after, fall);
             }
-            if let Some(end) = fall {
-                self.edge(end, after, EdgeLabel::Epsilon);
-            }
+        }
+        if let Some(end) = fall {
+            self.edge(end, after, EdgeLabel::Epsilon);
         }
         self.loops.pop();
         Some(after)
@@ -411,7 +416,8 @@ impl Builder<'_> {
             let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
             return self.do_switch_case(case, p, &body_stmts, fall_in);
         }
-        if let Some(body) = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value")) {
+        if matches!(case.kind(), "case_clause" | "match_arm") {
+            let body = case.child_by_field_name("consequence").or_else(|| case.child_by_field_name("value"))?;
             let end = if self.lang.block_kinds.contains(&body.kind()) {
                 self.seq(body, Some((p, EdgeLabel::True)))
             } else {

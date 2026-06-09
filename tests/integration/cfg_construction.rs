@@ -429,6 +429,66 @@ fn go_if_else_clean_has_no_cpg_smells() {
 }
 
 #[test]
+fn go_dead_store_on_redefinition() {
+    let src = "package main\nfunc f() int {\n\tx := 0\n\tx = 1\n\treturn x\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(has_finding(&f, Smell::DeadStore), "x := 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn go_use_before_def_flagged() {
+    let src = "package main\nfunc f() int {\n\ty := x\n\tx := 1\n\treturn y\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "x is read before its declaration: {f:?}");
+}
+
+#[test]
+fn go_clean_function_has_no_cpg_smells() {
+    let src = "package main\nfunc f(a int) int {\n\tx := a + 1\n\treturn x\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn go_pre_switch_store_survives_no_match_path() {
+    let src = "package main\nfunc f(k int) int {\n\tx := 0\n\tswitch k {\n\tcase 1:\n\t\tx = 1\n\t}\n\treturn x\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "x := 0 is read when no case matches; the switch must not unconditionally kill it: {f:?}"
+    );
+}
+
+#[test]
+fn go_range_loop_collection_and_blank_are_not_dead_stores() {
+    let src = "package main\nfunc f() int {\n\txs := getList()\n\tsum := 0\n\tfor _, x := range xs {\n\t\tsum += x\n\t}\n\treturn sum\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(!has_finding(&f, Smell::DeadStore), "xs is read by the range and `_` is the blank identifier: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn go_field_write_is_not_a_dead_store() {
+    let src = "package main\nfunc f() {\n\to := newObj()\n\to.field = 1\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a field write reads the receiver; it is not a local dead store: {f:?}"
+    );
+}
+
+#[test]
+fn go_type_switch_alias_is_not_use_before_def() {
+    let src = "package main\nfunc f(x any) {\n\tswitch v := x.(type) {\n\tcase int:\n\t\tuse(v)\n\t}\n\tv := 0\n\tuse2(v)\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(
+        !has_finding(&f, Smell::UseBeforeDef),
+        "the type-switch binding defines v; it must not collide with a separate local: {f:?}"
+    );
+}
+
+#[test]
 fn java_unreachable_after_return_flagged() {
     let f = smells_of("class C {\n  void f() {\n    return;\n    int dead = 2;\n  }\n}\n", Language::Java, "java");
     assert!(has_finding(&f, Smell::UnreachableCode), "{f:?}");
