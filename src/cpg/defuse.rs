@@ -93,6 +93,10 @@ pub(crate) fn seed_case_bindings(case: Node, source: &str, entry: u32, out: &mut
     }
 }
 
+fn pick_case_pattern(child: Node) -> Option<Node> {
+    is_case_pattern(child.kind()).then_some(child)
+}
+
 fn seed_children(
     node: Node,
     source: &str,
@@ -108,8 +112,9 @@ fn seed_children(
     }
 }
 
-fn pick_case_pattern(child: Node) -> Option<Node> {
-    is_case_pattern(child.kind()).then_some(child)
+pub(crate) fn seed_escaping(node: Node, source: &str, entry: u32, exit: u32, out: &mut Vec<DefUseRecord>) {
+    push_idents(node, source, entry, DefUse::Def, out);
+    push_idents(node, source, exit, DefUse::Use, out);
 }
 
 fn is_case_pattern(kind: &str) -> bool {
@@ -162,10 +167,6 @@ fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
     }
 }
 
-pub(crate) fn seed_defs(node: Node, source: &str, block: u32, out: &mut Vec<DefUseRecord>) {
-    push_idents(node, source, block, DefUse::Def, out);
-}
-
 fn is_augmented(node: Node, source: &str, lang: &CfgLang) -> bool {
     lang.aug_kinds.contains(&node.kind())
         || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=")
@@ -185,6 +186,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "member_access_expression"
             | "element_access_expression"
             | "selector_expression"
+            | "dynamic_variable_name"
     )
 }
 
@@ -223,7 +225,7 @@ fn initializer_child(node: Node) -> Option<Node> {
     found
 }
 
-fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
+pub(crate) fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     if matches!(node.kind(), "identifier" | "variable_name") {
         if node_text(node, source) != "_" {

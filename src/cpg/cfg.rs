@@ -333,7 +333,11 @@ impl Builder<'_> {
         }
         let n = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, n);
-        defuse::collect(node, self.source, n, self.lang, &mut self.def_use);
+        if matches!(k, "global_declaration" | "function_static_declaration") {
+            defuse::seed_escaping(node, self.source, self.entry, self.exit, &mut self.def_use);
+        } else {
+            defuse::collect(node, self.source, n, self.lang, &mut self.def_use);
+        }
         Some(n)
     }
 
@@ -386,7 +390,7 @@ impl Builder<'_> {
             defuse::collect(init, self.source, p, self.lang, &mut self.def_use);
         }
         if let Some(alias) = node.child_by_field_name("alias") {
-            defuse::seed_defs(alias, self.source, self.entry, &mut self.def_use);
+            defuse::push_idents(alias, self.source, self.entry, defuse::DefUse::Def, &mut self.def_use);
         }
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(p, after, EdgeLabel::False);

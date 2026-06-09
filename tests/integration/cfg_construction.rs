@@ -826,3 +826,28 @@ fn php_field_write_is_not_a_dead_store() {
         "a property write reads the receiver; it is not a local dead store: {f:?}"
     );
 }
+
+#[test]
+fn php_global_declaration_is_not_use_before_def() {
+    let f = smells_of("<?php\nfunction f() {\n  global $x;\n  $x = 1;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a global declaration is not a read of the variable: {f:?}");
+}
+
+#[test]
+fn php_global_write_only_is_not_a_dead_store() {
+    let f = smells_of("<?php\nfunction f() {\n  global $x;\n  $x = compute();\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::DeadStore), "a write to a global escapes the function; it is not dead: {f:?}");
+}
+
+#[test]
+fn php_static_var_is_clean() {
+    let f = smells_of("<?php\nfunction f() {\n  static $x = 0;\n  $x = 1;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+}
+
+#[test]
+fn php_dynamic_variable_assignment_is_not_a_dead_store() {
+    let f = smells_of("<?php\nfunction f() {\n  $x = 'foo';\n  $$x = 1;\n  echo $x;\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::DeadStore), "$$x = 1 reads $x to compute the target; $x is not dead: {f:?}");
+}
