@@ -171,6 +171,26 @@ const PHP: TaintLang = TaintLang {
     opacity_calls: &["extract", "call_user_func", "compact"],
 };
 
+const C: TaintLang = TaintLang {
+    fn_kinds: &["function_definition"],
+    body_kind: "compound_statement",
+    assign_kinds: &["assignment_expression", "init_declarator"],
+    aug_kinds: &[],
+    call_kinds: &["call_expression"],
+    sources: &["getenv", "fgets", "gets", "scanf", "fscanf"],
+    prop_sources: &[],
+    source_kinds: &[],
+    ident_kinds: &["identifier"],
+    sinks: &[
+        "system", "popen", "execl", "execlp", "execle", "execv", "execvp", "sprintf", "printf", "fprintf", "syslog",
+    ],
+    sanitizers: &["escape", "sanitize", "quote", "escapeshell"],
+    opacity_kinds: &[],
+    opacity_calls: &[],
+};
+
+const CPP: TaintLang = C;
+
 fn lang_for(lang: Language) -> Option<&'static TaintLang> {
     const TABLE: &[(Language, &TaintLang)] = &[
         (Language::Python, &PYTHON),
@@ -181,6 +201,8 @@ fn lang_for(lang: Language) -> Option<&'static TaintLang> {
         (Language::JavaScript, &JAVASCRIPT),
         (Language::CSharp, &CSHARP),
         (Language::Php, &PHP),
+        (Language::C, &C),
+        (Language::Cpp, &CPP),
     ];
     TABLE.iter().find(|(l, _)| *l == lang).map(|(_, tl)| *tl)
 }

@@ -10,10 +10,12 @@ pub(super) fn is_in(name: Option<&str>, set: &[&str]) -> bool {
     name.is_some_and(|n| set.contains(&n))
 }
 
+fn first_field<'a>(node: Node<'a>, fields: &[&str]) -> Option<Node<'a>> {
+    fields.iter().find_map(|f| node.child_by_field_name(f))
+}
+
 pub(super) fn binding_left(node: Node) -> Option<Node> {
-    node.child_by_field_name("left")
-        .or_else(|| node.child_by_field_name("pattern"))
-        .or_else(|| node.child_by_field_name("name"))
+    first_field(node, &["left", "pattern", "name", "declarator"])
 }
 
 pub(super) fn binding_right(node: Node) -> Option<Node> {

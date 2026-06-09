@@ -231,3 +231,43 @@ fn taint_is_opt_in_not_in_default_passes() {
     let any_injection = default_findings.iter().any(|f| matches!(f.kind, AuditKind::InjectionShape(_)));
     assert!(!any_injection, "taint must not run in the default (All) pass");
 }
+
+#[test]
+fn c_unsanitized_source_to_sink_is_flagged() {
+    let body = "void run() {\n  char *cmd = getenv(\"CMD\");\n  system(cmd);\n}\n";
+    let found = taint_findings("app.c", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getenv");
+    assert_eq!(found[0].sink_name, "system");
+    assert_eq!(found[0].tainted_var, "cmd");
+}
+
+#[test]
+fn c_direct_source_into_sink_is_flagged() {
+    let found = taint_findings("app.c", "void run() {\n  system(getenv(\"CMD\"));\n}\n");
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getenv");
+    assert_eq!(found[0].sink_name, "system");
+}
+
+#[test]
+fn c_sanitized_flow_is_not_flagged() {
+    let body = "void run() {\n  char *cmd = getenv(\"CMD\");\n  char *safe = escape(cmd);\n  system(safe);\n}\n";
+    assert!(taint_findings("app.c", body).is_empty(), "escape() sanitizes the flow");
+}
+
+#[test]
+fn c_constant_command_is_not_flagged() {
+    let body = "void run() {\n  char *cmd = \"ls -la\";\n  system(cmd);\n}\n";
+    assert!(taint_findings("app.c", body).is_empty(), "a constant command is not tainted");
+}
+
+#[test]
+fn cpp_unsanitized_source_to_sink_is_flagged() {
+    let body = "void run() {\n  char *cmd = getenv(\"CMD\");\n  system(cmd);\n}\n";
+    let found = taint_findings("app.cpp", body);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].source_name, "getenv");
+    assert_eq!(found[0].sink_name, "system");
+    assert_eq!(found[0].tainted_var, "cmd");
+}
