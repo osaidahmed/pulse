@@ -28,7 +28,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
         handle_binding(node, source, block, lang, out);
         return;
     }
-    if k == "identifier" {
+    if matches!(k, "identifier" | "variable_name") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, DefUse::Use));
         }
@@ -225,7 +225,7 @@ fn initializer_child(node: Node) -> Option<Node> {
 
 fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
-    if node.kind() == "identifier" {
+    if matches!(node.kind(), "identifier" | "variable_name") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, kind));
         }

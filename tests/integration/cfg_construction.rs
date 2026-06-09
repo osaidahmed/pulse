@@ -781,3 +781,48 @@ fn php_if_elseif_without_else_falls_through() {
         "log_it() is reachable when $a == 0; the elseif chain must preserve the fall-through: {f:?}"
     );
 }
+
+#[test]
+fn php_dead_store_on_redefinition() {
+    let f = smells_of("<?php\nfunction f() {\n  $x = 0;\n  $x = 1;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(has_finding(&f, Smell::DeadStore), "$x = 0 is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn php_use_before_def_flagged() {
+    let f = smells_of("<?php\nfunction f() {\n  echo $x;\n  $x = 1;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(has_finding(&f, Smell::UseBeforeDef), "$x is read before any assignment reaches it: {f:?}");
+}
+
+#[test]
+fn php_clean_function_has_no_cpg_smells() {
+    let f = smells_of("<?php\nfunction f($a) {\n  $x = $a + 1;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn php_pre_switch_store_survives_no_match_path() {
+    let src = "<?php\nfunction f($k) {\n  $x = 0;\n  switch ($k) {\n    case 1:\n      $x = 1;\n      break;\n  }\n  return $x;\n}\n";
+    let f = smells_of(src, Language::Php, "php");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "$x = 0 is read when no case matches; the switch must not unconditionally kill it: {f:?}"
+    );
+}
+
+#[test]
+fn php_augmented_assignment_is_not_a_dead_store() {
+    let f = smells_of("<?php\nfunction f($a) {\n  $x = 0;\n  $x += $a;\n  return $x;\n}\n", Language::Php, "php");
+    assert!(!has_finding(&f, Smell::DeadStore), "$x is read by the += accumulation: {f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn php_field_write_is_not_a_dead_store() {
+    let f = smells_of("<?php\nfunction f() {\n  $o = make();\n  $o->field = 1;\n}\n", Language::Php, "php");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a property write reads the receiver; it is not a local dead store: {f:?}"
+    );
+}

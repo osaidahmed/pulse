@@ -131,12 +131,12 @@ pub const PHP: CfgLang = CfgLang {
     continue_kinds: &["continue_statement"],
     try_kinds: &["try_statement"],
     handler_kinds: &["catch_clause"],
-    def_kinds: &[],
-    aug_kinds: &[],
+    def_kinds: &["assignment_expression", "augmented_assignment_expression"],
+    aug_kinds: &["augmented_assignment_expression"],
     block_kinds: &["compound_statement", "colon_block"],
     nested_fn_kinds: &["anonymous_function", "arrow_function"],
-    switch_kinds: &[],
-    case_kinds: &[],
+    switch_kinds: &["switch_statement"],
+    case_kinds: &["case_statement", "default_statement"],
     hoist_kinds: &[],
 };
 
