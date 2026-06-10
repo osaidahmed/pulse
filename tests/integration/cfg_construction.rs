@@ -967,24 +967,24 @@ fn ruby_unreachable_after_return_flagged() {
 }
 
 #[test]
-fn ruby_dead_store_flagged_on_redefinition() {
+fn ruby_redefinition_dead_store_is_suppressed() {
     let f = smells_of("def f\n  x = 0\n  x = 1\n  x\nend\n", Language::Ruby, "rb");
-    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten before any read: {f:?}");
-}
-
-#[test]
-fn ruby_unused_local_before_reassign_is_flagged() {
-    let f = smells_of("def f\n  x = compute\n  x = other\n  puts(x)\nend\n", Language::Ruby, "rb");
-    assert!(has_finding(&f, Smell::DeadStore), "x = compute is dead — overwritten by x = other before the read: {f:?}");
-}
-
-#[test]
-fn ruby_write_only_local_is_flagged() {
-    let f = smells_of("def f\n  x = compute\n  log(\"done\")\nend\n", Language::Ruby, "rb");
     assert!(
-        has_finding(&f, Smell::DeadStore),
-        "x is written but never read (it is not the implicit return — the trailing call is): {f:?}"
+        !has_finding(&f, Smell::DeadStore),
+        "ruby dead-store is suppressed: implicit-return tails + linear rescue/ensure make it FP-prone: {f:?}"
     );
+}
+
+#[test]
+fn ruby_unused_local_before_reassign_is_suppressed() {
+    let f = smells_of("def f\n  x = compute\n  x = other\n  puts(x)\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "ruby dead-store is suppressed even for a clear redefinition: {f:?}");
+}
+
+#[test]
+fn ruby_write_only_local_is_suppressed() {
+    let f = smells_of("def f\n  x = compute\n  log(\"done\")\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "ruby dead-store is suppressed even for a write-only local: {f:?}");
 }
 
 #[test]
@@ -1166,9 +1166,10 @@ fn ruby_scope_resolution_assignment_does_not_overtaint_the_namespace() {
 }
 
 #[test]
-fn ruby_plain_multiple_assignment_still_tracked() {
-    let f = smells_of("def f\n  a, b = 1, 2\n  use(a)\nend\n", Language::Ruby, "rb");
-    assert!(has_finding(&f, Smell::DeadStore), "b is assigned but never read in a plain multi-assignment: {f:?}");
+fn ruby_plain_multiple_assignment_records_both_defs() {
+    let du = def_use_of("def f\n  a, b = 1, 2\n  use(a)\nend\n", Language::Ruby, "rb", "f");
+    assert!(has(&du, "a", DefUse::Def), "left_assignment_list unwrap records each plain target as a def: {du:?}");
+    assert!(has(&du, "b", DefUse::Def), "left_assignment_list unwrap records each plain target as a def: {du:?}");
 }
 
 #[test]
@@ -1210,6 +1211,26 @@ fn ruby_modifier_conditional_assignment_is_not_a_dead_store() {
     assert!(
         !has_finding(&f, Smell::DeadStore),
         "the line-2 default is read when the postfix-if condition is falsy: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_rescue_modifier_tail_is_not_a_dead_store() {
+    let f =
+        smells_of("def safe_total(rows)\n  log(:try)\n  parse(rows) rescue result = 0\nend\n", Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`expr rescue x = 0` returns x on the rescue path; suppressed because the tail model cannot seed it: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_method_rescue_clause_is_not_a_dead_store() {
+    let src = "def parse(input)\n  value = Integer(input)\nrescue ArgumentError\n  value = 0\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "the success-path store is the implicit return; linear rescue threading would falsely kill it: {f:?}"
     );
 }
 

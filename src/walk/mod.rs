@@ -125,6 +125,18 @@ pub(crate) fn cpg_for(
     Some(crate::cpg::CpgMetrics { cfg, def_use, ..Default::default() })
 }
 
+pub(crate) fn cpg_for_suppressed(
+    body: Node,
+    fn_node: Node,
+    source: &str,
+    lang: &crate::cpg::CfgLang,
+) -> Option<crate::cpg::CpgMetrics> {
+    cpg_for(body, fn_node, source, lang).map(|mut cpg| {
+        cpg.suppress_dead_store = true;
+        cpg
+    })
+}
+
 pub fn track_embedded_block(max: &mut u32, node: Node) {
     let lines = node.end_position().row.saturating_sub(node.start_position().row) as u32 + 1;
     update_max(max, lines);
