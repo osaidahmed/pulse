@@ -124,6 +124,8 @@ mod audit_naturalness;
 mod audit_negative_paths;
 #[path = "integration/audit_output.rs"]
 mod audit_output;
+#[path = "integration/audit_output_advisory.rs"]
+mod audit_output_advisory;
 #[path = "integration/audit_output_cross_variant.rs"]
 mod audit_output_cross_variant;
 #[path = "integration/audit_output_divergent_change.rs"]
