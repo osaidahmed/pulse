@@ -1462,6 +1462,16 @@ fn kotlin_short_form_interpolation_read_is_not_a_dead_store() {
 }
 
 #[test]
+fn kotlin_unicode_interpolation_read_is_not_a_dead_store() {
+    let f = smells_of(
+        "fun f(): String {\n    val café = compute()\n    return \"value $café end\"\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(!has_finding(&f, Smell::DeadStore), "`café` is read by the `$café` interpolation: {f:?}");
+}
+
+#[test]
 fn kotlin_function_type_param_label_is_not_a_dead_store() {
     let src = "fun setup() {\n    val onEvent: (event: Event) -> Unit = { e -> log(e) }\n    register(onEvent)\n}\n";
     let f = smells_of(src, Language::Kotlin, "kt");

@@ -18,21 +18,29 @@ pub(crate) fn seed_string_interpolation(node: Node, source: &str, exit: u32, out
 }
 
 fn scan_dollar_idents(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
-    let text = node_text(node, source).as_bytes();
+    let text = node_text(node, source);
     let line = node.start_position().row as u32 + 1;
+    let cs: Vec<(usize, char)> = text.char_indices().collect();
     let mut i = 0;
-    while i < text.len() {
-        if text[i] != b'$' || i + 1 >= text.len() || !(text[i + 1].is_ascii_alphabetic() || text[i + 1] == b'_') {
+    while i < cs.len() {
+        let is_start = cs[i].1 == '$' && cs.get(i + 1).is_some_and(|&(_, c)| c.is_alphabetic() || c == '_');
+        if !is_start {
             i += 1;
             continue;
         }
-        let start = i + 1;
-        let mut j = start;
-        while j < text.len() && (text[j].is_ascii_alphanumeric() || text[j] == b'_') {
+        let start = cs[i + 1].0;
+        let mut j = i + 1;
+        while j < cs.len() && (cs[j].1.is_alphanumeric() || cs[j].1 == '_') {
             j += 1;
         }
-        let name = String::from_utf8_lossy(&text[start..j]).into_owned();
-        out.push(DefUseRecord { name, block: exit, kind: DefUse::Use, line, decl: false });
+        let end = cs.get(j).map_or(text.len(), |&(off, _)| off);
+        out.push(DefUseRecord {
+            name: text[start..end].to_string(),
+            block: exit,
+            kind: DefUse::Use,
+            line,
+            decl: false,
+        });
         i = j;
     }
 }
