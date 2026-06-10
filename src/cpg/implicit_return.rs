@@ -11,12 +11,29 @@ pub(crate) fn seed(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseReco
                 push_idents(l, source, exit, DefUse::Use, out);
             }
         }
-        "if" | "unless" | "elsif" => seed_if(node, source, exit, out),
+        "if" | "unless" | "elsif" | "conditional" => seed_if(node, source, exit, out),
         "case" | "case_match" => seed_cases(node, source, exit, out),
-        "begin" | "body_statement" | "then" | "do" | "else" | "when" | "in_clause" | "rescue" => {
+        "binary" => seed_binary(node, source, exit, out),
+        "begin"
+        | "body_statement"
+        | "then"
+        | "do"
+        | "else"
+        | "when"
+        | "in_clause"
+        | "rescue"
+        | "parenthesized_statements" => {
             seed_seq(node, source, exit, out);
         }
         _ => {}
+    }
+}
+
+fn seed_binary(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
+    for f in ["left", "right"] {
+        if let Some(c) = node.child_by_field_name(f) {
+            seed(c, source, exit, out);
+        }
     }
 }
 

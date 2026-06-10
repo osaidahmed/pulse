@@ -178,7 +178,7 @@ fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
         let mut any = false;
         for child in node.children_by_field_name(field, &mut cursor) {
             any = true;
-            if matches!(child.kind(), "expression_list" | "directly_assignable_expression") {
+            if matches!(child.kind(), "expression_list" | "directly_assignable_expression" | "left_assignment_list") {
                 let mut inner = child.walk();
                 out.extend(child.children(&mut inner).filter(tree_sitter::Node::is_named));
             } else {
@@ -211,6 +211,7 @@ fn is_field_or_index_target(kind: &str) -> bool {
             | "call_expression"
             | "call"
             | "element_reference"
+            | "scope_resolution"
     )
 }
 

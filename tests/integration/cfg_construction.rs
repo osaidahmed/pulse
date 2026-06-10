@@ -1124,6 +1124,54 @@ fn ruby_nested_if_tail_assignments_are_not_dead_stores() {
 }
 
 #[test]
+fn ruby_or_assignment_tail_is_not_a_dead_store() {
+    let src = "def fetch(id)\n  log(\"x\")\n  user = repo.find(id) or raise NotFound\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`user = ... or raise` is a binary tail; user is the implicit return on the success path: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_parenthesized_tail_assignment_is_not_a_dead_store() {
+    let f = smells_of("def f\n  (x = compute)\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "a parenthesized trailing assignment is the implicit return: {f:?}");
+}
+
+#[test]
+fn ruby_ternary_tail_assignment_is_not_a_dead_store() {
+    let f = smells_of("def pick(c)\n  c ? (a = 1) : (a = 2)\nend\n", Language::Ruby, "rb");
+    assert!(!has_finding(&f, Smell::DeadStore), "each ternary branch's assignment is the implicit return: {f:?}");
+}
+
+#[test]
+fn ruby_multi_target_attribute_write_is_not_a_dead_store() {
+    let src = "def update(point)\n  point.x, point.y = 1, 2\n  notify\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "parallel attribute assignment reads `point`; x/y are method names, not local stores: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_scope_resolution_assignment_does_not_overtaint_the_namespace() {
+    let src = "def install(foo)\n  foo::Bar = compute\n  log_done\nend\n";
+    let f = smells_of(src, Language::Ruby, "rb");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`foo::Bar = x` reads the namespace `foo`; only the constant is written: {f:?}"
+    );
+}
+
+#[test]
+fn ruby_plain_multiple_assignment_still_tracked() {
+    let f = smells_of("def f\n  a, b = 1, 2\n  use(a)\nend\n", Language::Ruby, "rb");
+    assert!(has_finding(&f, Smell::DeadStore), "b is assigned but never read in a plain multi-assignment: {f:?}");
+}
+
+#[test]
 fn ruby_index_write_is_not_a_dead_store() {
     let f = smells_of("def f(h, k, v)\n  h[k] = v\nend\n", Language::Ruby, "rb");
     assert!(!has_finding(&f, Smell::DeadStore), "`h[k] = v` reads h and k; no local store occurs: {f:?}");
