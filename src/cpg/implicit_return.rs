@@ -1,7 +1,41 @@
 use tree_sitter::Node;
 
-use crate::cpg::defuse::{push_idents, DefUseRecord, Mark};
-use crate::walk::DepthGuard;
+use crate::cpg::defuse::{push_idents, DefUse, DefUseRecord, Mark};
+use crate::walk::{node_text, DepthGuard};
+
+pub(crate) fn seed_string_interpolation(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
+    let Some(_g) = DepthGuard::enter() else { return };
+    if node.kind() == "string_literal" {
+        scan_dollar_idents(node, source, exit, out);
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            seed_string_interpolation(child, source, exit, out);
+        }
+    }
+}
+
+fn scan_dollar_idents(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
+    let text = node_text(node, source).as_bytes();
+    let line = node.start_position().row as u32 + 1;
+    let mut i = 0;
+    while i < text.len() {
+        if text[i] != b'$' || i + 1 >= text.len() || !(text[i + 1].is_ascii_alphabetic() || text[i + 1] == b'_') {
+            i += 1;
+            continue;
+        }
+        let start = i + 1;
+        let mut j = start;
+        while j < text.len() && (text[j].is_ascii_alphanumeric() || text[j] == b'_') {
+            j += 1;
+        }
+        let name = String::from_utf8_lossy(&text[start..j]).into_owned();
+        out.push(DefUseRecord { name, block: exit, kind: DefUse::Use, line, decl: false });
+        i = j;
+    }
+}
 
 pub(crate) fn seed(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };

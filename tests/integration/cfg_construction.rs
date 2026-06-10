@@ -1452,6 +1452,23 @@ fn kotlin_bare_property_write_is_not_a_dead_store() {
 }
 
 #[test]
+fn kotlin_short_form_interpolation_read_is_not_a_dead_store() {
+    let f = smells_of(
+        "fun describe(): String {\n    val name = lookupName()\n    return \"user is $name\"\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(!has_finding(&f, Smell::DeadStore), "`name` is read by the `$name` interpolation: {f:?}");
+}
+
+#[test]
+fn kotlin_function_type_param_label_is_not_a_dead_store() {
+    let src = "fun setup() {\n    val onEvent: (event: Event) -> Unit = { e -> log(e) }\n    register(onEvent)\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "`event` is a function-type parameter label, not a value: {f:?}");
+}
+
+#[test]
 fn unqualified_field_write_is_not_a_dead_store_across_langs() {
     let java = smells_of(
         "class C {\n    int count;\n    void reset() {\n        count = 0;\n    }\n}\n",

@@ -297,7 +297,7 @@ pub(crate) fn push_idents(node: Node, source: &str, block: u32, mark: Mark, out:
         }
         return;
     }
-    if node.kind() == "user_type" {
+    if matches!(node.kind(), "user_type" | "function_type") {
         return;
     }
     let mut cursor = node.walk();

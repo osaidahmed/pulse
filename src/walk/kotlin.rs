@@ -272,7 +272,11 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
         string_match_arms: count_string_match_arms(body, "when_expression", "when_entry", &["string_literal"], &[]),
-        cpg: super::cpg_for(body, node, source, &crate::cpg::KOTLIN),
+        cpg: super::cpg_for(body, node, source, &crate::cpg::KOTLIN).map(|mut c| {
+            let exit = c.cfg.exit;
+            crate::cpg::implicit_return::seed_string_interpolation(body, source, exit, &mut c.def_use);
+            c
+        }),
     }
 }
 
