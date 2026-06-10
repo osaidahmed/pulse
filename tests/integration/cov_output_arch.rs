@@ -1,9 +1,88 @@
 use std::path::PathBuf;
 
 use pulse::audit::finding::{
-    AuditKind, CompoundEvidence, HubLikeEvidence, ImportConfidence, SplitComponentEvidence, UnstableDepEvidence,
+    AuditKind, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, ImportConfidence, MergeComponentsEvidence,
+    MoveFileEvidence, SplitComponentEvidence, UnstableDepEvidence,
 };
 use pulse::audit::output_arch::{arch_json, write_arch};
+
+#[test]
+fn god_component_human_and_json() {
+    let e = GodComponentEvidence {
+        component: PathBuf::from("src/kitchen_sink"),
+        loc: 4200,
+        file_count: 30,
+        density: 140.0,
+        centrality: 0.55,
+        confidence: ImportConfidence::High,
+    };
+    let kind = AuditKind::GodComponent(e);
+    let mut out = String::new();
+    assert!(write_arch(&mut out, &kind, Some(&PathBuf::from("src")), "split by responsibility"));
+    assert!(out.contains("audit: god component — kitchen_sink"), "{out}");
+    assert!(out.contains("LOC:           4200"), "{out}");
+    assert!(out.contains("density:       140.0 LOC/file"), "{out}");
+    let j = arch_json(&kind, None).expect("json");
+    assert_eq!(j["kind"], "GodComponent");
+    assert_eq!(j["loc"], 4200);
+    assert_eq!(j["file_count"], 30);
+}
+
+#[test]
+fn split_component_human_render() {
+    let e = SplitComponentEvidence {
+        component: PathBuf::from("src/big"),
+        file_count: 40,
+        community_count: 3,
+        cohesion: 0.42,
+        confidence: ImportConfidence::Medium,
+    };
+    let kind = AuditKind::SplitComponent(e);
+    let mut out = String::new();
+    assert!(write_arch(&mut out, &kind, None, "split into cohesive modules"));
+    assert!(out.contains("audit: component to split — src/big"), "{out}");
+    assert!(out.contains("communities:   3"), "{out}");
+    assert!(out.contains("cohesion:      0.42"), "{out}");
+}
+
+#[test]
+fn move_file_human_and_json() {
+    let e = MoveFileEvidence {
+        file: PathBuf::from("src/a/lonely.rs"),
+        current_dir: PathBuf::from("src/a"),
+        target_dir: PathBuf::from("src/b"),
+        community_size: 8,
+        home_share: 0.75,
+        confidence: ImportConfidence::Medium,
+    };
+    let kind = AuditKind::MoveFile(e);
+    let mut out = String::new();
+    assert!(write_arch(&mut out, &kind, Some(&PathBuf::from("src")), "relocate to its community"));
+    assert!(out.contains("audit: file to relocate — a/lonely.rs"), "{out}");
+    assert!(out.contains("target dir:    b"), "{out}");
+    assert!(out.contains("75% in target"), "{out}");
+    let j = arch_json(&kind, None).expect("json");
+    assert_eq!(j["kind"], "MoveFile");
+    assert_eq!(j["community_size"], 8);
+}
+
+#[test]
+fn merge_components_human_and_json() {
+    let e = MergeComponentsEvidence {
+        components: vec![PathBuf::from("src/x"), PathBuf::from("src/y")],
+        community_files: 12,
+        confidence: ImportConfidence::Low,
+    };
+    let kind = AuditKind::MergeComponents(e);
+    let mut out = String::new();
+    assert!(write_arch(&mut out, &kind, None, ""));
+    assert!(out.contains("audit: components to merge — src/x, src/y"), "{out}");
+    assert!(out.contains("shared community: 12 files"), "{out}");
+    assert!(!out.contains("action:"), "no action line when empty: {out}");
+    let j = arch_json(&kind, None).expect("json");
+    assert_eq!(j["kind"], "MergeComponents");
+    assert_eq!(j["community_files"], 12);
+}
 
 #[test]
 fn unstable_dependency_human_and_json() {

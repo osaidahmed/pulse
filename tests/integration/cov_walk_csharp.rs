@@ -10,6 +10,47 @@ fn names(metrics: &pulse::walk::FileMetrics) -> Vec<String> {
     metrics.functions.iter().map(|f| f.name.clone()).collect()
 }
 
+// recurse_namespace early-returns (line 80) when a namespace has no declaration_list.
+#[test]
+fn namespace_without_body_is_skipped_without_panic() {
+    let m = analyze("namespace Empty;\nclass C { void M() { int x = 1; } }\n");
+    assert!(
+        m.functions.iter().any(|f| f.name == "C.M"),
+        "class after file-scoped namespace still collected: {:?}",
+        names(&m)
+    );
+}
+
+// if / else-if / else (walk_children else_clause + handle_elif + walk_nested_block saw_else +
+// walk_else_clause) and try/catch empty + non-empty (handle_catch).
+#[test]
+fn control_flow_and_catch_paths_are_walked() {
+    let src = concat!(
+        "class C {\n",
+        "    int classify(int n, string label) {\n",
+        "        if (n > 0 && label != null) {\n",
+        "            return 1;\n",
+        "        } else if (n < 0) {\n",
+        "            return -1;\n",
+        "        } else {\n",
+        "            return 0;\n",
+        "        }\n",
+        "    }\n",
+        "    void risky() {\n",
+        "        try { Work(); } catch { }\n",
+        "        try { Work(); } catch (System.Exception e) { Log(e); }\n",
+        "    }\n",
+        "}\n",
+    );
+    let m = analyze(src);
+    let classify = m.functions.iter().find(|f| f.name == "C.classify").expect("classify collected");
+    assert!(classify.cc >= 3, "if/else-if branches bump cc, got: {}", classify.cc);
+    assert_eq!(classify.arg_count, 2, "two typed params: {}", classify.arg_count);
+    let risky = m.functions.iter().find(|f| f.name == "C.risky").expect("risky collected");
+    assert!(risky.empty_catch_count >= 1, "the empty catch is counted, got: {}", risky.empty_catch_count);
+    assert!(classify.cc < t().function.cc_alert, "stays below the cc alert ceiling");
+}
+
 // Line 115: an expression-bodied constructor has no `block` (its body is an
 // arrow_expression_clause), so analyze_callable(CTOR_CFG) returns None and the
 // constructor arm `continue`s. The constructor must NOT appear as a function,

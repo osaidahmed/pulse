@@ -182,3 +182,18 @@ pub fn control_flow_kinds(lang: Language) -> &'static [&'static str] {
 pub fn block_kinds(lang: Language) -> &'static [&'static str] {
     lookup(lang).map_or(EMPTY, |e| e.blocks)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{lk, LangKinds};
+    use crate::parse::Language;
+
+    #[test]
+    fn lk_constructs_a_langkinds_at_runtime() {
+        let k: LangKinds = lk(Language::Rust, &["function_item"], &["if_expression"], &["block"]);
+        assert_eq!(k.lang, Language::Rust);
+        assert_eq!(k.functions, ["function_item"]);
+        assert_eq!(k.control_flow, ["if_expression"]);
+        assert_eq!(k.blocks, ["block"]);
+    }
+}
