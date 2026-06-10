@@ -65,16 +65,26 @@ fn same_block_def_reaches(cpg: &CpgMetrics, u: &crate::cpg::defuse::DefUseRecord
     cpg.def_use.iter().any(|d| d.kind == DefUse::Def && d.name == u.name && d.block == u.block && d.line <= u.line)
 }
 
+fn is_dead_store(
+    idx: usize,
+    r: &crate::cpg::defuse::DefUseRecord,
+    cpg: &CpgMetrics,
+    flow: &Flow,
+    declared: &HashSet<&str>,
+) -> bool {
+    if r.kind != DefUse::Def || r.block == cpg.cfg.entry || !flow.reachable.contains(&r.block) {
+        return false;
+    }
+    if !cpg.flag_all_dead_stores && !declared.contains(r.name.as_str()) {
+        return false;
+    }
+    !reaches_a_use(idx, &r.name, cpg, flow)
+}
+
 fn dead_stores(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {
     let declared: HashSet<&str> = cpg.def_use.iter().filter(|r| r.decl).map(|r| r.name.as_str()).collect();
     for (i, r) in cpg.def_use.iter().enumerate() {
-        if r.kind != DefUse::Def || r.block == cpg.cfg.entry || !flow.reachable.contains(&r.block) {
-            continue;
-        }
-        if !cpg.flag_all_dead_stores && !declared.contains(r.name.as_str()) {
-            continue;
-        }
-        if !reaches_a_use(i, &r.name, cpg, flow) {
+        if is_dead_store(i, r, cpg, flow, &declared) {
             out.push(finding(
                 Smell::DeadStore,
                 func,

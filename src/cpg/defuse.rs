@@ -82,18 +82,17 @@ fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out
 
 fn collect_property_decl(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let mut c = node.walk();
-    for child in node.children(&mut c).filter(tree_sitter::Node::is_named) {
-        match child.kind() {
-            "variable_declaration" => {
-                if child.next_sibling().filter(|s| !s.is_extra()).is_some() {
-                    push_idents(child, source, block, Mark::Decl, out);
-                }
-            }
-            "multi_variable_declaration" => {
-                push_idents(child, source, block, Mark::Decl, out);
-                push_idents(child, source, block, Mark::Use, out);
-            }
-            _ => collect(child, source, block, lang, out),
+    for child in node.children(&mut c) {
+        if child.is_named() && !matches!(child.kind(), "variable_declaration" | "multi_variable_declaration") {
+            collect(child, source, block, lang, out);
+        }
+    }
+    if let Some(m) = find_child_by_kind(node, "multi_variable_declaration") {
+        push_idents(m, source, block, Mark::Decl, out);
+        push_idents(m, source, block, Mark::Use, out);
+    } else if let Some(v) = find_child_by_kind(node, "variable_declaration") {
+        if v.next_sibling().filter(|s| !s.is_extra()).is_some() {
+            push_idents(v, source, block, Mark::Decl, out);
         }
     }
 }
