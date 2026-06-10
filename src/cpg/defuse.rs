@@ -9,19 +9,38 @@ pub enum DefUse {
     Use,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum Mark {
+    Use,
+    Assign,
+    Decl,
+}
+
+const DEF_MARKS: [Mark; 2] = [Mark::Assign, Mark::Decl];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DefUseRecord {
     pub name: String,
     pub block: u32,
     pub kind: DefUse,
     pub line: u32,
+    pub decl: bool,
 }
+
+const DECL_KINDS: &[&str] = &[
+    "let_declaration",
+    "variable_declarator",
+    "init_declarator",
+    "var_spec",
+    "short_var_declaration",
+    "property_declaration",
+];
 
 pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
     if lang.nested_fn_kinds.contains(&k) {
-        push_idents(node, source, block, DefUse::Use, out);
+        push_idents(node, source, block, Mark::Use, out);
         return;
     }
     if lang.def_kinds.contains(&k) {
@@ -34,7 +53,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
     }
     if matches!(k, "identifier" | "variable_name" | "simple_identifier") {
         if node_text(node, source) != "_" {
-            out.push(rec(node, source, block, DefUse::Use));
+            out.push(rec(node, source, block, Mark::Use));
         }
         return;
     }
@@ -48,17 +67,7 @@ pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out:
 
 fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     if node.kind() == "property_declaration" {
-        let mut c = node.walk();
-        for child in node.children(&mut c).filter(tree_sitter::Node::is_named) {
-            match child.kind() {
-                "variable_declaration" => push_idents(child, source, block, DefUse::Def, out),
-                "multi_variable_declaration" => {
-                    push_idents(child, source, block, DefUse::Def, out);
-                    push_idents(child, source, block, DefUse::Use, out);
-                }
-                _ => collect(child, source, block, lang, out),
-            }
-        }
+        collect_property_decl(node, source, block, lang, out);
         return;
     }
     let mut cursor = node.walk();
@@ -67,6 +76,24 @@ fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out
             handle_binding(d, source, block, lang, out);
         } else if let Some(size) = d.child_by_field_name("size") {
             collect(size, source, block, lang, out);
+        }
+    }
+}
+
+fn collect_property_decl(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
+    let mut c = node.walk();
+    for child in node.children(&mut c).filter(tree_sitter::Node::is_named) {
+        match child.kind() {
+            "variable_declaration" => {
+                if child.next_sibling().filter(|s| !s.is_extra()).is_some() {
+                    push_idents(child, source, block, Mark::Decl, out);
+                }
+            }
+            "multi_variable_declaration" => {
+                push_idents(child, source, block, Mark::Decl, out);
+                push_idents(child, source, block, Mark::Use, out);
+            }
+            _ => collect(child, source, block, lang, out),
         }
     }
 }
@@ -84,9 +111,12 @@ pub(crate) fn loop_header(node: Node, source: &str, block: u32, lang: &CfgLang, 
         }
     }
     if let Some(p) = binding_left(header) {
-        push_idents(p, source, block, DefUse::Def, out);
+        push_idents(p, source, block, Mark::Decl, out);
     }
     if let Some(it) = binding_right(header) {
+        collect(it, source, block, lang, out);
+    }
+    if let Some(it) = crate::cpg::cfg_nodes::kotlin_for_iterable(header) {
         collect(it, source, block, lang, out);
     }
 }
@@ -112,22 +142,17 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
     }
 }
 
+const CASE_PATTERN_KINDS: &[&str] =
+    &["pattern", "type_pattern", "record_pattern", "declaration_pattern", "recursive_pattern", "var_pattern"];
+
 pub(crate) fn seed_case_bindings(case: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
-    seed_children(case, source, entry, out, pick_case_pattern);
+    seed_children(case, source, entry, out, |c| CASE_PATTERN_KINDS.contains(&c.kind()).then_some(c));
     let mut cursor = case.walk();
     for child in case.children(&mut cursor) {
         if child.kind() == "switch_label" {
-            seed_children(child, source, entry, out, pick_case_pattern);
+            seed_children(child, source, entry, out, |c| CASE_PATTERN_KINDS.contains(&c.kind()).then_some(c));
         }
     }
-}
-
-fn pick_case_pattern(child: Node) -> Option<Node> {
-    matches!(
-        child.kind(),
-        "pattern" | "type_pattern" | "record_pattern" | "declaration_pattern" | "recursive_pattern" | "var_pattern"
-    )
-    .then_some(child)
 }
 
 fn seed_children(
@@ -140,14 +165,14 @@ fn seed_children(
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if let Some(target) = pick(child) {
-            push_idents(target, source, entry, DefUse::Def, out);
+            push_idents(target, source, entry, Mark::Decl, out);
         }
     }
 }
 
 pub(crate) fn seed_escaping(node: Node, source: &str, entry: u32, exit: u32, out: &mut Vec<DefUseRecord>) {
-    push_idents(node, source, entry, DefUse::Def, out);
-    push_idents(node, source, exit, DefUse::Use, out);
+    push_idents(node, source, entry, Mark::Decl, out);
+    push_idents(node, source, exit, Mark::Use, out);
 }
 
 fn seed_hoist_names(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
@@ -161,15 +186,16 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     collect(r, source, block, lang, out);
     let aug = lang.aug_kinds.contains(&node.kind())
         || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=");
+    let def_mark = DEF_MARKS[usize::from(DECL_KINDS.contains(&node.kind()))];
     let mut targets: Vec<Node> = Vec::new();
     collect_binding_targets(node, &mut targets);
     for t in targets {
         if is_field_or_index_target(t.kind()) {
             collect(t, source, block, lang, out);
         } else if !is_destructure_pattern(t.kind()) {
-            push_idents(t, source, block, DefUse::Def, out);
+            push_idents(t, source, block, def_mark, out);
             if aug {
-                push_idents(t, source, block, DefUse::Use, out);
+                push_idents(t, source, block, Mark::Use, out);
             }
         }
     }
@@ -228,11 +254,11 @@ pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec
         .or_else(|| fn_node.child_by_field_name("declarator").and_then(|d| d.child_by_field_name("parameters")))
         .or_else(|| find_child_by_kind(fn_node, "function_value_parameters"));
     if let Some(params) = params {
-        push_idents(params, source, entry, DefUse::Def, out);
+        push_idents(params, source, entry, Mark::Decl, out);
     } else {
         let mut cursor = fn_node.walk();
         for p in fn_node.children(&mut cursor).filter(|n| n.kind() == "parameter") {
-            push_idents(p, source, entry, DefUse::Def, out);
+            push_idents(p, source, entry, Mark::Decl, out);
         }
     }
 }
@@ -264,22 +290,36 @@ fn initializer_child(node: Node) -> Option<Node> {
     found
 }
 
-pub(crate) fn push_idents(node: Node, source: &str, block: u32, kind: DefUse, out: &mut Vec<DefUseRecord>) {
+pub(crate) fn push_idents(node: Node, source: &str, block: u32, mark: Mark, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     if matches!(node.kind(), "identifier" | "variable_name" | "simple_identifier") {
         if node_text(node, source) != "_" {
-            out.push(rec(node, source, block, kind));
+            out.push(rec(node, source, block, mark));
         }
+        return;
+    }
+    if node.kind() == "user_type" {
         return;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.is_named() {
-            push_idents(child, source, block, kind, out);
+            push_idents(child, source, block, mark, out);
         }
     }
 }
 
-fn rec(node: Node, source: &str, block: u32, kind: DefUse) -> DefUseRecord {
-    DefUseRecord { name: node_text(node, source).to_string(), block, kind, line: node.start_position().row as u32 + 1 }
+fn rec(node: Node, source: &str, block: u32, mark: Mark) -> DefUseRecord {
+    let (kind, decl) = match mark {
+        Mark::Use => (DefUse::Use, false),
+        Mark::Assign => (DefUse::Def, false),
+        Mark::Decl => (DefUse::Def, true),
+    };
+    DefUseRecord {
+        name: node_text(node, source).to_string(),
+        block,
+        kind,
+        line: node.start_position().row as u32 + 1,
+        decl,
+    }
 }

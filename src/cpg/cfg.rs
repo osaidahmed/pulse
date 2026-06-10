@@ -226,6 +226,7 @@ impl Builder<'_> {
             .child_by_field_name("value")
             .or_else(|| node.child_by_field_name("condition"))
             .or_else(|| node.child_by_field_name("expr"))
+            .or_else(|| find_child_by_kinds(node, &["when_subject"]))
         {
             defuse::collect(value, self.source, p, self.lang, &mut self.def_use);
         }
@@ -233,7 +234,7 @@ impl Builder<'_> {
             defuse::collect(init, self.source, p, self.lang, &mut self.def_use);
         }
         if let Some(alias) = node.child_by_field_name("alias") {
-            defuse::push_idents(alias, self.source, self.entry, defuse::DefUse::Def, &mut self.def_use);
+            defuse::push_idents(alias, self.source, self.entry, defuse::Mark::Decl, &mut self.def_use);
         }
         let after = self.add(NodeKind::Stmt, end_line(node));
         self.edge(p, after, EdgeLabel::False);

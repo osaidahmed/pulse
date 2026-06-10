@@ -29,6 +29,23 @@ pub(super) fn unwrap_stmt(node: Node) -> Node {
     node
 }
 
+pub(super) fn kotlin_for_iterable(node: Node) -> Option<Node> {
+    if node.kind() != "for_statement" {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let kids: Vec<Node> = node.children(&mut cursor).filter(tree_sitter::Node::is_named).collect();
+    if !kids.iter().any(|c| matches!(c.kind(), "variable_declaration" | "multi_variable_declaration")) {
+        return None;
+    }
+    kids.into_iter().find(|c| {
+        !matches!(
+            c.kind(),
+            "variable_declaration" | "multi_variable_declaration" | "block" | "statement" | "annotation"
+        )
+    })
+}
+
 pub(super) fn when_entry_body(node: Node) -> Option<Node> {
     let mut cond_cursor = node.walk();
     let cond_ids: Vec<usize> = node.children_by_field_name("condition", &mut cond_cursor).map(|c| c.id()).collect();

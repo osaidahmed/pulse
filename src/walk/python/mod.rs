@@ -155,7 +155,10 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     } else {
         (0, 0, 0, 0, 0, 0, 0)
     };
-    let cpg = super::cpg_for(body, node, source, &crate::cpg::PYTHON);
+    let cpg = super::cpg_for(body, node, source, &crate::cpg::PYTHON).map(|mut c| {
+        c.flag_all_dead_stores = true;
+        c
+    });
 
     Some(FunctionMetrics {
         name,

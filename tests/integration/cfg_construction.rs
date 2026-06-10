@@ -1399,6 +1399,99 @@ fn kotlin_index_write_is_not_a_dead_store() {
 }
 
 #[test]
+fn kotlin_when_subject_local_is_not_a_dead_store() {
+    let src = "fun f(n: Int): Int {\n    val key = n * 2 + 1\n    var out = 0\n    when (key) {\n        1 -> out = 10\n        else -> out = 20\n    }\n    return out\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "`key` is read by the when subject; it is not dead: {f:?}");
+}
+
+#[test]
+fn kotlin_typed_local_does_not_leak_the_type_as_a_dead_store() {
+    let f = smells_of(
+        "fun f(items: List<Int>): Int {\n    val count: Int = items.size\n    return count\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a type annotation is not a stored value; `Int` must not be flagged: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_typed_local_redefinition_still_flags_the_variable() {
+    let f = smells_of("fun f(): Int {\n    var x: Int = 0\n    x = 1\n    return x\n}\n", Language::Kotlin, "kt");
+    assert!(has_finding(&f, Smell::DeadStore), "the typed local `x = 0` is overwritten before any read: {f:?}");
+}
+
+#[test]
+fn kotlin_for_loop_over_local_collection_is_not_a_dead_store() {
+    let src = "fun f(): Int {\n    val items = listOf(1, 2, 3)\n    var sum = 0\n    for (x in items) {\n        sum += x\n    }\n    return sum\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "`items` is read as the for-loop iterable: {f:?}");
+}
+
+#[test]
+fn kotlin_deferred_val_initialization_is_not_a_dead_store() {
+    let src = "fun f(c: Boolean): Int {\n    val x: Int\n    if (c) {\n        x = 1\n    } else {\n        x = 2\n    }\n    return x\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`val x: Int` stores no value; the real stores are the branch assignments: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_bare_property_write_is_not_a_dead_store() {
+    let src = "class C {\n    var count = 0\n    fun reset() {\n        count = 0\n    }\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`count` is a class property, not a local; the write is not dead: {f:?}"
+    );
+}
+
+#[test]
+fn unqualified_field_write_is_not_a_dead_store_across_langs() {
+    let java = smells_of(
+        "class C {\n    int count;\n    void reset() {\n        count = 0;\n    }\n}\n",
+        Language::Java,
+        "java",
+    );
+    assert!(!has_finding(&java, Smell::DeadStore), "java bare field write: {java:?}");
+    let swift = smells_of(
+        "class C {\n    var count = 0\n    func reset() {\n        count = 0\n    }\n}\n",
+        Language::Swift,
+        "swift",
+    );
+    assert!(!has_finding(&swift, Smell::DeadStore), "swift bare property write: {swift:?}");
+    let cs = smells_of(
+        "class C {\n    int count;\n    void Reset() {\n        count = 0;\n    }\n}\n",
+        Language::CSharp,
+        "cs",
+    );
+    assert!(!has_finding(&cs, Smell::DeadStore), "c# bare field write: {cs:?}");
+    let cpp = smells_of(
+        "class C {\n    int count;\n    void reset() {\n        count = 0;\n    }\n};\n",
+        Language::Cpp,
+        "cpp",
+    );
+    assert!(!has_finding(&cpp, Smell::DeadStore), "c++ bare field write: {cpp:?}");
+}
+
+#[test]
+fn declared_local_dead_store_still_flagged_across_langs() {
+    let java = smells_of(
+        "class C {\n    int f() {\n        int x = 0;\n        x = 1;\n        return x;\n    }\n}\n",
+        Language::Java,
+        "java",
+    );
+    assert!(has_finding(&java, Smell::DeadStore), "java declared local dead store: {java:?}");
+    let go = smells_of("func f() int {\n    x := 0\n    x = 1\n    return x\n}\n", Language::Go, "go");
+    assert!(has_finding(&go, Smell::DeadStore), "go declared local dead store: {go:?}");
+}
+
+#[test]
 fn kotlin_value_of_when_assignment_is_not_a_dead_store() {
     let src = "fun f(n: Int): String {\n    val label = when (n) {\n        1 -> \"one\"\n        else -> \"other\"\n    }\n    return label\n}\n";
     let f = smells_of(src, Language::Kotlin, "kt");

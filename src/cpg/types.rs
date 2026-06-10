@@ -8,4 +8,5 @@ pub struct CpgMetrics {
     pub simhash: u64,
     pub surprisal: f64,
     pub suppress_dead_store: bool,
+    pub flag_all_dead_stores: bool,
 }

@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use crate::cpg::defuse::{push_idents, DefUse, DefUseRecord};
+use crate::cpg::defuse::{push_idents, DefUseRecord, Mark};
 use crate::walk::DepthGuard;
 
 pub(crate) fn seed(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
@@ -8,7 +8,7 @@ pub(crate) fn seed(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseReco
     match node.kind() {
         "assignment" | "operator_assignment" => {
             if let Some(l) = node.child_by_field_name("left") {
-                push_idents(l, source, exit, DefUse::Use, out);
+                push_idents(l, source, exit, Mark::Use, out);
             }
         }
         "if" | "unless" | "elsif" | "conditional" => seed_if(node, source, exit, out),
