@@ -42,6 +42,12 @@ if ! command -v cargo-llvm-cov &>/dev/null; then
   exit 1
 fi
 
+if ! command -v cargo-nextest &>/dev/null; then
+  echo "error: cargo-nextest not installed"
+  echo "install: cargo install cargo-nextest"
+  exit 1
+fi
+
 # ── parse arguments ────────────────────────────────────────────────
 mode="summary"
 fail_under=""
@@ -50,22 +56,22 @@ ignore_tests=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --summary)      mode="summary" ;;
-    --html)         mode="html" ;;
-    --json)         mode="json" ;;
-    --lcov)         mode="lcov" ;;
-    --no-open)      open_report=false ;;
-    --ignore-tests) ignore_tests=true ;;
-    --fail-under)
-      shift
-      fail_under="$1"
-      ;;
-    -h|--help) usage ;;
-    *)
-      echo "error: unknown option '$1'" >&2
-      echo "run '$0 --help' for usage" >&2
-      exit 1
-      ;;
+  --summary) mode="summary" ;;
+  --html) mode="html" ;;
+  --json) mode="json" ;;
+  --lcov) mode="lcov" ;;
+  --no-open) open_report=false ;;
+  --ignore-tests) ignore_tests=true ;;
+  --fail-under)
+    shift
+    fail_under="$1"
+    ;;
+  -h | --help) usage ;;
+  *)
+    echo "error: unknown option '$1'" >&2
+    echo "run '$0 --help' for usage" >&2
+    exit 1
+    ;;
   esac
   shift
 done
@@ -85,38 +91,38 @@ fi
 
 # ── run coverage ──────────────────────────────────────────────────
 case "$mode" in
-  summary)
-    echo "running tests with coverage..."
+summary)
+  echo "running tests with coverage..."
+  echo ""
+  # shellcheck disable=SC2086
+  cargo llvm-cov nextest $cov_flags 2>&1
+  ;;
+
+html)
+  echo "generating HTML coverage report..."
+  # shellcheck disable=SC2086
+  cargo llvm-cov nextest --html $cov_flags 2>&1
+
+  if [ "$open_report" = true ]; then
     echo ""
-    # shellcheck disable=SC2086
-    cargo llvm-cov test $cov_flags 2>&1
-    ;;
+    report_dir="target/llvm-cov/html"
+    case "$(uname -s)" in
+    Darwin) open "$report_dir/index.html" ;;
+    *) xdg-open "$report_dir/index.html" 2>/dev/null || true ;;
+    esac
+  fi
 
-  html)
-    echo "generating HTML coverage report..."
-    # shellcheck disable=SC2086
-    cargo llvm-cov test --html $cov_flags 2>&1
+  echo ""
+  echo "html report: target/llvm-cov/html/index.html"
+  ;;
 
-    if [ "$open_report" = true ]; then
-      echo ""
-      report_dir="target/llvm-cov/html"
-      case "$(uname -s)" in
-        Darwin) open "$report_dir/index.html" ;;
-        *)      xdg-open "$report_dir/index.html" 2>/dev/null || true ;;
-      esac
-    fi
+json)
+  # shellcheck disable=SC2086
+  cargo llvm-cov nextest --json $cov_flags 2>&1
+  ;;
 
-    echo ""
-    echo "html report: target/llvm-cov/html/index.html"
-    ;;
-
-  json)
-    # shellcheck disable=SC2086
-    cargo llvm-cov test --json $cov_flags 2>&1
-    ;;
-
-  lcov)
-    # shellcheck disable=SC2086
-    cargo llvm-cov test --lcov $cov_flags 2>&1
-    ;;
+lcov)
+  # shellcheck disable=SC2086
+  cargo llvm-cov nextest --lcov $cov_flags 2>&1
+  ;;
 esac
