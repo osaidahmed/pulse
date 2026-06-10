@@ -50,10 +50,13 @@ fn collect_declaration(node: Node, source: &str, block: u32, lang: &CfgLang, out
     if node.kind() == "property_declaration" {
         let mut c = node.walk();
         for child in node.children(&mut c).filter(tree_sitter::Node::is_named) {
-            if matches!(child.kind(), "variable_declaration" | "multi_variable_declaration") {
-                push_idents(child, source, block, DefUse::Def, out);
-            } else {
-                collect(child, source, block, lang, out);
+            match child.kind() {
+                "variable_declaration" => push_idents(child, source, block, DefUse::Def, out),
+                "multi_variable_declaration" => {
+                    push_idents(child, source, block, DefUse::Def, out);
+                    push_idents(child, source, block, DefUse::Use, out);
+                }
+                _ => collect(child, source, block, lang, out),
             }
         }
         return;

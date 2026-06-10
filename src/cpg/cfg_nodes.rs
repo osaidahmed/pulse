@@ -29,6 +29,19 @@ pub(super) fn unwrap_stmt(node: Node) -> Node {
     node
 }
 
+pub(super) fn when_entry_body(node: Node) -> Option<Node> {
+    let mut cond_cursor = node.walk();
+    let cond_ids: Vec<usize> = node.children_by_field_name("condition", &mut cond_cursor).map(|c| c.id()).collect();
+    let mut cursor = node.walk();
+    let mut body = None;
+    for child in node.children(&mut cursor) {
+        if child.is_named() && !cond_ids.contains(&child.id()) {
+            body = Some(child);
+        }
+    }
+    body
+}
+
 pub(super) fn if_bodies(node: Node) -> (Option<Node>, Option<Node>) {
     if let Some(c) = node.child_by_field_name("consequence").or_else(|| node.child_by_field_name("body")) {
         return (Some(c), None);

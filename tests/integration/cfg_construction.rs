@@ -1310,12 +1310,92 @@ fn kotlin_for_loop_accumulator_is_clean() {
 }
 
 #[test]
-fn kotlin_dead_store_is_suppressed_even_on_clear_redefinition() {
+fn kotlin_dead_store_on_redefinition() {
     let f = smells_of("fun f(): Int {\n    var x = 0\n    x = 1\n    return x\n}\n", Language::Kotlin, "kt");
+    assert!(has_finding(&f, Smell::DeadStore), "x = 0 is overwritten by x = 1 before any read: {f:?}");
+}
+
+#[test]
+fn kotlin_unused_initializer_is_a_dead_store() {
+    let f = smells_of("fun f(): Int {\n    var x = compute()\n    x = 5\n    return x\n}\n", Language::Kotlin, "kt");
+    assert!(has_finding(&f, Smell::DeadStore), "x = compute() is never read before x = 5 overwrites it: {f:?}");
+}
+
+#[test]
+fn kotlin_both_branch_redefinition_of_initializer_is_a_dead_store() {
+    let src = "fun f(c: Boolean): String {\n    var label = \"\"\n    if (c) {\n        label = \"a\"\n    } else {\n        label = \"b\"\n    }\n    return label\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(
+        has_finding(&f, Smell::DeadStore),
+        "the \"\" initializer is overwritten on every path before any read: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_when_statement_multi_arm_assignment_is_not_a_dead_store() {
+    let src = "fun f(n: Int): String {\n    var label = \"\"\n    when (n) {\n        1 -> label = \"one\"\n        2 -> label = \"two\"\n        else -> label = \"other\"\n    }\n    return label\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
     assert!(
         !has_finding(&f, Smell::DeadStore),
-        "DeadStore is intentionally suppressed for Kotlin (expression-oriented + positional bodies make it FP-prone): {f:?}"
+        "when arms do not fall through; each arm's store reaches the post-when read: {f:?}"
     );
+}
+
+#[test]
+fn kotlin_when_statement_label_reading_a_local_is_not_a_dead_store() {
+    let src = "fun f(n: Int): String {\n    val limit = compute()\n    var r = \"\"\n    when {\n        n > limit -> r = \"hi\"\n        else -> r = \"lo\"\n    }\n    return r\n}\n";
+    let f = smells_of(src, Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "`limit` is read only in a when-arm label; the condition must be collected as a use: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_destructuring_partial_use_is_not_a_dead_store() {
+    let f = smells_of(
+        "fun f(pair: Pair<Int, Int>): Int {\n    val (a, b) = pair\n    return a\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(!has_finding(&f, Smell::DeadStore), "an unused destructured component is not a dead store: {f:?}");
+}
+
+#[test]
+fn kotlin_destructuring_placeholder_is_clean() {
+    let f = smells_of(
+        "fun f(pair: Pair<Int, Int>): Int {\n    val (a, _) = pair\n    return a\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "{f:?}");
+}
+
+#[test]
+fn kotlin_lambda_capture_mutation_is_not_a_dead_store() {
+    let f = smells_of(
+        "fun f(xs: List<Int>): Int {\n    var acc = 0\n    xs.forEach { acc += it }\n    return acc\n}\n",
+        Language::Kotlin,
+        "kt",
+    );
+    assert!(!has_finding(&f, Smell::DeadStore), "acc is read+written inside the captured lambda: {f:?}");
+}
+
+#[test]
+fn kotlin_write_only_lambda_capture_is_not_a_dead_store() {
+    let f =
+        smells_of("fun f(xs: List<Int>) {\n    var sum = 0\n    xs.forEach { sum += it }\n}\n", Language::Kotlin, "kt");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "the lambda body is opaque; the capture is recorded as a read, never a killing def: {f:?}"
+    );
+}
+
+#[test]
+fn kotlin_index_write_is_not_a_dead_store() {
+    let f = smells_of("fun f(a: IntArray, i: Int) {\n    a[i] = 9\n}\n", Language::Kotlin, "kt");
+    assert!(!has_finding(&f, Smell::DeadStore), "`a[i] = 9` reads a and i; no local store occurs: {f:?}");
 }
 
 #[test]

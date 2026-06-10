@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use crate::cpg::cfg_nodes::{end_line, if_bodies, line, stmt_seq_node, unwrap_stmt};
+use crate::cpg::cfg_nodes::{end_line, if_bodies, line, stmt_seq_node, unwrap_stmt, when_entry_body};
 use crate::cpg::defuse::{self, DefUseRecord};
 use crate::walk::{find_child_by_kinds, DepthGuard};
 
@@ -263,11 +263,13 @@ impl Builder<'_> {
             let body_stmts: Vec<Node> = case.children_by_field_name("body", &mut body_cursor).collect();
             return self.do_switch_case(case, p, &body_stmts, fall_in);
         }
-        if matches!(case.kind(), "case_clause" | "match_arm" | "when" | "in_clause") {
+        if matches!(case.kind(), "case_clause" | "match_arm" | "when" | "in_clause" | "when_entry") {
+            self.record_cond(case, p);
             let body = case
                 .child_by_field_name("consequence")
                 .or_else(|| case.child_by_field_name("value"))
-                .or_else(|| case.child_by_field_name("body"))?;
+                .or_else(|| case.child_by_field_name("body"))
+                .or_else(|| when_entry_body(case))?;
             let end = if self.lang.block_kinds.contains(&body.kind()) {
                 self.seq(body, Some((p, EdgeLabel::True)))
             } else {
