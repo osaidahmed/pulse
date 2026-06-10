@@ -23,7 +23,7 @@ fn pulse_in_dir(args: &[&str], cwd: &std::path::Path) -> (String, String, i32) {
 fn version_long_flag_exits_zero_with_correct_version() {
     let (stdout, _stderr, code) = pulse(&["--version"]);
     assert_eq!(code, 0);
-    assert!(stdout.contains(env!("CARGO_PKG_VERSION")), "stdout should contain version, got: {stdout}",);
+    assert!(stdout.contains(env!("CARGO_PKG_VERSION")), "stdout should contain version, got: {stdout}");
     assert!(stdout.starts_with("pulse "), "got: {stdout}");
 }
 

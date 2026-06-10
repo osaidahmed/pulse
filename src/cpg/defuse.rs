@@ -91,7 +91,7 @@ fn collect_property_decl(node: Node, source: &str, block: u32, lang: &CfgLang, o
         push_idents(m, source, block, Mark::Decl, out);
         push_idents(m, source, block, Mark::Use, out);
     } else if let Some(v) = find_child_by_kind(node, "variable_declaration") {
-        if v.next_sibling().filter(|s| !s.is_extra()).is_some() {
+        if v.next_sibling().as_ref().is_some_and(|s| !s.is_extra()) {
             push_idents(v, source, block, Mark::Decl, out);
         }
     }

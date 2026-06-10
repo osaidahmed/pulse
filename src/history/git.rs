@@ -22,7 +22,7 @@ pub struct GitOpts<'a> {
 const SENTINEL: &str = "__COMMIT__";
 
 fn git_check_succeeds(root: &Path, args: &[&str]) -> bool {
-    Command::new("git").arg("-C").arg(root).args(args).output().map(|o| o.status.success()).unwrap_or(false)
+    Command::new("git").arg("-C").arg(root).args(args).output().is_ok_and(|o| o.status.success())
 }
 
 pub fn is_git_repo(root: &Path) -> bool {
