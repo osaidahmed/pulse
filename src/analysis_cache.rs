@@ -16,6 +16,8 @@ struct CachedFinding {
 #[derive(Serialize, Deserialize)]
 pub struct CachedAnalysis {
     source_hash: u64,
+    #[serde(default)]
+    thresholds_hash: u64,
     findings: Vec<CachedFinding>,
     pub functions: Vec<(String, u64)>,
 }
@@ -26,9 +28,14 @@ impl CachedAnalysis {
     }
 }
 
+pub fn thresholds_fingerprint(t: &crate::thresholds::Thresholds) -> u64 {
+    xxhash_rust::xxh3::xxh3_64(format!("{t:?}").as_bytes())
+}
+
 pub fn store(file_path: &str, source: &str, analysis: &AnalysisResultFull) {
     let cached = CachedAnalysis {
         source_hash: xxhash_rust::xxh3::xxh3_64(source.as_bytes()),
+        thresholds_hash: thresholds_fingerprint(&analysis.thresholds),
         findings: analysis.findings.iter().map(encode_finding).collect(),
         functions: analysis.metrics.functions.iter().map(|f| (f.name.clone(), f.structural_hash)).collect(),
     };
@@ -37,11 +44,13 @@ pub fn store(file_path: &str, source: &str, analysis: &AnalysisResultFull) {
     let _ = std::fs::write(cache_path(file_path), json);
 }
 
-pub fn load(file_path: &str) -> Option<CachedAnalysis> {
+pub fn load(file_path: &str, expected_thresholds: u64) -> Option<CachedAnalysis> {
     let source = std::fs::read_to_string(file_path).ok()?;
     let raw = std::fs::read_to_string(cache_path(file_path)).ok()?;
     let cached: CachedAnalysis = serde_json::from_str(&raw).ok()?;
-    (cached.source_hash == xxhash_rust::xxh3::xxh3_64(source.as_bytes())).then_some(cached)
+    let fresh = cached.source_hash == xxhash_rust::xxh3::xxh3_64(source.as_bytes())
+        && cached.thresholds_hash == expected_thresholds;
+    fresh.then_some(cached)
 }
 
 fn encode_finding(f: &Finding) -> CachedFinding {

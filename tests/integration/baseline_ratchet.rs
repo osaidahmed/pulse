@@ -155,3 +155,24 @@ fn structural_findings_survive_without_god_method() {
     assert!(out.contains("deep nested complexity"), "nesting fires when no god method subsumes it: {out}");
     assert!(!out.contains("god method"), "fixture must not be a god method: {out}");
 }
+
+#[test]
+fn complex_method_grown_into_god_method_refires() {
+    let old = padded_fn("worker", 13, 30);
+    let new = padded_fn("worker", 13, 70);
+    let out = run_hook_edit(&new, &old, &new);
+    assert!(out.to_lowercase().contains("god method"), "growing into a god method must re-fire: {out}");
+}
+
+#[test]
+fn god_method_does_not_subsume_findings_in_other_functions() {
+    let god = god_fn_with_nesting("monster", 70);
+    let nested = god_fn_with_nesting("nester", 12);
+    let new_region = format!("anchor = 1\n\n{god}\n{nested}");
+    let out = run_hook_edit(&new_region, "anchor = 1\n", &new_region).to_lowercase();
+    assert!(out.contains("god method"), "god method must fire for monster: {out}");
+    assert!(
+        out.contains("deep nested complexity") || out.contains("nested conditional chunks"),
+        "structural findings on a different function must not be subsumed: {out}"
+    );
+}

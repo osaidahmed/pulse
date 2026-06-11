@@ -221,3 +221,56 @@ fn ratchet_hash_fallback_ignores_zero_sentinel() {
         "a vanished zero-hash baseline entry must not suppress findings on other zero-hash functions"
     );
 }
+
+fn fn_block(i: u32) -> String {
+    format!("def fn_{i}():\n    return {i}\n")
+}
+
+fn counted_fns_source(extra: bool) -> String {
+    let mut src: String = (0..3).map(fn_block).collect();
+    if extra {
+        src.push_str(&fn_block(3));
+    } else {
+        src.push_str("stub = 3\n");
+    }
+    src
+}
+
+fn serde_edit_json(path: &std::path::Path, old: &str, new: &str) -> String {
+    serde_json::json!({
+        "tool_input": {"file_path": path.to_str().unwrap(), "old_string": old, "new_string": new}
+    })
+    .to_string()
+}
+
+fn fourth_fn_session(env: &StopEnv, keep_config: bool) -> String {
+    let path = env.file_path("svc.py");
+    let config_path = env.file_path(".pulse.toml");
+    std::fs::write(&config_path, "[thresholds]\nfile_function_count = 3\n").unwrap();
+    std::fs::write(&path, counted_fns_source(true)).unwrap();
+    env.run_hook(&serde_edit_json(&path, "stub = 3\n", &fn_block(3)));
+    if !keep_config {
+        std::fs::remove_file(&config_path).unwrap();
+    }
+    env.run_stop()
+}
+
+#[test]
+fn stop_discards_cached_findings_from_a_superseded_config() {
+    let env = StopEnv::new();
+    let out = fourth_fn_session(&env, false);
+    assert!(
+        !out.to_lowercase().contains("too many functions"),
+        "findings cached under removed thresholds must not survive to stop: {out}"
+    );
+}
+
+#[test]
+fn stop_resolves_config_adjacent_to_the_file() {
+    let env = StopEnv::new();
+    let out = fourth_fn_session(&env, true);
+    assert!(
+        out.to_lowercase().contains("too many functions"),
+        "stop must honor the config next to the file, not the working directory: {out}"
+    );
+}

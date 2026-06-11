@@ -108,3 +108,69 @@ fn default_protocol_remains_claude_code() {
     let v: serde_json::Value = serde_json::from_str(&out).expect("json output: {out}");
     assert_eq!(v["decision"], "block", "got: {out}");
 }
+
+fn claude_patch_json(path: &std::path::Path, hunks: &[(u64, u64)]) -> String {
+    let hunk_objs: Vec<serde_json::Value> = hunks
+        .iter()
+        .map(|(s, l)| serde_json::json!({"newStart": s, "newLines": l, "oldStart": s, "oldLines": l, "lines": []}))
+        .collect();
+    serde_json::json!({
+        "tool_input": {"file_path": path.to_str().unwrap()},
+        "tool_response": {"structuredPatch": hunk_objs}
+    })
+    .to_string()
+}
+
+#[test]
+fn deletion_hunk_collapses_to_its_anchor_line() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.py");
+    std::fs::write(&path, "one\ntwo\nthree\nfour\nfive\n").unwrap();
+    let h = parse_with(Protocol::ClaudeCode, &claude_patch_json(&path, &[(3, 0)])).expect("parse");
+    assert_eq!(h.edit_range, Some((3, 3)));
+}
+
+#[test]
+fn multi_hunk_patch_unions_to_the_bounding_range() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.py");
+    std::fs::write(&path, "x\n".repeat(20)).unwrap();
+    let h = parse_with(Protocol::ClaudeCode, &claude_patch_json(&path, &[(1, 3), (10, 3)])).expect("parse");
+    assert_eq!(h.edit_range, Some((1, 12)));
+}
+
+#[test]
+fn zero_based_hunk_is_rejected_and_falls_back_to_string_search() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.py");
+    std::fs::write(&path, "alpha\nbeta\ngamma\n").unwrap();
+    let raw = serde_json::json!({
+        "tool_input": {"file_path": path.to_str().unwrap(), "old_string": "old beta", "new_string": "beta"},
+        "tool_response": {"structuredPatch": [{"newStart": 0, "newLines": 2, "oldStart": 0, "oldLines": 2, "lines": []}]}
+    })
+    .to_string();
+    let h = parse_with(Protocol::ClaudeCode, &raw).expect("parse");
+    assert_eq!(h.edit_range, Some((2, 2)), "a zero-based hunk must not produce a finding-dropping (0, n) range");
+}
+
+#[test]
+fn generic_rejects_zero_and_inverted_edit_ranges() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.py");
+    std::fs::write(&path, "alpha\nbeta\n").unwrap();
+    for bad in ["[0,0]", "[5,2]"] {
+        let raw = format!(r#"{{"file_path":"{}","edit_range":{bad}}}"#, path.display());
+        let h = parse_with(Protocol::Generic, &raw).expect("parse");
+        assert_eq!(h.edit_range, None, "invalid declared range {bad} must be ignored");
+    }
+}
+
+#[test]
+fn render_block_escapes_json_special_characters() {
+    let reason = "reason with \"quotes\", a\nnewline, and a \\ backslash";
+    for protocol in [Protocol::ClaudeCode, Protocol::Generic] {
+        let out = render_block(protocol, reason, Some("ctx \"quoted\""));
+        let v: serde_json::Value = serde_json::from_str(&out).expect("output must stay valid JSON");
+        assert_eq!(v["reason"].as_str().unwrap(), reason);
+    }
+}

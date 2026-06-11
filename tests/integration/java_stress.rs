@@ -1236,3 +1236,18 @@ fn java_abstract_method_skipped() {
     let out = debug(code);
     assert!(out.contains("baz"), "concrete method should be found: {out}");
 }
+
+#[test]
+fn semicolon_only_catch_is_an_empty_handler() {
+    let out =
+        check("class A {\n    void f() {\n        try { g(); } catch (Exception e) { ; }\n    }\n    void g() {}\n}\n");
+    assert!(has_smell(&out, "Empty Error Handler"), "a catch holding only a semicolon swallows errors: {out}");
+}
+
+#[test]
+fn catch_with_a_statement_is_not_an_empty_handler() {
+    let out = check(
+        "class A {\n    void f() {\n        try { g(); } catch (Exception e) { g(); }\n    }\n    void g() {}\n}\n",
+    );
+    assert!(!has_smell(&out, "Empty Error Handler"), "a catch with a real statement is not empty: {out}");
+}

@@ -207,13 +207,10 @@ pub fn is_catch_body_empty(catch_node: Node, body_kind: &str, pass_kind: Option<
         .children(&mut cursor)
         .filter(|c| {
             let kind = c.kind();
-            kind != body_kind
-                && kind != "comment"
-                && kind != "line_comment"
-                && kind != "block_comment"
-                && kind != "{"
-                && kind != "}"
-                && kind != ":"
+            c.is_named()
+                && !c.is_extra()
+                && kind != body_kind
+                && !matches!(kind, "comment" | "line_comment" | "block_comment" | "empty_statement")
                 && (pass_kind != Some(kind))
         })
         .count();

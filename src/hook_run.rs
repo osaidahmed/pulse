@@ -194,10 +194,9 @@ pub fn run_stop() {
         return;
     };
 
-    let cfg = config::load_config(Path::new("."));
     let memo: RefCell<HashMap<String, Option<Rc<StopAnalysis>>>> = RefCell::new(HashMap::new());
     let analyze = |p: &str| -> Option<Rc<StopAnalysis>> {
-        memo.borrow_mut().entry(p.to_string()).or_insert_with(|| stop_analysis(p, cfg.as_ref()).map(Rc::new)).clone()
+        memo.borrow_mut().entry(p.to_string()).or_insert_with(|| stop_analysis(p).map(Rc::new)).clone()
     };
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
@@ -232,12 +231,16 @@ struct StopAnalysis {
     functions: Vec<(String, u64)>,
 }
 
-fn stop_analysis(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<StopAnalysis> {
-    let filename = Path::new(file_path).file_name()?.to_string_lossy().into_owned();
-    if let Some(cached) = pulse::analysis_cache::load(file_path) {
+fn stop_analysis(file_path: &str) -> Option<StopAnalysis> {
+    let path = Path::new(file_path);
+    let filename = path.file_name()?.to_string_lossy().into_owned();
+    let cfg = config::load_config(path);
+    let lang = parse::detect_language(path)?;
+    let expected = pulse::analysis_cache::thresholds_fingerprint(&config::resolve_thresholds(cfg.as_ref(), lang));
+    if let Some(cached) = pulse::analysis_cache::load(file_path, expected) {
         return Some(StopAnalysis { filename, findings: cached.findings(), functions: cached.functions });
     }
-    let r = analyze::analyze_file(file_path, cfg, analyze::ScanOptions::hook(None))?;
+    let r = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::hook(None))?;
     let functions = r.metrics.functions.iter().map(|f| (f.name.clone(), f.structural_hash)).collect();
     Some(StopAnalysis { filename: r.filename, findings: r.findings, functions })
 }

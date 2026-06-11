@@ -92,7 +92,7 @@ fn generic_ranges(v: &serde_json::Value, file_path: &str) -> EditRanges {
         let arr = r.as_array()?;
         let start = u32::try_from(arr.first()?.as_u64()?).ok()?;
         let end = u32::try_from(arr.get(1)?.as_u64()?).ok()?;
-        Some((start, end))
+        (start >= 1 && end >= start).then_some((start, end))
     });
     match declared {
         Some((start, end)) => (Some((start, end)), byte_range_of_lines(file_path, start, end)),
@@ -123,6 +123,9 @@ fn patch_ranges(tool_response: Option<&serde_json::Value>, file_path: &str) -> O
     let mut span: Option<(u32, u32)> = None;
     for hunk in hunks {
         let start = u32::try_from(hunk.get("newStart")?.as_u64()?).ok()?;
+        if start == 0 {
+            return None;
+        }
         let len = u32::try_from(hunk.get("newLines")?.as_u64()?).ok()?;
         let end = start + len.max(1) - 1;
         span = Some(span.map_or((start, end), |(s, e)| (s.min(start), e.max(end))));
