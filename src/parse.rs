@@ -179,15 +179,22 @@ const PARSE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 const ANALYZE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 fn exceeds_size_caps(source: &str) -> bool {
-    source.len() > MAX_INPUT_BYTES
-        || memchr::memchr_iter(b'\n', source.as_bytes()).count() > MAX_INPUT_LINES
-        || source.split('\n').any(|line| line.len() > MAX_LINE_BYTES)
+    if source.len() > MAX_INPUT_BYTES {
+        return true;
+    }
+    let mut lines = 0usize;
+    let mut line_start = 0usize;
+    for i in memchr::memchr_iter(b'\n', source.as_bytes()) {
+        lines += 1;
+        if lines > MAX_INPUT_LINES || i - line_start > MAX_LINE_BYTES {
+            return true;
+        }
+        line_start = i + 1;
+    }
+    source.len() - line_start > MAX_LINE_BYTES
 }
 
-fn run_guarded<T: Send + 'static>(source: &str, work: impl FnOnce() -> Option<T> + Send + 'static) -> Option<T> {
-    if exceeds_size_caps(source) {
-        return None;
-    }
+fn run_guarded<T: Send + 'static>(work: impl FnOnce() -> Option<T> + Send + 'static) -> Option<T> {
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
     let spawned = std::thread::Builder::new().stack_size(ANALYZE_STACK_BYTES).spawn(move || {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).ok().flatten();
@@ -200,13 +207,19 @@ fn run_guarded<T: Send + 'static>(source: &str, work: impl FnOnce() -> Option<T>
 }
 
 pub fn parse_guarded(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
+    if exceeds_size_caps(source) {
+        return None;
+    }
     let owned = source.to_string();
-    run_guarded(source, move || parse_only(&owned, lang))
+    run_guarded(move || parse_only(&owned, lang))
 }
 
 pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
+    if exceeds_size_caps(source) {
+        return None;
+    }
     let owned = source.to_string();
-    run_guarded(source, move || parse_and_walk(&owned, lang))
+    run_guarded(move || parse_and_walk(&owned, lang))
 }
 
 pub fn parse_and_walk_scoped(
@@ -218,8 +231,11 @@ pub fn parse_and_walk_scoped(
     match (edit_byte_range, cpg_enabled) {
         (None, false) => parse_and_walk_guarded(source, lang),
         (range, cpg) => {
+            if exceeds_size_caps(source) {
+                return None;
+            }
             let owned = source.to_string();
-            run_guarded(source, move || {
+            run_guarded(move || {
                 walk::with_cpg_enabled(cpg, || walk::with_edit_scope(range, || parse_and_walk(&owned, lang)))
             })
         }
