@@ -53,7 +53,7 @@ fn cycle_members(root: &Path, rev: &str, audit: &AuditThresholds) -> BTreeSet<BT
 
 fn stub_profile(_: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::BestEffort },
+        abstractness: AbstractnessRecord { abstractness: None, confidence: ImportConfidence::BestEffort },
         import_confidence: ImportConfidence::BestEffort,
         loc: 0,
     }

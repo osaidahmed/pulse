@@ -21,7 +21,7 @@ fn rust_edge(src: &str, dst: &str) -> InputEdge {
 
 fn high_concrete_profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
+        abstractness: AbstractnessRecord { abstractness: Some(0.0), confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
         loc: 0,
     }
@@ -29,7 +29,7 @@ fn high_concrete_profile(_path: &Path) -> ModuleProfile {
 
 fn high_abstract_profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord { abstractness: 1.0, confidence: ImportConfidence::High },
+        abstractness: AbstractnessRecord { abstractness: Some(1.0), confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
         loc: 0,
     }
@@ -86,7 +86,7 @@ fn cycle_confidence_inherits_minimum_member_confidence() {
         |path| {
             let conf = if path.ends_with("b.rs") { ImportConfidence::Low } else { ImportConfidence::High };
             ModuleProfile {
-                abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
+                abstractness: AbstractnessRecord { abstractness: Some(0.0), confidence: ImportConfidence::High },
                 import_confidence: conf,
                 loc: 0,
             }

@@ -7,7 +7,7 @@ use super::graph::{ImportGraph, NodeIndex};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AbstractnessRecord {
-    pub abstractness: f64,
+    pub abstractness: Option<f64>,
     pub confidence: ImportConfidence,
 }
 
@@ -39,23 +39,24 @@ pub fn compute(
     abstractness: AbstractnessRecord,
     import_confidence: ImportConfidence,
     thresholds: &AuditThresholds,
-) -> MartinMetrics {
+) -> Option<MartinMetrics> {
+    let measured = abstractness.abstractness?;
     let afferent = graph.adjacency.afferent(node);
     let efferent = graph.adjacency.efferent(node);
     let i = instability(afferent, efferent);
-    let d = distance(abstractness.abstractness, i);
+    let d = distance(measured, i);
     let module = path_buf_of(graph, node);
     let confidence = import_confidence.min(abstractness.confidence);
-    MartinMetrics {
+    Some(MartinMetrics {
         module,
         afferent,
         efferent,
         instability: i,
-        abstractness: abstractness.abstractness,
+        abstractness: measured,
         distance: d,
         tier: classify(d, thresholds),
         confidence,
-    }
+    })
 }
 
 fn path_buf_of(graph: &ImportGraph, node: NodeIndex) -> PathBuf {

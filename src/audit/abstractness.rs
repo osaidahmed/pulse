@@ -163,28 +163,28 @@ const PROFILE_TABLE: &[(Language, AbstractnessProfile)] = &[
 
 pub fn abstractness_for_file(path: &Path, lang: Language) -> AbstractnessRecord {
     let Some(profile) = profile_for_lang(lang) else {
-        return placeholder();
+        return unmeasured();
     };
     let Ok(source) = std::fs::read_to_string(path) else {
-        return placeholder();
+        return unmeasured();
     };
     let Some(tree) = parse::parse_guarded(&source, lang) else {
-        return placeholder();
+        return unmeasured();
     };
     let mut counts = TypeCounts::default();
     visit(tree.root_node(), &profile, &mut counts);
     if counts.total() == 0 {
-        return placeholder();
+        return unmeasured();
     }
-    AbstractnessRecord { abstractness: counts.ratio(), confidence: profile.confidence }
+    AbstractnessRecord { abstractness: Some(counts.ratio()), confidence: profile.confidence }
 }
 
 fn profile_for_lang(lang: Language) -> Option<AbstractnessProfile> {
     PROFILE_TABLE.iter().find(|(l, _)| *l == lang).map(|(_, p)| *p)
 }
 
-fn placeholder() -> AbstractnessRecord {
-    AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::NaAbstraction }
+fn unmeasured() -> AbstractnessRecord {
+    AbstractnessRecord { abstractness: None, confidence: ImportConfidence::NaAbstraction }
 }
 
 #[derive(Default)]

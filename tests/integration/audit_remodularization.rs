@@ -21,7 +21,7 @@ fn edge(src: &str, dst: &str) -> InputEdge {
 
 fn profile(_path: &Path) -> ModuleProfile {
     ModuleProfile {
-        abstractness: AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High },
+        abstractness: AbstractnessRecord { abstractness: Some(0.0), confidence: ImportConfidence::High },
         import_confidence: ImportConfidence::High,
         loc: 0,
     }

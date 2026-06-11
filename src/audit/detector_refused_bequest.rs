@@ -81,7 +81,7 @@ fn parent_is_abstract(
 ) -> bool {
     let Some(lang) = file_lang(&parent.file) else { return false };
     let record = abstractness_for_file(&parent.file, lang);
-    record.abstractness >= 0.5
+    record.abstractness.is_some_and(|a| a >= 0.5)
 }
 
 fn count_non_ctor_methods(registry: &ClassRegistry, idx: ClassIndex, defs: &[DefinitionRecord]) -> u32 {

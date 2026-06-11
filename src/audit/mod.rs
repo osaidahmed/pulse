@@ -297,7 +297,7 @@ fn profile_for_path(path: &Path, lang_by_path: &std::collections::HashMap<PathBu
     let lang = lang_by_path.get(path).copied();
     let import_confidence = lang.map_or(finding::ImportConfidence::BestEffort, imports::confidence_for);
     let abstractness = lang.map_or_else(
-        || martin::AbstractnessRecord { abstractness: 0.0, confidence: finding::ImportConfidence::NaAbstraction },
+        || martin::AbstractnessRecord { abstractness: None, confidence: finding::ImportConfidence::NaAbstraction },
         |l| abstractness::abstractness_for_file(path, l),
     );
     let loc = std::fs::read_to_string(path).map_or(0, |s| s.lines().count() as u32);

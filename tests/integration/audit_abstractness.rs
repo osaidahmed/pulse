@@ -16,7 +16,7 @@ fn java_one_interface_one_class_yields_half() {
     let src = "interface Foo {}\nclass Bar implements Foo {}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -25,7 +25,7 @@ fn java_only_interfaces_yields_one() {
     let src = "interface A {}\ninterface B {}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert!((r.abstractness - 1.0).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 1.0).abs() < 0.001);
 }
 
 #[test]
@@ -33,7 +33,7 @@ fn java_only_classes_yields_zero() {
     let src = "class A {}\nclass B {}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -43,6 +43,7 @@ fn java_no_types_yields_naabstraction() {
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -50,7 +51,7 @@ fn rust_trait_counts_as_abstract() {
     let src = "trait Foo {}\nstruct Bar;\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -59,7 +60,7 @@ fn rust_only_structs_yields_zero() {
     let src = "struct A;\nstruct B;\nenum C {}\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
 }
 
 #[test]
@@ -67,7 +68,7 @@ fn rust_two_traits_no_structs_yields_one() {
     let src = "trait A {}\ntrait B {}\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert!((r.abstractness - 1.0).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 1.0).abs() < 0.001);
 }
 
 #[test]
@@ -75,7 +76,7 @@ fn typescript_interface_counts_as_abstract() {
     let src = "interface Foo {}\nclass Bar implements Foo {}\n";
     let (_dir, path) = write_tempfile(src, "ts");
     let r = abstractness_for_file(&path, Language::TypeScript);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -84,7 +85,7 @@ fn typescript_class_only_yields_zero() {
     let src = "class A { foo() {} }\nclass B { bar() {} }\n";
     let (_dir, path) = write_tempfile(src, "ts");
     let r = abstractness_for_file(&path, Language::TypeScript);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
 }
 
 #[test]
@@ -92,7 +93,7 @@ fn javascript_class_only_yields_zero_besteffort() {
     let src = "class Foo { method() {} }\n";
     let (_dir, path) = write_tempfile(src, "js");
     let r = abstractness_for_file(&path, Language::JavaScript);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::BestEffort);
 }
 
@@ -102,6 +103,7 @@ fn javascript_no_types_yields_naabstraction() {
     let (_dir, path) = write_tempfile(src, "js");
     let r = abstractness_for_file(&path, Language::JavaScript);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -109,7 +111,7 @@ fn python_class_only_yields_zero_medium() {
     let src = "class Foo:\n    pass\n";
     let (_dir, path) = write_tempfile(src, "py");
     let r = abstractness_for_file(&path, Language::Python);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::Medium);
 }
 
@@ -119,6 +121,7 @@ fn python_no_classes_yields_naabstraction() {
     let (_dir, path) = write_tempfile(src, "py");
     let r = abstractness_for_file(&path, Language::Python);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -126,7 +129,7 @@ fn go_interface_counts_as_abstract() {
     let src = "package main\ntype Foo interface { Bar() }\ntype Concrete struct {}\n";
     let (_dir, path) = write_tempfile(src, "go");
     let r = abstractness_for_file(&path, Language::Go);
-    assert!(r.abstractness > 0.0);
+    assert!(r.abstractness.unwrap() > 0.0);
     assert_eq!(r.confidence, ImportConfidence::Medium);
 }
 
@@ -135,7 +138,7 @@ fn csharp_interface_counts_as_abstract() {
     let src = "interface IFoo {}\nclass Bar : IFoo {}\n";
     let (_dir, path) = write_tempfile(src, "cs");
     let r = abstractness_for_file(&path, Language::CSharp);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -151,7 +154,7 @@ fn swift_protocol_counts_as_abstract() {
     let src = "protocol Foo {}\nclass Bar: Foo {}\n";
     let (_dir, path) = write_tempfile(src, "swift");
     let r = abstractness_for_file(&path, Language::Swift);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
 }
 
 #[test]
@@ -166,7 +169,7 @@ fn php_interface_counts_as_abstract() {
     let src = "<?php\ninterface Foo {}\nclass Bar implements Foo {}\n";
     let (_dir, path) = write_tempfile(src, "php");
     let r = abstractness_for_file(&path, Language::Php);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -175,7 +178,7 @@ fn d_interface_counts_as_abstract() {
     let src = "interface Foo {}\nclass Bar : Foo {}\n";
     let (_dir, path) = write_tempfile(src, "d");
     let r = abstractness_for_file(&path, Language::D);
-    assert!(r.abstractness > 0.0);
+    assert!(r.abstractness.unwrap() > 0.0);
     assert_eq!(r.confidence, ImportConfidence::High);
 }
 
@@ -184,7 +187,7 @@ fn missing_file_returns_naabstraction() {
     let p = PathBuf::from("/nonexistent/path.java");
     let r = abstractness_for_file(&p, Language::Java);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -192,6 +195,7 @@ fn empty_file_returns_naabstraction() {
     let (_dir, path) = write_tempfile("", "java");
     let r = abstractness_for_file(&path, Language::Java);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -199,7 +203,7 @@ fn java_three_classes_one_interface_yields_quarter() {
     let src = "interface A {}\nclass B {}\nclass C {}\nclass D {}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert!((r.abstractness - 0.25).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.25).abs() < 0.001);
 }
 
 #[test]
@@ -207,7 +211,7 @@ fn rust_two_traits_two_structs_yields_half() {
     let src = "trait A {}\ntrait B {}\nstruct C;\nstruct D;\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert!((r.abstractness - 0.5).abs() < 0.001);
+    assert!((r.abstractness.unwrap() - 0.5).abs() < 0.001);
 }
 
 #[test]
@@ -215,6 +219,7 @@ fn unsupported_language_falls_through_to_naabstraction() {
     let (_dir, path) = write_tempfile("if {1} else {2}\n", "lua");
     let r = abstractness_for_file(&path, Language::Lua);
     assert_eq!(r.confidence, ImportConfidence::NaAbstraction);
+    assert!(r.abstractness.is_none());
 }
 
 #[test]
@@ -223,7 +228,7 @@ fn determinism_two_runs_same_file() {
     let (_dir, path) = write_tempfile(src, "rs");
     let r1 = abstractness_for_file(&path, Language::Rust);
     let r2 = abstractness_for_file(&path, Language::Rust);
-    assert!((r1.abstractness - r2.abstractness).abs() < 0.001);
+    assert_eq!(r1.abstractness, r2.abstractness);
 }
 
 #[test]
@@ -231,7 +236,7 @@ fn nested_class_in_class_still_counts() {
     let src = "class Outer {\n    class Inner {}\n}\n";
     let (_dir, path) = write_tempfile(src, "java");
     let r = abstractness_for_file(&path, Language::Java);
-    assert!(r.abstractness >= 0.0);
+    assert!(r.abstractness.unwrap() >= 0.0);
 }
 
 #[test]
@@ -239,7 +244,7 @@ fn rust_union_counts_as_concrete() {
     let src = "union U { a: i32, b: f32 }\n";
     let (_dir, path) = write_tempfile(src, "rs");
     let r = abstractness_for_file(&path, Language::Rust);
-    assert!(r.abstractness.abs() < 0.001);
+    assert!(r.abstractness.unwrap().abs() < 0.001);
 }
 
 #[test]

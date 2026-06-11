@@ -121,7 +121,7 @@ fn martin_finding_for(
 ) -> Option<AuditFinding> {
     let path = graph.registry.path_of(node);
     let profile = profile_lookup(path);
-    let metrics = compute(graph, node, profile.abstractness, profile.import_confidence, thresholds);
+    let metrics = compute(graph, node, profile.abstractness, profile.import_confidence, thresholds)?;
     if metrics.tier == MartinTier::Healthy {
         return None;
     }

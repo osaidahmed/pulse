@@ -15,7 +15,7 @@ fn edge(src: &str, dst: &str) -> InputEdge {
 
 fn graph_of(edges: &[InputEdge]) -> ComponentGraph {
     let graph = ImportGraph::build(edges);
-    build(&graph, |_| MemberMetrics { abstractness: 0.0, loc: 0 })
+    build(&graph, |_| MemberMetrics { abstractness: Some(0.0), loc: 0 })
 }
 
 fn component<'a>(cg: &'a ComponentGraph, dir: &str) -> &'a Component {
@@ -67,7 +67,7 @@ fn abstractness_is_the_member_mean() {
     let graph = ImportGraph::build(&[edge("src/a/foo.rs", "src/b/bar.rs"), edge("src/b/bar.rs", "src/a/baz.rs")]);
     let member_of = |p: &Path| -> MemberMetrics {
         let abstractness = if p.ends_with("foo.rs") { 1.0 } else { 0.0 };
-        MemberMetrics { abstractness, loc: 0 }
+        MemberMetrics { abstractness: Some(abstractness), loc: 0 }
     };
     let cg = build(&graph, member_of);
     let a = cg.components.iter().find(|c| c.path.as_path() == Path::new("src/a")).unwrap();
@@ -79,7 +79,7 @@ fn loc_is_the_member_sum() {
     let graph = ImportGraph::build(&[edge("src/a/foo.rs", "src/b/bar.rs"), edge("src/b/bar.rs", "src/a/baz.rs")]);
     let member_of = |p: &Path| -> MemberMetrics {
         let loc = if p.ends_with("foo.rs") { 120 } else { 30 };
-        MemberMetrics { abstractness: 0.0, loc }
+        MemberMetrics { abstractness: Some(0.0), loc }
     };
     let cg = build(&graph, member_of);
     let a = cg.components.iter().find(|c| c.path.as_path() == Path::new("src/a")).unwrap();

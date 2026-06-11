@@ -18,7 +18,7 @@ pub struct Component {
 }
 
 pub struct MemberMetrics {
-    pub abstractness: f64,
+    pub abstractness: Option<f64>,
     pub loc: u32,
 }
 
@@ -92,16 +92,20 @@ fn aggregate_members(
     member_of: &impl Fn(&Path) -> MemberMetrics,
 ) -> (Vec<u32>, Vec<f64>, Vec<u32>) {
     let mut counts = vec![0u32; count];
+    let mut measured = vec![0u32; count];
     let mut sum_abs = vec![0.0f64; count];
     let mut sum_loc = vec![0u32; count];
     for (i, &c) in file_comp.iter().enumerate() {
         let m = member_of(graph.registry.path_of(NodeIndex(i as u32)));
         counts[c] += 1;
-        sum_abs[c] += m.abstractness;
+        if let Some(a) = m.abstractness {
+            measured[c] += 1;
+            sum_abs[c] += a;
+        }
         sum_loc[c] = sum_loc[c].saturating_add(m.loc);
     }
     let abstractness =
-        counts.iter().zip(&sum_abs).map(|(&n, &s)| if n == 0 { 0.0 } else { s / f64::from(n) }).collect();
+        measured.iter().zip(&sum_abs).map(|(&n, &s)| if n == 0 { 0.0 } else { s / f64::from(n) }).collect();
     (counts, abstractness, sum_loc)
 }
 

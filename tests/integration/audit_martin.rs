@@ -23,15 +23,15 @@ fn build(edges: &[InputEdge]) -> ImportGraph {
 }
 
 fn pure_abstract() -> AbstractnessRecord {
-    AbstractnessRecord { abstractness: 1.0, confidence: ImportConfidence::High }
+    AbstractnessRecord { abstractness: Some(1.0), confidence: ImportConfidence::High }
 }
 
 fn pure_concrete() -> AbstractnessRecord {
-    AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::High }
+    AbstractnessRecord { abstractness: Some(0.0), confidence: ImportConfidence::High }
 }
 
 fn half_abstract() -> AbstractnessRecord {
-    AbstractnessRecord { abstractness: 0.5, confidence: ImportConfidence::High }
+    AbstractnessRecord { abstractness: Some(0.5), confidence: ImportConfidence::High }
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn classify_at_alert_threshold_is_alert() {
 fn compute_for_isolated_module_yields_distance_one_with_concrete() {
     let g = build(&[edge("a.rs", "b.rs")]);
     let isolated = NodeIndex(0);
-    let m = compute(&g, isolated, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, isolated, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert!((m.instability - 1.0).abs() < 1e-12);
     assert!(m.distance < 1e-12);
 }
@@ -140,7 +140,7 @@ fn compute_for_isolated_module_yields_distance_one_with_concrete() {
 fn compute_returns_zero_distance_for_balanced_abstract_unstable_pair() {
     let g = build(&[edge("a.rs", "b.rs"), edge("a.rs", "c.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let m = compute(&g, a, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, a, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert!((m.instability - 1.0).abs() < 1e-12);
     assert!(m.distance < 1e-12);
 }
@@ -149,7 +149,7 @@ fn compute_returns_zero_distance_for_balanced_abstract_unstable_pair() {
 fn compute_distance_for_stable_concrete_module_is_one() {
     let g = build(&[edge("dep1.rs", "core.rs"), edge("dep2.rs", "core.rs")]);
     let core = g.registry.lookup(&p("core.rs")).unwrap();
-    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert!((m.instability - 0.0).abs() < 1e-12);
     assert!((m.distance - 1.0).abs() < 1e-12);
 }
@@ -158,7 +158,7 @@ fn compute_distance_for_stable_concrete_module_is_one() {
 fn compute_records_module_path_correctly() {
     let g = build(&[edge("foo.rs", "bar.rs")]);
     let foo = g.registry.lookup(&p("foo.rs")).unwrap();
-    let m = compute(&g, foo, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, foo, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.module, p("foo.rs"));
 }
 
@@ -166,7 +166,7 @@ fn compute_records_module_path_correctly() {
 fn compute_propagates_abstractness_value() {
     let g = build(&[edge("a.rs", "b.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let m = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit).unwrap();
     assert!((m.abstractness - 0.5).abs() < 1e-12);
 }
 
@@ -174,8 +174,8 @@ fn compute_propagates_abstractness_value() {
 fn compute_takes_min_of_import_and_abstractness_confidence() {
     let g = build(&[edge("a.rs", "b.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let abs_low = AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::Low };
-    let m = compute(&g, a, abs_low, ImportConfidence::High, &t().audit);
+    let abs_low = AbstractnessRecord { abstractness: Some(0.0), confidence: ImportConfidence::Low };
+    let m = compute(&g, a, abs_low, ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.confidence, ImportConfidence::Low);
 }
 
@@ -183,16 +183,15 @@ fn compute_takes_min_of_import_and_abstractness_confidence() {
 fn compute_min_confidence_handles_na_abstraction_lower_than_low() {
     let g = build(&[edge("a.rs", "b.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let abs_na = AbstractnessRecord { abstractness: 0.0, confidence: ImportConfidence::NaAbstraction };
-    let m = compute(&g, a, abs_na, ImportConfidence::Low, &t().audit);
-    assert_eq!(m.confidence, ImportConfidence::NaAbstraction);
+    let abs_na = AbstractnessRecord { abstractness: None, confidence: ImportConfidence::NaAbstraction };
+    assert!(compute(&g, a, abs_na, ImportConfidence::Low, &t().audit).is_none());
 }
 
 #[test]
 fn compute_classifies_pure_abstract_isolated_as_main_sequence() {
     let g = build(&[edge("z.rs", "a.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let m = compute(&g, a, pure_abstract(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, a, pure_abstract(), ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.tier, MartinTier::Healthy);
     assert!(m.distance < 1e-12);
 }
@@ -203,7 +202,7 @@ fn compute_classifies_concrete_zero_couplings_as_alert() {
     th.package_metrics.martin_distance_alert = 0.85;
     let g = build(&[edge("a.rs", "b.rs"), edge("c.rs", "d.rs")]);
     let isolated = g.registry.lookup(&p("d.rs")).unwrap();
-    let m = compute(&g, isolated, pure_concrete(), ImportConfidence::High, &th);
+    let m = compute(&g, isolated, pure_concrete(), ImportConfidence::High, &th).unwrap();
     assert_eq!(m.tier, MartinTier::Alert);
 }
 
@@ -211,8 +210,8 @@ fn compute_classifies_concrete_zero_couplings_as_alert() {
 fn compute_is_deterministic_across_calls() {
     let g = build(&[edge("a.rs", "b.rs"), edge("c.rs", "a.rs")]);
     let a = g.registry.lookup(&p("a.rs")).unwrap();
-    let m1 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit);
-    let m2 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit);
+    let m1 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit).unwrap();
+    let m2 = compute(&g, a, half_abstract(), ImportConfidence::High, &t().audit).unwrap();
     assert!((m1.instability - m2.instability).abs() < 1e-6);
     assert!((m1.abstractness - m2.abstractness).abs() < 1e-6);
     assert!((m1.distance - m2.distance).abs() < 1e-6);
@@ -225,7 +224,7 @@ fn compute_uses_thresholds_from_argument_not_default() {
     th.package_metrics.martin_distance_alert = 0.999;
     let g = build(&[edge("a.rs", "b.rs"), edge("c.rs", "d.rs")]);
     let d = g.registry.lookup(&p("d.rs")).unwrap();
-    let m = compute(&g, d, pure_concrete(), ImportConfidence::High, &th);
+    let m = compute(&g, d, pure_concrete(), ImportConfidence::High, &th).unwrap();
     assert_eq!(m.tier, MartinTier::Alert);
 }
 
@@ -271,7 +270,7 @@ fn compute_for_pure_abstract_stable_classifies_main_sequence() {
     }
     let g = build(&edges);
     let core = g.registry.lookup(&p("abstract_core.rs")).unwrap();
-    let m = compute(&g, core, pure_abstract(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, core, pure_abstract(), ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.tier, MartinTier::Healthy);
 }
 
@@ -283,7 +282,7 @@ fn compute_for_concrete_unstable_classifies_main_sequence() {
     }
     let g = build(&edges);
     let hub = g.registry.lookup(&p("hub.rs")).unwrap();
-    let m = compute(&g, hub, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, hub, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.tier, MartinTier::Healthy);
 }
 
@@ -297,7 +296,7 @@ fn compute_for_concrete_stable_module_classifies_alert() {
     }
     let g = build(&edges);
     let core = g.registry.lookup(&p("rigid_core.rs")).unwrap();
-    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &th);
+    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &th).unwrap();
     assert_eq!(m.tier, MartinTier::Alert);
 }
 
@@ -305,7 +304,7 @@ fn compute_for_concrete_stable_module_classifies_alert() {
 fn compute_records_afferent_and_efferent_counts() {
     let g = build(&[edge("dep1.rs", "core.rs"), edge("dep2.rs", "core.rs"), edge("core.rs", "util.rs")]);
     let core = g.registry.lookup(&p("core.rs")).unwrap();
-    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &t().audit);
+    let m = compute(&g, core, pure_concrete(), ImportConfidence::High, &t().audit).unwrap();
     assert_eq!(m.afferent, 2);
     assert_eq!(m.efferent, 1);
 }
