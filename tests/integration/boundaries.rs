@@ -346,12 +346,12 @@ fn primitive_min_same_count_boundary() {
     }
 }
 
-// ── module loc: FileTooLarge fires only ABOVE threshold (strict >) ──
+// ── module loc: FileTooLarge fires AT warning (>=) ──
 
 #[test]
 fn file_loc_boundary() {
     let w = t().module.file_loc_warning;
-    for (target, expected) in [(w - 1, false), (w, false), (w + 1, true)] {
+    for (target, expected) in [(w - 1, false), (w, true), (w + 1, true)] {
         let mut code = String::new();
         for i in 0..target {
             code.push_str(&format!("x{i} = {i}\n"));
@@ -618,12 +618,12 @@ fn skeleton_duplication_min_loc_boundary() {
     }
 }
 
-// ── duplicated assertion blocks: participation requires asserts ABOVE threshold (strict >) ──
+// ── duplicated assertion blocks: participation begins AT the minimum (>=) ──
 
 #[test]
 fn dup_assert_min_boundary() {
     let w = t().analysis.dup_assert_min;
-    for (target, expected) in [(w - 1, false), (w, false), (w + 1, true)] {
+    for (target, expected) in [(w - 1, false), (w, true), (w + 1, true)] {
         let mut asserts = String::new();
         for i in 0..target {
             asserts.push_str(&format!("    assert x == {i}\n"));

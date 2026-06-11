@@ -23,7 +23,7 @@ fn detect_large_structs(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Fi
 }
 
 fn detect_size_smells(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
-    if m.total_loc > t.module.file_loc_warning {
+    if m.total_loc >= t.module.file_loc_warning {
         let sev = if m.total_loc > t.module.file_loc_alert { "alert" } else { "warning" };
         emit_module(
             Smell::FileTooLarge,
@@ -64,7 +64,7 @@ fn emit_module_if(condition: bool, smell: Smell, detail: impl FnOnce() -> String
 
 fn check_god_class(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     let is_god_class =
-        m.total_loc > t.module.file_loc_warning && m.total_functions > t.module.file_function_count && has_god_method;
+        m.total_loc >= t.module.file_loc_warning && m.total_functions > t.module.file_function_count && has_god_method;
     if is_god_class {
         findings.push(Finding {
             smell: Smell::GodClass,
@@ -207,7 +207,7 @@ pub fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], t: &Thr
     let test_fns: Vec<(usize, &FunctionMetrics)> = functions
         .iter()
         .enumerate()
-        .filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts > t.analysis.dup_assert_min)
+        .filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts >= t.analysis.dup_assert_min)
         .collect();
 
     if test_fns.len() < 2 {

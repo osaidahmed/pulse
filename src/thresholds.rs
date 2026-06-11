@@ -228,7 +228,7 @@ impl AnalysisThresholds {
         short_var_min_fn_loc: 15,
         short_var_max_count: 3,
         max_string_match_arms: 5,
-        dup_assert_min: 5,
+        dup_assert_min: 6,
     };
 }
 

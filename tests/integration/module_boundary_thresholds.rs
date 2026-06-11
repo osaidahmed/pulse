@@ -111,16 +111,16 @@ fn fires(code: &str, ext: &str, smell: &str) -> bool {
 }
 
 #[test]
-fn file_too_large_boundary_is_strict() {
+fn file_too_large_boundary_fires_at_warning() {
     let warning = t().module.file_loc_warning as usize;
+
+    let below = py_lines(warning - 1);
+    assert_eq!(mmetric(&below, "py", "loc"), Some((warning - 1) as u32));
+    assert!(!fires(&below, "py", "File Too Large"), "loc == warning-1 must not fire");
 
     let at = py_lines(warning);
     assert_eq!(mmetric(&at, "py", "loc"), Some(warning as u32));
-    assert!(!fires(&at, "py", "File Too Large"), "loc == warning must not fire (strict >)");
-
-    let above = py_lines(warning + 1);
-    assert_eq!(mmetric(&above, "py", "loc"), Some((warning + 1) as u32));
-    assert!(fires(&above, "py", "File Too Large"), "loc == warning+1 must fire");
+    assert!(fires(&at, "py", "File Too Large"), "loc == warning must fire (>=)");
 }
 
 #[test]
