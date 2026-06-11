@@ -13,25 +13,106 @@ pub struct HookInput {
     pub session_id: Option<String>,
 }
 
+pub trait HookProtocol {
+    fn parse(&self, raw: &str) -> Option<HookInput>;
+    fn render_block(&self, reason: &str, advisory: Option<&str>) -> String;
+    fn render_advisory(&self, advisory: &str) -> String;
+}
+
+pub struct ClaudeCodeProtocol;
+
+impl HookProtocol for ClaudeCodeProtocol {
+    fn parse(&self, raw: &str) -> Option<HookInput> {
+        let v: serde_json::Value = serde_json::from_str(raw).ok()?;
+        let session_id = str_field(&v, "session_id");
+        let tool_input = v.get("tool_input")?;
+        let file_path = tool_input.get("file_path")?.as_str()?.to_string();
+        let old_string = str_field(tool_input, "old_string");
+        let new_string = str_field(tool_input, "new_string");
+        let tool_response = v.get("tool_response");
+        let original_file = tool_response.and_then(|r| str_field(r, "originalFile"));
+        let (edit_range, edit_byte_range) =
+            patch_ranges(tool_response, &file_path).unwrap_or_else(|| compute_edit_ranges(tool_input, &file_path));
+        Some(HookInput { file_path, edit_range, edit_byte_range, old_string, new_string, original_file, session_id })
+    }
+
+    fn render_block(&self, reason: &str, advisory: Option<&str>) -> String {
+        let mut decision = serde_json::json!({ "decision": "block", "reason": reason.trim() });
+        if let Some(ctx) = advisory {
+            decision["hookSpecificOutput"] = claude_advisory_payload(ctx);
+        }
+        decision.to_string()
+    }
+
+    fn render_advisory(&self, advisory: &str) -> String {
+        serde_json::json!({ "hookSpecificOutput": claude_advisory_payload(advisory) }).to_string()
+    }
+}
+
+fn claude_advisory_payload(ctx: &str) -> serde_json::Value {
+    serde_json::json!({
+        "hookEventName": "PostToolUse",
+        "additionalContext": ctx.trim(),
+    })
+}
+
+pub struct GenericProtocol;
+
+impl HookProtocol for GenericProtocol {
+    fn parse(&self, raw: &str) -> Option<HookInput> {
+        let v: serde_json::Value = serde_json::from_str(raw).ok()?;
+        let file_path = v.get("file_path")?.as_str()?.to_string();
+        let (edit_range, edit_byte_range) = generic_ranges(&v, &file_path);
+        Some(HookInput {
+            old_string: str_field(&v, "old_string"),
+            new_string: str_field(&v, "new_string"),
+            original_file: str_field(&v, "original_file"),
+            session_id: str_field(&v, "session_id"),
+            file_path,
+            edit_range,
+            edit_byte_range,
+        })
+    }
+
+    fn render_block(&self, reason: &str, advisory: Option<&str>) -> String {
+        serde_json::json!({ "status": "block", "reason": reason.trim(), "advisory": advisory.map(str::trim) })
+            .to_string()
+    }
+
+    fn render_advisory(&self, advisory: &str) -> String {
+        serde_json::json!({ "status": "advise", "advisory": advisory.trim() }).to_string()
+    }
+}
+
+fn generic_ranges(v: &serde_json::Value, file_path: &str) -> EditRanges {
+    let declared = v.get("edit_range").and_then(|r| {
+        let arr = r.as_array()?;
+        let start = u32::try_from(arr.first()?.as_u64()?).ok()?;
+        let end = u32::try_from(arr.get(1)?.as_u64()?).ok()?;
+        Some((start, end))
+    });
+    match declared {
+        Some((start, end)) => (Some((start, end)), byte_range_of_lines(file_path, start, end)),
+        None => compute_edit_ranges(v, file_path),
+    }
+}
+
+fn str_field(v: &serde_json::Value, key: &str) -> Option<String> {
+    v.get(key).and_then(|s| s.as_str()).map(String::from)
+}
+
+pub fn active_protocol() -> &'static dyn HookProtocol {
+    if std::env::var("PULSE_PROTOCOL").as_deref() == Ok("generic") {
+        &GenericProtocol
+    } else {
+        &ClaudeCodeProtocol
+    }
+}
+
 pub fn parse_hook_input() -> Option<HookInput> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).ok()?;
-    let v: serde_json::Value = serde_json::from_str(&input).ok()?;
-
-    let session_id = v.get("session_id").and_then(|s| s.as_str()).map(std::string::ToString::to_string);
-
-    let tool_input = v.get("tool_input")?;
-    let file_path = tool_input.get("file_path")?.as_str()?.to_string();
-
-    let old_string = tool_input.get("old_string").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
-    let new_string = tool_input.get("new_string").and_then(|v| v.as_str()).map(std::string::ToString::to_string);
-
-    let tool_response = v.get("tool_response");
-    let original_file = tool_response.and_then(|r| r.get("originalFile")).and_then(|s| s.as_str()).map(String::from);
-    let (edit_range, edit_byte_range) =
-        patch_ranges(tool_response, &file_path).unwrap_or_else(|| compute_edit_ranges(tool_input, &file_path));
-
-    Some(HookInput { file_path, edit_range, edit_byte_range, old_string, new_string, original_file, session_id })
+    active_protocol().parse(&input)
 }
 
 fn patch_ranges(tool_response: Option<&serde_json::Value>, file_path: &str) -> Option<EditRanges> {

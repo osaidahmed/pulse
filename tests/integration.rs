@@ -355,6 +355,8 @@ mod history_output;
 mod hook_diff_filtering;
 #[path = "integration/hook_filtering.rs"]
 mod hook_filtering;
+#[path = "integration/hook_protocol.rs"]
+mod hook_protocol;
 #[path = "integration/intensity_grading.rs"]
 mod intensity_grading;
 #[path = "integration/interaction_model.rs"]

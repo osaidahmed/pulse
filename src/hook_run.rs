@@ -142,24 +142,12 @@ fn is_extractable(smell: smells::Smell) -> bool {
 }
 
 fn emit_decision(reason: &str, advisory_ctx: Option<String>) {
-    let mut decision = serde_json::json!({ "decision": "block", "reason": reason.trim() });
-    if let Some(ctx) = advisory_ctx {
-        decision["hookSpecificOutput"] = advisory_payload(&ctx);
-    }
-    println!("{decision}");
+    println!("{}", hook::active_protocol().render_block(reason, advisory_ctx.as_deref()));
 }
 
 fn emit_advisory_only(advisory_ctx: Option<String>) {
     let Some(ctx) = advisory_ctx else { return };
-    let out = serde_json::json!({ "hookSpecificOutput": advisory_payload(&ctx) });
-    println!("{out}");
-}
-
-fn advisory_payload(ctx: &str) -> serde_json::Value {
-    serde_json::json!({
-        "hookEventName": "PostToolUse",
-        "additionalContext": ctx.trim(),
-    })
+    println!("{}", hook::active_protocol().render_advisory(&ctx));
 }
 
 fn detect_constraint_conflict(findings: &[Finding], fn_count: u32, t: &thresholds::Thresholds) -> Option<&'static str> {
@@ -223,11 +211,7 @@ pub fn run_stop() {
 
     if !all_regressions.is_empty() {
         let reason = output::format_stop(&all_regressions);
-        let decision = serde_json::json!({
-            "decision": "block",
-            "reason": reason.trim()
-        });
-        println!("{decision}");
+        println!("{}", hook::active_protocol().render_block(&reason, None));
     }
 
     let move_pool = build_move_pool(&manifest, &analyze);
