@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Differential cc oracle: compare pulse per-function cc against lizard CCN over the fixture corpus.
 
-Dev tooling, not CI-blocking. Run where both binaries exist, e.g.:
   ./scripts/remote.sh 'cargo build --release && python3 scripts/cc_oracle.py \
       --pulse-bin target/release/pulse --lizard ~/.venvs/lizard/bin/lizard'
 
@@ -42,7 +41,14 @@ LIZARD_LANGS = {
     ".kt": "kotlin",
 }
 
-DEFAULT_LANG_TOLERANCE = {"csharp": 3, "lua": 2, "php": 5, "python": 2, "ruby": 2, "rust": 7}
+DEFAULT_LANG_TOLERANCE = {
+    "csharp": 3,
+    "lua": 2,
+    "php": 5,
+    "python": 2,
+    "ruby": 2,
+    "rust": 7,
+}
 
 PULSE_FN = re.compile(r"^\s+(.+?) \(L(\d+)-\d+\): loc=\d+ cc=(\d+)")
 
@@ -53,7 +59,9 @@ def normalize(name):
 
 
 def pulse_functions(pulse_bin, path):
-    out = subprocess.run([pulse_bin, "debug", str(path)], capture_output=True, text=True, timeout=30)
+    out = subprocess.run(
+        [pulse_bin, "debug", str(path)], capture_output=True, text=True, timeout=30
+    )
     functions = []
     for line in out.stdout.splitlines() + out.stderr.splitlines():
         m = PULSE_FN.match(line)
@@ -63,7 +71,9 @@ def pulse_functions(pulse_bin, path):
 
 
 def lizard_functions(lizard_bin, path):
-    out = subprocess.run([lizard_bin, "--csv", str(path)], capture_output=True, text=True, timeout=60)
+    out = subprocess.run(
+        [lizard_bin, "--csv", str(path)], capture_output=True, text=True, timeout=60
+    )
     functions = []
     for row in csv.reader(io.StringIO(out.stdout)):
         if len(row) < 11:
@@ -99,7 +109,9 @@ def check_pairs(label, pairs, tol, verbose):
         delta = abs(cc - lccn)
         deltas.append(delta)
         if delta > tol:
-            failures.append(f"{label}:{line} {name}: pulse cc={cc} lizard ccn={lccn} (|d|={delta} > {tol})")
+            failures.append(
+                f"{label}:{line} {name}: pulse cc={cc} lizard ccn={lccn} (|d|={delta} > {tol})"
+            )
         elif verbose and delta:
             print(f"  within-band {label}:{line} {name}: pulse {cc} vs lizard {lccn}")
     return deltas, failures
@@ -108,7 +120,9 @@ def check_pairs(label, pairs, tol, verbose):
 def compare_language(lang, files, tol, args):
     all_deltas, unmatched_total, failures = [], 0, []
     for path in files:
-        pairs, unmatched = pair_up(pulse_functions(args.pulse_bin, path), lizard_functions(args.lizard, path))
+        pairs, unmatched = pair_up(
+            pulse_functions(args.pulse_bin, path), lizard_functions(args.lizard, path)
+        )
         unmatched_total += unmatched
         deltas, fails = check_pairs(f"{lang} {path}", pairs, tol, args.verbose)
         all_deltas.extend(deltas)
@@ -131,8 +145,16 @@ def collect_files(root):
 
 
 def print_summary(root, by_lang, compared_total, failures):
-    skipped = sorted({p.suffix for p in root.rglob("*") if p.is_file() and p.suffix and p.suffix not in LIZARD_LANGS})
-    print(f"\ncompared {compared_total} functions across {len(by_lang)} languages; no oracle for: {' '.join(skipped) or 'none'}")
+    skipped = sorted(
+        {
+            p.suffix
+            for p in root.rglob("*")
+            if p.is_file() and p.suffix and p.suffix not in LIZARD_LANGS
+        }
+    )
+    print(
+        f"\ncompared {compared_total} functions across {len(by_lang)} languages; no oracle for: {' '.join(skipped) or 'none'}"
+    )
     if failures:
         print(f"\n{len(failures)} out-of-band divergences:")
         print("\n".join(failures))
@@ -147,7 +169,9 @@ def parse_args():
     ap.add_argument("--lang-tolerance", action="append", default=[], metavar="LANG=N")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
-    args.lang_tolerance = dict((kv.split("=")[0], int(kv.split("=")[1])) for kv in args.lang_tolerance)
+    args.lang_tolerance = dict(
+        (kv.split("=")[0], int(kv.split("=")[1])) for kv in args.lang_tolerance
+    )
     return args
 
 
@@ -157,7 +181,9 @@ def main():
     by_lang = collect_files(root)
     failures, compared_total = [], 0
     for lang, files in sorted(by_lang.items()):
-        tol = args.lang_tolerance.get(lang, DEFAULT_LANG_TOLERANCE.get(lang, args.tolerance))
+        tol = args.lang_tolerance.get(
+            lang, DEFAULT_LANG_TOLERANCE.get(lang, args.tolerance)
+        )
         count, fails = compare_language(lang, files, tol, args)
         compared_total += count
         failures.extend(fails)
