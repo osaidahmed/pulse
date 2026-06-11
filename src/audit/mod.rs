@@ -245,10 +245,11 @@ fn run_package_metrics(
 }
 
 fn collect_import_edges(typed_files: &[(PathBuf, Language)], root: &Path) -> Vec<InputEdge> {
+    let lang_by_path = build_lang_by_path(typed_files);
     let typed_set: std::collections::HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let mut edges: Vec<InputEdge> = Vec::new();
     for (path, lang) in typed_files {
-        edges.extend(edges_for_file(path, *lang, root, &typed_set, typed_files));
+        edges.extend(edges_for_file(path, *lang, root, &typed_set, &lang_by_path));
     }
     edges
 }
@@ -258,7 +259,7 @@ fn edges_for_file(
     lang: Language,
     root: &Path,
     typed_set: &std::collections::HashSet<PathBuf>,
-    typed_files: &[(PathBuf, Language)],
+    lang_by_path: &std::collections::HashMap<PathBuf, Language>,
 ) -> Vec<InputEdge> {
     let Ok(source) = std::fs::read_to_string(path) else { return Vec::new() };
     let Some(tree) = parse::parse_guarded(&source, lang) else { return Vec::new() };
@@ -268,7 +269,7 @@ fn edges_for_file(
         let Some(resolved) = resolve_via_strategies(&raw.target, path, root, lang, typed_set) else {
             continue;
         };
-        let target_lang = typed_files.iter().find(|(p, _)| p == &resolved).map_or(lang, |(_, l)| *l);
+        let target_lang = lang_by_path.get(&resolved).copied().unwrap_or(lang);
         out.push(InputEdge { source: path.to_path_buf(), target: resolved, source_lang: lang, target_lang });
     }
     out
