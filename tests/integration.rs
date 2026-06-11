@@ -11,6 +11,9 @@ mod boundaries;
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
 
+#[path = "integration/negative_controls.rs"]
+mod negative_controls;
+
 #[path = "integration/history_common.rs"]
 mod history_common;
 
