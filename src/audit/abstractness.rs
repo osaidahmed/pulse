@@ -162,13 +162,18 @@ const PROFILE_TABLE: &[(Language, AbstractnessProfile)] = &[
 ];
 
 pub fn abstractness_for_file(path: &Path, lang: Language) -> AbstractnessRecord {
-    let Some(profile) = profile_for_lang(lang) else {
-        return unmeasured();
-    };
     let Ok(source) = std::fs::read_to_string(path) else {
         return unmeasured();
     };
-    let Some(tree) = parse::parse_guarded(&source, lang) else {
+    let tree = parse::parse_guarded(&source, lang);
+    abstractness_from_parsed(tree.as_ref(), lang)
+}
+
+pub fn abstractness_from_parsed(tree: Option<&tree_sitter::Tree>, lang: Language) -> AbstractnessRecord {
+    let Some(profile) = profile_for_lang(lang) else {
+        return unmeasured();
+    };
+    let Some(tree) = tree else {
         return unmeasured();
     };
     let mut counts = TypeCounts::default();

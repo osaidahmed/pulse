@@ -48,7 +48,18 @@ pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {
     let Some(tree) = parse::parse_guarded(&source, lang) else {
         return Vec::new();
     };
-    let ctx = CallCtx { source: &source, lang, path };
+    calls_in_tree(&tree, &source, lang, path)
+}
+
+pub fn calls_from(file: &super::corpus::CorpusFile) -> Vec<LocatedCall> {
+    let Some((source, tree)) = file.parsed() else {
+        return Vec::new();
+    };
+    calls_in_tree(tree, source, file.lang, &file.path)
+}
+
+fn calls_in_tree(tree: &tree_sitter::Tree, source: &str, lang: Language, path: &Path) -> Vec<LocatedCall> {
+    let ctx = CallCtx { source, lang, path };
     let mut out = Vec::new();
     let mut stack: Vec<EnclosingFrame> = Vec::new();
     visit(tree.root_node(), &ctx, &mut stack, &mut out);

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::parse::{self, Language};
+use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 
 use super::corpus_stats::PerFileFeatures;
@@ -13,9 +13,13 @@ pub struct CorpusBundle {
 }
 
 pub fn corpus_bundle(typed: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> CorpusBundle {
+    corpus_bundle_from(&super::corpus::Corpus::load(typed), thresholds)
+}
+
+pub fn corpus_bundle_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> CorpusBundle {
     let mut bundle = CorpusBundle { subtrees: Vec::new(), features: Vec::new(), kinds_by_fp: KindIndex::default() };
-    for (path, lang) in typed {
-        if let Some(output) = walk_one(path, *lang, thresholds) {
+    for file in &corpus.files {
+        if let Some(output) = walk_one(file, thresholds) {
             bundle.subtrees.extend(output.subtrees);
             bundle.features.push(output.features);
             for (fp, kinds) in output.kinds_by_fp {
@@ -44,8 +48,7 @@ pub fn for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec
     records_only(&typed, thresholds)
 }
 
-fn walk_one(path: &Path, lang: Language, thresholds: &AuditThresholds) -> Option<WalkOutput> {
-    let source = std::fs::read_to_string(path).ok()?;
-    let tree = parse::parse_guarded(&source, lang)?;
-    Some(walker::extract_records(&tree, &source, lang, path, thresholds))
+fn walk_one(file: &super::corpus::CorpusFile, thresholds: &AuditThresholds) -> Option<WalkOutput> {
+    let (source, tree) = file.parsed()?;
+    Some(walker::extract_records(tree, source, file.lang, &file.path, thresholds))
 }

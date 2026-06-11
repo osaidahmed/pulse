@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 use crate::audit::finding::{AuditFinding, AuditKind, ImportConfidence, NaturalnessEvidence};
-use crate::parse::{self, Language};
+use crate::parse::Language;
 use crate::thresholds::{AuditThresholds, NaturalnessThresholds};
 use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
@@ -24,22 +24,26 @@ struct FnDoc {
 }
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    run_from(&crate::audit::corpus::Corpus::load(typed_files), thresholds)
+}
+
+pub fn run_from(corpus: &crate::audit::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut out = Vec::new();
     for lang in Language::ALL {
-        run_language(typed_files, lang, &thresholds.naturalness, &mut out);
+        run_language(corpus, lang, &thresholds.naturalness, &mut out);
     }
     out
 }
 
 fn run_language(
-    typed_files: &[(PathBuf, Language)],
+    corpus: &crate::audit::corpus::Corpus,
     lang: Language,
     nthr: &NaturalnessThresholds,
     out: &mut Vec<AuditFinding>,
 ) {
     let Some(fn_kinds) = fn_kinds_for(lang) else { return };
     let mut interner = Interner::new();
-    let docs = collect_docs(typed_files, lang, fn_kinds, &mut interner);
+    let docs = collect_docs(corpus, lang, fn_kinds, &mut interner);
     if docs.len() < MIN_CORPUS_FUNCTIONS {
         return;
     }
@@ -54,19 +58,18 @@ fn fn_kinds_for(lang: Language) -> Option<&'static [&'static str]> {
 }
 
 fn collect_docs(
-    typed_files: &[(PathBuf, Language)],
+    corpus: &crate::audit::corpus::Corpus,
     lang: Language,
     fn_kinds: &[&str],
     interner: &mut Interner,
 ) -> Vec<FnDoc> {
     let mut docs = Vec::new();
-    for (path, file_lang) in typed_files.iter().filter(|(_, l)| *l == lang) {
-        let Ok(source) = std::fs::read_to_string(path) else { continue };
-        let Some(tree) = parse::parse_guarded(&source, *file_lang) else { continue };
+    for file in corpus.files.iter().filter(|f| f.lang == lang) {
+        let Some((source, tree)) = file.parsed() else { continue };
         let mut functions = Vec::new();
         find_functions(tree.root_node(), fn_kinds, &mut functions);
         for f in functions {
-            push_doc(f, path, &source, interner, &mut docs);
+            push_doc(f, &file.path, source, interner, &mut docs);
         }
     }
     docs

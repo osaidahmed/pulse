@@ -64,13 +64,21 @@ impl UnionFind {
 }
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let cands = candidates(typed_files, thresholds);
+    run_from(&super::corpus::Corpus::load(typed_files), thresholds)
+}
+
+pub fn run_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let cands = candidates(corpus, thresholds);
     let thr = &thresholds.clone_cluster;
     cluster(&cands, thr).iter().map(|group| build_finding(&cands, group, thresholds)).collect()
 }
 
 pub fn cluster_members(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<Vec<CloneMember>> {
-    let cands = candidates(typed_files, thresholds);
+    cluster_members_from(&super::corpus::Corpus::load(typed_files), thresholds)
+}
+
+pub fn cluster_members_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<Vec<CloneMember>> {
+    let cands = candidates(corpus, thresholds);
     cluster(&cands, &thresholds.clone_cluster)
         .iter()
         .map(|group| {
@@ -82,8 +90,8 @@ pub fn cluster_members(typed_files: &[(PathBuf, Language)], thresholds: &AuditTh
         .collect()
 }
 
-fn candidates(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<Candidate> {
-    let bundle = record_extraction::corpus_bundle(typed_files, thresholds);
+fn candidates(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<Candidate> {
+    let bundle = record_extraction::corpus_bundle_from(corpus, thresholds);
     let stats = corpus_stats::aggregate_corpus(bundle.features);
     let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
     let min_loc = thresholds.clone_cluster.min_loc;

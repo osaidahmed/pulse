@@ -206,6 +206,24 @@ fn run_guarded<T: Send + 'static>(work: impl FnOnce() -> Option<T> + Send + 'sta
     rx.recv_timeout(ANALYZE_TIMEOUT).unwrap_or(None)
 }
 
+pub fn parse_guarded_shared(source: &std::sync::Arc<str>, lang: Language) -> Option<tree_sitter::Tree> {
+    if exceeds_size_caps(source) {
+        return None;
+    }
+    let owned = std::sync::Arc::clone(source);
+    run_guarded(move || parse_only(&owned, lang))
+}
+
+pub fn walk_guarded_shared(
+    tree: &tree_sitter::Tree,
+    source: &std::sync::Arc<str>,
+    lang: Language,
+) -> Option<FileMetrics> {
+    let tree = tree.clone();
+    let owned = std::sync::Arc::clone(source);
+    run_guarded(move || Some(walk_only(&tree, &owned, lang)))
+}
+
 pub fn parse_guarded(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
     if exceeds_size_caps(source) {
         return None;

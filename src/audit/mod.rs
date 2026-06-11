@@ -13,6 +13,7 @@ pub mod complexity_floor;
 pub mod components;
 pub mod compound;
 pub mod confidence;
+pub mod corpus;
 pub mod corpus_stats;
 pub mod cycle_shapes;
 pub mod cycles;
@@ -122,28 +123,29 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
 
 pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &IgnoreFilter) -> Vec<AuditFinding> {
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let shared = corpus::Corpus::load(&typed_files);
     let passes = active_passes(opts.pass);
     let mut findings: Vec<AuditFinding> = Vec::new();
     if passes.contains(&PassChoice::PatternMining) {
-        findings.extend(run_pattern_mining(&typed_files, thresholds));
+        findings.extend(run_pattern_mining(&shared, thresholds));
     }
     if passes.contains(&PassChoice::PackageMetrics) {
-        findings.extend(run_package_metrics(&typed_files, &opts.root, thresholds));
+        findings.extend(run_package_metrics(&shared, &typed_files, &opts.root, thresholds));
     }
     if passes.contains(&PassChoice::NamedSmells) {
-        findings.extend(named_smells::run(&typed_files, &opts.root, thresholds));
+        findings.extend(named_smells::run_from(&shared, &opts.root, thresholds));
     }
     if passes.contains(&PassChoice::Taint) {
-        findings.extend(taint::run(&typed_files, thresholds));
+        findings.extend(taint::run_from(&shared, thresholds));
     }
     if passes.contains(&PassChoice::Clones) {
-        findings.extend(duplication_clusters::run(&typed_files, thresholds));
+        findings.extend(duplication_clusters::run_from(&shared, thresholds));
     }
     if passes.contains(&PassChoice::Naturalness) {
-        findings.extend(crate::naturalness::run(&typed_files, thresholds));
+        findings.extend(crate::naturalness::run_from(&shared, thresholds));
     }
     if passes.contains(&PassChoice::VulnClones) {
-        findings.extend(vuln_clones::run(&typed_files, thresholds));
+        findings.extend(vuln_clones::run_from(&shared, thresholds));
     }
     maybe_cross_validate(&mut findings, opts, thresholds, filter, &passes);
     populate_action_labels(&mut findings);
@@ -193,8 +195,8 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<PassChoice> {
     }
 }
 
-fn run_pattern_mining(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let bundle = record_extraction::corpus_bundle(typed_files, thresholds);
+fn run_pattern_mining(shared: &corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let bundle = record_extraction::corpus_bundle_from(shared, thresholds);
     let stats = corpus_stats::aggregate_corpus(bundle.features);
     let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
     let filtered: Vec<_> = bundle.subtrees.into_iter().filter(|r| !flagged.contains(&r.file)).collect();
@@ -224,6 +226,7 @@ fn run_pattern_mining(typed_files: &[(PathBuf, Language)], thresholds: &AuditThr
 const MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS: usize = 5;
 
 fn run_package_metrics(
+    shared: &corpus::Corpus,
     typed_files: &[(PathBuf, Language)],
     root: &Path,
     thresholds: &AuditThresholds,
@@ -232,43 +235,40 @@ fn run_package_metrics(
     if supported_count < MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS {
         return Vec::new();
     }
-    let edges = collect_import_edges(typed_files, root);
-    let lang_by_path = build_lang_by_path(typed_files);
+    let edges = collect_import_edges(shared, typed_files, root);
     package_metrics::run_with_module_count(
         &edges,
-        |path| profile_for_path(path, &lang_by_path),
+        |path| profile_for_path(path, shared),
         thresholds,
         supported_count as u32,
     )
 }
 
-fn collect_import_edges(typed_files: &[(PathBuf, Language)], root: &Path) -> Vec<InputEdge> {
-    let lang_by_path = build_lang_by_path(typed_files);
+fn collect_import_edges(shared: &corpus::Corpus, typed_files: &[(PathBuf, Language)], root: &Path) -> Vec<InputEdge> {
     let typed_set: std::collections::HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let mut edges: Vec<InputEdge> = Vec::new();
-    for (path, lang) in typed_files {
-        edges.extend(edges_for_file(path, *lang, root, &typed_set, &lang_by_path));
+    for file in &shared.files {
+        edges.extend(edges_for_file(file, shared, root, &typed_set));
     }
     edges
 }
 
 fn edges_for_file(
-    path: &Path,
-    lang: Language,
+    file: &corpus::CorpusFile,
+    shared: &corpus::Corpus,
     root: &Path,
     typed_set: &std::collections::HashSet<PathBuf>,
-    lang_by_path: &std::collections::HashMap<PathBuf, Language>,
 ) -> Vec<InputEdge> {
-    let Ok(source) = std::fs::read_to_string(path) else { return Vec::new() };
-    let Some(tree) = parse::parse_guarded(&source, lang) else { return Vec::new() };
-    let raws = imports::extract_imports(&tree, &source, lang);
+    let lang = file.lang;
+    let Some((source, tree)) = file.parsed() else { return Vec::new() };
+    let raws = imports::extract_imports(tree, source, lang);
     let mut out: Vec<InputEdge> = Vec::new();
     for raw in raws {
-        let Some(resolved) = resolve_via_strategies(&raw.target, path, root, lang, typed_set) else {
+        let Some(resolved) = resolve_via_strategies(&raw.target, &file.path, root, lang, typed_set) else {
             continue;
         };
-        let target_lang = lang_by_path.get(&resolved).copied().unwrap_or(lang);
-        out.push(InputEdge { source: path.to_path_buf(), target: resolved, source_lang: lang, target_lang });
+        let target_lang = shared.get(&resolved).map_or(lang, |f| f.lang);
+        out.push(InputEdge { source: file.path.clone(), target: resolved, source_lang: lang, target_lang });
     }
     out
 }
@@ -288,18 +288,15 @@ fn resolve_via_strategies(
     imports::resolve_by_suffix(raw, lang, typed_set)
 }
 
-fn build_lang_by_path(typed_files: &[(PathBuf, Language)]) -> std::collections::HashMap<PathBuf, Language> {
-    typed_files.iter().map(|(p, l)| (p.clone(), *l)).collect()
-}
-
-fn profile_for_path(path: &Path, lang_by_path: &std::collections::HashMap<PathBuf, Language>) -> ModuleProfile {
-    let lang = lang_by_path.get(path).copied();
+fn profile_for_path(path: &Path, shared: &corpus::Corpus) -> ModuleProfile {
+    let file = shared.get(path);
+    let lang = file.map(|f| f.lang);
     let import_confidence = lang.map_or(finding::ImportConfidence::BestEffort, imports::confidence_for);
-    let abstractness = lang.map_or_else(
+    let abstractness = file.map_or_else(
         || martin::AbstractnessRecord { abstractness: None, confidence: finding::ImportConfidence::NaAbstraction },
-        |l| abstractness::abstractness_for_file(path, l),
+        |f| abstractness::abstractness_from_parsed(f.tree.as_ref(), f.lang),
     );
-    let loc = std::fs::read_to_string(path).map_or(0, |s| s.lines().count() as u32);
+    let loc = file.and_then(|f| f.source.as_deref()).map_or(0, |s| s.lines().count() as u32);
     ModuleProfile { abstractness, import_confidence, loc }
 }
 

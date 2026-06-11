@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use tree_sitter::Node;
 
-use crate::parse::{self, Language};
+use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
@@ -240,27 +240,30 @@ fn lang_for(lang: Language) -> Option<&'static TaintLang> {
 }
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    run_from(&super::corpus::Corpus::load(typed_files), thresholds)
+}
+
+pub fn run_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut out = Vec::new();
-    for (path, lang) in typed_files {
-        let Some(tl) = lang_for(*lang) else { continue };
-        analyze_file(path, *lang, tl, thresholds, &mut out);
+    for file in &corpus.files {
+        let Some(tl) = lang_for(file.lang) else { continue };
+        analyze_file(file, tl, thresholds, &mut out);
     }
     out.truncate(thresholds.taint.max_findings);
     out
 }
 
 fn analyze_file(
-    path: &Path,
-    lang: Language,
+    file: &super::corpus::CorpusFile,
     tl: &TaintLang,
     thresholds: &AuditThresholds,
     out: &mut Vec<AuditFinding>,
 ) {
-    let Ok(source) = std::fs::read_to_string(path) else { return };
-    let Some(tree) = parse::parse_guarded(&source, lang) else { return };
+    let path = file.path.as_path();
+    let Some((source, tree)) = file.parsed() else { return };
     let ctx = FileCtx {
         lang: tl,
-        source: &source,
+        source,
         path,
         caps: Caps { visit_cap: thresholds.taint.visit_cap, max_depth: thresholds.taint.max_depth },
     };

@@ -25,6 +25,16 @@ pub fn definitions_for_file(path: &Path, lang: Language) -> Vec<DefinitionRecord
     metrics.functions.into_iter().map(|f| record_from_metrics(path, f)).collect()
 }
 
+pub fn definitions_from(file: &super::corpus::CorpusFile) -> Vec<DefinitionRecord> {
+    let (Some(source), Some(tree)) = (file.source.as_ref(), file.tree.as_ref()) else {
+        return Vec::new();
+    };
+    let Some(metrics) = parse::walk_guarded_shared(tree, source, file.lang) else {
+        return Vec::new();
+    };
+    metrics.functions.into_iter().map(|f| record_from_metrics(&file.path, f)).collect()
+}
+
 fn record_from_metrics(path: &Path, f: FunctionMetrics) -> DefinitionRecord {
     let bare_name = strip_class_prefix(&f.name, f.class_name.as_deref());
     DefinitionRecord {

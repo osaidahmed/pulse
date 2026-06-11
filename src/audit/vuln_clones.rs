@@ -15,11 +15,15 @@ struct Sink {
 }
 
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let sinks = taint_sinks(&taint::run(typed_files, thresholds));
+    run_from(&super::corpus::Corpus::load(typed_files), thresholds)
+}
+
+pub fn run_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let sinks = taint_sinks(&taint::run_from(corpus, thresholds));
     if sinks.is_empty() {
         return Vec::new();
     }
-    let clusters = duplication_clusters::cluster_members(typed_files, thresholds);
+    let clusters = duplication_clusters::cluster_members_from(corpus, thresholds);
     let mut seen: HashSet<(PathBuf, u32)> = HashSet::new();
     let mut out = Vec::new();
     for cluster in &clusters {

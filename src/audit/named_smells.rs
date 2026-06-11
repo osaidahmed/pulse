@@ -5,17 +5,21 @@ use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 
 use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
-use super::call_walker::{calls_for_file, LocatedCall};
+use super::call_walker::LocatedCall;
 use super::class_registry::ClassRegistry;
-use super::definitions::{definitions_for_file, DefinitionRecord};
+use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence};
 
-pub fn run(typed_files: &[(PathBuf, Language)], _root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+pub fn run(typed_files: &[(PathBuf, Language)], root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    run_from(&super::corpus::Corpus::load(typed_files), root, thresholds)
+}
+
+pub fn run_from(corpus: &super::corpus::Corpus, _root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut definitions = Vec::new();
     let mut calls = Vec::new();
-    for (path, lang) in typed_files {
-        definitions.extend(definitions_for_file(path, *lang));
-        calls.extend(calls_for_file(path, *lang));
+    for file in &corpus.files {
+        definitions.extend(super::definitions::definitions_from(file));
+        calls.extend(super::call_walker::calls_from(file));
     }
     let graph = CallGraph::build(definitions.clone(), calls);
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
@@ -27,7 +31,7 @@ pub fn run(typed_files: &[(PathBuf, Language)], _root: &Path, thresholds: &Audit
     all.extend(super::detector_feature_envy::detect(&definitions, &graph, thresholds));
     all.extend(super::detector_god_class::detect(&registry, &definitions, &method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&registry, &inh, thresholds));
-    let file_lang = build_file_lang_lookup(typed_files);
+    let file_lang = |path: &std::path::Path| -> Option<Language> { corpus.get(path).map(|f| f.lang) };
     all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &file_lang, thresholds));
     apply_named_confidence(&mut all, &file_lang);
     all
@@ -59,10 +63,6 @@ fn set_named_confidence(kind: &mut AuditKind, file_lang: &impl Fn(&Path) -> Opti
         }
         _ => {}
     }
-}
-
-fn build_file_lang_lookup(typed_files: &[(PathBuf, Language)]) -> impl Fn(&std::path::Path) -> Option<Language> + '_ {
-    move |path: &std::path::Path| -> Option<Language> { typed_files.iter().find(|(p, _)| p == path).map(|(_, l)| *l) }
 }
 
 fn detect_shotgun_surgery(graph: &CallGraph, t: &AuditThresholds) -> Vec<AuditFinding> {
