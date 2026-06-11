@@ -5,6 +5,9 @@ mod common;
 #[path = "integration/audit_common.rs"]
 mod audit_common;
 
+#[path = "integration/boundaries.rs"]
+mod boundaries;
+
 #[path = "integration/history_common.rs"]
 mod history_common;
 
