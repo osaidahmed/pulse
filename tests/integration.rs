@@ -13,6 +13,8 @@ mod baseline_ratchet;
 
 #[path = "integration/negative_controls.rs"]
 mod negative_controls;
+#[path = "integration/parity.rs"]
+mod parity;
 
 #[path = "integration/history_common.rs"]
 mod history_common;
