@@ -94,6 +94,10 @@ pub fn append_manifest(file_path: &str) {
     });
 }
 
+pub fn file_key(file_path: &str) -> String {
+    format!("{:016x}", hash_path(file_path))
+}
+
 fn hash_path(file_path: &str) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};

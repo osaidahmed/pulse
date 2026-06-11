@@ -80,13 +80,12 @@ pub fn analyze_file(
     analyze_source(file_path, &source, lang, cfg, opts)
 }
 
-pub fn module_regressions(result: &AnalysisResultFull, baseline: &HashMap<String, usize>) -> Vec<Finding> {
+pub fn module_regressions(findings: &[Finding], baseline: &HashMap<String, usize>) -> Vec<Finding> {
     let mut current_counts: HashMap<smells::Smell, usize> = HashMap::new();
-    for f in result.findings.iter().filter(|f| matches!(f.location, Location::Module)) {
+    for f in findings.iter().filter(|f| matches!(f.location, Location::Module)) {
         *current_counts.entry(f.smell).or_default() += 1;
     }
-    result
-        .findings
+    findings
         .iter()
         .filter(|f| matches!(f.location, Location::Module))
         .filter(|f| {

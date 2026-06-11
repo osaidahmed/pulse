@@ -50,7 +50,8 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     };
 
-    let findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, cfg, edit_count));
+    pulse::analysis_cache::store(&h.file_path, &source, &analysis);
+    let findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, edit_count));
     if findings.is_empty() {
         process::exit(0);
     }
@@ -62,12 +63,7 @@ fn is_ignored_by(cfg_root: Option<&(config::PulseConfig, PathBuf)>, path: &Path)
     cfg_root.is_some_and(|(c, root)| config::is_ignored_with_root(c, root, path))
 }
 
-fn collect_hook_findings(
-    h: &hook::HookInput,
-    analysis: &AnalysisResultFull,
-    cfg: Option<&config::PulseConfig>,
-    edit_count: u32,
-) -> Vec<Finding> {
+fn collect_hook_findings(h: &hook::HookInput, analysis: &AnalysisResultFull, edit_count: u32) -> Vec<Finding> {
     let func_baseline = baselines::load_function_baseline(&h.file_path);
 
     let func_findings: Vec<Finding> =
@@ -76,7 +72,7 @@ fn collect_hook_findings(
     let in_range = hook::filter_by_edit_range(func_findings, h.edit_range);
     let mut findings = pulse::baseline_ratchet::filter_worsened(in_range, &func_baseline, &analysis.metrics);
 
-    collect_module_findings(&h.file_path, edit_count, &mut findings, cfg, analysis);
+    collect_module_findings(&h.file_path, edit_count, &mut findings, analysis);
     findings
 }
 
@@ -182,7 +178,6 @@ fn collect_module_findings(
     file_path: &str,
     edit_count: u32,
     findings: &mut Vec<Finding>,
-    cfg: Option<&config::PulseConfig>,
     analysis: &AnalysisResultFull,
 ) {
     if edit_count == 1 {
@@ -198,7 +193,7 @@ fn collect_module_findings(
     }
 
     if is_checkpoint(edit_count) && !test_detection::is_test_file(file_path) {
-        if let Some((_, regressions)) = detect_regressions(file_path, cfg, Some(analysis)) {
+        if let Some((_, regressions)) = detect_regressions(file_path, analysis) {
             findings.extend(regressions);
         }
     }
@@ -210,12 +205,9 @@ pub fn run_stop() {
     };
 
     let cfg = config::load_config(Path::new("."));
-    let memo: RefCell<HashMap<String, Option<Rc<AnalysisResultFull>>>> = RefCell::new(HashMap::new());
-    let analyze = |p: &str| -> Option<Rc<AnalysisResultFull>> {
-        memo.borrow_mut()
-            .entry(p.to_string())
-            .or_insert_with(|| analyze::analyze_file(p, cfg.as_ref(), analyze::ScanOptions::hook(None)).map(Rc::new))
-            .clone()
+    let memo: RefCell<HashMap<String, Option<Rc<StopAnalysis>>>> = RefCell::new(HashMap::new());
+    let analyze = |p: &str| -> Option<Rc<StopAnalysis>> {
+        memo.borrow_mut().entry(p.to_string()).or_insert_with(|| stop_analysis(p, cfg.as_ref()).map(Rc::new)).clone()
     };
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
@@ -223,8 +215,8 @@ pub fn run_stop() {
         if test_detection::is_test_file(file_path) || baselines::is_fixture_file(file_path) {
             continue;
         }
-        let analysis = analyze(file_path);
-        if let Some((filename, regressions)) = detect_regressions(file_path, cfg.as_ref(), analysis.as_deref()) {
+        let Some(analysis) = analyze(file_path) else { continue };
+        if let Some((filename, regressions)) = stop_regressions(file_path, &analysis) {
             all_regressions.push((filename, regressions));
         }
     }
@@ -241,14 +233,39 @@ pub fn run_stop() {
     let move_pool = build_move_pool(&manifest, &analyze);
     analytics::resolve(&move_pool, |p| {
         analyze(p).map(|r| {
-            let functions = r.metrics.functions.iter().map(|f| f.name.clone()).collect();
+            let functions = r.functions.iter().map(|(name, _)| name.clone()).collect();
             (r.findings.clone(), functions)
         })
     });
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
 }
 
-fn build_move_pool<F: Fn(&str) -> Option<Rc<AnalysisResultFull>>>(
+struct StopAnalysis {
+    filename: String,
+    findings: Vec<Finding>,
+    functions: Vec<(String, u64)>,
+}
+
+fn stop_analysis(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<StopAnalysis> {
+    let filename = Path::new(file_path).file_name()?.to_string_lossy().into_owned();
+    if let Some(cached) = pulse::analysis_cache::load(file_path) {
+        return Some(StopAnalysis { filename, findings: cached.findings(), functions: cached.functions });
+    }
+    let r = analyze::analyze_file(file_path, cfg, analyze::ScanOptions::hook(None))?;
+    let functions = r.metrics.functions.iter().map(|f| (f.name.clone(), f.structural_hash)).collect();
+    Some(StopAnalysis { filename: r.filename, findings: r.findings, functions })
+}
+
+fn stop_regressions(file_path: &str, analysis: &StopAnalysis) -> Option<(String, Vec<Finding>)> {
+    let baseline = baselines::load_baseline(file_path);
+    let regressions = analyze::module_regressions(&analysis.findings, &baseline);
+    if regressions.is_empty() {
+        return None;
+    }
+    Some((analysis.filename.clone(), regressions))
+}
+
+fn build_move_pool<F: Fn(&str) -> Option<Rc<StopAnalysis>>>(
     manifest: &str,
     analyze: &F,
 ) -> HashMap<u64, HashSet<String>> {
@@ -256,8 +273,8 @@ fn build_move_pool<F: Fn(&str) -> Option<Rc<AnalysisResultFull>>>(
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
         if let Some(r) = analyze(file_path) {
             let key = canonical(file_path);
-            for fm in &r.metrics.functions {
-                pool.entry(fm.structural_hash).or_default().insert(key.clone());
+            for (_, hash) in &r.functions {
+                pool.entry(*hash).or_default().insert(key.clone());
             }
         }
     }
@@ -268,22 +285,13 @@ fn canonical(path: &str) -> String {
     std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(String::from)).unwrap_or_else(|| path.to_string())
 }
 
-fn detect_regressions(
-    file_path: &str,
-    cfg: Option<&config::PulseConfig>,
-    precomputed: Option<&AnalysisResultFull>,
-) -> Option<(String, Vec<Finding>)> {
+fn detect_regressions(file_path: &str, analysis: &AnalysisResultFull) -> Option<(String, Vec<Finding>)> {
     let baseline = baselines::load_baseline(file_path);
-    let owned = match precomputed {
-        Some(_) => None,
-        None => Some(analyze::analyze_file(file_path, cfg, analyze::ScanOptions::hook(None))?),
-    };
-    let result = precomputed.or(owned.as_ref())?;
-    let regressions = analyze::module_regressions(result, &baseline);
+    let regressions = analyze::module_regressions(&analysis.findings, &baseline);
     if regressions.is_empty() {
         return None;
     }
-    Some((result.filename.clone(), regressions))
+    Some((analysis.filename.clone(), regressions))
 }
 
 pub fn run_cleanup() {
