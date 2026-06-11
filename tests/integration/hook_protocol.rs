@@ -1,4 +1,4 @@
-use pulse::hook::{ClaudeCodeProtocol, GenericProtocol, HookProtocol};
+use pulse::hook::{parse_with, render_advisory, render_block, Protocol};
 use std::io::Write;
 use std::process::Command;
 
@@ -9,7 +9,7 @@ fn smelly_ruby() -> &'static str {
 #[test]
 fn claude_parse_reads_tool_input_envelope() {
     let raw = r#"{"session_id":"s1","tool_input":{"file_path":"/tmp/a.py","old_string":"x","new_string":"y"}}"#;
-    let h = ClaudeCodeProtocol.parse(raw).expect("parse");
+    let h = parse_with(Protocol::ClaudeCode, raw).expect("parse");
     assert_eq!(h.file_path, "/tmp/a.py");
     assert_eq!(h.session_id.as_deref(), Some("s1"));
     assert_eq!(h.old_string.as_deref(), Some("x"));
@@ -18,7 +18,7 @@ fn claude_parse_reads_tool_input_envelope() {
 
 #[test]
 fn claude_render_block_carries_decision_schema() {
-    let out = ClaudeCodeProtocol.render_block("too complex", Some("note"));
+    let out = render_block(Protocol::ClaudeCode, "too complex", Some("note"));
     let v: serde_json::Value = serde_json::from_str(&out).expect("json");
     assert_eq!(v["decision"], "block");
     assert_eq!(v["reason"], "too complex");
@@ -28,7 +28,7 @@ fn claude_render_block_carries_decision_schema() {
 
 #[test]
 fn claude_render_advisory_has_no_decision() {
-    let out = ClaudeCodeProtocol.render_advisory("heads up");
+    let out = render_advisory(Protocol::ClaudeCode, "heads up");
     let v: serde_json::Value = serde_json::from_str(&out).expect("json");
     assert!(v.get("decision").is_none());
     assert_eq!(v["hookSpecificOutput"]["additionalContext"], "heads up");
@@ -41,7 +41,7 @@ fn generic_parse_reads_flat_payload() {
     std::fs::write(&path, "line one\nline two\nline three\n").unwrap();
     let raw =
         format!(r#"{{"file_path":"{}","session_id":"g1","original_file":"old","edit_range":[2,3]}}"#, path.display());
-    let h = GenericProtocol.parse(&raw).expect("parse");
+    let h = parse_with(Protocol::Generic, &raw).expect("parse");
     assert_eq!(h.session_id.as_deref(), Some("g1"));
     assert_eq!(h.original_file.as_deref(), Some("old"));
     assert_eq!(h.edit_range, Some((2, 3)));
@@ -54,13 +54,13 @@ fn generic_parse_falls_back_to_string_search() {
     let path = dir.path().join("a.py");
     std::fs::write(&path, "alpha\nbeta\ngamma\n").unwrap();
     let raw = format!(r#"{{"file_path":"{}","old_string":"old beta","new_string":"beta"}}"#, path.display());
-    let h = GenericProtocol.parse(&raw).expect("parse");
+    let h = parse_with(Protocol::Generic, &raw).expect("parse");
     assert_eq!(h.edit_range, Some((2, 2)));
 }
 
 #[test]
 fn generic_render_block_uses_status_schema() {
-    let out = GenericProtocol.render_block("reason", None);
+    let out = render_block(Protocol::Generic, "reason", None);
     let v: serde_json::Value = serde_json::from_str(&out).expect("json");
     assert_eq!(v["status"], "block");
     assert_eq!(v["reason"], "reason");

@@ -182,13 +182,12 @@ fn walk_do_stmts(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn walk_let_in(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    for_matching_children(
-        node,
-        |k| k != "let" && k != "in",
-        |child| {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if !matches!(child.kind(), "let" | "in") {
             walk_node(child, source, depth, s);
-        },
-    );
+        }
+    }
 }
 
 fn for_children_of_kind(node: Node, kind: &str, f: impl FnMut(Node)) {

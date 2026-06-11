@@ -206,12 +206,20 @@ fn run_guarded<T: Send + 'static>(work: impl FnOnce() -> Option<T> + Send + 'sta
     rx.recv_timeout(ANALYZE_TIMEOUT).unwrap_or(None)
 }
 
-pub fn parse_guarded_shared(source: &std::sync::Arc<str>, lang: Language) -> Option<tree_sitter::Tree> {
+fn size_guarded<T, F>(source: &str, build: impl FnOnce() -> F) -> Option<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Option<T> + Send + 'static,
+{
     if exceeds_size_caps(source) {
         return None;
     }
-    let owned = std::sync::Arc::clone(source);
-    run_guarded(move || parse_only(&owned, lang))
+    run_guarded(build())
+}
+
+pub fn parse_guarded_shared(source: &std::sync::Arc<str>, lang: Language) -> Option<tree_sitter::Tree> {
+    let shared = std::sync::Arc::clone(source);
+    size_guarded(source, move || move || parse_only(&shared, lang))
 }
 
 pub fn walk_guarded_shared(
@@ -220,24 +228,23 @@ pub fn walk_guarded_shared(
     lang: Language,
 ) -> Option<FileMetrics> {
     let tree = tree.clone();
-    let owned = std::sync::Arc::clone(source);
-    run_guarded(move || Some(walk_only(&tree, &owned, lang)))
+    let shared = std::sync::Arc::clone(source);
+    size_guarded(source, move || move || Some(walk_only(&tree, &shared, lang)))
+}
+
+fn owned_guarded<T: Send + 'static>(source: &str, lang: Language, op: fn(&str, Language) -> Option<T>) -> Option<T> {
+    size_guarded(source, || {
+        let owned = source.to_string();
+        move || op(&owned, lang)
+    })
 }
 
 pub fn parse_guarded(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
-    if exceeds_size_caps(source) {
-        return None;
-    }
-    let owned = source.to_string();
-    run_guarded(move || parse_only(&owned, lang))
+    owned_guarded(source, lang, parse_only)
 }
 
 pub fn parse_and_walk_guarded(source: &str, lang: Language) -> Option<FileMetrics> {
-    if exceeds_size_caps(source) {
-        return None;
-    }
-    let owned = source.to_string();
-    run_guarded(move || parse_and_walk(&owned, lang))
+    owned_guarded(source, lang, parse_and_walk)
 }
 
 pub fn parse_and_walk_scoped(

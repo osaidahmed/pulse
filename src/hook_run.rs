@@ -142,12 +142,12 @@ fn is_extractable(smell: smells::Smell) -> bool {
 }
 
 fn emit_decision(reason: &str, advisory_ctx: Option<String>) {
-    println!("{}", hook::active_protocol().render_block(reason, advisory_ctx.as_deref()));
+    println!("{}", hook::render_block(hook::active_protocol(), reason, advisory_ctx.as_deref()));
 }
 
 fn emit_advisory_only(advisory_ctx: Option<String>) {
     let Some(ctx) = advisory_ctx else { return };
-    println!("{}", hook::active_protocol().render_advisory(&ctx));
+    println!("{}", hook::render_advisory(hook::active_protocol(), &ctx));
 }
 
 fn detect_constraint_conflict(findings: &[Finding], fn_count: u32, t: &thresholds::Thresholds) -> Option<&'static str> {
@@ -181,7 +181,7 @@ fn collect_module_findings(
     }
 
     if is_checkpoint(edit_count) && !test_detection::is_test_file(file_path) {
-        if let Some((_, regressions)) = detect_regressions(file_path, analysis) {
+        if let Some((_, regressions)) = regressions_for(file_path, &analysis.filename, &analysis.findings) {
             findings.extend(regressions);
         }
     }
@@ -204,14 +204,14 @@ pub fn run_stop() {
             continue;
         }
         let Some(analysis) = analyze(file_path) else { continue };
-        if let Some((filename, regressions)) = stop_regressions(file_path, &analysis) {
+        if let Some((filename, regressions)) = regressions_for(file_path, &analysis.filename, &analysis.findings) {
             all_regressions.push((filename, regressions));
         }
     }
 
     if !all_regressions.is_empty() {
         let reason = output::format_stop(&all_regressions);
-        println!("{}", hook::active_protocol().render_block(&reason, None));
+        println!("{}", hook::render_block(hook::active_protocol(), &reason, None));
     }
 
     let move_pool = build_move_pool(&manifest, &analyze);
@@ -240,13 +240,13 @@ fn stop_analysis(file_path: &str, cfg: Option<&config::PulseConfig>) -> Option<S
     Some(StopAnalysis { filename: r.filename, findings: r.findings, functions })
 }
 
-fn stop_regressions(file_path: &str, analysis: &StopAnalysis) -> Option<(String, Vec<Finding>)> {
+fn regressions_for(file_path: &str, filename: &str, findings: &[Finding]) -> Option<(String, Vec<Finding>)> {
     let baseline = baselines::load_baseline(file_path);
-    let regressions = analyze::module_regressions(&analysis.findings, &baseline);
+    let regressions = analyze::module_regressions(findings, &baseline);
     if regressions.is_empty() {
         return None;
     }
-    Some((analysis.filename.clone(), regressions))
+    Some((filename.to_string(), regressions))
 }
 
 fn build_move_pool<F: Fn(&str) -> Option<Rc<StopAnalysis>>>(
@@ -267,15 +267,6 @@ fn build_move_pool<F: Fn(&str) -> Option<Rc<StopAnalysis>>>(
 
 fn canonical(path: &str) -> String {
     std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(String::from)).unwrap_or_else(|| path.to_string())
-}
-
-fn detect_regressions(file_path: &str, analysis: &AnalysisResultFull) -> Option<(String, Vec<Finding>)> {
-    let baseline = baselines::load_baseline(file_path);
-    let regressions = analyze::module_regressions(&analysis.findings, &baseline);
-    if regressions.is_empty() {
-        return None;
-    }
-    Some((analysis.filename.clone(), regressions))
 }
 
 pub fn run_cleanup() {

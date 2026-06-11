@@ -206,11 +206,7 @@ fn same_file_overlap(a: &Candidate, b: &Candidate) -> bool {
 }
 
 fn distinct_locations(cands: &[Candidate], group: &[usize]) -> usize {
-    let mut set: HashSet<(&PathBuf, u32)> = HashSet::new();
-    for &i in group {
-        set.insert((&cands[i].file, cands[i].line));
-    }
-    set.len()
+    group.iter().map(|&i| (&cands[i].file, cands[i].line)).collect::<HashSet<_>>().len()
 }
 
 fn count_distinct_files(members: &[AuditLocation]) -> u32 {
