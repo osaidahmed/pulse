@@ -4,6 +4,7 @@ mod analytics;
 mod analyze;
 mod applicability;
 mod audit;
+mod baseline_ratchet;
 mod baselines;
 mod cli;
 mod config;

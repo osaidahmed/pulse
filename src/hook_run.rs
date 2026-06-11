@@ -73,10 +73,8 @@ fn collect_hook_findings(
     let func_findings: Vec<Finding> =
         analysis.findings.iter().filter(|f| !matches!(f.location, Location::Module)).cloned().collect();
 
-    let mut findings: Vec<Finding> = hook::filter_by_edit_range(func_findings, h.edit_range)
-        .into_iter()
-        .filter(|f| !baselines::is_preexisting_finding(f, &func_baseline))
-        .collect();
+    let in_range = hook::filter_by_edit_range(func_findings, h.edit_range);
+    let mut findings = crate::baseline_ratchet::filter_worsened(in_range, &func_baseline, &analysis.metrics);
 
     collect_module_findings(&h.file_path, edit_count, &mut findings, cfg, analysis);
     findings

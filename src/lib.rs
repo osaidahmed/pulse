@@ -4,6 +4,7 @@ pub mod analytics;
 pub mod analyze;
 pub mod applicability;
 pub mod audit;
+pub mod baseline_ratchet;
 pub mod baselines;
 pub mod config;
 pub mod config_history;

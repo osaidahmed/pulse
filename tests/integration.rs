@@ -8,6 +8,9 @@ mod audit_common;
 #[path = "integration/boundaries.rs"]
 mod boundaries;
 
+#[path = "integration/baseline_ratchet.rs"]
+mod baseline_ratchet;
+
 #[path = "integration/history_common.rs"]
 mod history_common;
 

@@ -1,6 +1,5 @@
 use crate::common::*;
 use crate::history_common::{build_repo, CommitSpec};
-use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -67,35 +66,14 @@ fn session_baseline_dir_uses_env_var() {
     assert_eq!(got, dir.path(), "session_baseline_dir must echo PULSE_BASELINE_DIR when set");
 }
 
-// ── line 73: is_preexisting_finding returns false for Location::Module ──
 #[test]
-fn is_preexisting_finding_module_location_is_false() {
-    let baseline: HashSet<String> = HashSet::new();
+fn filter_worsened_keeps_module_findings_untouched() {
+    let baseline = pulse::baseline_ratchet::baseline_from_entries(Vec::new());
     let module_finding =
         Finding { smell: Smell::FileTooLarge, location: Location::Module, detail: "irrelevant".to_string() };
-    assert!(
-        !baselines::is_preexisting_finding(&module_finding, &baseline),
-        "module-located findings are never treated as pre-existing function findings"
-    );
-}
-
-#[test]
-fn is_preexisting_finding_function_location_matches_baseline_key() {
-    let func_finding = Finding {
-        smell: Smell::ComplexMethod,
-        location: Location::Function { name: "foo".to_string(), start_line: 1, end_line: 9 },
-        detail: "cc=12".to_string(),
-    };
-    let key = format!("{}:{}:{}", "foo", func_finding.smell, func_finding.detail);
-    let mut baseline: HashSet<String> = HashSet::new();
-    baseline.insert(key);
-    assert!(
-        baselines::is_preexisting_finding(&func_finding, &baseline),
-        "function finding whose key is in the baseline must be pre-existing"
-    );
-
-    let empty: HashSet<String> = HashSet::new();
-    assert!(!baselines::is_preexisting_finding(&func_finding, &empty), "absent key must not be pre-existing");
+    let metrics = pulse::parse::parse_and_walk_guarded("def f():\n    pass\n", pulse::parse::Language::Python).unwrap();
+    let kept = pulse::baseline_ratchet::filter_worsened(vec![module_finding], &baseline, &metrics);
+    assert_eq!(kept.len(), 1, "module-located findings pass through the function ratchet untouched");
 }
 
 // ── line 137: compute_baseline bails when parse_and_walk_guarded returns None ──

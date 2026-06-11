@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::applicability::{self, Surface};
+use crate::baseline_ratchet::{self, FunctionBaseline, FunctionBaselineEntry};
 use crate::config;
 use crate::hook::HookInput;
 use crate::smells::{Finding, Location};
@@ -47,9 +48,9 @@ pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>, curre
 
 fn create_baseline_files(hook: &HookInput, cfg: Option<&config::PulseConfig>, current_source: &str) {
     let bp = baseline_path(&hook.file_path);
-    let (counts, func_findings) = compute_baseline(hook, cfg, current_source);
+    let (counts, entries) = compute_baseline(hook, cfg, current_source);
     write_baseline(&bp, &counts);
-    write_function_baseline(&hook.file_path, &func_findings);
+    write_function_baseline(&hook.file_path, &entries);
     append_manifest(&hook.file_path);
 }
 
@@ -61,17 +62,12 @@ pub fn load_baseline(file_path: &str) -> HashMap<String, usize> {
     serde_json::from_str(&json).unwrap_or_default()
 }
 
-pub fn load_function_baseline(file_path: &str) -> HashSet<String> {
-    std::fs::read_to_string(baseline_dir().join(format!("{:016x}.funcs", hash_path(file_path))))
-        .map(|content| content.lines().map(String::from).collect())
-        .unwrap_or_default()
-}
-
-pub fn is_preexisting_finding(f: &Finding, baseline: &HashSet<String>) -> bool {
-    match &f.location {
-        Location::Function { name, .. } => baseline.contains(&format!("{}:{}:{}", name, f.smell, f.detail)),
-        Location::Module => false,
-    }
+pub fn load_function_baseline(file_path: &str) -> FunctionBaseline {
+    let entries = std::fs::read_to_string(baseline_dir().join(format!("{:016x}.funcs", hash_path(file_path))))
+        .ok()
+        .and_then(|content| serde_json::from_str::<Vec<FunctionBaselineEntry>>(&content).ok())
+        .unwrap_or_default();
+    baseline_ratchet::baseline_from_entries(entries)
 }
 
 pub fn count_module_findings(findings: &[Finding]) -> HashMap<String, usize> {
@@ -125,7 +121,7 @@ fn compute_baseline(
     hook: &HookInput,
     cfg: Option<&config::PulseConfig>,
     current_source: &str,
-) -> (HashMap<String, usize>, Vec<String>) {
+) -> (HashMap<String, usize>, Vec<FunctionBaselineEntry>) {
     let source = match reconstruct_pre_edit(hook, current_source) {
         Some(s) if !s.is_empty() => s,
         _ => return (HashMap::new(), Vec::new()),
@@ -142,14 +138,8 @@ fn compute_baseline(
     config::filter_disabled(&mut findings, &disabled);
     applicability::filter_by_applicability(&mut findings, Surface::Hook);
     let module_counts = count_module_findings(&findings);
-    let func_keys: Vec<String> = findings
-        .iter()
-        .filter_map(|f| match &f.location {
-            Location::Function { name, .. } => Some(format!("{}:{}:{}", name, f.smell, f.detail)),
-            Location::Module => None,
-        })
-        .collect();
-    (module_counts, func_keys)
+    let entries = baseline_ratchet::entries_from(&findings, &metrics);
+    (module_counts, entries)
 }
 
 fn write_baseline(path: &Path, counts: &HashMap<String, usize>) {
@@ -158,10 +148,10 @@ fn write_baseline(path: &Path, counts: &HashMap<String, usize>) {
     let _ = std::fs::write(path, json);
 }
 
-fn write_function_baseline(file_path: &str, keys: &[String]) {
+fn write_function_baseline(file_path: &str, entries: &[FunctionBaselineEntry]) {
     let path = baseline_dir().join(format!("{:016x}.funcs", hash_path(file_path)));
     let _ = std::fs::create_dir_all(baseline_dir());
-    let _ = std::fs::write(path, keys.join("\n"));
+    let _ = std::fs::write(path, serde_json::to_string(entries).unwrap_or_default());
 }
 
 fn reconstruct_pre_edit(hook: &HookInput, current_source: &str) -> Option<String> {
