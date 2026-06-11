@@ -21,6 +21,19 @@ fn cc_counts_elsif() {
 }
 
 #[test]
+fn cc_counts_each_elsif_exactly_once() {
+    let out = debug("def f(x)\n  if x > 10\n    3\n  elsif x > 5\n    2\n  else\n    1\n  end\nend\n");
+    assert_eq!(function_metric(&out, "f", "cc"), Some(3));
+}
+
+#[test]
+fn cc_counts_double_elsif_exactly_once_each() {
+    let out =
+        debug("def f(x)\n  if x > 10\n    4\n  elsif x > 5\n    3\n  elsif x > 2\n    2\n  else\n    1\n  end\nend\n");
+    assert_eq!(function_metric(&out, "f", "cc"), Some(4));
+}
+
+#[test]
 fn cc_counts_unless() {
     let out = debug("def f(x)\n  unless x > 0\n    return -1\n  end\n  x\nend\n");
     assert_eq!(function_metric(&out, "f", "cc"), Some(2));
@@ -702,6 +715,26 @@ fn begin_rescue_ensure() {
 fn empty_rescue_detected() {
     let out = check(concat!("def f(x)\n", "  begin\n", "    Integer(x)\n", "  rescue\n", "  end\n", "end\n",));
     assert!(has_smell(&out, "Empty Error Handler"), "got: {out}");
+}
+
+#[test]
+fn rescue_counts_cc_exactly_once() {
+    let out = debug("def f(x)\n  begin\n    risky(x)\n  rescue\n    fallback(x)\n  end\nend\n");
+    assert_eq!(function_metric(&out, "f", "cc"), Some(2));
+}
+
+#[test]
+fn non_empty_rescue_is_not_an_empty_handler() {
+    let out = check("def f(x)\n  begin\n    risky(x)\n  rescue\n    fallback(x)\n  end\nend\n");
+    assert!(!has_smell(&out, "Empty Error Handler"), "got: {out}");
+}
+
+#[test]
+fn rescue_modifier_counts_cc_without_empty_handler() {
+    let out = debug("def f(x)\n  risky(x) rescue nil\nend\n");
+    assert_eq!(function_metric(&out, "f", "cc"), Some(2));
+    let checked = check("def f(x)\n  risky(x) rescue nil\nend\n");
+    assert!(!has_smell(&checked, "Empty Error Handler"), "got: {checked}");
 }
 
 #[test]

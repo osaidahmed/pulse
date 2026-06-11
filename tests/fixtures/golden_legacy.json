@@ -19576,7 +19576,7 @@
     "module": {
       "total_loc": 30,
       "total_functions": 2,
-      "sum_cc": 15,
+      "sum_cc": 12,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 0,
@@ -19588,8 +19588,8 @@
         "start_line": 1,
         "end_line": 27,
         "loc": 27,
-        "cc": 14,
-        "cognitive_complexity": 17,
+        "cc": 11,
+        "cognitive_complexity": 13,
         "max_nesting": 2,
         "bump_count": 0,
         "arg_count": 5,
@@ -19628,7 +19628,7 @@
       {
         "smell": "Complex Method",
         "location": "fn:process_order:1:27",
-        "detail": "cc=14, cogc=17 [warning] (cc threshold: 9, cogc threshold: 15)"
+        "detail": "cc=11 [warning] (threshold: 9)"
       }
     ]
   },
@@ -20188,7 +20188,7 @@
     "module": {
       "total_loc": 85,
       "total_functions": 11,
-      "sum_cc": 34,
+      "sum_cc": 30,
       "global_conditional_count": 0,
       "global_max_nesting": 0,
       "declaration_count": 1,
@@ -20220,8 +20220,8 @@
         "start_line": 11,
         "end_line": 35,
         "loc": 24,
-        "cc": 17,
-        "cognitive_complexity": 26,
+        "cc": 13,
+        "cognitive_complexity": 20,
         "max_nesting": 3,
         "bump_count": 1,
         "arg_count": 1,
@@ -20420,7 +20420,7 @@
       {
         "smell": "Complex Method",
         "location": "fn:OrderService.process_order:11:35",
-        "detail": "cc=17, cogc=26 [alert] (cc threshold: 9, cogc threshold: 15)"
+        "detail": "cc=13, cogc=20 [warning] (cc threshold: 9, cogc threshold: 15)"
       },
       {
         "smell": "Low Cohesion",

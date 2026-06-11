@@ -174,6 +174,9 @@ fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
+    if !node.is_named() {
+        return;
+    }
     let k = node.kind();
     if matches!(k, "if" | "unless" | "if_modifier" | "unless_modifier") {
         handle_if(node, source, depth, k.ends_with("modifier"), s);
@@ -183,7 +186,7 @@ fn dispatch(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         handle_case(node, source, depth, s);
     } else if k == "begin" {
         walk_begin_children(node, source, depth, s);
-    } else if k == "rescue" {
+    } else if matches!(k, "rescue" | "rescue_modifier") {
         handle_rescue(node, source, depth, s);
     } else {
         handle_expression(node, k, source, depth, s);
@@ -230,9 +233,9 @@ fn handle_if(node: Node, source: &str, depth: u32, postfix: bool, s: &mut WalkSt
 }
 
 fn walk_if_clauses(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut child_opt = node.child(0);
+    let mut child_opt = node.named_child(0);
     while let Some(child) = child_opt {
-        child_opt = child.next_sibling();
+        child_opt = child.next_named_sibling();
         match child.kind() {
             "then" => {
                 s.cogc_nesting += 1;
@@ -314,6 +317,10 @@ fn walk_begin_children(node: Node, source: &str, depth: u32, s: &mut WalkState) 
 fn handle_rescue(node: Node, source: &str, depth: u32, s: &mut WalkState) {
     s.cc += 1;
     s.track_cogc_branch();
+    if node.kind() == "rescue_modifier" {
+        walk_body(node, source, depth, s);
+        return;
+    }
     if is_rescue_empty(node) {
         s.empty_catch_count += 1;
     }
@@ -331,18 +338,19 @@ fn handle_rescue(node: Node, source: &str, depth: u32, s: &mut WalkState) {
 }
 
 fn is_rescue_empty(node: Node) -> bool {
-    let mut c = node.child(0);
+    let mut c = node.named_child(0);
     while let Some(child) = c {
-        c = child.next_sibling();
+        c = child.next_named_sibling();
         let k = child.kind();
-        if matches!(k, "exceptions" | "exception_variable" | "comment" | "then") || child.is_extra() {
+        if matches!(k, "exceptions" | "exception_variable" | "comment") || child.is_extra() {
             continue;
         }
-        if k != "body_statement" {
+        if !matches!(k, "body_statement" | "then") {
             return false;
         }
         let mut inner = child.walk();
-        let has_content = child.children(&mut inner).any(|gc| gc.kind() != "comment" && !gc.is_extra());
+        let has_content =
+            child.children(&mut inner).any(|gc| gc.is_named() && gc.kind() != "comment" && !gc.is_extra());
         if has_content {
             return false;
         }
