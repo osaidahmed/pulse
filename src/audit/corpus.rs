@@ -24,7 +24,8 @@ pub struct Corpus {
 
 impl Corpus {
     pub fn load(typed_files: &[(PathBuf, Language)]) -> Self {
-        let files: Vec<CorpusFile> = typed_files.iter().map(|(path, lang)| load_file(path, *lang)).collect();
+        use rayon::prelude::*;
+        let files: Vec<CorpusFile> = typed_files.par_iter().map(|(path, lang)| load_file(path, *lang)).collect();
         let by_path = files.iter().enumerate().map(|(i, f)| (f.path.clone(), i)).collect();
         Self { files, by_path }
     }

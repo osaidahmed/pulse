@@ -15,11 +15,17 @@ pub fn run(typed_files: &[(PathBuf, Language)], root: &Path, thresholds: &AuditT
 }
 
 pub fn run_from(corpus: &super::corpus::Corpus, _root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    use rayon::prelude::*;
+    let extracted: Vec<(Vec<DefinitionRecord>, Vec<LocatedCall>)> = corpus
+        .files
+        .par_iter()
+        .map(|file| (super::definitions::definitions_from(file), super::call_walker::calls_from(file)))
+        .collect();
     let mut definitions = Vec::new();
     let mut calls = Vec::new();
-    for file in &corpus.files {
-        definitions.extend(super::definitions::definitions_from(file));
-        calls.extend(super::call_walker::calls_from(file));
+    for (defs, file_calls) in extracted {
+        definitions.extend(defs);
+        calls.extend(file_calls);
     }
     let graph = CallGraph::build(definitions.clone(), calls);
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);

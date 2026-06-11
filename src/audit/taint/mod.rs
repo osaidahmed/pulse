@@ -244,11 +244,19 @@ pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) ->
 }
 
 pub fn run_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let mut out = Vec::new();
-    for file in &corpus.files {
-        let Some(tl) = lang_for(file.lang) else { continue };
-        analyze_file(file, tl, thresholds, &mut out);
-    }
+    use rayon::prelude::*;
+    let per_file: Vec<Vec<AuditFinding>> = corpus
+        .files
+        .par_iter()
+        .map(|file| {
+            let mut out = Vec::new();
+            if let Some(tl) = lang_for(file.lang) {
+                analyze_file(file, tl, thresholds, &mut out);
+            }
+            out
+        })
+        .collect();
+    let mut out: Vec<AuditFinding> = per_file.into_iter().flatten().collect();
     out.truncate(thresholds.taint.max_findings);
     out
 }

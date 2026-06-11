@@ -17,14 +17,14 @@ pub fn corpus_bundle(typed: &[(PathBuf, Language)], thresholds: &AuditThresholds
 }
 
 pub fn corpus_bundle_from(corpus: &super::corpus::Corpus, thresholds: &AuditThresholds) -> CorpusBundle {
+    use rayon::prelude::*;
+    let outputs: Vec<Option<WalkOutput>> = corpus.files.par_iter().map(|file| walk_one(file, thresholds)).collect();
     let mut bundle = CorpusBundle { subtrees: Vec::new(), features: Vec::new(), kinds_by_fp: KindIndex::default() };
-    for file in &corpus.files {
-        if let Some(output) = walk_one(file, thresholds) {
-            bundle.subtrees.extend(output.subtrees);
-            bundle.features.push(output.features);
-            for (fp, kinds) in output.kinds_by_fp {
-                bundle.kinds_by_fp.entry(fp).or_insert(kinds);
-            }
+    for output in outputs.into_iter().flatten() {
+        bundle.subtrees.extend(output.subtrees);
+        bundle.features.push(output.features);
+        for (fp, kinds) in output.kinds_by_fp {
+            bundle.kinds_by_fp.entry(fp).or_insert(kinds);
         }
     }
     bundle
