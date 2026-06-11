@@ -20,7 +20,9 @@ fn detect_exact_clones(
 ) -> HashSet<usize> {
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
     for &i in eligible {
-        groups.entry(functions[i].structural_hash).or_default().push(i);
+        if functions[i].structural_hash != 0 {
+            groups.entry(functions[i].structural_hash).or_default().push(i);
+        }
     }
     let filtered: HashMap<u64, Vec<usize>> = groups
         .into_iter()
@@ -47,7 +49,9 @@ fn detect_similar_clones(
         .collect();
     let mut groups: HashMap<u64, Vec<usize>> = HashMap::new();
     for &i in &skeleton_eligible {
-        groups.entry(functions[i].skeleton_hash).or_default().push(i);
+        if functions[i].skeleton_hash != 0 {
+            groups.entry(functions[i].skeleton_hash).or_default().push(i);
+        }
     }
 
     let filtered: HashMap<u64, Vec<usize>> = groups

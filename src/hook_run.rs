@@ -50,7 +50,9 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     };
 
-    pulse::analysis_cache::store(&h.file_path, &source, &analysis);
+    if scope.is_none() {
+        pulse::analysis_cache::store(&h.file_path, &source, &analysis);
+    }
     let findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, edit_count));
     if findings.is_empty() {
         process::exit(0);
@@ -257,7 +259,7 @@ fn build_move_pool<F: Fn(&str) -> Option<Rc<StopAnalysis>>>(
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
         if let Some(r) = analyze(file_path) {
             let key = canonical(file_path);
-            for (_, hash) in &r.functions {
+            for (_, hash) in r.functions.iter().filter(|(_, h)| *h != 0) {
                 pool.entry(*hash).or_default().insert(key.clone());
             }
         }

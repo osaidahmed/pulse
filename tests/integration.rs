@@ -433,6 +433,8 @@ mod ruby_stress;
 mod rust_smells;
 #[path = "integration/rust_stress.rs"]
 mod rust_stress;
+#[path = "integration/scoped_cache_isolation.rs"]
+mod scoped_cache_isolation;
 #[path = "integration/setup_idempotency.rs"]
 mod setup_idempotency;
 #[path = "integration/setup_tests.rs"]

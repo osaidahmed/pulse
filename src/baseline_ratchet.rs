@@ -118,6 +118,9 @@ impl FunctionBaseline {
         if let Some(found) = self.by_name.get(&(name.to_string(), smell)) {
             return Some(*found);
         }
+        if hash == 0 {
+            return None;
+        }
         let (orig_name, mags, count) = self.by_hash.get(&(hash, smell))?;
         let vanished = !current_names.contains(orig_name.as_str());
         vanished.then_some((*mags, *count))
