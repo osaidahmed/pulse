@@ -281,23 +281,50 @@ fn should_skip_walk_entry(
     matcher.zip(root).is_some_and(|(m, r)| m.matches_file(r, entry))
 }
 
+const MAX_WALK_FILES: usize = 100_000;
+
 fn walk_source_files(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
+    let mut visited = std::collections::HashSet::new();
+    walk_source_dir(dir, &mut files, &mut visited);
+    files.sort();
+    files
+}
+
+fn walk_source_dir(dir: &Path, files: &mut Vec<PathBuf>, visited: &mut std::collections::HashSet<(u64, u64)>) {
+    if !mark_dir_visited(dir, visited) {
+        return;
+    }
     let Ok(entries) = std::fs::read_dir(dir) else {
-        return files;
+        return;
     };
     for entry in entries.flatten() {
+        if files.len() >= MAX_WALK_FILES {
+            return;
+        }
         let path = entry.path();
         if path.is_dir() {
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             if name.starts_with('.') || SKIP_DIRS.contains(&name) {
                 continue;
             }
-            files.extend(walk_source_files(&path));
+            walk_source_dir(&path, files, visited);
         } else if parse::detect_language(&path).is_some() {
             files.push(path);
         }
     }
-    files.sort();
-    files
+}
+
+#[cfg(unix)]
+fn mark_dir_visited(dir: &Path, visited: &mut std::collections::HashSet<(u64, u64)>) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    let Ok(meta) = std::fs::metadata(dir) else {
+        return false;
+    };
+    visited.insert((meta.dev(), meta.ino()))
+}
+
+#[cfg(not(unix))]
+fn mark_dir_visited(_dir: &Path, _visited: &mut std::collections::HashSet<(u64, u64)>) -> bool {
+    true
 }

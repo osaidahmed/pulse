@@ -356,3 +356,36 @@ fn version_flag_prints_version() {
     assert_eq!(code_short, 0, "-V should exit 0");
     assert_eq!(stdout_short.trim(), expected);
 }
+
+#[cfg(unix)]
+#[test]
+fn check_all_terminates_on_symlink_cycle() {
+    let dir = tempfile::tempdir().unwrap();
+    let sub = dir.path().join("sub");
+    std::fs::create_dir(&sub).unwrap();
+    std::fs::write(sub.join("smelly.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::os::unix::fs::symlink(dir.path(), sub.join("loop")).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", "-a"])
+        .current_dir(dir.path())
+        .output()
+        .expect("failed");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.matches("smelly.py").count(), 1, "cycle must terminate and report the file once: {stdout}");
+}
+
+#[cfg(unix)]
+#[test]
+fn check_all_follows_symlinked_dir_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let real = tempfile::tempdir().unwrap();
+    std::fs::write(real.path().join("smelly.py"), "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    std::os::unix::fs::symlink(real.path(), dir.path().join("linked")).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", "-a"])
+        .current_dir(dir.path())
+        .output()
+        .expect("failed");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.matches("smelly.py").count(), 1, "symlinked dir contents found once: {stdout}");
+}
