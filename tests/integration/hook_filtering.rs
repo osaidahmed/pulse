@@ -208,3 +208,58 @@ fn hook_on_unsupported_file_still_silent() {
     let output = run_hook_with_json(&json);
     assert!(output.is_empty());
 }
+
+#[test]
+fn structured_patch_range_supersedes_string_search() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("attrib.py");
+    let content = "def alpha(a, b):\n    return a\n\ndef beta(a, b, c, d, e, f, g, h):\n    return a\n";
+    std::fs::write(&path, content).unwrap();
+    let original = "def alpha(a, b):\n    return a\n\ndef beta(a, b):\n    return a\n";
+    let input = serde_json::json!({
+        "tool_input": {
+            "file_path": path.to_str().unwrap(),
+            "old_string": "    return a",
+            "new_string": "    return a"
+        },
+        "tool_response": {
+            "filePath": path.to_str().unwrap(),
+            "originalFile": original,
+            "structuredPatch": [{
+                "oldStart": 4, "oldLines": 2, "newStart": 4, "newLines": 2,
+                "lines": ["-def beta(a, b):", "+def beta(a, b, c, d, e, f, g, h):", "     return a"]
+            }]
+        }
+    })
+    .to_string();
+    let out = run_hook_with_json(&input);
+    assert!(
+        out.contains("beta") && out.to_lowercase().contains("excess arguments"),
+        "patch hunks must scope the edit to beta even when string search points at alpha: {out}"
+    );
+}
+
+#[test]
+fn original_file_suppresses_pre_existing_without_edit_strings() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("attrib.py");
+    let content = "def beta(a, b, c, d, e, f, g, h):\n    return a\n";
+    std::fs::write(&path, content).unwrap();
+    let input = serde_json::json!({
+        "tool_input": {"file_path": path.to_str().unwrap()},
+        "tool_response": {
+            "filePath": path.to_str().unwrap(),
+            "originalFile": content,
+            "structuredPatch": [{
+                "oldStart": 2, "oldLines": 1, "newStart": 2, "newLines": 1,
+                "lines": [" "]
+            }]
+        }
+    })
+    .to_string();
+    let out = run_hook_with_json(&input);
+    assert!(
+        !out.to_lowercase().contains("excess arguments"),
+        "pre-existing smell recorded in originalFile must stay suppressed: {out}"
+    );
+}

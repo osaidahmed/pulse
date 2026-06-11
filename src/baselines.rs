@@ -155,6 +155,9 @@ fn write_function_baseline(file_path: &str, entries: &[FunctionBaselineEntry]) {
 }
 
 fn reconstruct_pre_edit(hook: &HookInput, current_source: &str) -> Option<String> {
+    if let Some(original) = &hook.original_file {
+        return Some(original.clone());
+    }
     let (Some(old_str), Some(new_str)) = (&hook.old_string, &hook.new_string) else {
         return git_show_head(&hook.file_path);
     };
