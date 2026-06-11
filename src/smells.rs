@@ -182,7 +182,7 @@ pub fn detect(metrics: &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Findi
     module_smells::detect_overall_function_size(&metrics.functions, t, &mut findings);
     detect_primitive_obsession(&metrics.functions, t, &mut findings);
     detect_batch_thresholds(&metrics.functions, t, &mut findings);
-    module_smells::detect_duplicated_assertion_blocks(&metrics.functions, &mut findings);
+    module_smells::detect_duplicated_assertion_blocks(&metrics.functions, t, &mut findings);
     module_smells::detect_lcom4(&metrics.functions, t, &mut findings);
     detect_empty_error_handlers(&metrics.functions, &mut findings);
 

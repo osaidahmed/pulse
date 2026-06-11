@@ -115,6 +115,8 @@ pub struct ModuleThresholds {
     pub large_fn_loc: Option<u32>,
     pub large_fn_count: Option<u32>,
     pub max_struct_fields: Option<u32>,
+    pub global_conditionals_max: Option<u32>,
+    pub global_nesting_depth: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -128,6 +130,7 @@ pub struct AnalysisThresholds {
     pub short_var_min_fn_loc: Option<u32>,
     pub short_var_max_count: Option<u32>,
     pub max_string_match_arms: Option<u32>,
+    pub dup_assert_min: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Default)]

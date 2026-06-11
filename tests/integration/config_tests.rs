@@ -467,3 +467,85 @@ fn cpg_section_overrides_flags() {
     assert_eq!(resolved.cpg.dead_store, t().cpg.dead_store);
     assert_eq!(resolved.cpg.use_before_def, t().cpg.use_before_def);
 }
+
+#[test]
+fn global_scope_thresholds_are_overridable() {
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds]
+        global_conditionals_max = 5
+        global_nesting_depth = 7
+        dup_assert_min = 12
+        ",
+    )
+    .unwrap();
+    let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
+    assert_eq!(resolved.module.global_conditionals_max, 5);
+    assert_eq!(resolved.module.global_nesting_depth, 7);
+    assert_eq!(resolved.analysis.dup_assert_min, 12);
+    assert_eq!(resolved.module.file_loc_warning, t().module.file_loc_warning);
+    assert_eq!(resolved.analysis.consecutive_asserts_max, t().analysis.consecutive_asserts_max);
+}
+
+fn run_check_in(dir: &std::path::Path, name: &str, code: &str) -> String {
+    let file = dir.join(name);
+    std::fs::write(&file, code).unwrap();
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_pulse"))
+        .args(["check", file.to_str().unwrap()])
+        .output()
+        .expect("failed to run pulse");
+    String::from_utf8(output.stdout).unwrap()
+}
+
+#[test]
+fn config_raises_global_conditionals_threshold_suppresses_finding() {
+    let code = "import os\nif os.name == 'nt':\n    sep = '\\\\'\n";
+
+    let plain = tempfile::tempdir().unwrap();
+    let default_out = run_check_in(plain.path(), "platform.py", code);
+    assert!(default_out.contains("Global Conditionals"), "fixture must fire at defaults: {default_out}");
+
+    let configured = tempfile::tempdir().unwrap();
+    std::fs::write(configured.path().join(".pulse.toml"), "[thresholds]\nglobal_conditionals_max = 50\n").unwrap();
+    let suppressed_out = run_check_in(configured.path(), "platform.py", code);
+    assert!(!suppressed_out.contains("Global Conditionals"), "should be suppressed by config: {suppressed_out}");
+}
+
+#[test]
+fn config_raises_global_nesting_threshold_suppresses_finding() {
+    let code = "import os\nif os.name == 'nt':\n    if os.sep:\n        if os.curdir:\n            x = 1\n";
+
+    let plain = tempfile::tempdir().unwrap();
+    let default_out = run_check_in(plain.path(), "nested.py", code);
+    assert!(default_out.contains("Deep Global Nesting"), "fixture must fire at defaults: {default_out}");
+
+    let configured = tempfile::tempdir().unwrap();
+    std::fs::write(configured.path().join(".pulse.toml"), "[thresholds]\nglobal_nesting_depth = 50\n").unwrap();
+    let suppressed_out = run_check_in(configured.path(), "nested.py", code);
+    assert!(!suppressed_out.contains("Deep Global Nesting"), "should be suppressed by config: {suppressed_out}");
+}
+
+#[test]
+fn config_raises_dup_assert_threshold_suppresses_finding() {
+    let assert_count = t().analysis.dup_assert_min * 2;
+    let asserts: String = (0..assert_count).fold(String::new(), |mut s, i| {
+        use std::fmt::Write;
+        let _ = writeln!(s, "    assert x == {i}");
+        s
+    });
+    let code = format!("def test_alpha():\n    x = 1\n{asserts}\n\ndef test_beta():\n    x = 1\n{asserts}");
+
+    let plain = tempfile::tempdir().unwrap();
+    let default_out = run_check_in(plain.path(), "test_dups.py", &code);
+    assert!(default_out.contains("Duplicated Assertion Blocks"), "fixture must fire at defaults: {default_out}");
+
+    let configured = tempfile::tempdir().unwrap();
+    let raised = assert_count * 2;
+    std::fs::write(configured.path().join(".pulse.toml"), format!("[thresholds]\ndup_assert_min = {raised}\n"))
+        .unwrap();
+    let suppressed_out = run_check_in(configured.path(), "test_dups.py", &code);
+    assert!(
+        !suppressed_out.contains("Duplicated Assertion Blocks"),
+        "should be suppressed by config: {suppressed_out}"
+    );
+}

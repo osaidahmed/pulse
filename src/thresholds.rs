@@ -41,6 +41,8 @@ pub struct ModuleThresholds {
     pub large_fn_loc: u32,
     pub large_fn_count: u32,
     pub max_struct_fields: u32,
+    pub global_conditionals_max: u32,
+    pub global_nesting_depth: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,6 +57,7 @@ pub struct AnalysisThresholds {
     pub short_var_min_fn_loc: u32,
     pub short_var_max_count: u32,
     pub max_string_match_arms: u32,
+    pub dup_assert_min: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -208,6 +211,8 @@ impl ModuleThresholds {
         large_fn_loc: 40,
         large_fn_count: 3,
         max_struct_fields: 12,
+        global_conditionals_max: 0,
+        global_nesting_depth: 3,
     };
 }
 
@@ -223,6 +228,7 @@ impl AnalysisThresholds {
         short_var_min_fn_loc: 15,
         short_var_max_count: 3,
         max_string_match_arms: 5,
+        dup_assert_min: 5,
     };
 }
 

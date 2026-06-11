@@ -8,7 +8,7 @@ use crate::walk::ModuleMetrics;
 
 pub fn detect_module_smells(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     detect_size_smells(m, t, has_god_method, findings);
-    detect_global_scope_smells(m, findings);
+    detect_global_scope_smells(m, t, findings);
     detect_large_structs(m, t, findings);
 }
 
@@ -74,8 +74,8 @@ fn check_god_class(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, find
     }
 }
 
-fn detect_global_scope_smells(m: &ModuleMetrics, findings: &mut Vec<Finding>) {
-    if m.global_conditional_count > 0 {
+fn detect_global_scope_smells(m: &ModuleMetrics, t: &Thresholds, findings: &mut Vec<Finding>) {
+    if m.global_conditional_count > t.module.global_conditionals_max {
         findings.push(Finding {
             smell: Smell::GlobalConditionals,
             location: Location::Module,
@@ -83,7 +83,7 @@ fn detect_global_scope_smells(m: &ModuleMetrics, findings: &mut Vec<Finding>) {
         });
     }
 
-    if m.global_max_nesting >= 3 {
+    if m.global_max_nesting >= t.module.global_nesting_depth {
         findings.push(Finding {
             smell: Smell::DeepGlobalNesting,
             location: Location::Module,
@@ -203,9 +203,12 @@ fn visit_component(start: usize, visited: &mut [bool], connected: &impl Fn(usize
 
 // ─── Duplicated assertion blocks ───────────────────────────────────────
 
-pub fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], findings: &mut Vec<Finding>) {
-    let test_fns: Vec<(usize, &FunctionMetrics)> =
-        functions.iter().enumerate().filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts > 5).collect();
+pub fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
+    let test_fns: Vec<(usize, &FunctionMetrics)> = functions
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| is_test_function(&f.name) && f.consecutive_asserts > t.analysis.dup_assert_min)
+        .collect();
 
     if test_fns.len() < 2 {
         return;

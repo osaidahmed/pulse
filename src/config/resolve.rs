@@ -58,6 +58,8 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             large_fn_loc: m.large_fn_loc.unwrap_or(bm.large_fn_loc),
             large_fn_count: m.large_fn_count.unwrap_or(bm.large_fn_count),
             max_struct_fields: m.max_struct_fields.unwrap_or(bm.max_struct_fields),
+            global_conditionals_max: m.global_conditionals_max.unwrap_or(bm.global_conditionals_max),
+            global_nesting_depth: m.global_nesting_depth.unwrap_or(bm.global_nesting_depth),
         },
         analysis: crate::thresholds::AnalysisThresholds {
             duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
@@ -70,6 +72,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(ba.short_var_min_fn_loc),
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),
             max_string_match_arms: a.max_string_match_arms.unwrap_or(ba.max_string_match_arms),
+            dup_assert_min: a.dup_assert_min.unwrap_or(ba.dup_assert_min),
         },
         audit: resolve_audit(&base.audit, o),
         history: base.history,
