@@ -1,10 +1,37 @@
-use crate::smells::Smell;
+use crate::smells::{Finding, Location, Smell};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FindingTier {
     Blocking,
     Advisory,
     AuditOnly,
+}
+
+const SUBSUMED_BY_GOD_METHOD: &[Smell] =
+    &[Smell::NestedConditionalChunks, Smell::DeepNestedComplexity, Smell::LargeEmbeddedBlock];
+
+pub fn suppress_subsumed(findings: Vec<Finding>) -> Vec<Finding> {
+    let god_functions: Vec<(String, u32)> = findings
+        .iter()
+        .filter(|f| f.smell == Smell::GodMethod)
+        .filter_map(|f| match &f.location {
+            Location::Function { name, start_line, .. } => Some((name.clone(), *start_line)),
+            Location::Module => None,
+        })
+        .collect();
+    if god_functions.is_empty() {
+        return findings;
+    }
+    findings
+        .into_iter()
+        .filter(|f| {
+            if !SUBSUMED_BY_GOD_METHOD.contains(&f.smell) {
+                return true;
+            }
+            let Location::Function { name, start_line, .. } = &f.location else { return true };
+            !god_functions.iter().any(|(n, s)| n == name && s == start_line)
+        })
+        .collect()
 }
 
 impl FindingTier {

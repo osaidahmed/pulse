@@ -116,3 +116,42 @@ fn empty_handler_count_unchanged_stays_suppressed() {
     let out = run_hook_edit(&content, "import os", "import os");
     assert!(!out.to_lowercase().contains("empty error handler"), "unchanged handler count must stay suppressed: {out}");
 }
+
+fn god_fn_with_nesting(name: &str, loc: u32) -> String {
+    let mut s = format!("def {name}(flag):\n");
+    for d in 0..8 {
+        s.push_str(&"    ".repeat(d + 1));
+        s.push_str("if flag:\n");
+    }
+    s.push_str(&"    ".repeat(9));
+    s.push_str("x = 0\n");
+    for i in 10..loc {
+        s.push_str(&format!("    pad{i} = 0\n"));
+    }
+    s
+}
+
+#[test]
+fn god_method_subsumes_structural_findings_in_hook_output() {
+    let body = god_fn_with_nesting("monster", 70);
+    let new_region = format!("anchor = 1\n\n{body}");
+    let out = run_hook_edit(&new_region, "anchor = 1\n", &new_region).to_lowercase();
+    assert!(out.contains("god method"), "god method must fire: {out}");
+    assert!(!out.contains("deep nested complexity"), "nesting is subsumed by god method: {out}");
+    assert!(!out.contains("nested conditional chunks"), "chunks are subsumed by god method: {out}");
+}
+
+#[test]
+fn structural_findings_survive_without_god_method() {
+    let mut body = String::from("def deep(flag):\n");
+    for d in 0..5 {
+        body.push_str(&"    ".repeat(d + 1));
+        body.push_str("if flag:\n");
+    }
+    body.push_str(&"    ".repeat(6));
+    body.push_str("x = 0\n");
+    let new_region = format!("anchor = 1\n\n{body}");
+    let out = run_hook_edit(&new_region, "anchor = 1\n", &new_region).to_lowercase();
+    assert!(out.contains("deep nested complexity"), "nesting fires when no god method subsumes it: {out}");
+    assert!(!out.contains("god method"), "fixture must not be a god method: {out}");
+}

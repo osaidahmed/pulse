@@ -50,7 +50,7 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     };
 
-    let findings = collect_hook_findings(&h, &analysis, cfg, edit_count);
+    let findings = crate::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, cfg, edit_count));
     if findings.is_empty() {
         process::exit(0);
     }
