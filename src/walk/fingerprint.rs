@@ -39,7 +39,6 @@ pub fn compute_structural_fingerprint(node: Node) -> u64 {
     hasher.finish()
 }
 
-#[allow(dead_code)]
 pub fn compute_subtree_fingerprint(node: Node) -> u64 {
     let mut hasher = fingerprint_hasher();
     fingerprint_subtree_into(node, &mut hasher);

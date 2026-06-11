@@ -1,33 +1,10 @@
 #![allow(clippy::assigning_clones)]
 
-mod analytics;
-mod analyze;
-mod applicability;
-mod audit;
-mod baseline_ratchet;
-mod baselines;
 mod cli;
-mod config;
-mod config_history;
-mod cpg;
-mod duplication;
-mod extract;
-mod history;
-mod hook;
 mod hook_run;
-mod intensity;
-mod interaction;
-mod langkinds;
-mod module_smells;
-mod naturalness;
-mod output;
-mod parse;
-mod refmine;
 mod setup;
-mod smells;
-mod test_detection;
-mod thresholds;
-mod walk;
+
+use pulse::{analyze, audit, baselines, config, history, hook, output, parse, test_detection};
 
 use std::path::{Path, PathBuf};
 use std::process;

@@ -83,7 +83,6 @@ pub enum HistoryPillar {
     Evolution,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct VariantInfo {
     pub pillar: HistoryPillar,

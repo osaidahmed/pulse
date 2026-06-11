@@ -359,7 +359,6 @@ fn pattern_json(f: &AuditFinding, fingerprint: u64, root: Option<&Path>) -> serd
     })
 }
 
-#[allow(dead_code)]
 pub fn relative_to(root: &Path, file: &Path) -> PathBuf {
     file.strip_prefix(root).map_or_else(|_| file.to_path_buf(), Path::to_path_buf)
 }

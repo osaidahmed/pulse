@@ -86,7 +86,6 @@ pub struct CpgConfig {
     pub dead_store: Option<bool>,
     pub use_before_def: Option<bool>,
     pub unreachable_code: Option<bool>,
-    pub unused_result: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

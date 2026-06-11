@@ -33,7 +33,6 @@ pub enum HistoryError {
     GitNotInstalled,
 }
 
-#[allow(dead_code)]
 pub fn run(opts: &HistoryOpts, t: &HistoryThresholds) -> Result<Vec<HistoryFinding>, HistoryError> {
     let matcher = crate::config::IgnoreMatcher::from_patterns(&[]);
     let filter = crate::audit::IgnoreFilter::new(&matcher, &opts.root);
@@ -92,7 +91,6 @@ pub fn calibrate_with_filter(
     Ok(jit_risk::calibrate(&typed_files, &commits, now_secs, t.jit))
 }
 
-#[allow(dead_code)]
 pub fn calibrate(
     opts: &HistoryOpts,
     t: &HistoryThresholds,

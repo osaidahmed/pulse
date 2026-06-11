@@ -55,7 +55,6 @@ const CONFIG_KEYS: [&str; Language::COUNT] = [
 impl Language {
     pub const COUNT: usize = <Self as strum::EnumCount>::COUNT;
 
-    #[allow(dead_code)]
     pub const ALL: [Language; Self::COUNT] = [
         Language::Python,
         Language::TypeScript,

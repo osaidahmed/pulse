@@ -5,7 +5,6 @@ use super::HistoryError;
 
 #[derive(Debug, Clone)]
 pub struct Commit {
-    #[allow(dead_code)]
     pub hash: String,
     pub author: String,
     pub timestamp: i64,

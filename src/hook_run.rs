@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::rc::Rc;
 
-use crate::analyze::{self, AnalysisResultFull};
-use crate::interaction::{tier_for, FindingTier};
-use crate::smells::{self, Finding, Location};
-use crate::{analytics, baselines, config, hook, output, parse, test_detection, thresholds};
+use pulse::analyze::{self, AnalysisResultFull};
+use pulse::interaction::{tier_for, FindingTier};
+use pulse::smells::{self, Finding, Location};
+use pulse::{analytics, baselines, config, hook, output, parse, test_detection, thresholds};
 
 const CHECKPOINT_INTERVAL: u32 = 5;
 const CHECKPOINT_INTERVAL_NEW: u32 = 2;
@@ -50,7 +50,7 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     };
 
-    let findings = crate::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, cfg, edit_count));
+    let findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, cfg, edit_count));
     if findings.is_empty() {
         process::exit(0);
     }
@@ -74,7 +74,7 @@ fn collect_hook_findings(
         analysis.findings.iter().filter(|f| !matches!(f.location, Location::Module)).cloned().collect();
 
     let in_range = hook::filter_by_edit_range(func_findings, h.edit_range);
-    let mut findings = crate::baseline_ratchet::filter_worsened(in_range, &func_baseline, &analysis.metrics);
+    let mut findings = pulse::baseline_ratchet::filter_worsened(in_range, &func_baseline, &analysis.metrics);
 
     collect_module_findings(&h.file_path, edit_count, &mut findings, cfg, analysis);
     findings
@@ -82,7 +82,7 @@ fn collect_hook_findings(
 
 fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull, source: &str, path: &Path) {
     let t = &analysis.thresholds;
-    let ranked = crate::intensity::rank_findings(findings, &analysis.metrics, t);
+    let ranked = pulse::intensity::rank_findings(findings, &analysis.metrics, t);
     let (blocking, advisory): (Vec<Finding>, Vec<Finding>) =
         ranked.into_iter().partition(|f| tier_for(f.smell) == FindingTier::Blocking);
     let advisory_ctx = (!advisory.is_empty()).then(|| output::format_advisory(&advisory, &analysis.filename));
@@ -116,7 +116,7 @@ fn build_block_reason(
         None => format!("{}\n{}", compact.trim(), budget),
     };
     push_line(&mut reason, extract_hint_for(blocking, source, path));
-    push_line(&mut reason, crate::history::jit_risk::hook_advisory(source, path));
+    push_line(&mut reason, pulse::history::jit_risk::hook_advisory(source, path));
     reason
 }
 
@@ -134,7 +134,7 @@ fn extract_hint_for(blocking: &[Finding], source: &str, path: &Path) -> Option<S
         Location::Function { start_line, end_line, .. } => (*start_line, *end_line),
         Location::Module => return None,
     };
-    let region = crate::extract::suggest_extract(source, lang, crate::extract::LineSpan { start, end })?;
+    let region = pulse::extract::suggest_extract(source, lang, pulse::extract::LineSpan { start, end })?;
     Some(format!(
         "[extract] lines {}-{} are nested {} levels deep — extracting that block into a helper would flatten the function",
         region.start_line, region.end_line, region.nesting

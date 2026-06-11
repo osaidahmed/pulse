@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use crate::audit::PassChoice;
+use pulse::audit::PassChoice;
 
 pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version";
 

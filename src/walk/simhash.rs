@@ -43,7 +43,6 @@ fn token_hash(parent: &str, kind: &str) -> u64 {
     xxh3_64(buf.as_bytes())
 }
 
-#[allow(dead_code)]
 pub fn simhash_of(source: &str, lang: Language) -> Option<u64> {
     let tree = parse::parse_guarded(source, lang)?;
     Some(compute_simhash(tree.root_node()))

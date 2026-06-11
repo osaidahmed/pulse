@@ -140,7 +140,6 @@ impl Smell {
         SMELL_NAMES[self as usize]
     }
 
-    #[allow(dead_code)]
     pub fn snake_name(self) -> &'static str {
         SMELL_SNAKE_NAMES[self as usize]
     }

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use xxhash_rust::xxh3::xxh3_64;
 
-use crate::thresholds::Thresholds;
+use pulse::thresholds::Thresholds;
 
 mod uninstall;
 

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod cfg;
 mod cfg_langs;
 mod cfg_nodes;

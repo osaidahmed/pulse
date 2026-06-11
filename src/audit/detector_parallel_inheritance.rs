@@ -156,5 +156,4 @@ fn match_count(f: &AuditFinding) -> usize {
     }
 }
 
-#[allow(dead_code)]
 pub fn unused_class_workaround(_c: &ClassIdentity) {}

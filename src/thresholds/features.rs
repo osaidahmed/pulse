@@ -13,7 +13,6 @@ pub struct CpgThresholds {
     pub dead_store: bool,
     pub use_before_def: bool,
     pub unreachable_code: bool,
-    pub unused_result: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -31,8 +30,7 @@ impl CloneClusterThresholds {
 }
 
 impl CpgThresholds {
-    pub const DEFAULTS: Self =
-        Self { enabled: false, dead_store: true, use_before_def: true, unreachable_code: true, unused_result: false };
+    pub const DEFAULTS: Self = Self { enabled: false, dead_store: true, use_before_def: true, unreachable_code: true };
 }
 
 impl NaturalnessThresholds {

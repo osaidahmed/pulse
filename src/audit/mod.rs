@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod abstractness;
 pub mod arch_smells;
 pub mod call_graph;

@@ -123,7 +123,6 @@ field_resolvers! {
         dead_store <- dead_store,
         use_before_def <- use_before_def,
         unreachable_code <- unreachable_code,
-        unused_result <- unused_result,
     }
     fn resolve_duplication(DuplicationThresholds => crate::thresholds::DuplicationThresholds) {
         min_loc <- duplication_min_loc,

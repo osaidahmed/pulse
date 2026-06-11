@@ -227,5 +227,4 @@ fn qualified_method_name(class: Option<&str>, name: &str) -> String {
     class.map_or_else(|| name.to_string(), |c| format!("{c}.{name}"))
 }
 
-#[allow(dead_code)]
 pub fn dummy_unused_shotgun(_e: &ShotgunSurgeryEvidence) {}

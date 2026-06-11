@@ -244,7 +244,6 @@ fn collect_caller_samples(
     samples
 }
 
-#[allow(dead_code)]
 pub fn run_from_inputs(
     definitions: Vec<DefinitionRecord>,
     calls: Vec<LocatedCall>,

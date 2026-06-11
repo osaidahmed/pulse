@@ -457,13 +457,13 @@ fn cpg_section_overrides_flags() {
         r"
         [thresholds.cpg]
         enabled = true
-        unused_result = true
+        unreachable_code = false
         ",
     )
     .unwrap();
     let resolved = config::resolve_thresholds(Some(&cfg), Language::Python);
     assert!(resolved.cpg.enabled);
-    assert!(resolved.cpg.unused_result);
+    assert!(!resolved.cpg.unreachable_code);
     assert_eq!(resolved.cpg.dead_store, t().cpg.dead_store);
     assert_eq!(resolved.cpg.use_before_def, t().cpg.use_before_def);
 }
