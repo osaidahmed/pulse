@@ -49,6 +49,8 @@ mod audit_community;
 mod audit_components;
 #[path = "integration/audit_corpus_stats_unit.rs"]
 mod audit_corpus_stats_unit;
+#[path = "integration/audit_coverage_disclosure.rs"]
+mod audit_coverage_disclosure;
 #[path = "integration/audit_cross_language_separation.rs"]
 mod audit_cross_language_separation;
 #[path = "integration/audit_cycle_shapes.rs"]

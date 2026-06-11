@@ -239,6 +239,10 @@ fn lang_for(lang: Language) -> Option<&'static TaintLang> {
     TABLE.iter().find(|(l, _)| *l == lang).map(|(_, tl)| *tl)
 }
 
+pub fn covers(lang: Language) -> bool {
+    lang_for(lang).is_some()
+}
+
 pub fn run(typed_files: &[(PathBuf, Language)], thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     run_from(&super::corpus::Corpus::load(typed_files), thresholds)
 }

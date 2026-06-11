@@ -8,6 +8,10 @@ pub fn t() -> Thresholds {
     Thresholds::default()
 }
 
+pub fn plain_ctx(suppression: &pulse::config::AuditSuppression) -> pulse::audit::output::RenderCtx<'_> {
+    pulse::audit::output::RenderCtx { root: None, show_noise: false, suppression, cpg_enabled: false }
+}
+
 pub fn audit_fixtures_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join("audit")
 }

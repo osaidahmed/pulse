@@ -1,4 +1,24 @@
 use crate::cpg::cfg::CfgLang;
+use crate::parse::Language;
+
+pub fn covers(lang: Language) -> bool {
+    matches!(
+        lang,
+        Language::Python
+            | Language::Rust
+            | Language::TypeScript
+            | Language::JavaScript
+            | Language::Php
+            | Language::Java
+            | Language::CSharp
+            | Language::Go
+            | Language::C
+            | Language::Cpp
+            | Language::Ruby
+            | Language::Kotlin
+            | Language::Swift
+    )
+}
 
 pub const PYTHON: CfgLang = CfgLang {
     if_kinds: &["if_statement"],

@@ -111,16 +111,16 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
         suppression,
     };
     let findings = audit::run_with_filter(&opts, &thresholds.audit, &filter);
+    let ctx = audit::output::RenderCtx {
+        root: Some(&root),
+        show_noise: opts.show_noise,
+        suppression: &opts.suppression,
+        cpg_enabled: thresholds.cpg.enabled,
+    };
     let rendered = if args.json {
-        audit::output::format_findings_json_filtered(&findings, Some(&root), opts.show_noise, &opts.suppression)
+        audit::output::format_findings_json_filtered(&findings, &ctx)
     } else {
-        audit::output::format_findings_filtered(
-            &findings,
-            Some(&root),
-            &thresholds.audit,
-            opts.show_noise,
-            &opts.suppression,
-        )
+        audit::output::format_findings_filtered(&findings, &thresholds.audit, &ctx)
     };
     if !rendered.is_empty() {
         print!("{rendered}");

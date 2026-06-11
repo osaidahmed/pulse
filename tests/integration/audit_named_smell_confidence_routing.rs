@@ -8,7 +8,7 @@ use pulse::audit::finding::{
 use pulse::audit::output::{format_findings_filtered, format_findings_json_filtered};
 use pulse::config::AuditSuppression;
 
-use crate::audit_common::t;
+use crate::audit_common::{plain_ctx, t};
 
 fn wrap(kind: AuditKind) -> AuditFinding {
     AuditFinding {
@@ -102,12 +102,12 @@ fn refused_bequest(c: ImportConfidence) -> AuditFinding {
 
 fn render_human(findings: Vec<AuditFinding>) -> String {
     let suppression = AuditSuppression::new();
-    format_findings_filtered(&findings, None, &t().audit, false, &suppression)
+    format_findings_filtered(&findings, &t().audit, &plain_ctx(&suppression))
 }
 
 fn render_json(findings: Vec<AuditFinding>) -> serde_json::Value {
     let suppression = AuditSuppression::new();
-    let s = format_findings_json_filtered(&findings, None, false, &suppression);
+    let s = format_findings_json_filtered(&findings, &plain_ctx(&suppression));
     serde_json::from_str::<serde_json::Value>(&s).expect("valid JSON")
 }
 

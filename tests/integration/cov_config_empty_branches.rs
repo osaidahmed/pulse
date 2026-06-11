@@ -4,7 +4,7 @@ use pulse::audit::finding::{AuditFinding, AuditKind, PatternCategory};
 use pulse::audit::output::format_findings_filtered;
 use pulse::config::{AuditConfig, AuditSuppression, IgnoreMatcher};
 
-use crate::audit_common::t;
+use crate::audit_common::{plain_ctx, t};
 
 fn pattern_finding(snippet: &str) -> AuditFinding {
     AuditFinding {
@@ -40,7 +40,7 @@ fn from_config_skips_blank_hide_pattern_entry() {
     assert!(!supp.is_empty(), "non-blank pattern keeps suppression active");
 
     let findings = vec![pattern_finding("migrations.RunPython(forwards)"), pattern_finding("path('home', views.home)")];
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(!out.contains("RunPython"), "real glob still hides matching finding: {out}");
     assert!(out.contains("path('home'"), "non-matching finding survives: {out}");
 }
@@ -53,7 +53,7 @@ fn from_config_blank_only_pattern_yields_empty_pattern_set() {
     assert!(supp.is_empty(), "blank-only hide_patterns must produce empty suppression");
 
     let findings = vec![pattern_finding("foo()")];
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(out.contains("foo()"), "nothing suppressed: {out}");
     assert!(!out.contains("hidden by .pulse.toml"), "no suppression header: {out}");
 }

@@ -28,24 +28,18 @@ pub struct RenderCtx<'a> {
     pub root: Option<&'a Path>,
     pub show_noise: bool,
     pub suppression: &'a AuditSuppression,
+    pub cpg_enabled: bool,
 }
 
-pub fn format_findings_filtered(
-    findings: &[AuditFinding],
-    root: Option<&Path>,
-    thresholds: &AuditThresholds,
-    show_noise: bool,
-    suppression: &AuditSuppression,
-) -> String {
-    let ctx = RenderCtx { root, show_noise, suppression };
-    let visible = filter_visible(findings, show_noise, suppression);
+pub fn format_findings_filtered(findings: &[AuditFinding], thresholds: &AuditThresholds, ctx: &RenderCtx) -> String {
+    let visible = filter_visible(findings, ctx.show_noise, ctx.suppression);
     if findings.is_empty() {
         return String::new();
     }
     let mut out = String::new();
-    write_human_header(&mut out, findings, &visible, &ctx);
+    write_human_header(&mut out, findings, &visible, ctx);
     let pillar_ctx = super::output_sections::PillarCtx {
-        root,
+        root: ctx.root,
         thresholds,
         render_pattern: render_pattern_human,
         render_other: render_human,
@@ -59,18 +53,13 @@ pub fn format_findings_json(findings: &[AuditFinding], root: Option<&Path>) -> S
     serde_json::Value::Array(entries).to_string()
 }
 
-pub fn format_findings_json_filtered(
-    findings: &[AuditFinding],
-    root: Option<&Path>,
-    show_noise: bool,
-    suppression: &AuditSuppression,
-) -> String {
-    let visible = filter_visible(findings, show_noise, suppression);
-    let entries: Vec<serde_json::Value> = visible.iter().map(|f| enrich_json(render_json(f, root), f)).collect();
+pub fn format_findings_json_filtered(findings: &[AuditFinding], ctx: &RenderCtx) -> String {
+    let visible = filter_visible(findings, ctx.show_noise, ctx.suppression);
+    let entries: Vec<serde_json::Value> = visible.iter().map(|f| enrich_json(render_json(f, ctx.root), f)).collect();
     if findings.is_empty() {
         return serde_json::Value::Array(entries).to_string();
     }
-    let summary = build_summary(findings, &visible, root);
+    let summary = build_summary(findings, &visible, ctx);
     serde_json::json!({"summary": summary, "findings": entries}).to_string()
 }
 
@@ -102,7 +91,7 @@ fn enrich_json(mut v: serde_json::Value, f: &AuditFinding) -> serde_json::Value 
     v
 }
 
-fn build_summary(all: &[AuditFinding], visible: &[&AuditFinding], root: Option<&Path>) -> serde_json::Value {
+fn build_summary(all: &[AuditFinding], visible: &[&AuditFinding], ctx: &RenderCtx) -> serde_json::Value {
     let hidden = all.len().saturating_sub(visible.len());
     let mut by_pass: std::collections::BTreeMap<&'static str, u32> = std::collections::BTreeMap::new();
     let mut by_confidence: std::collections::BTreeMap<&'static str, u32> = std::collections::BTreeMap::new();
@@ -111,11 +100,12 @@ fn build_summary(all: &[AuditFinding], visible: &[&AuditFinding], root: Option<&
         *by_confidence.entry(confidence_str(finding_confidence(f))).or_insert(0) += 1;
     }
     serde_json::json!({
-        "root": root.map_or(String::new(), |r| r.display().to_string()),
+        "root": ctx.root.map_or(String::new(), |r| r.display().to_string()),
         "findings_total": visible.len(),
         "noise_hidden": hidden,
         "by_pass": by_pass,
         "by_confidence": by_confidence,
+        "language_coverage": super::coverage::summary_json(ctx.cpg_enabled),
     })
 }
 
@@ -134,6 +124,7 @@ fn write_human_header(out: &mut String, all: &[AuditFinding], visible: &[&AuditF
         "       {} pattern-mining · {} package-metrics · {} named-smells",
         counts.pattern, counts.package, counts.named
     );
+    let _ = writeln!(out, "       analyzed: {}", super::coverage::disclosure(ctx.cpg_enabled));
     if noise_hidden > 0 && !ctx.show_noise {
         let _ =
             writeln!(out, "       {noise_hidden} hidden under noise categories  (run with --show-noise to surface)");

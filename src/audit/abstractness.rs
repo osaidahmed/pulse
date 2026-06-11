@@ -188,6 +188,10 @@ fn profile_for_lang(lang: Language) -> Option<AbstractnessProfile> {
     PROFILE_TABLE.iter().find(|(l, _)| *l == lang).map(|(_, p)| *p)
 }
 
+pub fn covers(lang: Language) -> bool {
+    profile_for_lang(lang).is_some()
+}
+
 fn unmeasured() -> AbstractnessRecord {
     AbstractnessRecord { abstractness: None, confidence: ImportConfidence::NaAbstraction }
 }

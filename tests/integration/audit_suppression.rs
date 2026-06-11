@@ -5,7 +5,7 @@ use pulse::audit::output::{format_findings_filtered, format_findings_json_filter
 use pulse::config::{AuditConfig, AuditSuppression};
 use std::path::PathBuf;
 
-use crate::audit_common::t;
+use crate::audit_common::{plain_ctx, t};
 
 fn pattern_finding(snippet: &str, category: PatternCategory) -> AuditFinding {
     AuditFinding {
@@ -66,7 +66,7 @@ fn hide_categories_removes_pattern_findings() {
         pattern_finding("\"x\"", PatternCategory::LiteralRepetition),
     ];
     let supp = cfg(&["method_call"], &[], &[]);
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(!out.contains("foo()"), "method_call category should be hidden");
     assert!(out.contains("\"x\""), "literal_repetition should remain");
     assert!(out.contains("hidden by .pulse.toml"), "header should report suppression");
@@ -76,7 +76,7 @@ fn hide_categories_removes_pattern_findings() {
 fn hide_smells_removes_named_findings() {
     let findings = vec![shotgun_finding("search"), shotgun_finding("save")];
     let supp = cfg(&[], &["shotgun_surgery"], &[]);
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(!out.contains("shotgun surgery"), "all shotgun findings hidden");
     assert!(out.contains("hidden by .pulse.toml"));
 }
@@ -88,7 +88,7 @@ fn hide_patterns_glob_matches_representative_snippet() {
         pattern_finding("path('home', views.home)", PatternCategory::MethodCall),
     ];
     let supp = cfg(&[], &[], &["migrations.*"]);
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(!out.contains("RunPython"), "migrations glob should hide RunPython");
     assert!(out.contains("path('home'"), "path() pattern remains");
 }
@@ -97,7 +97,7 @@ fn hide_patterns_glob_matches_representative_snippet() {
 fn empty_suppression_passes_everything_through() {
     let findings = vec![pattern_finding("foo()", PatternCategory::MethodCall)];
     let supp = AuditSuppression::new();
-    let out = format_findings_filtered(&findings, None, &t().audit, false, &supp);
+    let out = format_findings_filtered(&findings, &t().audit, &plain_ctx(&supp));
     assert!(out.contains("foo()"));
     assert!(!out.contains("hidden by .pulse.toml"));
 }
@@ -106,7 +106,7 @@ fn empty_suppression_passes_everything_through() {
 fn suppression_applies_to_json_output() {
     let findings = vec![shotgun_finding("search"), shotgun_finding("save")];
     let supp = cfg(&[], &["shotgun_surgery"], &[]);
-    let out = format_findings_json_filtered(&findings, None, false, &supp);
+    let out = format_findings_json_filtered(&findings, &plain_ctx(&supp));
     let parsed: serde_json::Value = serde_json::from_str(&out).expect("valid json");
     let findings_array = parsed.get("findings").and_then(|v| v.as_array()).expect("findings array");
     assert!(findings_array.is_empty(), "json should also filter hidden findings");
