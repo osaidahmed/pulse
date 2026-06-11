@@ -162,7 +162,7 @@ fn analyze_method(node: Node, source: &str) -> Option<FunctionMetrics> {
 fn build_metrics(node: Node, source: &str, info: MethodContext) -> Option<FunctionMetrics> {
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
-    let loc = end_line.saturating_sub(start_line) + 1;
+    let loc = crate::walk::span_code_lines(node, source, COMMENT_PREFIXES);
 
     let body = find_child_by_kind(node, "block")?;
     let cpg = super::cpg_for(body, node, source, &crate::cpg::GO);

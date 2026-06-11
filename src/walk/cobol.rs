@@ -162,7 +162,7 @@ fn build_paragraph(info: &ParaInfo, section: Option<&str>, out: &mut Vec<Functio
         name: info.name.to_string(),
         start_line: info.start_line,
         end_line: info.end_line,
-        loc: info.end_line.saturating_sub(info.start_line) + 1,
+        loc: crate::walk::line_span_code_lines(info.source, info.start_line..=info.end_line, COMMENT_PREFIXES),
         cc: bw.s.cc,
         cognitive_complexity: bw.s.cogc,
         max_nesting: bw.s.max_nesting,

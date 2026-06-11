@@ -111,7 +111,7 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         name: String::new(),
         start_line: sl,
         end_line: el,
-        loc: el.saturating_sub(sl) + 1,
+        loc: crate::walk::line_span_code_lines(source, sl..=el, super::COMMENT_PREFIXES),
         cc: s.cc,
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,

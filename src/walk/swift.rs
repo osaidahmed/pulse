@@ -150,7 +150,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
-    let loc = end_line.saturating_sub(start_line) + 1;
+    let loc = crate::walk::span_code_lines(node, source, COMMENT_PREFIXES);
     let (arg_count, primitive_type_count, typed_param_count, max_same_primitive_count) = count_parameters(node, source);
 
     let body = find_child_by_kind(node, "function_body")?;

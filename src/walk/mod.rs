@@ -200,6 +200,20 @@ pub fn count_code_lines(source: &str, comment_prefixes: &[&str]) -> u32 {
     source.lines().filter(|line| is_code_line(line.as_bytes(), comment_prefixes)).count() as u32
 }
 
+pub fn span_code_lines(node: Node, source: &str, comment_prefixes: &[&str]) -> u32 {
+    count_code_lines(&source[node.byte_range()], comment_prefixes)
+}
+
+pub fn line_span_code_lines(source: &str, lines: std::ops::RangeInclusive<u32>, comment_prefixes: &[&str]) -> u32 {
+    let span = (lines.end().saturating_sub(*lines.start()) + 1) as usize;
+    source
+        .lines()
+        .skip(lines.start().saturating_sub(1) as usize)
+        .take(span)
+        .filter(|line| is_code_line(line.as_bytes(), comment_prefixes))
+        .count() as u32
+}
+
 fn is_code_line(line: &[u8], comment_prefixes: &[&str]) -> bool {
     let trimmed = trim_leading_whitespace(line);
     !trimmed.is_empty() && !comment_prefixes.iter().any(|p| trimmed.starts_with(p.as_bytes()))

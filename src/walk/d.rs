@@ -76,6 +76,7 @@ fn collect_functions(node: Node, source: &str, fns: &mut Vec<FunctionMetrics>, c
                 fns.push(finish(
                     format!("unittest_L{line}"),
                     child,
+                    source,
                     &s,
                     body,
                     ParamInfo { args: 0, primitives: 0, typed: 0, max_same: 0 },
@@ -138,20 +139,20 @@ fn build_fn(node: Node, source: &str, name: String, pi: ParamInfo) -> Option<Fun
     let body = find_child_by_kind(fb, "block_statement")?;
     let mut s = WalkState::new();
     walk_body(body, source, 0, &mut s);
-    let mut m = finish(name, node, &s, body, pi);
+    let mut m = finish(name, node, source, &s, body, pi);
     m.short_var_count = count_short_variables(body, source, &["variable_declaration", "auto_declaration"]);
     m.string_match_arms = count_string_match_arms(body, "switch_statement", "case_statement", &["string_literal"], &[]);
     Some(m)
 }
 
-fn finish(name: String, node: Node, s: &WalkState, body: Node, pi: ParamInfo) -> FunctionMetrics {
+fn finish(name: String, node: Node, source: &str, s: &WalkState, body: Node, pi: ParamInfo) -> FunctionMetrics {
     let sl = node.start_position().row as u32 + 1;
     let el = node.end_position().row as u32 + 1;
     FunctionMetrics {
         name,
         start_line: sl,
         end_line: el,
-        loc: el.saturating_sub(sl) + 1,
+        loc: crate::walk::span_code_lines(node, source, COMMENT_PREFIXES),
         cc: s.cc,
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,

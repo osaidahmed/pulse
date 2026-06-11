@@ -119,7 +119,7 @@ struct ParamCounts {
 fn build_metrics(node: Node, source: &str, name: String, params: ParamCounts) -> Option<FunctionMetrics> {
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
-    let loc = end_line.saturating_sub(start_line) + 1;
+    let loc = crate::walk::span_code_lines(node, source, super::COMMENT_PREFIXES);
     let body = find_child_by_kind(node, "block")?;
     let mut s = WalkState::new();
     super::walk_body_pub(body, source, 0, &mut s);

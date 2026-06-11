@@ -135,7 +135,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
         name,
         start_line: sl,
         end_line: el,
-        loc: el.saturating_sub(sl) + 1,
+        loc: crate::walk::span_code_lines(node, source, COMMENT_PREFIXES),
         cc: s.cc,
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,

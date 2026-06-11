@@ -163,7 +163,7 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
         name,
         start_line,
         end_line,
-        loc: end_line.saturating_sub(start_line) + 1,
+        loc: crate::walk::span_code_lines(node, source, COMMENT_PREFIXES),
         cc: s.cc,
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,

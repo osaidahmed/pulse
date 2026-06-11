@@ -301,9 +301,9 @@ fn loc_simple() {
 }
 
 #[test]
-fn loc_blank_lines_counted() {
+fn loc_blank_lines_excluded() {
     let d = debug("void f() {\n    int x = 1;\n\n    int y = 2;\n}\n");
-    assert_eq!(function_metric(&d, "f", "loc"), Some(5));
+    assert_eq!(function_metric(&d, "f", "loc"), Some(4));
 }
 
 #[test]
