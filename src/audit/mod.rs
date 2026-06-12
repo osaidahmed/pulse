@@ -59,6 +59,7 @@ pub mod output_sections;
 pub mod output_taint;
 pub mod output_vuln_clones;
 pub mod package_metrics;
+mod passes;
 pub mod record_extraction;
 pub mod remodularization;
 pub mod scoring;
@@ -128,33 +129,11 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
 pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &IgnoreFilter) -> Vec<AuditFinding> {
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let shared = corpus::Corpus::load(&typed_files);
-    let passes = active_passes(opts.pass);
+    let active = active_passes(opts.pass);
+    let ctx = passes::PassCtx { shared: &shared, typed_files: &typed_files, root: &opts.root, thresholds };
     let mut findings: Vec<AuditFinding> = Vec::new();
-    if passes.contains(&PassChoice::PatternMining) {
-        findings.extend(run_pattern_mining(&shared, thresholds));
-    }
-    if passes.contains(&PassChoice::PackageMetrics) {
-        findings.extend(run_package_metrics(&shared, &typed_files, &opts.root, thresholds));
-    }
-    if passes.contains(&PassChoice::NamedSmells) {
-        findings.extend(named_smells::run_from(&shared, &opts.root, thresholds));
-    }
-    if passes.contains(&PassChoice::Deps) {
-        findings.extend(deps_reconcile::run_from(&shared, &opts.root, thresholds));
-    }
-    if passes.contains(&PassChoice::Taint) {
-        findings.extend(taint::run_from(&shared, thresholds));
-    }
-    if passes.contains(&PassChoice::Clones) {
-        findings.extend(duplication_clusters::run_from(&shared, thresholds));
-    }
-    if passes.contains(&PassChoice::Naturalness) {
-        findings.extend(crate::naturalness::run_from(&shared, thresholds));
-    }
-    if passes.contains(&PassChoice::VulnClones) {
-        findings.extend(vuln_clones::run_from(&shared, thresholds));
-    }
-    maybe_cross_validate(&mut findings, opts, thresholds, filter, &passes);
+    passes::run_selected_passes(&mut findings, &active, &ctx);
+    maybe_cross_validate(&mut findings, opts, thresholds, filter, &active);
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
@@ -200,34 +179,6 @@ pub fn active_passes(pass: Option<PassChoice>) -> Vec<PassChoice> {
         }
         Some(choice) => vec![choice],
     }
-}
-
-fn run_pattern_mining(shared: &corpus::Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let bundle = record_extraction::corpus_bundle_from(shared, thresholds);
-    let stats = corpus_stats::aggregate_corpus(bundle.features);
-    let flagged = vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.pattern_mining.vendor));
-    let filtered: Vec<_> = bundle.subtrees.into_iter().filter(|r| !flagged.contains(&r.file)).collect();
-    let expression_fps: std::collections::HashSet<u64> = bundle
-        .kinds_by_fp
-        .keys()
-        .copied()
-        .filter(|fp| expression_filter::is_expression_level(*fp, &bundle.kinds_by_fp))
-        .collect();
-    let clusters = discovery::closed_mine(&filtered, &expression_fps, thresholds);
-    let shapes = complexity_floor::shape_index(&filtered);
-    let trimmed = complexity_floor::filter_clusters(clusters, &shapes, thresholds.pattern_mining.complexity);
-    let expression_only = expression_filter::keep_expression_clusters(trimmed, &bundle.kinds_by_fp);
-    let vocab = bundle.kinds_by_fp.values().flatten().collect::<std::collections::HashSet<_>>().len();
-    let size_by_fp: std::collections::HashMap<u64, u32> =
-        filtered.iter().map(|r| (r.fingerprint, r.named_node_count)).collect();
-    let ctx = scoring::ScoringCtx {
-        kinds_by_fp: &bundle.kinds_by_fp,
-        size_by_fp: &size_by_fp,
-        corpus: mdl::CorpusScale { vocab, total_occurrences: filtered.len() as u64 },
-        floor: thresholds.pattern_mining.mdl.compression_floor_bits,
-        max_findings: thresholds.pattern_mining.max_findings_reported,
-    };
-    scoring::build_findings(expression_only, &ctx)
 }
 
 const MIN_SUPPORTED_MODULES_FOR_PACKAGE_METRICS: usize = 5;
