@@ -14,6 +14,12 @@ mod buildmeta;
 #[path = "integration/calibrate_census.rs"]
 mod calibrate_census;
 
+#[path = "integration/calibrate_priors.rs"]
+mod calibrate_priors;
+
+#[path = "integration/priors_sweep.rs"]
+mod priors_sweep;
+
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
 

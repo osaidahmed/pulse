@@ -1,3 +1,6 @@
+pub mod priors;
+pub mod stats;
+
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
