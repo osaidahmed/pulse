@@ -53,7 +53,8 @@ pub fn run_hook(h: hook::HookInput) {
     if scope.is_none() {
         pulse::analysis_cache::store(&h.file_path, &source, &analysis);
     }
-    let findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, edit_count));
+    let mut findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, edit_count));
+    findings.extend(pulse::import_check::run(&h.file_path, &source, lang, h.original_file.as_deref()));
     if findings.is_empty() {
         process::exit(0);
     }

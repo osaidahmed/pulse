@@ -366,6 +366,8 @@ mod hook_diff_filtering;
 mod hook_filtering;
 #[path = "integration/hook_protocol.rs"]
 mod hook_protocol;
+#[path = "integration/import_check.rs"]
+mod import_check;
 #[path = "integration/intensity_grading.rs"]
 mod intensity_grading;
 #[path = "integration/interaction_model.rs"]

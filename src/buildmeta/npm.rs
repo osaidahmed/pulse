@@ -21,6 +21,9 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
             });
         }
     }
+    if let Some(own) = doc.get("name").and_then(|n| n.as_str()) {
+        deps.push(DeclaredDep { name: own.to_string(), constraint: String::new(), scope: DepScope::Deployed, line: 0 });
+    }
     let workspace_members = doc
         .get("workspaces")
         .and_then(|w| w.as_array().or_else(|| w.get("packages").and_then(|p| p.as_array())))

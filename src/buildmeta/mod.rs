@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
 
 mod cargo;
+pub mod declared;
 mod gemfile;
 mod golang;
 mod npm;
 mod python;
+pub mod stdlib;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {

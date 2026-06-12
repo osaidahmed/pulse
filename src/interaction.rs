@@ -58,6 +58,7 @@ const BLOCKING: &[Smell] = &[
     Smell::DeadStore,
     Smell::UseBeforeDef,
     Smell::UnreachableCode,
+    Smell::HallucinatedImport,
 ];
 
 const ADVISORY: &[Smell] =

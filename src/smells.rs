@@ -37,6 +37,7 @@ pub enum Smell {
     DeadStore,
     UseBeforeDef,
     UnreachableCode,
+    HallucinatedImport,
 }
 
 const SMELL_NAMES: &[&str] = &[
@@ -69,6 +70,7 @@ const SMELL_NAMES: &[&str] = &[
     "Dead Store",
     "Use Before Definition",
     "Unreachable Code",
+    "Hallucinated Import",
 ];
 
 const SMELL_SNAKE_NAMES: &[&str] = &[
@@ -101,6 +103,7 @@ const SMELL_SNAKE_NAMES: &[&str] = &[
     "dead_store",
     "use_before_def",
     "unreachable_code",
+    "hallucinated_import",
 ];
 
 pub const ALL_SMELLS: &[Smell] = &[
@@ -133,6 +136,7 @@ pub const ALL_SMELLS: &[Smell] = &[
     Smell::DeadStore,
     Smell::UseBeforeDef,
     Smell::UnreachableCode,
+    Smell::HallucinatedImport,
 ];
 
 impl Smell {

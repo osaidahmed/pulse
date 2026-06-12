@@ -113,6 +113,7 @@ const ACTIONS: &[&str] = &[
     "remove the dead assignment or use its value before reassigning",
     "define the variable before it is read on every path",
     "remove the unreachable code or fix the control flow that skips it",
+    "verify the package name against the manifest or declare the dependency",
 ];
 
 pub fn action_for(smell: Smell, detail: &str) -> &'static str {

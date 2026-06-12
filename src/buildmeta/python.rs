@@ -20,6 +20,9 @@ pub(super) fn parse_pyproject(path: &Path, source: &str) -> Option<Manifest> {
             collect_poetry_table(group.get("dependencies"), DepScope::Dev, source, &mut deps);
         }
     }
+    if let Some(own) = project.and_then(|p| p.get("name")).and_then(|n| n.as_str()) {
+        deps.push(DeclaredDep { name: own.to_string(), constraint: String::new(), scope: DepScope::Deployed, line: 0 });
+    }
     Some(Manifest { path: path.to_path_buf(), ecosystem: Ecosystem::Pip, deps, workspace_members: Vec::new() })
 }
 

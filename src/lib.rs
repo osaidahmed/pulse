@@ -15,6 +15,7 @@ pub mod duplication;
 pub mod extract;
 pub mod history;
 pub mod hook;
+pub mod import_check;
 pub mod intensity;
 pub mod interaction;
 pub mod langkinds;

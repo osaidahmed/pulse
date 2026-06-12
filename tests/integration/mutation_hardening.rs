@@ -211,3 +211,16 @@ fn rank_findings_orders_by_descending_intensity() {
     };
     assert_eq!(first, "severe", "higher-intensity finding must rank first");
 }
+
+#[test]
+fn every_smell_is_registered_across_all_tables() {
+    for &smell in pulse::smells::ALL_SMELLS {
+        assert!(!pulse::output::action_for(smell, "").is_empty(), "{smell:?} lacks an action");
+        assert!(!smell.as_str().is_empty(), "{smell:?} lacks a display name");
+        assert_eq!(
+            pulse::smells::smell_from_snake_case(smell.snake_name()),
+            Some(smell),
+            "{smell:?} snake name must round-trip"
+        );
+    }
+}

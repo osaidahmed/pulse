@@ -7,22 +7,11 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
     let mut in_require_block = false;
     for (i, raw) in source.lines().enumerate() {
         let line = raw.split("//").next().unwrap_or(raw).trim();
-        if line.starts_with("require (") {
-            in_require_block = true;
-            continue;
-        }
-        if in_require_block && line.starts_with(')') {
-            in_require_block = false;
-            continue;
-        }
-        let spec = if in_require_block {
-            line
-        } else if let Some(rest) = line.strip_prefix("require ") {
-            rest.trim()
-        } else {
-            continue;
-        };
-        if let Some(dep) = module_dep(spec, i as u32 + 1) {
+        let lineno = i as u32 + 1;
+        if let Some(own) = line.strip_prefix("module ") {
+            let own = own.trim().to_string();
+            deps.push(DeclaredDep { name: own, constraint: String::new(), scope: DepScope::Deployed, line: lineno });
+        } else if let Some(dep) = require_spec(line, &mut in_require_block).and_then(|s| module_dep(s, lineno)) {
             deps.push(dep);
         }
     }
@@ -32,6 +21,21 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
         deps,
         workspace_members: Vec::new(),
     })
+}
+
+fn require_spec<'a>(line: &'a str, in_block: &mut bool) -> Option<&'a str> {
+    if line.starts_with("require (") {
+        *in_block = true;
+        return None;
+    }
+    if *in_block {
+        if line.starts_with(')') {
+            *in_block = false;
+            return None;
+        }
+        return Some(line);
+    }
+    line.strip_prefix("require ").map(str::trim)
 }
 
 fn module_dep(spec: &str, line: u32) -> Option<DeclaredDep> {
