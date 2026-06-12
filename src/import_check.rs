@@ -6,7 +6,7 @@ use crate::buildmeta::{declared, stdlib, Ecosystem};
 use crate::parse::{parse_guarded, Language};
 use crate::smells::{Finding, Location, Smell};
 
-const PYTHON_IMPORT_ALIASES: &[(&str, &str)] = &[
+pub(crate) const PYTHON_IMPORT_ALIASES: &[(&str, &str)] = &[
     ("attr", "attrs"),
     ("bs4", "beautifulsoup4"),
     ("cv2", "opencv-python"),
@@ -59,7 +59,7 @@ pub fn run(file_path: &str, source: &str, lang: Language, original: Option<&str>
     findings
 }
 
-fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
+pub(crate) fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
     match lang {
         Language::Python => Some(Ecosystem::Pip),
         Language::TypeScript | Language::JavaScript => Some(Ecosystem::Npm),
@@ -70,7 +70,7 @@ fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
     }
 }
 
-fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
+pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
     if is_local_path(target) {
         return None;
     }
@@ -148,7 +148,7 @@ fn dir_resolves(dir: &Path, root_name: &str, exts: &[&str]) -> bool {
     exts.iter().any(|ext| dir.join(format!("{root_name}.{ext}")).is_file())
 }
 
-fn normalize(name: &str) -> String {
+pub(crate) fn normalize(name: &str) -> String {
     name.to_lowercase().replace('_', "-")
 }
 

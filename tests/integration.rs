@@ -70,6 +70,8 @@ mod audit_cycles;
 mod audit_decoupling;
 #[path = "integration/audit_definitions.rs"]
 mod audit_definitions;
+#[path = "integration/audit_deps_reconcile.rs"]
+mod audit_deps_reconcile;
 #[path = "integration/audit_detector_correctness.rs"]
 mod audit_detector_correctness;
 #[path = "integration/audit_discovery.rs"]

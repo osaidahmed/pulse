@@ -30,6 +30,7 @@ pub struct DeclaredDep {
     pub constraint: String,
     pub scope: DepScope,
     pub line: u32,
+    pub own: bool,
 }
 
 #[derive(Debug, Clone)]

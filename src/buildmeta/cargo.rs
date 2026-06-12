@@ -21,7 +21,13 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
         }
     }
     if let Some(own) = doc.get("package").and_then(|p| p.get("name")).and_then(|n| n.as_str()) {
-        deps.push(DeclaredDep { name: own.to_string(), constraint: String::new(), scope: DepScope::Deployed, line: 0 });
+        deps.push(DeclaredDep {
+            name: own.to_string(),
+            constraint: String::new(),
+            scope: DepScope::Deployed,
+            line: 0,
+            own: true,
+        });
     }
     let workspace_members = doc
         .get("workspace")
@@ -46,7 +52,13 @@ fn collect_dep_table(table: Option<&toml::Value>, scope: DepScope, source: &str,
         };
         let renamed = spec.as_table().and_then(|t| t.get("package")).and_then(|p| p.as_str());
         let resolved_name = renamed.unwrap_or(name);
-        out.push(DeclaredDep { name: resolved_name.to_string(), constraint, scope, line: line_of(source, name) });
+        out.push(DeclaredDep {
+            name: resolved_name.to_string(),
+            constraint,
+            scope,
+            line: line_of(source, name),
+            own: false,
+        });
     }
 }
 

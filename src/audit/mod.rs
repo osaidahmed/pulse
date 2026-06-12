@@ -19,6 +19,7 @@ pub mod coverage;
 pub mod cycle_shapes;
 pub mod cycles;
 pub mod definitions;
+pub mod deps_reconcile;
 pub mod detector_divergent_change;
 pub mod detector_feature_envy;
 pub mod detector_god_class;
@@ -48,6 +49,7 @@ pub mod output;
 pub mod output_advisory;
 pub mod output_arch;
 pub mod output_clones;
+pub mod output_deps;
 pub mod output_grouped;
 pub mod output_helpers;
 pub mod output_named_smells;
@@ -107,6 +109,7 @@ pub enum PassChoice {
     PatternMining,
     PackageMetrics,
     NamedSmells,
+    Deps,
     Taint,
     Clones,
     Naturalness,
@@ -135,6 +138,9 @@ pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &
     }
     if passes.contains(&PassChoice::NamedSmells) {
         findings.extend(named_smells::run_from(&shared, &opts.root, thresholds));
+    }
+    if passes.contains(&PassChoice::Deps) {
+        findings.extend(deps_reconcile::run_from(&shared, &opts.root, thresholds));
     }
     if passes.contains(&PassChoice::Taint) {
         findings.extend(taint::run_from(&shared, thresholds));
@@ -190,7 +196,7 @@ fn populate_action_labels(findings: &mut [AuditFinding]) {
 pub fn active_passes(pass: Option<PassChoice>) -> Vec<PassChoice> {
     match pass {
         Some(PassChoice::All) | None => {
-            vec![PassChoice::PatternMining, PassChoice::PackageMetrics, PassChoice::NamedSmells]
+            vec![PassChoice::PatternMining, PassChoice::PackageMetrics, PassChoice::NamedSmells, PassChoice::Deps]
         }
         Some(choice) => vec![choice],
     }

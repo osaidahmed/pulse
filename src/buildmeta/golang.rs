@@ -10,7 +10,13 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
         let lineno = i as u32 + 1;
         if let Some(own) = line.strip_prefix("module ") {
             let own = own.trim().to_string();
-            deps.push(DeclaredDep { name: own, constraint: String::new(), scope: DepScope::Deployed, line: lineno });
+            deps.push(DeclaredDep {
+                name: own,
+                constraint: String::new(),
+                scope: DepScope::Deployed,
+                line: lineno,
+                own: true,
+            });
         } else if let Some(dep) = require_spec(line, &mut in_require_block).and_then(|s| module_dep(s, lineno)) {
             deps.push(dep);
         }
@@ -45,7 +51,7 @@ fn module_dep(spec: &str, line: u32) -> Option<DeclaredDep> {
         return None;
     }
     let constraint = parts.next().unwrap_or_default().to_string();
-    Some(DeclaredDep { name: name.to_string(), constraint, scope: DepScope::Deployed, line })
+    Some(DeclaredDep { name: name.to_string(), constraint, scope: DepScope::Deployed, line, own: false })
 }
 
 pub(super) fn parse_lockfile(path: &Path, source: &str) -> Option<Lockfile> {

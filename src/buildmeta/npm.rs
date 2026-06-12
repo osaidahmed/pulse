@@ -18,11 +18,18 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
                 constraint: constraint.as_str().unwrap_or_default().to_string(),
                 scope,
                 line: line_of(source, name),
+                own: false,
             });
         }
     }
     if let Some(own) = doc.get("name").and_then(|n| n.as_str()) {
-        deps.push(DeclaredDep { name: own.to_string(), constraint: String::new(), scope: DepScope::Deployed, line: 0 });
+        deps.push(DeclaredDep {
+            name: own.to_string(),
+            constraint: String::new(),
+            scope: DepScope::Deployed,
+            line: 0,
+            own: true,
+        });
     }
     let workspace_members = doc
         .get("workspaces")

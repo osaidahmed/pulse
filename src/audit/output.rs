@@ -192,6 +192,9 @@ fn dispatch_known_variants_human(out: &mut String, f: &AuditFinding, root: Optio
     if super::output_advisory::dispatch_human(out, f, root, t, action) {
         return true;
     }
+    if super::output_deps::dispatch_human(out, f, root, action) {
+        return true;
+    }
     let ctx = WriterCtx { root, confidence_str, display_path, action };
     super::output_named_smells::dispatch_human(out, &f.kind, &ctx)
 }
@@ -236,6 +239,9 @@ fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option
     }
     if let AuditKind::ZeroEdgeProject { module_count } = &f.kind {
         return Some(zero_edge_json(*module_count));
+    }
+    if let Some(v) = super::output_deps::dispatch_json(f, root) {
+        return Some(v);
     }
     if let AuditKind::ShotgunSurgery(e) = &f.kind {
         return Some(shotgun_json(e, root));

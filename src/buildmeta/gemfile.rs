@@ -62,6 +62,7 @@ fn push_gem(call: Node, source: &str, scope: DepScope, deps: &mut Vec<DeclaredDe
         constraint: constraints.join(", "),
         scope,
         line: call.start_position().row as u32 + 1,
+        own: false,
     });
 }
 

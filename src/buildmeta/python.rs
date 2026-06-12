@@ -21,7 +21,13 @@ pub(super) fn parse_pyproject(path: &Path, source: &str) -> Option<Manifest> {
         }
     }
     if let Some(own) = project.and_then(|p| p.get("name")).and_then(|n| n.as_str()) {
-        deps.push(DeclaredDep { name: own.to_string(), constraint: String::new(), scope: DepScope::Deployed, line: 0 });
+        deps.push(DeclaredDep {
+            name: own.to_string(),
+            constraint: String::new(),
+            scope: DepScope::Deployed,
+            line: 0,
+            own: true,
+        });
     }
     Some(Manifest { path: path.to_path_buf(), ecosystem: Ecosystem::Pip, deps, workspace_members: Vec::new() })
 }
@@ -46,7 +52,7 @@ fn collect_poetry_table(table: Option<&toml::Value>, scope: DepScope, source: &s
             toml::Value::Table(t) => t.get("version").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
             _ => String::new(),
         };
-        out.push(DeclaredDep { name: name.clone(), constraint, scope, line: line_of(source, name) });
+        out.push(DeclaredDep { name: name.clone(), constraint, scope, line: line_of(source, name), own: false });
     }
 }
 
@@ -78,5 +84,5 @@ fn requirement_dep(spec: &str, scope: DepScope, source: &str) -> Option<Declared
         return None;
     }
     let constraint = body[name_end..].trim_start_matches('[').trim().to_string();
-    Some(DeclaredDep { name: name.to_string(), constraint, scope, line: line_of(source, name) })
+    Some(DeclaredDep { name: name.to_string(), constraint, scope, line: line_of(source, name), own: false })
 }

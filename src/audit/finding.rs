@@ -29,12 +29,14 @@ pub enum AuditKind {
     SplitComponent(SplitComponentEvidence),
     MoveFile(MoveFileEvidence),
     MergeComponents(MergeComponentsEvidence),
+    BloatedDependency(BloatedDepEvidence),
+    PhantomDependency(PhantomDepEvidence),
 }
 
 pub use super::finding_evidence::{
-    CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, InjectionEvidence,
-    MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, SplitComponentEvidence, UnstableDepEvidence,
-    VulnCloneEvidence,
+    BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence,
+    InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, PhantomDepEvidence,
+    SplitComponentEvidence, UnstableDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -321,7 +323,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 21] = [
+const VARIANT_TABLE: [VariantInfo; 23] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -329,6 +331,22 @@ const VARIANT_TABLE: [VariantInfo; 21] = [
         action: "",
         label: "Cross-file pattern",
         pillar: AuditPillar::Patterns,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::BloatedDependency(_)),
+        pass: "deps",
+        slug: "bloated_dependency",
+        action: "remove the unused dependency or move it to the scope that uses it",
+        label: "Bloated dependency",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::PhantomDependency(_)),
+        pass: "deps",
+        slug: "phantom_dependency",
+        action: "declare the dependency directly instead of relying on a transitive resolution",
+        label: "Phantom dependency",
+        pillar: AuditPillar::Architecture,
     },
     VariantInfo {
         test: |k| matches!(k, AuditKind::DistanceFromMainSequence(_)),
@@ -525,7 +543,10 @@ pub fn finding_confidence(f: &AuditFinding) -> ImportConfidence {
 }
 
 fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    package_metric_confidence(kind).or_else(|| named_smell_confidence(kind)).or_else(|| advisory_confidence(kind))
+    package_metric_confidence(kind)
+        .or_else(|| named_smell_confidence(kind))
+        .or_else(|| advisory_confidence(kind))
+        .or_else(|| deps_confidence(kind))
 }
 
 fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
@@ -568,6 +589,8 @@ confidence_lookup!(named_smell_confidence {
 });
 
 confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });
+
+confidence_lookup!(deps_confidence { BloatedDependency, PhantomDependency });
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);

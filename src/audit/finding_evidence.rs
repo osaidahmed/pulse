@@ -109,3 +109,20 @@ pub struct VulnCloneEvidence {
     pub sink_name: String,
     pub confidence: ImportConfidence,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BloatedDepEvidence {
+    pub manifest: PathBuf,
+    pub line: u32,
+    pub name: String,
+    pub constraint: String,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PhantomDepEvidence {
+    pub file: PathBuf,
+    pub line: u32,
+    pub name: String,
+    pub confidence: ImportConfidence,
+}
