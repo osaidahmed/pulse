@@ -27,4 +27,5 @@ pub mod refmine;
 pub mod smells;
 pub mod test_detection;
 pub mod thresholds;
+pub mod turn_scan;
 pub mod walk;

@@ -919,7 +919,7 @@ fn cleanup_removes_directory() {
     let env = TestEnv::new();
     std::fs::write(env.baseline_path().join("test.json"), "{}").unwrap();
     env.run_cleanup();
-    assert!(!env.baseline_path().exists(), "cleanup should remove baseline dir");
+    assert!(only_turn_anchor_remains(env.baseline_path()), "cleanup should remove baseline dir");
 }
 
 #[test]
@@ -942,7 +942,12 @@ fn stop_cleans_up_after_itself() {
 
     assert!(env.baseline_path().exists(), "baselines should exist before stop");
     env.run_stop();
-    assert!(!env.baseline_path().exists(), "stop should clean up baselines");
+    assert!(only_turn_anchor_remains(env.baseline_path()), "stop should clean up baselines");
+}
+
+fn only_turn_anchor_remains(dir: &std::path::Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else { return true };
+    entries.filter_map(Result::ok).all(|e| e.file_name() == "turn-head.sha")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1125,7 +1130,7 @@ fn stop_full_lifecycle_three_edits_then_stop() {
     assert!(out.contains("file too large"), "lifecycle: should detect file too large after 3 edits: {out}");
 
     // Baselines should be cleaned up
-    assert!(!env.baseline_path().exists(), "stop should clean up baselines");
+    assert!(only_turn_anchor_remains(env.baseline_path()), "stop should clean up baselines");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

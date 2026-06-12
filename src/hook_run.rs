@@ -191,9 +191,7 @@ fn collect_module_findings(
 }
 
 pub fn run_stop() {
-    let Ok(manifest) = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt")) else {
-        return;
-    };
+    let manifest = std::fs::read_to_string(baselines::baseline_dir().join("manifest.txt")).unwrap_or_default();
 
     let memo: RefCell<HashMap<String, Option<Rc<StopAnalysis>>>> = RefCell::new(HashMap::new());
     let analyze = |p: &str| -> Option<Rc<StopAnalysis>> {
@@ -201,7 +199,9 @@ pub fn run_stop() {
     };
 
     let mut all_regressions: Vec<(String, Vec<Finding>)> = Vec::new();
+    let mut checked: HashSet<String> = HashSet::new();
     for file_path in manifest.lines().filter(|l| !l.trim().is_empty()) {
+        checked.insert(canonical(file_path));
         if test_detection::is_test_file(file_path) || baselines::is_fixture_file(file_path) {
             continue;
         }
@@ -210,6 +210,7 @@ pub fn run_stop() {
             all_regressions.push((filename, regressions));
         }
     }
+    all_regressions.extend(pulse::turn_scan::turn_regressions(&checked));
 
     if !all_regressions.is_empty() {
         let reason = output::format_stop(&all_regressions);
@@ -224,6 +225,7 @@ pub fn run_stop() {
         })
     });
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
+    pulse::turn_scan::stamp_turn_head();
 }
 
 struct StopAnalysis {
@@ -277,4 +279,5 @@ fn canonical(path: &str) -> String {
 
 pub fn run_cleanup() {
     let _ = std::fs::remove_dir_all(baselines::baseline_dir());
+    pulse::turn_scan::stamp_turn_head();
 }

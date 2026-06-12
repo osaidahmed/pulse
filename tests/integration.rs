@@ -22,6 +22,8 @@ mod mutation_hardening;
 mod negative_controls;
 #[path = "integration/parity.rs"]
 mod parity;
+#[path = "integration/turn_scan_backstop.rs"]
+mod turn_scan_backstop;
 
 #[path = "integration/history_common.rs"]
 mod history_common;
