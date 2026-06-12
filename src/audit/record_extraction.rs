@@ -49,6 +49,11 @@ pub fn for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec
 }
 
 fn walk_one(file: &super::corpus::CorpusFile, thresholds: &AuditThresholds) -> Option<WalkOutput> {
-    let (source, tree) = file.parsed()?;
-    Some(walker::extract_records(tree, source, file.lang, &file.path, thresholds))
+    let tree = file.tree.as_ref()?.clone();
+    let shared = std::sync::Arc::clone(file.source.as_ref()?);
+    let caps = std::sync::Arc::clone(&shared);
+    let lang = file.lang;
+    let path = file.path.clone();
+    let thresholds = *thresholds;
+    crate::parse::guarded_compute(&caps, move || walker::extract_records(&tree, &shared, lang, &path, &thresholds))
 }

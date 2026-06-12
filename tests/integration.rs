@@ -20,6 +20,9 @@ mod calibrate_priors;
 #[path = "integration/priors_sweep.rs"]
 mod priors_sweep;
 
+#[path = "integration/walker_stack_guard.rs"]
+mod walker_stack_guard;
+
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
 

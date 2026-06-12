@@ -232,11 +232,20 @@ pub fn walk_guarded_shared(
     size_guarded(source, move || move || Some(walk_only(&tree, &shared, lang)))
 }
 
+pub fn guarded_compute<T, F>(source: &str, op: F) -> Option<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    size_guarded(source, || move || Some(op()))
+}
+
 fn owned_guarded<T: Send + 'static>(source: &str, lang: Language, op: fn(&str, Language) -> Option<T>) -> Option<T> {
-    size_guarded(source, || {
-        let owned = source.to_string();
-        move || op(&owned, lang)
-    })
+    if exceeds_size_caps(source) {
+        return None;
+    }
+    let owned = source.to_string();
+    run_guarded(move || op(&owned, lang))
 }
 
 pub fn parse_guarded(source: &str, lang: Language) -> Option<tree_sitter::Tree> {
