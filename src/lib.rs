@@ -7,6 +7,7 @@ pub mod applicability;
 pub mod audit;
 pub mod baseline_ratchet;
 pub mod baselines;
+pub mod buildmeta;
 pub mod config;
 pub mod config_history;
 pub mod cpg;

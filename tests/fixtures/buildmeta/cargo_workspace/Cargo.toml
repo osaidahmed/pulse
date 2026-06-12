@@ -1,0 +1,5 @@
+[workspace]
+members = ["core", "tools/*"]
+
+[workspace.dependencies]
+anyhow = "1.0"

@@ -158,10 +158,12 @@ fn complexity_intensity_scores_each_satisfied_band() {
     assert!((for_finding(Smell::LargeMethod, &by_loc, &th) - expected).abs() < 1e-9);
 }
 
+type SetMetric = fn(&mut FunctionMetrics, u32);
+
 #[test]
 fn structural_intensity_normalizes_against_twice_the_floor() {
     let th = t();
-    let cases: Vec<(Smell, u32, fn(&mut FunctionMetrics, u32))> = vec![
+    let cases: Vec<(Smell, u32, SetMetric)> = vec![
         (Smell::DeepNestedComplexity, th.function.nesting_depth, |f, v| f.max_nesting = v),
         (Smell::ComplexConditional, th.function.compound_conditions, |f, v| f.compound_condition_count = v),
         (Smell::ExcessArguments, th.function.arg_max, |f, v| f.arg_count = v),
