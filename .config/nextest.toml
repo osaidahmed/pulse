@@ -11,3 +11,7 @@ retries = 1
 [profile.release-test]
 test-threads = "num-cpus"
 fail-fast = false
+
+[[profile.release-test.overrides]]
+filter = "test(priors_sweep)"
+slow-timeout = { period = "3600s", terminate-after = 2 }
