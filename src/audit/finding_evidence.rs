@@ -126,3 +126,13 @@ pub struct PhantomDepEvidence {
     pub name: String,
     pub confidence: ImportConfidence,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstraintEvidence {
+    pub manifest: PathBuf,
+    pub line: u32,
+    pub name: String,
+    pub constraint: String,
+    pub problem: String,
+    pub confidence: ImportConfidence,
+}

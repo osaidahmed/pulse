@@ -5,8 +5,8 @@ use crate::thresholds::AuditThresholds;
 
 use super::finding::AuditFinding;
 use super::{
-    complexity_floor, corpus, corpus_stats, deps_reconcile, discovery, duplication_clusters, expression_filter, mdl,
-    named_smells, record_extraction, scoring, taint, vendor_filter, vuln_clones, PassChoice,
+    complexity_floor, constraint_smells, corpus, corpus_stats, deps_reconcile, discovery, duplication_clusters,
+    expression_filter, mdl, named_smells, record_extraction, scoring, taint, vendor_filter, vuln_clones, PassChoice,
 };
 
 pub(super) struct PassCtx<'a> {
@@ -24,7 +24,11 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
         super::run_package_metrics(ctx.shared, ctx.typed_files, ctx.root, ctx.thresholds)
     }),
     (PassChoice::NamedSmells, |ctx| named_smells::run_from(ctx.shared, ctx.root, ctx.thresholds)),
-    (PassChoice::Deps, |ctx| deps_reconcile::run_from(ctx.shared, ctx.root, ctx.thresholds)),
+    (PassChoice::Deps, |ctx| {
+        let mut found = deps_reconcile::run_from(ctx.shared, ctx.root, ctx.thresholds);
+        found.extend(constraint_smells::run_from(ctx.root, ctx.thresholds));
+        found
+    }),
     (PassChoice::Taint, |ctx| taint::run_from(ctx.shared, ctx.thresholds)),
     (PassChoice::Clones, |ctx| duplication_clusters::run_from(ctx.shared, ctx.thresholds)),
     (PassChoice::Naturalness, |ctx| crate::naturalness::run_from(ctx.shared, ctx.thresholds)),

@@ -1,0 +1,113 @@
+use pulse::audit::finding::{AuditFinding, AuditKind};
+use pulse::audit::{self, AuditOpts, PassChoice};
+use pulse::config::AuditSuppression;
+use std::path::Path;
+
+use crate::audit_common::t;
+
+fn run_deps(root: &Path) -> Vec<AuditFinding> {
+    let opts = AuditOpts {
+        root: root.to_path_buf(),
+        pass: Some(PassChoice::Deps),
+        json: false,
+        include_tests: false,
+        show_noise: false,
+        suppression: AuditSuppression::new(),
+    };
+    audit::run(&opts, &t().audit)
+}
+
+fn constraint_problems(findings: &[AuditFinding]) -> Vec<(String, String)> {
+    findings
+        .iter()
+        .filter_map(|f| match &f.kind {
+            AuditKind::ConstraintSmell(e) => Some((e.name.clone(), e.problem.clone())),
+            _ => None,
+        })
+        .collect()
+}
+
+fn project(files: &[(&str, &str)]) -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    for (name, body) in files {
+        std::fs::write(dir.path().join(name), body).unwrap();
+    }
+    dir
+}
+
+#[test]
+fn wildcard_constraints_are_flagged() {
+    let dir = project(&[(
+        "package.json",
+        r#"{"name": "demo", "dependencies": {"anything": "*", "pinnedish": "^1.2.0", "newest": "latest"}}"#,
+    )]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    let names: Vec<&str> = problems.iter().map(|(n, _)| n.as_str()).collect();
+    assert!(names.contains(&"anything"), "{problems:?}");
+    assert!(names.contains(&"newest"), "{problems:?}");
+    assert!(!names.contains(&"pinnedish"), "caret ranges are deliberate: {problems:?}");
+}
+
+#[test]
+fn exact_pins_without_a_lockfile_are_flagged_once() {
+    let dir =
+        project(&[("package.json", r#"{"name": "demo", "dependencies": {"a": "1.0.0", "b": "2.0.0", "c": "3.0.0"}}"#)]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].1.contains("no lockfile"), "{problems:?}");
+}
+
+#[test]
+fn exact_pins_with_a_lockfile_are_fine() {
+    let dir = project(&[
+        ("package.json", r#"{"name": "demo", "dependencies": {"a": "1.0.0", "b": "2.0.0", "c": "3.0.0"}}"#),
+        (
+            "package-lock.json",
+            r#"{"lockfileVersion": 3, "packages": {"node_modules/a": {"version": "1.0.0"}, "node_modules/b": {"version": "2.0.0"}, "node_modules/c": {"version": "3.0.0"}}}"#,
+        ),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
+#[test]
+fn mixed_constraints_do_not_trip_the_pinning_smell() {
+    let dir = project(&[(
+        "package.json",
+        r#"{"name": "demo", "dependencies": {"a": "1.0.0", "b": "2.0.0", "c": "^3.0.0"}}"#,
+    )]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
+#[test]
+fn pin_and_lockfile_divergence_is_flagged() {
+    let dir = project(&[
+        ("Cargo.toml", "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = \"=1.0.100\"\n"),
+        ("Cargo.lock", "version = 3\n\n[[package]]\nname = \"serde\"\nversion = \"1.0.200\"\n"),
+        ("src-lib.rs", ""),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].1.contains("1.0.100") && problems[0].1.contains("1.0.200"), "{problems:?}");
+}
+
+#[test]
+fn matching_pin_and_lock_are_silent() {
+    let dir = project(&[
+        ("Cargo.toml", "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = \"=1.0.200\"\n"),
+        ("Cargo.lock", "version = 3\n\n[[package]]\nname = \"serde\"\nversion = \"1.0.200\"\n"),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "{problems:?}");
+}
+
+#[test]
+fn go_modules_are_exempt_from_pinning_smells() {
+    let dir = project(&[(
+        "go.mod",
+        "module example.com/demo\n\ngo 1.22\n\nrequire (\n\tgithub.com/a/a v1.0.0\n\tgithub.com/b/b v2.0.0\n\tgithub.com/c/c v3.0.0\n)\n",
+    )]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "go pins by design: {problems:?}");
+}

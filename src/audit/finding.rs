@@ -31,12 +31,13 @@ pub enum AuditKind {
     MergeComponents(MergeComponentsEvidence),
     BloatedDependency(BloatedDepEvidence),
     PhantomDependency(PhantomDepEvidence),
+    ConstraintSmell(ConstraintEvidence),
 }
 
 pub use super::finding_evidence::{
-    BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, GodComponentEvidence, HubLikeEvidence,
-    InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence, PhantomDepEvidence,
-    SplitComponentEvidence, UnstableDepEvidence, VulnCloneEvidence,
+    BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
+    HubLikeEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence,
+    PhantomDepEvidence, SplitComponentEvidence, UnstableDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -323,7 +324,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 23] = [
+const VARIANT_TABLE: [VariantInfo; 24] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -331,6 +332,14 @@ const VARIANT_TABLE: [VariantInfo; 23] = [
         action: "",
         label: "Cross-file pattern",
         pillar: AuditPillar::Patterns,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::ConstraintSmell(_)),
+        pass: "deps",
+        slug: "constraint_smell",
+        action: "tighten or relax the version constraint deliberately and keep the lockfile authoritative",
+        label: "Constraint smell",
+        pillar: AuditPillar::Architecture,
     },
     VariantInfo {
         test: |k| matches!(k, AuditKind::BloatedDependency(_)),
@@ -590,7 +599,7 @@ confidence_lookup!(named_smell_confidence {
 
 confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });
 
-confidence_lookup!(deps_confidence { BloatedDependency, PhantomDependency });
+confidence_lookup!(deps_confidence { BloatedDependency, PhantomDependency, ConstraintSmell });
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);

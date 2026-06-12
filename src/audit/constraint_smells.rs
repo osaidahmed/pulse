@@ -1,0 +1,135 @@
+use std::collections::HashMap;
+use std::path::Path;
+
+use crate::buildmeta::{self, BuildMeta, DeclaredDep, Ecosystem, Manifest};
+use crate::import_check::normalize;
+use crate::thresholds::AuditThresholds;
+
+use super::finding::{AuditFinding, AuditKind, ConstraintEvidence, ImportConfidence};
+
+const MIN_DEPS_FOR_PINNING_SMELL: usize = 3;
+
+pub fn run_from(root: &Path, _thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let meta = buildmeta::discover(root);
+    let mut findings = Vec::new();
+    for manifest in &meta.manifests {
+        findings.extend(wildcard_findings(manifest));
+        findings.extend(pinned_without_lockfile(manifest, &meta));
+        findings.extend(divergence_findings(manifest, &meta));
+    }
+    findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
+    findings
+}
+
+fn declared(manifest: &Manifest) -> impl Iterator<Item = &DeclaredDep> {
+    manifest.deps.iter().filter(|d| !d.own)
+}
+
+fn wildcard_findings(manifest: &Manifest) -> Vec<AuditFinding> {
+    declared(manifest)
+        .filter(|d| is_wildcard(&d.constraint))
+        .map(|d| {
+            finding(
+                manifest,
+                d,
+                format!("`{}` accepts any version (`{}`)", d.name, d.constraint),
+                ImportConfidence::High,
+            )
+        })
+        .collect()
+}
+
+fn is_wildcard(constraint: &str) -> bool {
+    let c = constraint.trim();
+    matches!(c, "*" | "latest" | "x") || c.starts_with(">=0.0.0") || c == ">=0"
+}
+
+fn pinned_without_lockfile(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFinding> {
+    if manifest.ecosystem == Ecosystem::Go || has_lockfile(meta, manifest.ecosystem) {
+        return Vec::new();
+    }
+    let deps: Vec<&DeclaredDep> = declared(manifest).collect();
+    if deps.len() < MIN_DEPS_FOR_PINNING_SMELL || !deps.iter().all(|d| exact_pin(manifest.ecosystem, &d.constraint)) {
+        return Vec::new();
+    }
+    let lead = deps[0];
+    vec![finding(
+        manifest,
+        lead,
+        format!(
+            "all {} dependencies are exactly pinned but no lockfile exists — transitive resolution still floats",
+            deps.len()
+        ),
+        ImportConfidence::Medium,
+    )]
+}
+
+fn has_lockfile(meta: &BuildMeta, eco: Ecosystem) -> bool {
+    meta.lockfiles.iter().any(|l| l.ecosystem == eco)
+}
+
+fn exact_pin(eco: Ecosystem, constraint: &str) -> bool {
+    let c = constraint.trim();
+    match eco {
+        Ecosystem::Npm => !c.is_empty() && c.chars().next().is_some_and(|ch| ch.is_ascii_digit()),
+        Ecosystem::Cargo => c.starts_with('='),
+        Ecosystem::Pip => c.starts_with("=="),
+        Ecosystem::RubyGems | Ecosystem::Go => false,
+    }
+}
+
+fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFinding> {
+    let locked: HashMap<String, &str> = meta
+        .lockfiles
+        .iter()
+        .filter(|l| l.ecosystem == manifest.ecosystem)
+        .flat_map(|l| l.resolved.iter().map(|(n, v)| (normalize(n), v.as_str())))
+        .collect();
+    declared(manifest)
+        .filter_map(|d| {
+            let pin = exact_version(manifest.ecosystem, &d.constraint)?;
+            let resolved = locked.get(&normalize(&d.name))?;
+            (!resolved.is_empty() && *resolved != pin).then(|| {
+                finding(
+                    manifest,
+                    d,
+                    format!("`{}` is pinned to {pin} but the lockfile resolved {resolved}", d.name),
+                    ImportConfidence::High,
+                )
+            })
+        })
+        .collect()
+}
+
+fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
+    let c = constraint.trim();
+    match eco {
+        Ecosystem::Npm => c.chars().next().is_some_and(|ch| ch.is_ascii_digit()).then_some(c),
+        Ecosystem::Cargo => c.strip_prefix('='),
+        Ecosystem::Pip => c.strip_prefix("=="),
+        Ecosystem::RubyGems | Ecosystem::Go => None,
+    }
+    .map(str::trim)
+}
+
+fn finding(manifest: &Manifest, dep: &DeclaredDep, problem: String, confidence: ImportConfidence) -> AuditFinding {
+    AuditFinding {
+        kind: AuditKind::ConstraintSmell(ConstraintEvidence {
+            manifest: manifest.path.clone(),
+            line: dep.line,
+            name: dep.name.clone(),
+            constraint: dep.constraint.clone(),
+            problem,
+            confidence,
+        }),
+        representative_snippet: dep.name.clone(),
+        support: 1,
+        file_count: 1,
+        idf_score: None,
+        action_label: None,
+        pattern_category: None,
+        locality_entropy: None,
+        p_value: None,
+        locations: Vec::new(),
+    }
+}

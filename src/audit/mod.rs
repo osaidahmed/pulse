@@ -13,6 +13,7 @@ pub mod complexity_floor;
 pub mod components;
 pub mod compound;
 pub mod confidence;
+pub mod constraint_smells;
 pub mod corpus;
 pub mod corpus_stats;
 pub mod coverage;

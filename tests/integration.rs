@@ -58,6 +58,8 @@ mod audit_clones;
 mod audit_community;
 #[path = "integration/audit_components.rs"]
 mod audit_components;
+#[path = "integration/audit_constraint_smells.rs"]
+mod audit_constraint_smells;
 #[path = "integration/audit_corpus_stats_unit.rs"]
 mod audit_corpus_stats_unit;
 #[path = "integration/audit_coverage_disclosure.rs"]
