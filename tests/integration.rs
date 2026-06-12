@@ -11,6 +11,9 @@ mod boundaries;
 #[path = "integration/buildmeta.rs"]
 mod buildmeta;
 
+#[path = "integration/calibrate_census.rs"]
+mod calibrate_census;
+
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
 
