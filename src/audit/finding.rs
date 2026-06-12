@@ -32,12 +32,15 @@ pub enum AuditKind {
     BloatedDependency(BloatedDepEvidence),
     PhantomDependency(PhantomDepEvidence),
     ConstraintSmell(ConstraintEvidence),
+    UndeclaredModuleDependency(UndeclaredModuleDepEvidence),
+    UnusedDeclaredDependency(UnusedDeclaredDepEvidence),
 }
 
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
     HubLikeEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence,
-    PhantomDepEvidence, SplitComponentEvidence, UnstableDepEvidence, VulnCloneEvidence,
+    PhantomDepEvidence, SplitComponentEvidence, UndeclaredModuleDepEvidence, UnstableDepEvidence,
+    UnusedDeclaredDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -324,7 +327,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 24] = [
+const VARIANT_TABLE: [VariantInfo; 26] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -355,6 +358,22 @@ const VARIANT_TABLE: [VariantInfo; 24] = [
         slug: "phantom_dependency",
         action: "declare the dependency directly instead of relying on a transitive resolution",
         label: "Phantom dependency",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::UndeclaredModuleDependency(_)),
+        pass: "deps",
+        slug: "undeclared_module_dependency",
+        action: "declare the dependency in the importing module's manifest or remove the cross-module import",
+        label: "Undeclared module dependency",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::UnusedDeclaredDependency(_)),
+        pass: "deps",
+        slug: "unused_declared_dependency",
+        action: "remove the declared module dependency or move the code that should use it here",
+        label: "Unused declared dependency",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
@@ -599,7 +618,13 @@ confidence_lookup!(named_smell_confidence {
 
 confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });
 
-confidence_lookup!(deps_confidence { BloatedDependency, PhantomDependency, ConstraintSmell });
+confidence_lookup!(deps_confidence {
+    BloatedDependency,
+    PhantomDependency,
+    ConstraintSmell,
+    UndeclaredModuleDependency,
+    UnusedDeclaredDependency
+});
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);

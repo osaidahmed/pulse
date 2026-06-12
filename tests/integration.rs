@@ -182,6 +182,8 @@ mod audit_parallel_inheritance_extended;
 mod audit_per_language_deep;
 #[path = "integration/audit_pipeline_integration.rs"]
 mod audit_pipeline_integration;
+#[path = "integration/audit_reflexion.rs"]
+mod audit_reflexion;
 #[path = "integration/audit_refused_bequest.rs"]
 mod audit_refused_bequest;
 #[path = "integration/audit_refused_bequest_extended.rs"]

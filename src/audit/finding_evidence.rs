@@ -136,3 +136,22 @@ pub struct ConstraintEvidence {
     pub problem: String,
     pub confidence: ImportConfidence,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UndeclaredModuleDepEvidence {
+    pub from_component: String,
+    pub to_component: String,
+    pub file: PathBuf,
+    pub line: u32,
+    pub import_target: String,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UnusedDeclaredDepEvidence {
+    pub manifest: PathBuf,
+    pub line: u32,
+    pub from_component: String,
+    pub to_component: String,
+    pub confidence: ImportConfidence,
+}

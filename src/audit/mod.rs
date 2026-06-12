@@ -62,6 +62,7 @@ pub mod output_vuln_clones;
 pub mod package_metrics;
 mod passes;
 pub mod record_extraction;
+pub mod reflexion;
 pub mod remodularization;
 pub mod scoring;
 pub mod swap_significance;

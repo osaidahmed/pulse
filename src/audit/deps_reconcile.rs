@@ -46,21 +46,34 @@ fn collect_imports(corpus: &Corpus) -> ImportedRoots {
 }
 
 fn bloated_findings(meta: &BuildMeta, imported: &ImportedRoots, corpus: &Corpus) -> Vec<AuditFinding> {
+    let workspace_internal = super::reflexion::workspace_internal_names(meta);
     let mut findings = Vec::new();
     for manifest in &meta.manifests {
         for dep in &manifest.deps {
-            if dep.own || dep.scope != DepScope::Deployed {
-                continue;
+            if is_bloated(manifest, dep, &workspace_internal, imported, corpus) {
+                findings.push(bloated(manifest.path.clone(), dep.line, dep));
             }
-            let name = normalize(&dep.name);
-            if is_imported(manifest.ecosystem, &name, imported) || is_referenced_in_source(&dep.name, corpus) {
-                continue;
-            }
-            findings.push(bloated(manifest.path.clone(), dep.line, dep));
         }
     }
     findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
     findings
+}
+
+fn is_bloated(
+    manifest: &buildmeta::Manifest,
+    dep: &buildmeta::DeclaredDep,
+    workspace_internal: &HashSet<String>,
+    imported: &ImportedRoots,
+    corpus: &Corpus,
+) -> bool {
+    if dep.own || dep.scope != DepScope::Deployed {
+        return false;
+    }
+    let name = normalize(&dep.name);
+    if manifest.ecosystem == Ecosystem::Cargo && workspace_internal.contains(&name) {
+        return false;
+    }
+    !is_imported(manifest.ecosystem, &name, imported) && !is_referenced_in_source(&dep.name, corpus)
 }
 
 fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
@@ -149,7 +162,7 @@ fn grouped_names(pairs: impl Iterator<Item = (Ecosystem, String)>) -> HashMap<Ec
     out
 }
 
-fn wrap(snippet: String, kind: AuditKind) -> AuditFinding {
+pub(super) fn wrap(snippet: String, kind: AuditKind) -> AuditFinding {
     AuditFinding {
         kind,
         representative_snippet: snippet,
