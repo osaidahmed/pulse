@@ -5,7 +5,6 @@ use pulse::audit::class_registry::ClassRegistry;
 use pulse::audit::definitions::DefinitionRecord;
 use pulse::audit::detector_refused_bequest::detect;
 use pulse::audit::finding::{AuditFinding, AuditKind, RefusedBequestEvidence};
-use pulse::parse::Language;
 
 use crate::audit_common::t;
 
@@ -28,8 +27,8 @@ fn def(file: &str, class: &str, name: &str, line: u32, parent: Option<&str>, is_
 fn detect_with(defs: Vec<DefinitionRecord>, th: &pulse::thresholds::AuditThresholds) -> Vec<AuditFinding> {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
-    let lang_lookup = |_: &std::path::Path| -> Option<Language> { None };
-    detect(&registry, &defs, &lang_lookup, th)
+    let abstractness = |_: &std::path::Path| -> Option<f64> { None };
+    detect(&registry, &defs, &abstractness, th)
 }
 
 fn rb(f: &AuditFinding) -> &RefusedBequestEvidence {

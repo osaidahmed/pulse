@@ -38,7 +38,11 @@ pub fn run_from(corpus: &super::corpus::Corpus, _root: &Path, thresholds: &Audit
     all.extend(super::detector_god_class::detect(&registry, &definitions, &method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&registry, &inh, thresholds));
     let file_lang = |path: &std::path::Path| -> Option<Language> { corpus.get(path).map(|f| f.lang) };
-    all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &file_lang, thresholds));
+    let abstractness_of = |path: &std::path::Path| -> Option<f64> {
+        let file = corpus.get(path)?;
+        super::abstractness::abstractness_from_parsed(file.tree.as_ref(), file.lang).abstractness
+    };
+    all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &abstractness_of, thresholds));
     apply_named_confidence(&mut all, &file_lang);
     all
 }

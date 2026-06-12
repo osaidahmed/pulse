@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use crate::thresholds::AuditThresholds;
 
-use super::abstractness::abstractness_for_file;
 use super::class_registry::{ClassIdentity, ClassIndex, ClassRegistry};
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, ImportConfidence, RefusedBequestEvidence};
@@ -10,13 +9,13 @@ use super::finding::{AuditFinding, AuditKind, ImportConfidence, RefusedBequestEv
 pub fn detect(
     registry: &ClassRegistry,
     defs: &[DefinitionRecord],
-    file_lang: &dyn Fn(&std::path::Path) -> Option<crate::parse::Language>,
+    abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>,
     t: &AuditThresholds,
 ) -> Vec<AuditFinding> {
     let mut findings = Vec::new();
     for i in 0..registry.count() {
         let idx = ClassIndex(i as u32);
-        if let Some(f) = evaluate_class(registry, defs, idx, file_lang, t) {
+        if let Some(f) = evaluate_class(registry, defs, idx, abstractness_of, t) {
             findings.push(f);
         }
     }
@@ -28,7 +27,7 @@ fn evaluate_class(
     registry: &ClassRegistry,
     defs: &[DefinitionRecord],
     sub_idx: ClassIndex,
-    file_lang: &dyn Fn(&std::path::Path) -> Option<crate::parse::Language>,
+    abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>,
     t: &AuditThresholds,
 ) -> Option<AuditFinding> {
     let subclass = registry.get(sub_idx)?;
@@ -39,7 +38,7 @@ fn evaluate_class(
     if subclass.name == parent.name {
         return None;
     }
-    if parent_is_abstract(parent, file_lang) {
+    if parent_is_abstract(parent, abstractness_of) {
         return None;
     }
     let parent_method_count = count_non_ctor_methods(registry, parent_idx, defs);
@@ -75,13 +74,8 @@ fn evaluate_class(
     })
 }
 
-fn parent_is_abstract(
-    parent: &ClassIdentity,
-    file_lang: &dyn Fn(&std::path::Path) -> Option<crate::parse::Language>,
-) -> bool {
-    let Some(lang) = file_lang(&parent.file) else { return false };
-    let record = abstractness_for_file(&parent.file, lang);
-    record.abstractness.is_some_and(|a| a >= 0.5)
+fn parent_is_abstract(parent: &ClassIdentity, abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>) -> bool {
+    abstractness_of(&parent.file).is_some_and(|a| a >= 0.5)
 }
 
 fn count_non_ctor_methods(registry: &ClassRegistry, idx: ClassIndex, defs: &[DefinitionRecord]) -> u32 {
