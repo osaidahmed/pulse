@@ -11,6 +11,10 @@ mod boundaries;
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
 
+#[path = "integration/cpg_mutation_hardening.rs"]
+mod cpg_mutation_hardening;
+#[path = "integration/mutation_hardening.rs"]
+mod mutation_hardening;
 #[path = "integration/negative_controls.rs"]
 mod negative_controls;
 #[path = "integration/parity.rs"]
