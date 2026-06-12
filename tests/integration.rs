@@ -309,6 +309,8 @@ mod fuzzy_duplication;
 mod go_smells;
 #[path = "integration/go_stress.rs"]
 mod go_stress;
+#[path = "integration/golden_findings.rs"]
+mod golden_findings;
 #[path = "integration/groovy_smells.rs"]
 mod groovy_smells;
 #[path = "integration/groovy_stress.rs"]

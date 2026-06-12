@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::duplication::is_test_function;
 use crate::smells::{Finding, Location, Smell};
@@ -132,8 +132,8 @@ pub fn detect_lcom4(functions: &[FunctionMetrics], t: &Thresholds, findings: &mu
     }
 }
 
-fn group_methods_by_class(functions: &[FunctionMetrics]) -> HashMap<String, Vec<&FunctionMetrics>> {
-    let mut groups: HashMap<String, Vec<&FunctionMetrics>> = HashMap::new();
+fn group_methods_by_class(functions: &[FunctionMetrics]) -> BTreeMap<String, Vec<&FunctionMetrics>> {
+    let mut groups: BTreeMap<String, Vec<&FunctionMetrics>> = BTreeMap::new();
     for f in functions {
         if let Some(ref class_name) = f.class_name {
             groups.entry(class_name.clone()).or_default().push(f);
@@ -219,7 +219,9 @@ pub fn detect_duplicated_assertion_blocks(functions: &[FunctionMetrics], t: &Thr
         hash_groups.entry(f.assert_hash).or_default().push(i);
     }
 
-    for indices in hash_groups.values() {
+    let mut groups: Vec<&Vec<usize>> = hash_groups.values().collect();
+    groups.sort_by_key(|indices| indices.first().copied());
+    for indices in groups {
         if indices.len() < 2 {
             continue;
         }

@@ -94,10 +94,14 @@ fn emit_duplication_findings(
     findings: &mut Vec<Finding>,
     label: &str,
 ) -> HashSet<usize> {
-    let duplicated = groups.values().filter(|indices| {
-        indices.len() >= t.analysis.duplication.min_group as usize
-            && !indices.iter().all(|&i| is_test_function(&functions[i].name))
-    });
+    let mut duplicated: Vec<&Vec<usize>> = groups
+        .values()
+        .filter(|indices| {
+            indices.len() >= t.analysis.duplication.min_group as usize
+                && !indices.iter().all(|&i| is_test_function(&functions[i].name))
+        })
+        .collect();
+    duplicated.sort_by_key(|indices| indices.first().copied());
 
     let mut reported = HashSet::new();
     for indices in duplicated {
