@@ -57,17 +57,13 @@ pub struct CalibrateArgs {
     #[arg(long)]
     pub write: bool,
 
-    /// Body-quantile probability for the warning level (default 0.90).
-    #[arg(long = "alpha-warning")]
-    pub alpha_warning: Option<f64>,
+    /// Corpus percentile for the per-language warning floor (default 0.75).
+    #[arg(long = "warn-percentile")]
+    pub warn_percentile: Option<f64>,
 
-    /// Tail probability for the alert level (default 0.99).
-    #[arg(long = "alpha-alert")]
-    pub alpha_alert: Option<f64>,
-
-    /// Prior strength n0 — higher leans more on the corpus (default 50).
-    #[arg(long = "prior-strength")]
-    pub prior_strength: Option<f64>,
+    /// Corpus percentile for the per-language alert floor (default 0.95).
+    #[arg(long = "alert-percentile")]
+    pub alert_percentile: Option<f64>,
 }
 
 #[derive(clap::Args, Debug)]

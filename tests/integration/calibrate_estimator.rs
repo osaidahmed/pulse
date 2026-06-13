@@ -1,103 +1,75 @@
 #![allow(clippy::float_cmp)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use pulse::calibrate::estimator::{estimate, estimate_from_tables, EstimatorConfig};
-use pulse::calibrate::priors::{corpus_priors, LanguagePriors, MetricPrior, PriorsTable};
-use pulse::calibrate::stats::GpdFit;
+use pulse::calibrate::estimator::{estimate, estimate_languages, EstimatorConfig};
+use pulse::calibrate::priors::{corpus_priors, LanguagePriors, MetricPrior};
 
-const PROBES: &[f64] = &[0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99, 0.995];
+use crate::common::t;
 
-fn quantiles(values: &[f64]) -> Vec<(f64, f64)> {
-    PROBES.iter().copied().zip(values.iter().copied()).collect()
+fn mp(quantiles: &[(f64, f64)]) -> MetricPrior {
+    MetricPrior { n: 900, quantiles: quantiles.to_vec() }
 }
 
-fn metric(n: u64, values: &[f64], gpd: Option<GpdFit>) -> MetricPrior {
-    MetricPrior { n, weight: n as f64, quantiles: quantiles(values), gpd }
-}
-
-fn table(entries: Vec<(&str, &str, MetricPrior)>) -> PriorsTable {
-    let mut main: BTreeMap<String, LanguagePriors> = BTreeMap::new();
-    for (lang, m, mp) in entries {
-        main.entry(lang.to_string()).or_default().metrics.insert(m.to_string(), mp);
+fn corpus(lang: &str, metrics: &[(&str, MetricPrior)]) -> BTreeMap<String, LanguagePriors> {
+    let mut lp = LanguagePriors::default();
+    for (k, v) in metrics {
+        lp.metrics.insert((*k).to_string(), v.clone());
     }
-    PriorsTable { cpg_enabled: false, main, tests: BTreeMap::new() }
+    let mut out = BTreeMap::new();
+    out.insert(lang.to_string(), lp);
+    out
+}
+
+fn langset(lang: &str) -> BTreeSet<String> {
+    let mut s = BTreeSet::new();
+    s.insert(lang.to_string());
+    s
 }
 
 fn cfg() -> EstimatorConfig {
     EstimatorConfig::default()
 }
 
-const CORPUS_CC: &[f64] = &[2.0, 3.0, 4.0, 5.0, 6.0, 9.0, 14.0, 25.0, 40.0];
-
 #[test]
-fn empty_project_degenerates_to_corpus_quantiles() {
-    let corpus = table(vec![("python", "cc", metric(900, CORPUS_CC, None))]);
-    let project = table(vec![("python", "cc", metric(0, CORPUS_CC, None))]);
-    let out = estimate_from_tables(&project, &corpus, &cfg());
-    let cc = out.main["python"]["cc"];
-    assert_eq!(cc.warning, 9.0, "warning = corpus p90");
-    assert_eq!(cc.alert, 25.0, "alert = corpus p99");
-    assert_eq!(cc.lambda, 0.0);
+fn editorial_default_is_the_floor_when_corpus_sits_below() {
+    let c = corpus("python", &[("cc", mp(&[(0.5, 2.0), (0.75, 5.0), (0.95, 14.0)]))]);
+    let out = estimate_languages(&langset("python"), &c, &cfg());
+    let cc = out["python"]["cc"];
+    assert_eq!(cc.warning, 9.0, "editorial cc_warning=9 is the floor; corpus p75=5 does not tighten it");
+    assert!(!cc.warning_loosened());
 }
 
 #[test]
-fn large_project_leans_toward_its_own_distribution() {
-    let corpus = table(vec![("python", "cc", metric(900, CORPUS_CC, None))]);
-    let project =
-        table(vec![("python", "cc", metric(100_000, &[3.0, 4.0, 5.0, 6.0, 7.0, 12.0, 18.0, 30.0, 38.0], None))]);
-    let out = estimate_from_tables(&project, &corpus, &cfg());
-    let cc = out.main["python"]["cc"];
-    assert!((cc.warning - 12.0).abs() < 0.1, "warning ~ project p90, got {}", cc.warning);
-    assert!(cc.lambda > 0.99);
+fn corpus_loosens_per_language_only_where_it_exceeds_the_editorial_bar() {
+    let c = corpus("c", &[("cc", mp(&[(0.5, 8.0), (0.75, 15.0), (0.95, 40.0)]))]);
+    let out = estimate_languages(&langset("c"), &c, &cfg());
+    let cc = out["c"]["cc"];
+    assert_eq!(cc.warning, 15.0, "C complexity legitimately runs higher, so the warning loosens to the corpus p75");
+    assert!(cc.warning_loosened());
+    assert_eq!(cc.alert, 40.0, "alert loosens to corpus p95");
 }
 
 #[test]
-fn extreme_project_is_clamped_to_the_corpus_band() {
-    let corpus = table(vec![("python", "cc", metric(900, CORPUS_CC, None))]);
-    let huge = &[50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 800.0, 1500.0, 2000.0];
-    let project = table(vec![("python", "cc", metric(100_000, huge, None))]);
-    let out = estimate_from_tables(&project, &corpus, &cfg());
-    let cc = out.main["python"]["cc"];
-    assert_eq!(cc.warning, 40.0, "clamped up to corpus p995");
-    assert_eq!(cc.alert, 41.0, "alert held one above the clamped warning");
-    assert!(cc.clamped);
+fn alert_never_drops_below_the_editorial_alert_floor() {
+    let c = corpus("python", &[("file_loc", mp(&[(0.75, 200.0), (0.95, 400.0)]))]);
+    let out = estimate_languages(&langset("python"), &c, &cfg());
+    let fl = out["python"]["file_loc"];
+    assert_eq!(fl.warning, 500.0, "editorial floor 500");
+    assert_eq!(fl.alert, 700.0, "editorial alert floor 700 — '1500 is still a smell' encoded as a tighten-only floor");
 }
 
 #[test]
-fn warning_is_always_below_alert() {
-    let corpus = table(vec![
-        ("python", "cc", metric(900, CORPUS_CC, None)),
-        ("python", "args", metric(900, &[1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 4.0, 5.0], None)),
-    ]);
-    let project = table(vec![("python", "cc", metric(40, CORPUS_CC, None))]);
-    let out = estimate_from_tables(&project, &corpus, &cfg());
-    for metrics in out.main.values() {
-        for (name, p) in metrics {
-            assert!(p.warning < p.alert, "{name}: warning {} !< alert {}", p.warning, p.alert);
-        }
-    }
+fn size_metric_is_not_self_inflated() {
+    let c = corpus("c", &[("file_loc", mp(&[(0.75, 800.0), (0.95, 1500.0)]))]);
+    let out = estimate_languages(&langset("c"), &c, &cfg());
+    let fl = out["c"]["file_loc"];
+    assert_eq!(fl.warning, 800.0, "C file warning at its real per-file p75, not a self-weighted 2508");
+    assert_eq!(fl.alert, 1500.0, "and alert at its real per-file p95 — the literal user goal");
 }
 
 #[test]
-fn continuous_alert_uses_the_gpd_tail_discrete_does_not() {
-    let gpd = GpdFit { threshold: 9.0, xi: 0.2, sigma: 10.0, tail_n: 100 };
-    let corpus = table(vec![
-        ("python", "cc", metric(900, CORPUS_CC, Some(gpd))),
-        ("python", "args", metric(900, &[1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 4.0, 5.0], Some(gpd))),
-    ]);
-    let project = table(vec![("python", "cc", metric(0, CORPUS_CC, None))]);
-    let out = estimate_from_tables(&project, &corpus, &cfg());
-    let cc = out.main["python"]["cc"];
-    assert!(cc.gpd_alert, "cc is continuous: tail-modeled");
-    assert!((cc.alert - 38.24).abs() < 0.5, "gpd return level at p99, got {}", cc.alert);
-    let args = out.main["python"]["args"];
-    assert!(!args.gpd_alert, "args is discrete: never gpd");
-    assert_eq!(args.alert, 4.0, "discrete alert = quantile p99");
-}
-
-#[test]
-fn estimate_runs_against_the_real_corpus() {
+fn estimate_against_the_real_corpus_respects_floors() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
     std::fs::write(
@@ -107,11 +79,12 @@ fn estimate_runs_against_the_real_corpus() {
     .unwrap();
     let matcher = pulse::config::IgnoreMatcher::from_patterns(&[]);
     let filter = pulse::audit::IgnoreFilter::new(&matcher, dir.path());
-    let census = pulse::calibrate::collect(dir.path(), &crate::common::t(), &filter);
+    let census = pulse::calibrate::collect(dir.path(), &t(), &filter);
     let out = estimate(&census, corpus_priors(), &cfg());
     let py = out.main.get("python").expect("python thresholds");
-    let cc = py.get("cc").expect("cc threshold");
-    assert!(cc.warning < cc.alert);
-    assert!(cc.warning > 0.0 && cc.alert > 0.0);
-    assert!(cc.lambda < 0.1, "a 2-function project leans on the corpus prior");
+    let cc = py["cc"];
+    assert!(cc.warning >= 9.0 && cc.alert >= 18.0, "never tighter than the editorial floor");
+    let fl = py["file_loc"];
+    assert!(fl.warning >= 500.0, "editorial floor held");
+    assert!(fl.warning < 2000.0, "no longer the self-weighted 2508: {}", fl.warning);
 }

@@ -3,15 +3,12 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
-use super::stats::{gpd_fit, weighted_quantile, GpdFit, WeightedHist};
+use super::stats::{count_quantile, WeightedHist};
 use super::Census;
 use crate::parse::Language;
 use crate::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
 
 pub const QUANTILE_PROBES: &[f64] = &[0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99, 0.995];
-pub(crate) const GPD_THRESHOLD_PROBE: f64 = 0.90;
-
-pub(crate) const GPD_METRICS: &[&str] = &["fn_loc", "cc", "cogc", "file_loc", "file_total_cc", "embedded_block_loc"];
 
 type FunctionGetter = fn(&FunctionMetrics) -> u32;
 type ModuleGetter = fn(&ModuleMetrics) -> u32;
@@ -54,9 +51,27 @@ pub struct LanguagePriors {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricPrior {
     pub n: u64,
-    pub weight: f64,
     pub quantiles: Vec<(f64, f64)>,
-    pub gpd: Option<GpdFit>,
+}
+
+impl MetricPrior {
+    pub fn quantile(&self, p: f64) -> f64 {
+        let qs = &self.quantiles;
+        let Some(&(first_p, first_v)) = qs.first() else { return 0.0 };
+        if p <= first_p {
+            return first_v;
+        }
+        for window in qs.windows(2) {
+            let (p0, v0) = window[0];
+            let (p1, v1) = window[1];
+            if p <= p1 {
+                let span = p1 - p0;
+                let t = if span.abs() < 1e-12 { 0.0 } else { (p - p0) / span };
+                return v0 + t * (v1 - v0);
+            }
+        }
+        qs.last().map_or(0.0, |&(_, v)| v)
+    }
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -143,20 +158,11 @@ fn build_stratum(stratum: &Stratum) -> BTreeMap<String, LanguagePriors> {
         let (lang, metric) = split_key(key);
         let prior = MetricPrior {
             n: hist.n,
-            weight: hist.weight,
-            quantiles: QUANTILE_PROBES.iter().map(|p| (*p, weighted_quantile(hist, *p))).collect(),
-            gpd: tail_fit(metric, hist),
+            quantiles: QUANTILE_PROBES.iter().map(|p| (*p, count_quantile(hist, *p))).collect(),
         };
         out.entry(lang.to_string()).or_default().metrics.insert(metric.to_string(), prior);
     }
     out
-}
-
-fn tail_fit(metric: &str, hist: &WeightedHist) -> Option<GpdFit> {
-    if !GPD_METRICS.contains(&metric) {
-        return None;
-    }
-    gpd_fit(hist, weighted_quantile(hist, GPD_THRESHOLD_PROBE))
 }
 
 static PRIORS: OnceLock<PriorsTable> = OnceLock::new();

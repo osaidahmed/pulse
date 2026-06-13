@@ -68,8 +68,10 @@ fn drive_sweep(corpus_root: &Path) {
             merged += 1;
         }
     }
+    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate");
+    std::fs::write(calibrate_dir.join("priors_histogram.json"), builder.to_json()).unwrap();
     let table = builder.build(t().cpg.enabled);
-    let out = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate/priors.json");
+    let out = calibrate_dir.join("priors.json");
     std::fs::write(&out, serde_json::to_string_pretty(&table).unwrap()).unwrap();
     eprintln!("priors written to {} from {merged} repos; {} crashed: {crashed:?}", out.display(), crashed.len());
 }

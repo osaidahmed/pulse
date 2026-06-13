@@ -86,9 +86,8 @@ fn run_calibrate_cmd(args: cli::CalibrateArgs) {
     let filter = audit::IgnoreFilter::new(&matcher, &base);
     let census = calibrate::collect(&root, &thresholds, &filter);
     let est_cfg = calibrate::estimator::EstimatorConfig {
-        alpha_warning: args.alpha_warning.unwrap_or(0.90),
-        alpha_alert: args.alpha_alert.unwrap_or(0.99),
-        prior_strength: args.prior_strength.unwrap_or(50.0),
+        warn_percentile: args.warn_percentile.unwrap_or(0.75),
+        alert_percentile: args.alert_percentile.unwrap_or(0.95),
     };
     let calibrated = calibrate::estimator::estimate(&census, calibrate::priors::corpus_priors(), &est_cfg);
     let rendered = calibrate::emit::render(&calibrated, &est_cfg);

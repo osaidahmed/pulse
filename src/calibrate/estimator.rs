@@ -1,23 +1,17 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use super::priors::{LanguagePriors, MetricPrior, PriorsBuilder, PriorsTable, GPD_METRICS, GPD_THRESHOLD_PROBE};
-use super::stats::GpdFit;
-use super::Census;
-
-const GUARDRAIL_LO_PROBE: f64 = 0.75;
-const GUARDRAIL_HI_PROBE: f64 = 0.995;
-const MIN_THRESHOLD_GAP: f64 = 1.0;
+use super::priors::{LanguagePriors, MetricPrior, PriorsTable};
+use super::{Census, FileCensus};
 
 #[derive(Debug, Clone, Copy)]
 pub struct EstimatorConfig {
-    pub alpha_warning: f64,
-    pub alpha_alert: f64,
-    pub prior_strength: f64,
+    pub warn_percentile: f64,
+    pub alert_percentile: f64,
 }
 
 impl Default for EstimatorConfig {
     fn default() -> Self {
-        Self { alpha_warning: 0.90, alpha_alert: 0.99, prior_strength: 50.0 }
+        Self { warn_percentile: 0.75, alert_percentile: 0.95 }
     }
 }
 
@@ -25,10 +19,20 @@ impl Default for EstimatorConfig {
 pub struct ThresholdPair {
     pub warning: f64,
     pub alert: f64,
-    pub lambda: f64,
-    pub project_n: u64,
-    pub gpd_alert: bool,
-    pub clamped: bool,
+    pub editorial_warning: u32,
+    pub editorial_alert: u32,
+    pub corpus_warning: f64,
+    pub corpus_alert: f64,
+}
+
+impl ThresholdPair {
+    pub fn warning_loosened(&self) -> bool {
+        self.warning > f64::from(self.editorial_warning)
+    }
+
+    pub fn alert_loosened(&self) -> bool {
+        self.alert > f64::from(self.editorial_alert)
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -39,108 +43,89 @@ pub struct Calibrated {
 
 pub type Stratum = BTreeMap<String, BTreeMap<String, ThresholdPair>>;
 
-pub fn estimate(project: &Census, corpus: &PriorsTable, cfg: &EstimatorConfig) -> Calibrated {
-    let mut builder = PriorsBuilder::default();
-    builder.add_census(project);
-    estimate_from_tables(&builder.build(project.cpg_enabled), corpus, cfg)
-}
-
-pub fn estimate_from_tables(project: &PriorsTable, corpus: &PriorsTable, cfg: &EstimatorConfig) -> Calibrated {
+pub fn estimate(census: &Census, corpus: &PriorsTable, cfg: &EstimatorConfig) -> Calibrated {
     Calibrated {
-        main: estimate_stratum(&project.main, &corpus.main, cfg),
-        tests: estimate_stratum(&project.tests, &corpus.tests, cfg),
+        main: estimate_stratum(&project_langs(&census.main), &corpus.main, cfg),
+        tests: estimate_stratum(&project_langs(&census.tests), &corpus.tests, cfg),
     }
 }
 
-fn estimate_stratum(
-    project: &BTreeMap<String, LanguagePriors>,
+pub fn estimate_languages(
+    langs: &BTreeSet<String>,
     corpus: &BTreeMap<String, LanguagePriors>,
     cfg: &EstimatorConfig,
 ) -> Stratum {
+    estimate_stratum(langs, corpus, cfg)
+}
+
+fn project_langs(files: &[FileCensus]) -> BTreeSet<String> {
+    files.iter().map(|f| f.lang.to_config_key().to_string()).collect()
+}
+
+fn estimate_stratum(
+    langs: &BTreeSet<String>,
+    corpus: &BTreeMap<String, LanguagePriors>,
+    cfg: &EstimatorConfig,
+) -> Stratum {
+    let editorial = editorial_defaults();
     let mut out = Stratum::new();
-    for (lang, project_lang) in project {
+    for lang in langs {
         let Some(corpus_lang) = corpus.get(lang) else { continue };
-        let metrics = corpus_lang
-            .metrics
+        let metrics: BTreeMap<String, ThresholdPair> = editorial
             .iter()
-            .map(|(metric, cm)| (metric.clone(), estimate_metric(metric, project_lang.metrics.get(metric), cm, cfg)))
+            .filter_map(|(metric, warn, alert)| {
+                corpus_lang
+                    .metrics
+                    .get(*metric)
+                    .map(|cm| ((*metric).to_string(), threshold_for(*warn, *alert, cm, cfg)))
+            })
             .collect();
-        out.insert(lang.clone(), metrics);
+        if !metrics.is_empty() {
+            out.insert(lang.clone(), metrics);
+        }
     }
     out
 }
 
-fn estimate_metric(
-    metric: &str,
-    project: Option<&MetricPrior>,
+fn threshold_for(
+    editorial_warning: u32,
+    editorial_alert: u32,
     corpus: &MetricPrior,
     cfg: &EstimatorConfig,
 ) -> ThresholdPair {
-    let n = project.map_or(0, |p| p.n);
-    let lambda = lambda_for(n, cfg.prior_strength);
-    let blend = |p: f64, use_gpd: bool| {
-        let cv = point_estimate(metric, corpus, p, use_gpd);
-        let pv = project.map_or(cv, |pr| point_estimate(metric, pr, p, use_gpd));
-        lambda * pv + (1.0 - lambda) * cv
-    };
-    let lo = quantile_at(corpus, GUARDRAIL_LO_PROBE);
-    let hi = quantile_at(corpus, GUARDRAIL_HI_PROBE);
-    let warn_raw = blend(cfg.alpha_warning, false);
-    let alert_raw = blend(cfg.alpha_alert, true);
-    let warning = warn_raw.clamp(lo, hi);
-    let alert = alert_raw.clamp(lo, hi).max(warning + MIN_THRESHOLD_GAP);
+    let corpus_warning = corpus.quantile(cfg.warn_percentile);
+    let corpus_alert = corpus.quantile(cfg.alert_percentile);
     ThresholdPair {
-        warning,
-        alert,
-        lambda,
-        project_n: n,
-        gpd_alert: GPD_METRICS.contains(&metric) && (corpus.gpd.is_some() || project.is_some_and(|p| p.gpd.is_some())),
-        clamped: outside_band(warn_raw, lo, hi) || outside_band(alert_raw, lo, hi),
+        warning: f64::from(editorial_warning).max(corpus_warning),
+        alert: f64::from(editorial_alert).max(corpus_alert),
+        editorial_warning,
+        editorial_alert,
+        corpus_warning,
+        corpus_alert,
     }
 }
 
-fn lambda_for(n: u64, prior_strength: f64) -> f64 {
-    let n = n as f64;
-    n / (n + prior_strength)
-}
-
-fn outside_band(value: f64, lo: f64, hi: f64) -> bool {
-    value < lo || value > hi
-}
-
-fn point_estimate(metric: &str, prior: &MetricPrior, p: f64, use_gpd: bool) -> f64 {
-    if use_gpd && GPD_METRICS.contains(&metric) {
-        if let Some(fit) = &prior.gpd {
-            return gpd_return_level(fit, p);
-        }
-    }
-    quantile_at(prior, p)
-}
-
-fn gpd_return_level(fit: &GpdFit, target_p: f64) -> f64 {
-    let zeta_u = 1.0 - GPD_THRESHOLD_PROBE;
-    let ratio = (1.0 - target_p) / zeta_u;
-    if fit.xi.abs() < 1e-6 {
-        fit.threshold + fit.sigma * (1.0 / ratio).ln()
-    } else {
-        fit.threshold + (fit.sigma / fit.xi) * (ratio.powf(-fit.xi) - 1.0)
-    }
-}
-
-fn quantile_at(prior: &MetricPrior, p: f64) -> f64 {
-    let qs = &prior.quantiles;
-    let Some(&(first_p, first_v)) = qs.first() else { return 0.0 };
-    if p <= first_p {
-        return first_v;
-    }
-    for window in qs.windows(2) {
-        let (p0, v0) = window[0];
-        let (p1, v1) = window[1];
-        if p <= p1 {
-            let span = p1 - p0;
-            let t = if span.abs() < 1e-12 { 0.0 } else { (p - p0) / span };
-            return v0 + t * (v1 - v0);
-        }
-    }
-    qs.last().map_or(0.0, |&(_, v)| v)
+fn editorial_defaults() -> Vec<(&'static str, u32, u32)> {
+    let t = crate::thresholds::Thresholds::default();
+    let (f, m, a) = (&t.function, &t.module, &t.analysis);
+    vec![
+        ("cc", f.cc_warning, f.cc_alert),
+        ("cogc", f.cogc_warning, f.cogc_alert),
+        ("fn_loc", f.fn_loc_warning, f.fn_loc_alert),
+        ("file_loc", m.file_loc_warning, m.file_loc_alert),
+        ("nesting", f.nesting_depth, f.nesting_depth),
+        ("global_nesting", m.global_nesting_depth, m.global_nesting_depth),
+        ("bump", f.bump_count, f.bump_count),
+        ("args", f.arg_max, f.arg_max),
+        ("compound_conditions", f.compound_conditions, f.compound_conditions),
+        ("embedded_block_loc", f.embedded_block_loc, f.embedded_block_loc),
+        ("consecutive_asserts", a.consecutive_asserts_max, a.consecutive_asserts_max),
+        ("short_vars", a.short_var_max_count, a.short_var_max_count),
+        ("string_match_arms", a.max_string_match_arms, a.max_string_match_arms),
+        ("struct_fields", m.max_struct_fields, m.max_struct_fields),
+        ("file_functions", m.file_function_count, m.file_function_count),
+        ("file_total_cc", m.file_total_cc, m.file_total_cc),
+        ("declarations", m.max_declarations, m.max_declarations),
+        ("global_conditionals", m.global_conditionals_max, m.global_conditionals_max),
+    ]
 }
