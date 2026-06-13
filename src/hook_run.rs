@@ -55,6 +55,8 @@ pub fn run_hook(h: hook::HookInput) {
     }
     let mut findings = pulse::interaction::suppress_subsumed(collect_hook_findings(&h, &analysis, edit_count));
     findings.extend(pulse::import_check::run(&h.file_path, &source, lang, h.original_file.as_deref()));
+    let clones = pulse::session_clones::check(&h.file_path, &analysis.metrics.functions, &analysis.thresholds);
+    findings.extend(hook::filter_by_edit_range(clones, h.edit_range));
     if findings.is_empty() {
         process::exit(0);
     }

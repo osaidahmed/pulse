@@ -22,6 +22,9 @@ mod calibrate_cdf;
 #[path = "integration/calibrate_floor.rs"]
 mod calibrate_floor;
 
+#[path = "integration/session_clones.rs"]
+mod session_clones;
+
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
 

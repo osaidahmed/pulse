@@ -114,6 +114,7 @@ const ACTIONS: &[&str] = &[
     "define the variable before it is read on every path",
     "remove the unreachable code or fix the control flow that skips it",
     "verify the package name against the manifest or declare the dependency",
+    "consolidate the duplicated logic into a shared function instead of copying it across files",
 ];
 
 pub fn action_for(smell: Smell, detail: &str) -> &'static str {

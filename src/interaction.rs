@@ -61,8 +61,13 @@ const BLOCKING: &[Smell] = &[
     Smell::HallucinatedImport,
 ];
 
-const ADVISORY: &[Smell] =
-    &[Smell::PrimitiveObsession, Smell::LargeAssertionBlock, Smell::ShortVariableNames, Smell::StringlyTypedSwitch];
+const ADVISORY: &[Smell] = &[
+    Smell::PrimitiveObsession,
+    Smell::LargeAssertionBlock,
+    Smell::ShortVariableNames,
+    Smell::StringlyTypedSwitch,
+    Smell::CrossFileDuplication,
+];
 
 pub fn tier_for(smell: Smell) -> FindingTier {
     if BLOCKING.contains(&smell) {
