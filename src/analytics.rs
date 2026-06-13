@@ -43,6 +43,8 @@ pub fn log_findings(
     };
 
     let ts = timestamp_secs();
+    let lang =
+        crate::parse::detect_language(std::path::Path::new(&hook.file_path)).map(crate::parse::Language::to_config_key);
 
     for f in findings {
         let meta = function_meta(&f.location, functions);
@@ -57,12 +59,14 @@ pub fn log_findings(
             "ts": ts,
             "file": filename,
             "path": hook.file_path,
+            "lang": lang,
             "smell": f.smell.as_str(),
             "tier": tier_for(f.smell).as_str(),
             "fn": func_name,
             "line": start_line,
             "hash": meta.map(|fm| fm.structural_hash),
             "detail": f.detail,
+            "rarity": serde_json::Value::Null,
         });
         let _ = writeln!(file, "{record}");
     }
@@ -228,10 +232,12 @@ fn write_outcome(out: &mut std::fs::File, entry: &serde_json::Value, outcome: &s
         "ts": ts,
         "session": session_id,
         "file": entry.get("file").and_then(|v| v.as_str()).unwrap_or(""),
+        "lang": entry.get("lang").and_then(|v| v.as_str()),
         "smell": entry.get("smell").and_then(|v| v.as_str()).unwrap_or(""),
         "tier": entry.get("tier").and_then(|v| v.as_str()).unwrap_or(""),
         "fn": entry.get("fn").and_then(|v| v.as_str()),
         "detail": entry.get("detail").and_then(|v| v.as_str()).unwrap_or(""),
+        "rarity": entry.get("rarity").cloned().unwrap_or(serde_json::Value::Null),
         "outcome": outcome,
     });
     let _ = writeln!(out, "{record}");

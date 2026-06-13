@@ -397,6 +397,20 @@ fn outcome_record_carries_tier() {
     assert!(content.contains(r#""tier":"blocking""#), "resolved outcome carries the tier: {content}");
 }
 
+#[test]
+fn outcome_record_carries_language_and_rarity_slot() {
+    let bl = tempfile::tempdir().unwrap();
+    let analytics = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("t.py");
+    std::fs::write(&p, "def f(a, b, c, d, e, f, g, h):\n    return a\n").unwrap();
+    pulse(&["--hook"], bl.path(), &write_json(p.to_str().unwrap()));
+    run_stop(bl.path(), analytics.path());
+    let content = read_analytics(analytics.path());
+    assert!(content.contains(r#""lang":"python""#), "resolved outcome carries the language: {content}");
+    assert!(content.contains(r#""rarity":null"#), "resolved outcome carries the rarity slot: {content}");
+}
+
 // ===========================================================================
 // N14 gaming classification — redistributed vs genuinely simplified
 // ===========================================================================
