@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use pulse::audit::PassChoice;
 
-pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | --version";
+pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | calibrate | --version";
 
 /// Pulse — fast code smell detector and refactoring auditor.
 #[derive(Parser, Debug)]
@@ -43,6 +43,31 @@ pub enum SubCmd {
     Audit(AuditArgs),
     /// Mine git history for evolutionary smells (manual invocation, never automated).
     History(HistoryArgs),
+    /// Derive project-specific thresholds and write them to .pulse.toml.
+    Calibrate(CalibrateArgs),
+}
+
+#[derive(clap::Args, Debug)]
+pub struct CalibrateArgs {
+    /// Project root directory (defaults to current directory).
+    #[arg(long)]
+    pub root: Option<String>,
+
+    /// Write the derived thresholds to .pulse.toml instead of printing them.
+    #[arg(long)]
+    pub write: bool,
+
+    /// Body-quantile probability for the warning level (default 0.90).
+    #[arg(long = "alpha-warning")]
+    pub alpha_warning: Option<f64>,
+
+    /// Tail probability for the alert level (default 0.99).
+    #[arg(long = "alpha-alert")]
+    pub alpha_alert: Option<f64>,
+
+    /// Prior strength n0 — higher leans more on the corpus (default 50).
+    #[arg(long = "prior-strength")]
+    pub prior_strength: Option<f64>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -119,6 +144,7 @@ pub enum Dispatch {
     Budget(Option<String>),
     Audit { args: AuditArgs, include_tests: bool },
     History { args: HistoryArgs, include_tests: bool },
+    Calibrate(CalibrateArgs),
     UsageError,
 }
 
@@ -163,6 +189,7 @@ fn dispatch_subcmd(sub: SubCmd, all: bool, include_tests: bool) -> Dispatch {
         }
         SubCmd::Audit(args) => Dispatch::Audit { args, include_tests },
         SubCmd::History(args) => Dispatch::History { args, include_tests },
+        SubCmd::Calibrate(args) => Dispatch::Calibrate(args),
     }
 }
 

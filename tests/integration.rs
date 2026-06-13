@@ -17,6 +17,9 @@ mod calibrate_census;
 #[path = "integration/calibrate_estimator.rs"]
 mod calibrate_estimator;
 
+#[path = "integration/calibrate_emit.rs"]
+mod calibrate_emit;
+
 #[path = "integration/calibrate_priors.rs"]
 mod calibrate_priors;
 

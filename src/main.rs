@@ -4,7 +4,7 @@ mod cli;
 mod hook_run;
 mod setup;
 
-use pulse::{analyze, audit, baselines, config, history, hook, output, parse, test_detection};
+use pulse::{analyze, audit, baselines, calibrate, config, history, hook, output, parse, test_detection};
 
 use std::path::{Path, PathBuf};
 use std::process;
@@ -60,9 +60,56 @@ fn dispatch_subcommand(d: cli::Dispatch) {
         cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
+        other => dispatch_analysis(other),
+    }
+}
+
+fn dispatch_analysis(d: cli::Dispatch) {
+    match d {
         cli::Dispatch::Audit { args, include_tests } => run_audit_cmd(args, include_tests),
         cli::Dispatch::History { args, include_tests } => run_history_cmd(args, include_tests),
+        cli::Dispatch::Calibrate(args) => run_calibrate_cmd(args),
         _ => unreachable!(),
+    }
+}
+
+fn run_calibrate_cmd(args: cli::CalibrateArgs) {
+    let root = args.root.as_deref().map_or_else(|| PathBuf::from("."), PathBuf::from);
+    validate_audit_root(&root);
+    let cfg_with_root = config::load_config_with_root(&root);
+    let (cfg_ref, base) = match &cfg_with_root {
+        Some((c, b)) => (Some(c), b.clone()),
+        None => (None, root.clone()),
+    };
+    let thresholds = config::resolve_base_thresholds(cfg_ref);
+    let matcher = config::IgnoreMatcher::from_patterns(cfg_ref.map_or(&[][..], |c| &c.ignore.paths));
+    let filter = audit::IgnoreFilter::new(&matcher, &base);
+    let census = calibrate::collect(&root, &thresholds, &filter);
+    let est_cfg = calibrate::estimator::EstimatorConfig {
+        alpha_warning: args.alpha_warning.unwrap_or(0.90),
+        alpha_alert: args.alpha_alert.unwrap_or(0.99),
+        prior_strength: args.prior_strength.unwrap_or(50.0),
+    };
+    let calibrated = calibrate::estimator::estimate(&census, calibrate::priors::corpus_priors(), &est_cfg);
+    let rendered = calibrate::emit::render(&calibrated, &est_cfg);
+    emit_calibration(&root, &rendered, args.write);
+}
+
+fn emit_calibration(root: &Path, rendered: &calibrate::emit::Rendered, write: bool) {
+    if !write {
+        print!("{}", rendered.main);
+        eprintln!("calibrate: dry run — pass --write to save .pulse.toml (and tests/.pulse.toml)");
+        return;
+    }
+    if let Err(e) = std::fs::write(root.join(".pulse.toml"), &rendered.main) {
+        eprintln!("calibrate: failed to write .pulse.toml: {e}");
+        process::exit(1);
+    }
+    eprintln!("calibrate: wrote {}", root.join(".pulse.toml").display());
+    let tests_dir = root.join("tests");
+    if tests_dir.is_dir() {
+        let _ = std::fs::write(tests_dir.join(".pulse.toml"), &rendered.tests);
+        eprintln!("calibrate: wrote {}", tests_dir.join(".pulse.toml").display());
     }
 }
 
