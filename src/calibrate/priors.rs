@@ -59,13 +59,13 @@ pub struct MetricPrior {
     pub gpd: Option<GpdFit>,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct PriorsBuilder {
     main: Stratum,
     tests: Stratum,
 }
 
-type Stratum = BTreeMap<(String, &'static str), WeightedHist>;
+type Stratum = BTreeMap<String, WeightedHist>;
 
 impl PriorsBuilder {
     pub fn add_census(&mut self, census: &Census) {
@@ -87,6 +87,20 @@ impl PriorsBuilder {
         merge_stratum(&mut self.tests, &other.tests);
     }
 
+    pub fn merge_json(&mut self, json: &str) -> bool {
+        match serde_json::from_str::<PriorsBuilder>(json) {
+            Ok(other) => {
+                self.merge(&other);
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_default()
+    }
+
     pub fn build(&self, cpg_enabled: bool) -> PriorsTable {
         PriorsTable { cpg_enabled, main: build_stratum(&self.main), tests: build_stratum(&self.tests) }
     }
@@ -98,33 +112,42 @@ fn merge_stratum(into: &mut Stratum, other: &Stratum) {
     }
 }
 
+fn stratum_key(lang: &str, metric: &str) -> String {
+    format!("{lang}\u{1f}{metric}")
+}
+
+fn split_key(key: &str) -> (&str, &str) {
+    key.split_once('\u{1f}').unwrap_or((key, ""))
+}
+
 fn add_file(stratum: &mut Stratum, lang: Language, functions: &[FunctionMetrics], module: &ModuleMetrics) {
-    let key = lang.to_config_key();
+    let lang = lang.to_config_key();
     for function in functions {
         let weight = f64::from(function.loc.max(1));
         for (metric, getter) in FUNCTION_METRICS {
-            stratum.entry((key.to_string(), metric)).or_default().observe(getter(function), weight);
+            stratum.entry(stratum_key(lang, metric)).or_default().observe(getter(function), weight);
         }
     }
     let file_weight = f64::from(module.total_loc.max(1));
     for (metric, getter) in MODULE_METRICS {
-        stratum.entry((key.to_string(), metric)).or_default().observe(getter(module), file_weight);
+        stratum.entry(stratum_key(lang, metric)).or_default().observe(getter(module), file_weight);
     }
     for (_, field_count) in &module.struct_fields {
-        stratum.entry((key.to_string(), "struct_fields")).or_default().observe(*field_count, file_weight);
+        stratum.entry(stratum_key(lang, "struct_fields")).or_default().observe(*field_count, file_weight);
     }
 }
 
 fn build_stratum(stratum: &Stratum) -> BTreeMap<String, LanguagePriors> {
     let mut out: BTreeMap<String, LanguagePriors> = BTreeMap::new();
-    for ((lang, metric), hist) in stratum {
+    for (key, hist) in stratum {
+        let (lang, metric) = split_key(key);
         let prior = MetricPrior {
             n: hist.n,
             weight: hist.weight,
             quantiles: QUANTILE_PROBES.iter().map(|p| (*p, weighted_quantile(hist, *p))).collect(),
             gpd: tail_fit(metric, hist),
         };
-        out.entry(lang.clone()).or_default().metrics.insert((*metric).to_string(), prior);
+        out.entry(lang.to_string()).or_default().metrics.insert(metric.to_string(), prior);
     }
     out
 }

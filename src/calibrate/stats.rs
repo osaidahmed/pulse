@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct WeightedHist {
     pub bins: BTreeMap<u32, Bin>,
     pub n: u64,
     pub weight: f64,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct Bin {
     pub count: u64,
     pub weight: f64,
