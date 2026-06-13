@@ -43,7 +43,6 @@ fn scan_corpus_for_unused_functions() {
     let out = std::env::var("SCAN_OUT").unwrap_or_else(|_| "/tmp/dead_scan.tsv".into());
     let only = std::env::var("SCAN_LANG").ok();
     let depth: u32 = std::env::var("SCAN_DEPTH").ok().and_then(|s| s.parse().ok()).unwrap_or(50);
-    let whole = std::env::var("SCAN_WHOLE").is_ok();
     let root = PathBuf::from(&corpus);
     let _ = std::fs::write(&out, "");
     for lang_dir in subdirs(&root) {
@@ -53,7 +52,7 @@ fn scan_corpus_for_unused_functions() {
         }
         for repo in subdirs(&lang_dir) {
             let slug = repo.file_name().unwrap_or_default().to_string_lossy().into_owned();
-            let flags = if whole { pulse::dead_function::scan_repo_unused(&repo) } else { session_flags(&repo, depth) };
+            let flags = session_flags(&repo, depth);
             let mut block = String::new();
             for (file, name, line) in &flags {
                 block.push_str(&format!("{lang}\t{slug}\t{file}\t{line}\t{name}\n"));
