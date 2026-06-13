@@ -1,11 +1,14 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command};
+use std::time::{Duration, Instant};
 
 use pulse::audit::IgnoreFilter;
 use pulse::calibrate::priors::PriorsBuilder;
 use pulse::config::IgnoreMatcher;
 
 use crate::common::t;
+
+const REPO_BUDGET: Duration = Duration::from_secs(600);
 
 #[test]
 fn bake_corpus_priors() {
@@ -44,15 +47,15 @@ fn drive_sweep(corpus_root: &Path) {
             eprintln!("skip (cached) {}", repo.display());
             continue;
         }
-        let status = Command::new(&exe)
+        let child = Command::new(&exe)
             .args(["priors_sweep::bake_corpus_priors", "--exact", "--nocapture"])
             .env("CALIBRATION_CORPUS", corpus_root)
             .env("BAKE_ONE_REPO", &repo)
             .env("BAKE_OUT", &out)
-            .status()
+            .spawn()
             .unwrap();
-        if !status.success() {
-            eprintln!("CRASH on {} ({status})", repo.display());
+        if let Some(reason) = wait_bounded(child) {
+            eprintln!("{reason} on {}", repo.display());
             crashed.push(repo.clone());
         }
     }
@@ -69,6 +72,22 @@ fn drive_sweep(corpus_root: &Path) {
     let out = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate/priors.json");
     std::fs::write(&out, serde_json::to_string_pretty(&table).unwrap()).unwrap();
     eprintln!("priors written to {} from {merged} repos; {} crashed: {crashed:?}", out.display(), crashed.len());
+}
+
+fn wait_bounded(mut child: Child) -> Option<String> {
+    let start = Instant::now();
+    loop {
+        match child.try_wait().unwrap() {
+            Some(status) if status.success() => return None,
+            Some(status) => return Some(format!("CRASH ({status})")),
+            None if start.elapsed() > REPO_BUDGET => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Some("TIMEOUT".to_string());
+            }
+            None => std::thread::sleep(Duration::from_secs(2)),
+        }
+    }
 }
 
 fn slug(repo: &Path) -> String {
