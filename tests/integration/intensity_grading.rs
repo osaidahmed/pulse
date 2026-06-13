@@ -1,8 +1,11 @@
 use pulse::intensity::{for_finding, normalize_exceedance, rank_findings};
+use pulse::parse::Language;
 use pulse::smells::{self, Location};
 use pulse::walk::FileMetrics;
 
 use crate::common::t;
+
+const RUST: Language = Language::Rust;
 
 fn analyze(code: &str, ext: &str) -> FileMetrics {
     let dir = tempfile::tempdir().unwrap();
@@ -71,7 +74,7 @@ fn intensity_in_range_for_real_findings() {
     for f in &findings {
         if let Location::Function { name, start_line, .. } = &f.location {
             let fm = metrics.functions.iter().find(|m| &m.name == name && m.start_line == *start_line).unwrap();
-            let score = for_finding(f.smell, fm, &t());
+            let score = for_finding(f.smell, fm, RUST, &t());
             assert!((0.0..=10.0).contains(&score), "{:?} intensity {score}", f.smell);
         }
     }
@@ -84,7 +87,7 @@ fn god_method_outranks_large_method_in_block_order() {
     let code = format!("{large}\n{god}");
     let metrics = analyze(&code, "rs");
     let findings = smells::detect(&metrics, &code, &t());
-    let ranked = rank_findings(&findings, &metrics, &t());
+    let ranked = rank_findings(&findings, &metrics, RUST, &t());
     assert!(!ranked.is_empty());
     let top = &ranked[0];
     let Location::Function { name, .. } = &top.location else { panic!("expected function finding first") };
@@ -100,8 +103,8 @@ fn ranking_is_deterministic_across_runs() {
     );
     let metrics = analyze(&code, "rs");
     let findings = smells::detect(&metrics, &code, &t());
-    let r1 = rank_findings(&findings, &metrics, &t());
-    let r2 = rank_findings(&findings, &metrics, &t());
+    let r1 = rank_findings(&findings, &metrics, RUST, &t());
+    let r2 = rank_findings(&findings, &metrics, RUST, &t());
     let names1: Vec<_> = r1.iter().map(|f| (f.smell, f.detail.clone())).collect();
     let names2: Vec<_> = r2.iter().map(|f| (f.smell, f.detail.clone())).collect();
     assert_eq!(names1, names2);

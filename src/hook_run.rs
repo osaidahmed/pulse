@@ -59,7 +59,7 @@ pub fn run_hook(h: hook::HookInput) {
         process::exit(0);
     }
     analytics::log_findings(&h, &findings, &analysis.filename, &analysis.metrics.functions, &source);
-    emit_findings(&findings, &analysis, &source, path);
+    emit_findings(&findings, &analysis, lang, &source, path);
 }
 
 fn is_ignored_by(cfg_root: Option<&(config::PulseConfig, PathBuf)>, path: &Path) -> bool {
@@ -79,9 +79,15 @@ fn collect_hook_findings(h: &hook::HookInput, analysis: &AnalysisResultFull, edi
     findings
 }
 
-fn emit_findings(findings: &[Finding], analysis: &AnalysisResultFull, source: &str, path: &Path) {
+fn emit_findings(
+    findings: &[Finding],
+    analysis: &AnalysisResultFull,
+    lang: parse::Language,
+    source: &str,
+    path: &Path,
+) {
     let t = &analysis.thresholds;
-    let ranked = pulse::intensity::rank_findings(findings, &analysis.metrics, t);
+    let ranked = pulse::intensity::rank_findings(findings, &analysis.metrics, lang, t);
     let (blocking, advisory): (Vec<Finding>, Vec<Finding>) =
         ranked.into_iter().partition(|f| tier_for(f.smell) == FindingTier::Blocking);
     let advisory_ctx = (!advisory.is_empty()).then(|| output::format_advisory(&advisory, &analysis.filename));

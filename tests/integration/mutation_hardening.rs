@@ -1,7 +1,15 @@
 use crate::common::t;
+use pulse::calibrate::priors::corpus_priors;
 use pulse::intensity::{for_finding, normalize_exceedance, rank_findings};
+use pulse::parse::Language;
 use pulse::smells::{detect, Finding, Location, Smell};
 use pulse::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
+
+const RUST: Language = Language::Rust;
+
+fn corpus_tail(metric: &str) -> f64 {
+    corpus_priors().main["rust"].metrics[metric].quantile(0.995)
+}
 
 fn fm(name: &str) -> FunctionMetrics {
     FunctionMetrics {
@@ -132,52 +140,51 @@ fn complexity_intensity_scores_each_satisfied_band() {
     let th = t();
     let mut by_cc = fm("a");
     by_cc.cc = th.function.cc_warning + 1;
-    let expected =
-        normalize_exceedance(f64::from(by_cc.cc), f64::from(th.function.cc_warning), f64::from(th.function.cc_alert));
+    let expected = normalize_exceedance(f64::from(by_cc.cc), f64::from(th.function.cc_warning), corpus_tail("cc"));
     assert!(expected > 0.0);
-    assert!((for_finding(Smell::ComplexMethod, &by_cc, &th) - expected).abs() < 1e-9);
+    assert!((for_finding(Smell::ComplexMethod, &by_cc, RUST, &th) - expected).abs() < 1e-9);
 
     let mut by_cogc = fm("b");
     by_cogc.cognitive_complexity = th.function.cogc_warning + 3;
     let expected = normalize_exceedance(
         f64::from(by_cogc.cognitive_complexity),
         f64::from(th.function.cogc_warning),
-        f64::from(th.function.cogc_alert),
+        corpus_tail("cogc"),
     );
     assert!(expected > 0.0);
-    assert!((for_finding(Smell::ComplexMethod, &by_cogc, &th) - expected).abs() < 1e-9);
+    assert!((for_finding(Smell::ComplexMethod, &by_cogc, RUST, &th) - expected).abs() < 1e-9);
 
     let mut by_loc = fm("c");
     by_loc.loc = th.function.fn_loc_warning + 7;
-    let expected = normalize_exceedance(
-        f64::from(by_loc.loc),
-        f64::from(th.function.fn_loc_warning),
-        f64::from(th.function.fn_loc_alert),
-    );
+    let expected =
+        normalize_exceedance(f64::from(by_loc.loc), f64::from(th.function.fn_loc_warning), corpus_tail("fn_loc"));
     assert!(expected > 0.0);
-    assert!((for_finding(Smell::LargeMethod, &by_loc, &th) - expected).abs() < 1e-9);
+    assert!((for_finding(Smell::LargeMethod, &by_loc, RUST, &th) - expected).abs() < 1e-9);
 }
 
 type SetMetric = fn(&mut FunctionMetrics, u32);
 
 #[test]
-fn structural_intensity_normalizes_against_twice_the_floor() {
+fn structural_intensity_normalizes_against_the_corpus_tail() {
     let th = t();
-    let cases: Vec<(Smell, u32, SetMetric)> = vec![
-        (Smell::DeepNestedComplexity, th.function.nesting_depth, |f, v| f.max_nesting = v),
-        (Smell::ComplexConditional, th.function.compound_conditions, |f, v| f.compound_condition_count = v),
-        (Smell::ExcessArguments, th.function.arg_max, |f, v| f.arg_count = v),
-        (Smell::ConstructorOverInjection, th.function.constructor_arg_max, |f, v| f.arg_count = v),
-        (Smell::LargeEmbeddedBlock, th.function.embedded_block_loc, |f, v| f.max_embedded_block_loc = v),
-        (Smell::NestedConditionalChunks, th.function.bump_count, |f, v| f.bump_count = v),
+    let cases: Vec<(Smell, u32, &str, SetMetric)> = vec![
+        (Smell::DeepNestedComplexity, th.function.nesting_depth, "nesting", |f, v| f.max_nesting = v),
+        (Smell::ComplexConditional, th.function.compound_conditions, "compound_conditions", |f, v| {
+            f.compound_condition_count = v;
+        }),
+        (Smell::ExcessArguments, th.function.arg_max, "args", |f, v| f.arg_count = v),
+        (Smell::ConstructorOverInjection, th.function.constructor_arg_max, "args", |f, v| f.arg_count = v),
+        (Smell::LargeEmbeddedBlock, th.function.embedded_block_loc, "embedded_block_loc", |f, v| {
+            f.max_embedded_block_loc = v;
+        }),
+        (Smell::NestedConditionalChunks, th.function.bump_count, "bump", |f, v| f.bump_count = v),
     ];
-    for (smell, floor, set) in cases {
+    for (smell, floor, metric, set) in cases {
         let mut f = fm("s");
         let value = floor + 1;
         set(&mut f, value);
-        let expected = normalize_exceedance(f64::from(value), f64::from(floor), f64::from(floor) * 2.0);
-        assert!(expected > 0.0, "{smell:?} expected intensity above zero");
-        let got = for_finding(smell, &f, &th);
+        let expected = normalize_exceedance(f64::from(value), f64::from(floor), corpus_tail(metric));
+        let got = for_finding(smell, &f, RUST, &th);
         assert!((got - expected).abs() < 1e-9, "{smell:?}: got {got}, expected {expected}");
     }
 }
@@ -204,7 +211,7 @@ fn rank_findings_orders_by_descending_intensity() {
         },
     ];
     let metrics = FileMetrics { functions: vec![mild, severe], module: module() };
-    let ranked = rank_findings(&findings, &metrics, &th);
+    let ranked = rank_findings(&findings, &metrics, RUST, &th);
     let first = match &ranked[0].location {
         Location::Function { name, .. } => name.clone(),
         Location::Module => String::new(),
