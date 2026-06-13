@@ -39,3 +39,28 @@ fn moderate_depth_is_still_measured_not_skipped() {
     let features = features_on_small_stack(nested_fixture(dir.path(), MODERATE_DEPTH));
     assert_eq!(features, 1, "fail-open must not swallow merely-deep files");
 }
+
+#[test]
+fn audit_feature_walker_gates_deep_trees_instead_of_overflowing() {
+    let depth = 6_000;
+    let source = format!("x = {}1{}\n", "(".repeat(depth), ")".repeat(depth));
+    let tree = pulse::parse::parse_guarded(&source, Language::Python).expect("parse");
+    let thresholds = t().audit;
+    let subtree_count = std::thread::Builder::new()
+        .stack_size(TINY_STACK_BYTES)
+        .spawn(move || {
+            pulse::audit::walker::extract_records(
+                &tree,
+                &source,
+                Language::Python,
+                std::path::Path::new("deep.py"),
+                &thresholds,
+            )
+            .subtrees
+            .len()
+        })
+        .unwrap()
+        .join()
+        .expect("audit walker must gate deep trees, not overflow the stack");
+    assert_eq!(subtree_count, 0, "an over-deep tree must be skipped, not mined");
+}

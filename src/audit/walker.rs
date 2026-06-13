@@ -46,10 +46,26 @@ pub fn extract_records(
     file: &Path,
     thresholds: &AuditThresholds,
 ) -> WalkOutput {
-    let ctx = WalkCtx { source, lang, file, thresholds };
     let mut state = VisitState::default();
-    visit(tree.root_node(), None, &ctx, &mut state);
+    if !exceeds_depth_cap(tree.root_node()) {
+        let ctx = WalkCtx { source, lang, file, thresholds };
+        visit(tree.root_node(), None, &ctx, &mut state);
+    }
     WalkOutput { subtrees: state.out, features: state.accum.finalize(file, source), kinds_by_fp: state.kinds_by_fp }
+}
+
+fn exceeds_depth_cap(root: Node) -> bool {
+    let mut stack = vec![(root, 1u32)];
+    while let Some((node, depth)) = stack.pop() {
+        if depth > crate::walk::MAX_WALK_DEPTH {
+            return true;
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            stack.push((child, depth + 1));
+        }
+    }
+    false
 }
 
 pub fn extract_subtrees(

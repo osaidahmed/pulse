@@ -38,7 +38,7 @@ pub use fingerprint::{
 pub use shared::is_catch_body_empty;
 pub use simhash::compute_simhash;
 
-pub(crate) use guards::{cpg_enabled, extras_enabled, DepthGuard};
+pub(crate) use guards::{cpg_enabled, extras_enabled, DepthGuard, MAX_WALK_DEPTH};
 pub use guards::{with_cpg_enabled, with_edit_scope};
 
 use tree_sitter::Node;
