@@ -6,12 +6,12 @@ use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
 
-use crate::audit::corpus::{Corpus, CorpusFile};
+use crate::audit::corpus_stats::PerFileFeatures;
 use crate::audit::{corpus_stats, record_extraction, vendor_filter, walk_typed_source_files_filtered, IgnoreFilter};
 use crate::baselines;
 use crate::parse::{self, Language};
 use crate::test_detection;
-use crate::thresholds::Thresholds;
+use crate::thresholds::{AuditThresholds, Thresholds};
 use crate::walk::{FunctionMetrics, ModuleMetrics};
 
 pub struct Census {
@@ -33,9 +33,12 @@ pub fn collect(root: &Path, thresholds: &Thresholds, filter: &IgnoreFilter) -> C
         .into_iter()
         .filter(|(path, _)| !baselines::is_fixture_file(&path.to_string_lossy()))
         .collect();
-    let corpus = Corpus::load(&typed);
-    let vendored = vendored_paths(&corpus, thresholds);
-    let measured: Vec<FileCensus> = corpus.files.par_iter().filter_map(measure).collect();
+    let streamed: Vec<(FileCensus, PerFileFeatures)> =
+        typed.par_iter().filter_map(|(path, lang)| measure_file(path, *lang, &thresholds.audit)).collect();
+    let (measured, features): (Vec<FileCensus>, Vec<PerFileFeatures>) = streamed.into_iter().unzip();
+    let stats = corpus_stats::aggregate_corpus(features);
+    let vendored =
+        vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.audit.pattern_mining.vendor));
     let mut census = Census {
         cpg_enabled: thresholds.cpg.enabled,
         main: Vec::new(),
@@ -57,21 +60,17 @@ pub fn collect(root: &Path, thresholds: &Thresholds, filter: &IgnoreFilter) -> C
     census
 }
 
-fn vendored_paths(corpus: &Corpus, thresholds: &Thresholds) -> HashSet<PathBuf> {
-    let bundle = record_extraction::corpus_bundle_from(corpus, &thresholds.audit);
-    let stats = corpus_stats::aggregate_corpus(bundle.features);
-    vendor_filter::flagged_paths(&vendor_filter::classify(&stats, &thresholds.audit.pattern_mining.vendor))
-}
-
 fn sorted_paths(paths: &HashSet<PathBuf>) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = paths.iter().cloned().collect();
     out.sort();
     out
 }
 
-fn measure(file: &CorpusFile) -> Option<FileCensus> {
-    let tree = file.tree.as_ref()?;
-    let source = file.source.as_ref()?;
-    let metrics = parse::walk_guarded_shared(tree, source, file.lang)?;
-    Some(FileCensus { path: file.path.clone(), lang: file.lang, functions: metrics.functions, module: metrics.module })
+fn measure_file(path: &Path, lang: Language, audit: &AuditThresholds) -> Option<(FileCensus, PerFileFeatures)> {
+    let source: std::sync::Arc<str> = std::sync::Arc::from(std::fs::read_to_string(path).ok()?);
+    let tree = parse::parse_guarded_shared(&source, lang)?;
+    let metrics = parse::walk_guarded_shared(&tree, &source, lang)?;
+    let features = record_extraction::file_features(&tree, &source, lang, path, audit)?;
+    let census = FileCensus { path: path.to_path_buf(), lang, functions: metrics.functions, module: metrics.module };
+    Some((census, features))
 }

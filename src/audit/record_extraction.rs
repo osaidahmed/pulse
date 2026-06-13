@@ -49,11 +49,32 @@ pub fn for_dir(root: &Path, lang: Language, thresholds: &AuditThresholds) -> Vec
 }
 
 fn walk_one(file: &super::corpus::CorpusFile, thresholds: &AuditThresholds) -> Option<WalkOutput> {
-    let tree = file.tree.as_ref()?.clone();
-    let shared = std::sync::Arc::clone(file.source.as_ref()?);
+    let tree = file.tree.as_ref()?;
+    let source = file.source.as_ref()?;
+    guarded_records(tree, source, file.lang, &file.path, thresholds)
+}
+
+pub fn file_features(
+    tree: &tree_sitter::Tree,
+    source: &std::sync::Arc<str>,
+    lang: Language,
+    path: &Path,
+    thresholds: &AuditThresholds,
+) -> Option<super::corpus_stats::PerFileFeatures> {
+    guarded_records(tree, source, lang, path, thresholds).map(|output| output.features)
+}
+
+fn guarded_records(
+    tree: &tree_sitter::Tree,
+    source: &std::sync::Arc<str>,
+    lang: Language,
+    path: &Path,
+    thresholds: &AuditThresholds,
+) -> Option<WalkOutput> {
+    let tree = tree.clone();
+    let shared = std::sync::Arc::clone(source);
     let caps = std::sync::Arc::clone(&shared);
-    let lang = file.lang;
-    let path = file.path.clone();
+    let path = path.to_path_buf();
     let thresholds = *thresholds;
     crate::parse::guarded_compute(&caps, move || walker::extract_records(&tree, &shared, lang, &path, &thresholds))
 }
