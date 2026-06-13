@@ -141,3 +141,29 @@ fn an_annotated_override_method_is_not_flagged() {
     let out = p.pulse("--stop");
     assert!(!flags(&out), "an @Override callback is dispatched by the framework: {out}");
 }
+
+#[test]
+fn a_public_rust_function_is_not_flagged() {
+    let p = GitProject::new();
+    p.write("lib.rs", "fn existing() {}\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write("lib.rs", "fn existing() {}\npub fn with_zztop_option() -> u32 {\n    1\n}\n");
+    let out = p.pulse("--stop");
+    assert!(!flags(&out), "a pub fn is external API, not internal dead code: {out}");
+}
+
+#[test]
+fn an_exported_go_func_is_not_flagged_but_an_unexported_orphan_is() {
+    let p = GitProject::new();
+    p.write("main.go", "package main\nfunc existing() {}\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write(
+        "main.go",
+        "package main\nfunc existing() {}\nfunc ZztopExported() int {\n\treturn 1\n}\nfunc zztopOrphan() int {\n\treturn 2\n}\n",
+    );
+    let out = p.pulse("--stop");
+    assert!(!out.contains("ZztopExported"), "an exported Go func is API: {out}");
+    assert!(out.contains("zztopOrphan"), "an unexported Go orphan is still flagged: {out}");
+}

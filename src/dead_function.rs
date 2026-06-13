@@ -68,7 +68,7 @@ fn collect_candidates(repo: &Path, base_sha: &str) -> Vec<Candidate> {
         let lines: Vec<&str> = source.lines().collect();
         let filename = path.file_name().map_or_else(|| rel.clone(), |n| n.to_string_lossy().into_owned());
         for f in &current.functions {
-            if let Some(bare) = candidate_name(f, &base, &lines) {
+            if let Some(bare) = candidate_name(f, &base, &lines, lang) {
                 out.push(Candidate {
                     filename: filename.clone(),
                     bare,
@@ -88,22 +88,36 @@ fn base_function_names(repo: &Path, base_sha: &str, rel: &str, lang: Language) -
         .unwrap_or_default()
 }
 
-fn candidate_name(f: &FunctionMetrics, base_names: &HashSet<String>, lines: &[&str]) -> Option<String> {
+fn candidate_name(f: &FunctionMetrics, base_names: &HashSet<String>, lines: &[&str], lang: Language) -> Option<String> {
     if base_names.contains(&f.name) {
         return None;
     }
-    candidate_bare(f, lines)
+    candidate_bare(f, lines, lang)
 }
 
-fn candidate_bare(f: &FunctionMetrics, lines: &[&str]) -> Option<String> {
+fn candidate_bare(f: &FunctionMetrics, lines: &[&str], lang: Language) -> Option<String> {
     if f.is_constructor {
         return None;
     }
     let ident = f.name.rsplit(['.', ':']).next().unwrap_or(&f.name);
-    if !is_plain_identifier(ident) || is_entry_point(ident) || is_decorated(f.start_line, lines) {
+    if !is_plain_identifier(ident)
+        || is_entry_point(ident)
+        || is_decorated(f.start_line, lines)
+        || is_exported(ident, f.start_line, lines, lang)
+    {
         return None;
     }
     Some(ident.to_string())
+}
+
+fn is_exported(ident: &str, start_line: u32, lines: &[&str], lang: Language) -> bool {
+    match lang {
+        Language::Go => ident.starts_with(|c: char| c.is_ascii_uppercase()),
+        Language::Rust => {
+            lines.get((start_line as usize).saturating_sub(1)).map_or("", |l| l.trim()).starts_with("pub ")
+        }
+        _ => false,
+    }
 }
 
 fn is_plain_identifier(name: &str) -> bool {
