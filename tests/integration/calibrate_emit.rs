@@ -6,7 +6,7 @@ use pulse::calibrate::estimator::{estimate_languages, Calibrated, EstimatorConfi
 use pulse::calibrate::priors::{LanguagePriors, MetricPrior};
 
 fn mp(quantiles: &[(f64, f64)]) -> MetricPrior {
-    MetricPrior { n: 900, quantiles: quantiles.to_vec() }
+    MetricPrior { n: 900, quantiles: quantiles.to_vec(), cdf: Vec::new() }
 }
 
 fn corpus_python() -> BTreeMap<String, LanguagePriors> {

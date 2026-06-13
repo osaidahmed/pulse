@@ -52,6 +52,8 @@ pub struct LanguagePriors {
 pub struct MetricPrior {
     pub n: u64,
     pub quantiles: Vec<(f64, f64)>,
+    #[serde(default)]
+    pub cdf: Vec<(u32, u64)>,
 }
 
 impl MetricPrior {
@@ -71,6 +73,28 @@ impl MetricPrior {
             }
         }
         qs.last().map_or(0.0, |&(_, v)| v)
+    }
+
+    pub fn cdf_at(&self, value: u32) -> f64 {
+        if self.n == 0 {
+            return 1.0;
+        }
+        let mut cumulative = 0u64;
+        for &(v, count) in &self.cdf {
+            if v > value {
+                break;
+            }
+            cumulative += count;
+        }
+        cumulative as f64 / self.n as f64
+    }
+
+    pub fn firing_rate(&self, threshold: u32) -> f64 {
+        1.0 - self.cdf_at(threshold)
+    }
+
+    pub fn percentile_of(&self, value: u32) -> f64 {
+        self.cdf_at(value) * 100.0
     }
 }
 
@@ -159,6 +183,7 @@ fn build_stratum(stratum: &Stratum) -> BTreeMap<String, LanguagePriors> {
         let prior = MetricPrior {
             n: hist.n,
             quantiles: QUANTILE_PROBES.iter().map(|p| (*p, count_quantile(hist, *p))).collect(),
+            cdf: hist.bins.iter().map(|(value, bin)| (*value, bin.count)).collect(),
         };
         out.entry(lang.to_string()).or_default().metrics.insert(metric.to_string(), prior);
     }

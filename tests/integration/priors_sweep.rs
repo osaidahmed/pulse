@@ -70,10 +70,26 @@ fn drive_sweep(corpus_root: &Path) {
     }
     let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate");
     std::fs::write(calibrate_dir.join("priors_histogram.json"), builder.to_json()).unwrap();
+    write_priors_json(&builder, &calibrate_dir);
+    eprintln!("priors written from {merged} repos; {} crashed: {crashed:?}", crashed.len());
+}
+
+fn write_priors_json(builder: &PriorsBuilder, calibrate_dir: &Path) {
     let table = builder.build(t().cpg.enabled);
     let out = calibrate_dir.join("priors.json");
-    std::fs::write(&out, serde_json::to_string_pretty(&table).unwrap()).unwrap();
-    eprintln!("priors written to {} from {merged} repos; {} crashed: {crashed:?}", out.display(), crashed.len());
+    std::fs::write(out, serde_json::to_string(&table).unwrap()).unwrap();
+}
+
+#[test]
+fn rebake_priors_json_from_histogram() {
+    if std::env::var("REBAKE_PRIORS_JSON").is_err() {
+        return;
+    }
+    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate");
+    let mut builder = PriorsBuilder::default();
+    let histogram = std::fs::read_to_string(calibrate_dir.join("priors_histogram.json")).unwrap();
+    assert!(builder.merge_json(&histogram), "committed histogram must parse");
+    write_priors_json(&builder, &calibrate_dir);
 }
 
 fn wait_bounded(mut child: Child) -> Option<String> {

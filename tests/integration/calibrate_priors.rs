@@ -30,12 +30,24 @@ fn count_quantile_measures_entities_not_loc_mass() {
 
 #[test]
 fn metric_prior_quantile_interpolates_and_clamps() {
-    let mp = MetricPrior { n: 100, quantiles: vec![(0.5, 4.0), (0.75, 8.0), (0.95, 16.0)] };
+    let mp = MetricPrior { n: 100, quantiles: vec![(0.5, 4.0), (0.75, 8.0), (0.95, 16.0)], cdf: Vec::new() };
     assert_eq!(mp.quantile(0.75), 8.0);
     assert_eq!(mp.quantile(0.4), 4.0, "below the first probe clamps to it");
     assert_eq!(mp.quantile(0.99), 16.0, "above the last probe clamps to it");
     let mid = mp.quantile(0.85);
     assert!(mid > 8.0 && mid < 16.0, "interpolated: {mid}");
+}
+
+#[test]
+fn cdf_at_counts_mass_at_or_below_value() {
+    let mp = MetricPrior { n: 10, quantiles: vec![], cdf: vec![(1, 5), (3, 3), (8, 2)] };
+    assert_eq!(mp.cdf_at(0), 0.0);
+    assert_eq!(mp.cdf_at(1), 0.5);
+    assert_eq!(mp.cdf_at(2), 0.5, "no bin at 2 so the mass is unchanged from 1");
+    assert_eq!(mp.cdf_at(3), 0.8);
+    assert_eq!(mp.cdf_at(100), 1.0);
+    assert_eq!(mp.firing_rate(1), 0.5);
+    assert_eq!(mp.percentile_of(3), 80.0);
 }
 
 #[test]

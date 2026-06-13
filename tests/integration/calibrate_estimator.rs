@@ -8,7 +8,7 @@ use pulse::calibrate::priors::{corpus_priors, LanguagePriors, MetricPrior};
 use crate::common::t;
 
 fn mp(quantiles: &[(f64, f64)]) -> MetricPrior {
-    MetricPrior { n: 900, quantiles: quantiles.to_vec() }
+    MetricPrior { n: 900, quantiles: quantiles.to_vec(), cdf: Vec::new() }
 }
 
 fn corpus(lang: &str, metrics: &[(&str, MetricPrior)]) -> BTreeMap<String, LanguagePriors> {
