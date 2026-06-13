@@ -50,9 +50,11 @@ pub fn run_hook(file_path: &str) -> String {
     } else {
         (file_path.to_string(), None)
     };
+    let baseline = tempfile::tempdir().unwrap();
     let json = format!(r#"{{"tool_input":{{"file_path":"{actual_path}"}}}}"#);
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .args(["--hook"])
+        .env("PULSE_BASELINE_DIR", baseline.path())
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
