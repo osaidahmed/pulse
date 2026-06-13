@@ -10,6 +10,55 @@ use crate::turn_scan;
 use crate::walk::FunctionMetrics;
 
 const MAX_SCAN_FILES: usize = 5000;
+const MAX_FILE_BYTES: u64 = 2_000_000;
+
+fn oversized(path: &Path) -> bool {
+    std::fs::metadata(path).map(|m| m.len() > MAX_FILE_BYTES).unwrap_or(false)
+}
+
+pub fn scan_repo_unused(root: &Path) -> Vec<(String, String, u32)> {
+    let files = walk_typed_source_files(root, true);
+    if files.is_empty() || files.len() > MAX_SCAN_FILES {
+        return Vec::new();
+    }
+    let mut freq: HashMap<String, u32> = HashMap::new();
+    let mut candidates: Vec<(String, String, u32)> = Vec::new();
+    for (path, lang) in &files {
+        if oversized(path) {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(path) else { continue };
+        tally_identifiers(&text, &mut freq);
+        if test_detection::is_test_file(&path.to_string_lossy()) {
+            continue;
+        }
+        let Some(metrics) = parse::parse_and_walk_guarded(&text, *lang) else { continue };
+        let lines: Vec<&str> = text.lines().collect();
+        let display = path.strip_prefix(root).unwrap_or(path).to_string_lossy().into_owned();
+        for f in &metrics.functions {
+            if let Some(bare) = candidate_bare(f, &lines) {
+                candidates.push((display.clone(), bare, f.start_line));
+            }
+        }
+    }
+    candidates.into_iter().filter(|(_, bare, _)| freq.get(bare).copied() == Some(1)).collect()
+}
+
+fn tally_identifiers(text: &str, freq: &mut HashMap<String, u32>) {
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i].is_ascii_alphabetic() || bytes[i] == b'_' {
+            let start = i;
+            while i < bytes.len() && is_ident_byte(bytes[i]) {
+                i += 1;
+            }
+            *freq.entry(text[start..i].to_string()).or_insert(0) += 1;
+        } else {
+            i += 1;
+        }
+    }
+}
 
 struct Candidate {
     filename: String,
@@ -20,12 +69,16 @@ struct Candidate {
 
 pub fn unused_added_functions() -> Vec<(String, Vec<Finding>)> {
     let Some((repo, base_sha)) = turn_scan::repo_and_base() else { return Vec::new() };
-    let candidates = collect_candidates(&repo, &base_sha);
+    added_unused_since(&repo, &base_sha)
+}
+
+pub fn added_unused_since(repo: &Path, base_sha: &str) -> Vec<(String, Vec<Finding>)> {
+    let candidates = collect_candidates(repo, base_sha);
     if candidates.is_empty() {
         return Vec::new();
     }
     let names: HashSet<&str> = candidates.iter().map(|c| c.bare.as_str()).collect();
-    let Some(counts) = reference_counts(&repo, &names) else { return Vec::new() };
+    let Some(counts) = reference_counts(repo, &names) else { return Vec::new() };
     group_findings(candidates, &counts)
 }
 
@@ -41,9 +94,10 @@ fn collect_candidates(repo: &Path, base_sha: &str) -> Vec<Candidate> {
         let Ok(source) = std::fs::read_to_string(path) else { continue };
         let Some(current) = parse::parse_and_walk_guarded(&source, lang) else { continue };
         let base = base_function_names(repo, base_sha, &rel, lang);
+        let lines: Vec<&str> = source.lines().collect();
         let filename = path.file_name().map_or_else(|| rel.clone(), |n| n.to_string_lossy().into_owned());
         for f in &current.functions {
-            if let Some(bare) = candidate_name(f, &base, &source) {
+            if let Some(bare) = candidate_name(f, &base, &lines) {
                 out.push(Candidate {
                     filename: filename.clone(),
                     bare,
@@ -63,12 +117,19 @@ fn base_function_names(repo: &Path, base_sha: &str, rel: &str, lang: Language) -
         .unwrap_or_default()
 }
 
-fn candidate_name(f: &FunctionMetrics, base_names: &HashSet<String>, source: &str) -> Option<String> {
-    if base_names.contains(&f.name) || f.is_constructor {
+fn candidate_name(f: &FunctionMetrics, base_names: &HashSet<String>, lines: &[&str]) -> Option<String> {
+    if base_names.contains(&f.name) {
+        return None;
+    }
+    candidate_bare(f, lines)
+}
+
+fn candidate_bare(f: &FunctionMetrics, lines: &[&str]) -> Option<String> {
+    if f.is_constructor {
         return None;
     }
     let ident = f.name.rsplit(['.', ':']).next().unwrap_or(&f.name);
-    if !is_plain_identifier(ident) || is_entry_point(ident) || is_decorated(f.start_line, source) {
+    if !is_plain_identifier(ident) || is_entry_point(ident) || is_decorated(f.start_line, lines) {
         return None;
     }
     Some(ident.to_string())
@@ -82,18 +143,59 @@ fn is_entry_point(bare: &str) -> bool {
     matches!(bare, "main" | "init") || (bare.starts_with("__") && bare.ends_with("__"))
 }
 
-fn is_decorated(start_line: u32, source: &str) -> bool {
-    let lines: Vec<&str> = source.lines().collect();
-    let mut i = (start_line as usize).saturating_sub(1);
-    while i > 0 {
+const DECORATOR_LOOKBACK: usize = 40;
+
+fn is_decorated(start_line: u32, lines: &[&str]) -> bool {
+    let def_idx = (start_line as usize).saturating_sub(1);
+    if is_decorator_line(lines.get(def_idx).map_or("", |l| l.trim())) {
+        return true;
+    }
+    let floor = def_idx.saturating_sub(DECORATOR_LOOKBACK);
+    let mut balance: i32 = 0;
+    let mut i = def_idx;
+    while i > floor {
         i -= 1;
-        let trimmed = lines.get(i).map_or("", |l| l.trim());
-        if trimmed.is_empty() {
+        let line = lines.get(i).map_or("", |l| l.trim());
+        if line.is_empty() {
             continue;
         }
-        return trimmed.starts_with('@') || trimmed.starts_with("#[");
+        balance += bracket_delta(line);
+        if balance > 0 {
+            continue;
+        }
+        if is_decorator_line(line) {
+            return true;
+        }
+        if is_comment_line(line) {
+            continue;
+        }
+        return false;
     }
     false
+}
+
+fn is_decorator_line(line: &str) -> bool {
+    line.starts_with('@') || line.starts_with("#[") || line.starts_with('[')
+}
+
+fn bracket_delta(line: &str) -> i32 {
+    let mut delta = 0i32;
+    for b in line.bytes() {
+        if matches!(b, b')' | b']' | b'}') {
+            delta += 1;
+        } else if matches!(b, b'(' | b'[' | b'{') {
+            delta -= 1;
+        }
+    }
+    delta
+}
+
+fn is_comment_line(line: &str) -> bool {
+    line.starts_with("//")
+        || line.starts_with("/*")
+        || line.starts_with('*')
+        || line.starts_with("--")
+        || line.starts_with('#')
 }
 
 fn reference_counts(repo: &Path, names: &HashSet<&str>) -> Option<HashMap<String, u32>> {
@@ -103,6 +205,9 @@ fn reference_counts(repo: &Path, names: &HashSet<&str>) -> Option<HashMap<String
     }
     let mut counts: HashMap<String, u32> = names.iter().map(|n| ((*n).to_string(), 0)).collect();
     for (path, _) in &files {
+        if oversized(path) {
+            continue;
+        }
         let Ok(text) = std::fs::read_to_string(path) else { continue };
         for name in names {
             let entry = counts.entry((*name).to_string()).or_insert(0);

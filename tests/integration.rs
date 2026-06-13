@@ -28,6 +28,9 @@ mod session_clones;
 #[path = "integration/dead_function.rs"]
 mod dead_function;
 
+#[path = "integration/dead_function_corpus.rs"]
+mod dead_function_corpus;
+
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
 
