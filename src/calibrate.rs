@@ -1,3 +1,4 @@
+pub mod estimator;
 pub mod priors;
 pub mod stats;
 

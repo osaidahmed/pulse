@@ -9,9 +9,9 @@ use crate::parse::Language;
 use crate::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
 
 pub const QUANTILE_PROBES: &[f64] = &[0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99, 0.995];
-const GPD_THRESHOLD_PROBE: f64 = 0.90;
+pub(crate) const GPD_THRESHOLD_PROBE: f64 = 0.90;
 
-const GPD_METRICS: &[&str] = &["fn_loc", "cc", "cogc", "file_loc", "file_total_cc", "embedded_block_loc"];
+pub(crate) const GPD_METRICS: &[&str] = &["fn_loc", "cc", "cogc", "file_loc", "file_total_cc", "embedded_block_loc"];
 
 type FunctionGetter = fn(&FunctionMetrics) -> u32;
 type ModuleGetter = fn(&ModuleMetrics) -> u32;
