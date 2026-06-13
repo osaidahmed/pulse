@@ -220,9 +220,13 @@ pub fn run_stop() {
     }
     all_regressions.extend(pulse::turn_scan::turn_regressions(&checked));
 
+    let unused = pulse::dead_function::unused_added_functions();
+    let advisory = (!unused.is_empty()).then(|| output::format_unused(&unused));
     if !all_regressions.is_empty() {
         let reason = output::format_stop(&all_regressions);
-        println!("{}", hook::render_block(hook::active_protocol(), &reason, None));
+        println!("{}", hook::render_block(hook::active_protocol(), &reason, advisory.as_deref()));
+    } else if let Some(advisory) = &advisory {
+        println!("{}", hook::render_advisory(hook::active_protocol(), advisory));
     }
 
     let move_pool = build_move_pool(&manifest, &analyze);

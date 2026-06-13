@@ -67,6 +67,7 @@ const ADVISORY: &[Smell] = &[
     Smell::ShortVariableNames,
     Smell::StringlyTypedSwitch,
     Smell::CrossFileDuplication,
+    Smell::UnusedFunction,
 ];
 
 pub fn tier_for(smell: Smell) -> FindingTier {

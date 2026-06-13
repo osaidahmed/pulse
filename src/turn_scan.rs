@@ -25,6 +25,16 @@ pub fn canonical_path(path: &str) -> String {
     std::fs::canonicalize(path).ok().and_then(|p| p.to_str().map(String::from)).unwrap_or_else(|| path.to_string())
 }
 
+pub(crate) fn repo_and_base() -> Option<(PathBuf, String)> {
+    let base_sha = std::fs::read_to_string(sha_path()).ok()?;
+    let top = git(Path::new("."), &["rev-parse", "--show-toplevel"])?;
+    Some((PathBuf::from(top.trim()), base_sha.trim().to_string()))
+}
+
+pub(crate) fn base_blob(repo: &Path, base_sha: &str, rel: &str) -> Option<String> {
+    git(repo, &["show", &format!("{}:{}", base_sha.trim(), rel)])
+}
+
 pub fn turn_regressions(already_checked: &HashSet<String>) -> Vec<(String, Vec<Finding>)> {
     let Ok(base_sha) = std::fs::read_to_string(sha_path()) else { return Vec::new() };
     let Some(top) = git(Path::new("."), &["rev-parse", "--show-toplevel"]) else { return Vec::new() };
@@ -53,7 +63,7 @@ struct TurnFile<'a> {
     base_sha: &'a str,
 }
 
-fn changed_files(repo: &Path, base_sha: &str) -> Vec<String> {
+pub(crate) fn changed_files(repo: &Path, base_sha: &str) -> Vec<String> {
     let mut files = git_lines(repo, &["diff", "--name-only", base_sha.trim(), "HEAD"]);
     files.extend(git_lines(repo, &["diff", "--name-only", "HEAD"]));
     files.extend(git_lines(repo, &["ls-files", "--others", "--exclude-standard"]));

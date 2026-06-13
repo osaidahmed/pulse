@@ -12,6 +12,7 @@ pub mod calibrate;
 pub mod config;
 pub mod config_history;
 pub mod cpg;
+pub mod dead_function;
 pub mod duplication;
 pub mod extract;
 pub mod history;

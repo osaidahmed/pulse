@@ -25,6 +25,9 @@ mod calibrate_floor;
 #[path = "integration/session_clones.rs"]
 mod session_clones;
 
+#[path = "integration/dead_function.rs"]
+mod dead_function;
+
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
 

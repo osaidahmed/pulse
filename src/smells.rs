@@ -39,6 +39,7 @@ pub enum Smell {
     UnreachableCode,
     HallucinatedImport,
     CrossFileDuplication,
+    UnusedFunction,
 }
 
 const SMELL_NAMES: &[&str] = &[
@@ -73,6 +74,7 @@ const SMELL_NAMES: &[&str] = &[
     "Unreachable Code",
     "Hallucinated Import",
     "Cross-File Duplication",
+    "Unused Function",
 ];
 
 const SMELL_SNAKE_NAMES: &[&str] = &[
@@ -107,6 +109,7 @@ const SMELL_SNAKE_NAMES: &[&str] = &[
     "unreachable_code",
     "hallucinated_import",
     "cross_file_duplication",
+    "unused_function",
 ];
 
 pub const ALL_SMELLS: &[Smell] = &[
@@ -141,6 +144,7 @@ pub const ALL_SMELLS: &[Smell] = &[
     Smell::UnreachableCode,
     Smell::HallucinatedImport,
     Smell::CrossFileDuplication,
+    Smell::UnusedFunction,
 ];
 
 impl Smell {

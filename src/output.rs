@@ -62,10 +62,23 @@ pub fn format_compact(findings: &[Finding], filename: &str) -> String {
     out
 }
 
-pub fn format_advisory(findings: &[Finding], filename: &str) -> String {
-    let mut out = String::from("pulse advisory (non-blocking) — consider addressing:\n");
+fn push_advisory_lines(out: &mut String, filename: &str, findings: &[Finding]) {
     for f in findings {
         out.push_str(&format_compact_line(f, filename, "advisory[pulse]"));
+    }
+}
+
+pub fn format_advisory(findings: &[Finding], filename: &str) -> String {
+    let mut out = String::from("pulse advisory (non-blocking) — consider addressing:\n");
+    push_advisory_lines(&mut out, filename, findings);
+    out
+}
+
+pub fn format_unused(groups: &[(String, Vec<Finding>)]) -> String {
+    let mut out =
+        String::from("pulse advisory (non-blocking) — functions added this session that are referenced nowhere:\n");
+    for (filename, findings) in groups {
+        push_advisory_lines(&mut out, filename, findings);
     }
     out
 }
@@ -115,6 +128,7 @@ const ACTIONS: &[&str] = &[
     "remove the unreachable code or fix the control flow that skips it",
     "verify the package name against the manifest or declare the dependency",
     "consolidate the duplicated logic into a shared function instead of copying it across files",
+    "remove the unused function, or call it where it is needed",
 ];
 
 pub fn action_for(smell: Smell, detail: &str) -> &'static str {
