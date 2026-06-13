@@ -90,7 +90,7 @@ fn run_calibrate_cmd(args: cli::CalibrateArgs) {
         alert_percentile: args.alert_percentile.unwrap_or(0.95),
     };
     let calibrated = calibrate::estimator::estimate(&census, calibrate::priors::corpus_priors(), &est_cfg);
-    let rendered = calibrate::emit::render(&calibrated, &est_cfg);
+    let rendered = calibrate::emit::render(&calibrated);
     emit_calibration(&root, &rendered, args.write);
 }
 
