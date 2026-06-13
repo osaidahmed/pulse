@@ -21,6 +21,16 @@ impl WeightedHist {
         self.n += 1;
         self.weight += weight;
     }
+
+    pub fn merge(&mut self, other: &WeightedHist) {
+        for (value, bin) in &other.bins {
+            let target = self.bins.entry(*value).or_default();
+            target.count += bin.count;
+            target.weight += bin.weight;
+        }
+        self.n += other.n;
+        self.weight += other.weight;
+    }
 }
 
 pub fn weighted_quantile(hist: &WeightedHist, p: f64) -> f64 {

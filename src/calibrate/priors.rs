@@ -4,8 +4,9 @@ use std::sync::OnceLock;
 use serde::{Deserialize, Serialize};
 
 use super::stats::{gpd_fit, weighted_quantile, GpdFit, WeightedHist};
-use super::{Census, FileCensus};
-use crate::walk::{FunctionMetrics, ModuleMetrics};
+use super::Census;
+use crate::parse::Language;
+use crate::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
 
 pub const QUANTILE_PROBES: &[f64] = &[0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99, 0.995];
 const GPD_THRESHOLD_PROBE: f64 = 0.90;
@@ -69,11 +70,21 @@ type Stratum = BTreeMap<(String, &'static str), WeightedHist>;
 impl PriorsBuilder {
     pub fn add_census(&mut self, census: &Census) {
         for file in &census.main {
-            add_file(&mut self.main, file);
+            add_file(&mut self.main, file.lang, &file.functions, &file.module);
         }
         for file in &census.tests {
-            add_file(&mut self.tests, file);
+            add_file(&mut self.tests, file.lang, &file.functions, &file.module);
         }
+    }
+
+    pub fn add_file_metrics(&mut self, lang: Language, is_test: bool, metrics: &FileMetrics) {
+        let stratum = if is_test { &mut self.tests } else { &mut self.main };
+        add_file(stratum, lang, &metrics.functions, &metrics.module);
+    }
+
+    pub fn merge(&mut self, other: &PriorsBuilder) {
+        merge_stratum(&mut self.main, &other.main);
+        merge_stratum(&mut self.tests, &other.tests);
     }
 
     pub fn build(&self, cpg_enabled: bool) -> PriorsTable {
@@ -81,20 +92,26 @@ impl PriorsBuilder {
     }
 }
 
-fn add_file(stratum: &mut Stratum, file: &FileCensus) {
-    let lang = file.lang.to_config_key();
-    for function in &file.functions {
+fn merge_stratum(into: &mut Stratum, other: &Stratum) {
+    for (key, hist) in other {
+        into.entry(key.clone()).or_default().merge(hist);
+    }
+}
+
+fn add_file(stratum: &mut Stratum, lang: Language, functions: &[FunctionMetrics], module: &ModuleMetrics) {
+    let key = lang.to_config_key();
+    for function in functions {
         let weight = f64::from(function.loc.max(1));
         for (metric, getter) in FUNCTION_METRICS {
-            stratum.entry((lang.to_string(), metric)).or_default().observe(getter(function), weight);
+            stratum.entry((key.to_string(), metric)).or_default().observe(getter(function), weight);
         }
     }
-    let file_weight = f64::from(file.module.total_loc.max(1));
+    let file_weight = f64::from(module.total_loc.max(1));
     for (metric, getter) in MODULE_METRICS {
-        stratum.entry((lang.to_string(), metric)).or_default().observe(getter(&file.module), file_weight);
+        stratum.entry((key.to_string(), metric)).or_default().observe(getter(module), file_weight);
     }
-    for (_, field_count) in &file.module.struct_fields {
-        stratum.entry((lang.to_string(), "struct_fields")).or_default().observe(*field_count, file_weight);
+    for (_, field_count) in &module.struct_fields {
+        stratum.entry((key.to_string(), "struct_fields")).or_default().observe(*field_count, file_weight);
     }
 }
 

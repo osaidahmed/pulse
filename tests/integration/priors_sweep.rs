@@ -14,15 +14,14 @@ fn bake_corpus_priors() {
     for repo in repo_dirs(&PathBuf::from(&corpus_root)) {
         let matcher = IgnoreMatcher::from_patterns(&[]);
         let filter = IgnoreFilter::new(&matcher, &repo);
-        let census = pulse::calibrate::collect(&repo, &thresholds, &filter);
+        let summary = pulse::calibrate::accumulate(&repo, &thresholds, &filter, &mut builder);
         eprintln!(
             "censused {} ({} main files, {} test files, {} vendored)",
             repo.display(),
-            census.main.len(),
-            census.tests.len(),
-            census.vendored_excluded.len()
+            summary.main_files,
+            summary.test_files,
+            summary.vendored
         );
-        builder.add_census(&census);
     }
     let table = builder.build(thresholds.cpg.enabled);
     let json = serde_json::to_string_pretty(&table).unwrap();

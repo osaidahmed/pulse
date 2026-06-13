@@ -103,3 +103,32 @@ fn embedded_priors_load_without_error() {
     let table = corpus_priors();
     assert!(!table.cpg_enabled);
 }
+
+#[test]
+fn streaming_accumulate_matches_collect_then_add() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/app.py"),
+        "def alpha(x):\n    if x > 1:\n        for y in range(x):\n            return y\n    return 0\n\ndef beta(y):\n    return y\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("tests")).unwrap();
+    std::fs::write(dir.path().join("tests/test_app.py"), "def test_alpha():\n    assert True\n    assert 1 == 1\n")
+        .unwrap();
+
+    let matcher = IgnoreMatcher::from_patterns(&[]);
+    let filter = IgnoreFilter::new(&matcher, dir.path());
+
+    let mut by_collect = PriorsBuilder::default();
+    by_collect.add_census(&pulse::calibrate::collect(dir.path(), &t(), &filter));
+    let collected = serde_json::to_string(&by_collect.build(false)).unwrap();
+
+    let mut by_stream = PriorsBuilder::default();
+    let summary = pulse::calibrate::accumulate(dir.path(), &t(), &filter, &mut by_stream);
+    let streamed = serde_json::to_string(&by_stream.build(false)).unwrap();
+
+    assert_eq!(collected, streamed, "streaming accumulation must equal the materialized census path");
+    assert_eq!(summary.main_files, 1);
+    assert_eq!(summary.test_files, 1);
+}
