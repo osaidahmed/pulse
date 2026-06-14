@@ -65,6 +65,10 @@ fn same_block_def_reaches(cpg: &CpgMetrics, u: &crate::cpg::defuse::DefUseRecord
     cpg.def_use.iter().any(|d| d.kind == DefUse::Def && d.name == u.name && d.block == u.block && d.line <= u.line)
 }
 
+fn survives_to_exit(idx: usize, cpg: &CpgMetrics, flow: &Flow) -> bool {
+    flow.reaching_in.get(cpg.cfg.exit as usize).is_some_and(|s| s.contains(&idx))
+}
+
 fn is_dead_store(
     idx: usize,
     r: &crate::cpg::defuse::DefUseRecord,
@@ -84,7 +88,7 @@ fn is_dead_store(
     if !cpg.flag_all_dead_stores && !declared.contains(r.name.as_str()) {
         return false;
     }
-    !reaches_a_use(idx, &r.name, cpg, flow)
+    !reaches_a_use(idx, &r.name, cpg, flow) && !survives_to_exit(idx, cpg, flow)
 }
 
 fn dead_stores(cpg: &CpgMetrics, flow: &Flow, func: &FunctionMetrics, out: &mut Vec<Finding>) {

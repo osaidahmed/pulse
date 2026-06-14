@@ -459,11 +459,25 @@ fn typescript_switch_fallthrough_preserves_earlier_store() {
 }
 
 #[test]
-fn typescript_dead_store_inside_switch_case_flagged() {
+fn cpp_raii_guard_local_is_not_a_dead_store() {
+    let src = "void f() {\n    lock_guard<mutex> lock(m_mutex);\n    do_work();\n}\n";
+    let f = smells_of(src, Language::Cpp, "cpp");
+    assert!(!has_finding(&f, Smell::DeadStore), "a single-assignment RAII guard is not a dead store: {f:?}");
+}
+
+#[test]
+fn cpp_single_assignment_before_return_is_not_a_dead_store() {
+    let src = "void f(int& out) {\n    out = 0;\n    return;\n}\n";
+    let f = smells_of(src, Language::Cpp, "cpp");
+    assert!(!has_finding(&f, Smell::DeadStore), "an output param written once is observed by the caller: {f:?}");
+}
+
+#[test]
+fn typescript_assigned_once_never_read_is_not_a_dead_store() {
     let src =
         "function f(k) {\n  switch (k) {\n    case 1:\n      let tmp = compute();\n      break;\n  }\n  return 0;\n}\n";
     let f = smells_of(src, Language::TypeScript, "ts");
-    assert!(has_finding(&f, Smell::DeadStore), "tmp is computed inside the case and never read: {f:?}");
+    assert!(!has_finding(&f, Smell::DeadStore), "a single side-effecting init never overwritten is not dead: {f:?}");
 }
 
 #[test]

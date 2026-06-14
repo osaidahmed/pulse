@@ -64,7 +64,7 @@ fn dead_store_lines_are_reported_exactly() {
     let src = "fun f(): String {\n    var keep = 1\n    keep = 2\n    var gone = 3\n    gone = 4\n    return \"the gone flag: $keep\"\n}\n";
     let out = findings_of(src, Language::Kotlin, "kt", "");
     let d = details(&out, Smell::DeadStore);
-    assert!(d.contains("`gone` assigned at line 5"), "the final unread store must be flagged with its line: {out:?}");
+    assert!(d.contains("`gone` assigned at line 4"), "the overwritten store must be flagged with its line: {out:?}");
     assert!(!d.contains("`keep` assigned at line 3"), "the template-read store must stay alive: {out:?}");
 }
 
@@ -84,10 +84,10 @@ fn dead_store_detector_honors_its_own_toggle() {
 
 #[test]
 fn when_arm_bodies_are_analyzed() {
-    let src = "fun f(x: Int) {\n    when (x) {\n        1 -> { var t = 9 }\n        else -> { }\n    }\n}\n";
+    let src = "fun f(x: Int) {\n    when (x) {\n        1 -> {\n            var t = 9\n            t = 8\n        }\n        else -> { }\n    }\n}\n";
     let out = findings_of(src, Language::Kotlin, "kt", "");
     let d = details(&out, Smell::DeadStore);
-    assert!(d.contains("`t` assigned at line 3"), "stores inside when arms must be visible: {out:?}");
+    assert!(d.contains("`t` assigned at line 4"), "an overwrite inside a when arm must be visible: {out:?}");
 }
 
 #[test]
