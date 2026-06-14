@@ -4,7 +4,8 @@ use super::{line_of, DeclaredDep, DepScope, Ecosystem, Manifest};
 
 pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
     let mut deps = Vec::new();
-    let mut rest = source;
+    let cleaned = strip_comments(source);
+    let mut rest = cleaned.as_str();
     while let Some(pos) = rest.find("<PackageReference") {
         let after = &rest[pos + "<PackageReference".len()..];
         let end = after.find('>').unwrap_or(after.len());
@@ -30,4 +31,18 @@ fn attr_value<'a>(attrs: &'a str, key: &str) -> Option<&'a str> {
     let start = attrs.find(&format!("{key}=\""))? + key.len() + 2;
     let val = &attrs[start..];
     val.find('"').map(|end| &val[..end])
+}
+
+fn strip_comments(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let mut rest = source;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start..].find("-->") {
+            Some(end) => rest = &rest[start + end + 3..],
+            None => return out,
+        }
+    }
+    out.push_str(rest);
+    out
 }

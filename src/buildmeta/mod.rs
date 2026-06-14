@@ -111,7 +111,8 @@ fn collect_dir(dir: &Path, meta: &mut BuildMeta) {
     }
 }
 
-const CSPROJ_SKIP_DIRS: &[&str] = &["bin", "obj", "node_modules", "target", "packages"];
+const CSPROJ_SKIP_DIRS: &[&str] =
+    &["bin", "obj", "node_modules", "target", "packages", "vendor", "third_party", "dist", "build", "out", "Pods"];
 
 pub fn csproj_manifests(root: &Path) -> Vec<Manifest> {
     let mut out = Vec::new();

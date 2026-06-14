@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::buildmeta::{self, stdlib, BuildMeta, DepScope, Ecosystem};
 use crate::import_check::{ecosystem_for, external_root, normalize, PYTHON_IMPORT_ALIASES};
+use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 
 use super::corpus::Corpus;
@@ -17,7 +18,9 @@ struct ImportedRoots {
 
 pub fn run_from(corpus: &Corpus, root: &Path, _thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let mut meta = buildmeta::discover(root);
-    meta.manifests.extend(buildmeta::csproj_manifests(root));
+    if corpus.files.iter().any(|f| f.lang == Language::CSharp) {
+        meta.manifests.extend(buildmeta::csproj_manifests(root));
+    }
     if meta.manifests.is_empty() {
         return Vec::new();
     }
@@ -52,7 +55,7 @@ fn bloated_findings(meta: &BuildMeta, imported: &ImportedRoots, corpus: &Corpus)
     for manifest in &meta.manifests {
         for dep in &manifest.deps {
             if is_bloated(manifest, dep, &workspace_internal, imported, corpus) {
-                findings.push(bloated(manifest.path.clone(), dep.line, dep));
+                findings.push(bloated(manifest.path.clone(), dep.line, dep, manifest.ecosystem));
             }
         }
     }
@@ -90,9 +93,24 @@ fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
         return imported.go_targets.iter().any(|t| t == name || t.starts_with(&format!("{name}/")));
     }
     if eco == Ecosystem::NuGet {
-        return roots.iter().any(|t| t.starts_with(&format!("{name}.")));
+        return nuget_imported(name, roots);
     }
     false
+}
+
+const NUGET_ALIASES: &[(&str, &str)] = &[("awssdk", "amazon"), ("castle.core", "castle")];
+
+fn nuget_imported(name: &str, roots: &HashSet<String>) -> bool {
+    let direct = roots
+        .iter()
+        .any(|t| t.starts_with(&format!("{name}.")) || (t.contains('.') && name.starts_with(&format!("{t}."))));
+    if direct {
+        return true;
+    }
+    NUGET_ALIASES
+        .iter()
+        .filter(|(pkg, _)| name == *pkg || name.starts_with(&format!("{pkg}.")))
+        .any(|(_, ns)| roots.iter().any(|t| t == ns || t.starts_with(&format!("{ns}."))))
 }
 
 fn is_referenced_in_source(name: &str, corpus: &Corpus) -> bool {
@@ -104,7 +122,8 @@ fn is_referenced_in_source(name: &str, corpus: &Corpus) -> bool {
         .any(|source| buildmeta::line_of(source, name) != 0 || buildmeta::line_of(source, &underscore) != 0)
 }
 
-fn bloated(manifest: PathBuf, line: u32, dep: &buildmeta::DeclaredDep) -> AuditFinding {
+fn bloated(manifest: PathBuf, line: u32, dep: &buildmeta::DeclaredDep, eco: Ecosystem) -> AuditFinding {
+    let confidence = if eco == Ecosystem::NuGet { ImportConfidence::Low } else { ImportConfidence::Medium };
     wrap(
         dep.name.clone(),
         AuditKind::BloatedDependency(BloatedDepEvidence {
@@ -112,7 +131,7 @@ fn bloated(manifest: PathBuf, line: u32, dep: &buildmeta::DeclaredDep) -> AuditF
             line,
             name: dep.name.clone(),
             constraint: dep.constraint.clone(),
-            confidence: ImportConfidence::Medium,
+            confidence,
         }),
     )
 }

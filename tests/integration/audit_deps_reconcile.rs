@@ -180,3 +180,30 @@ fn csharp_project_in_a_subdirectory_is_discovered() {
     let findings = run_deps(dir.path());
     assert_eq!(bloated_names(&findings), vec!["Stale.Package"], "a .csproj in a subdirectory is found: {findings:?}");
 }
+
+#[test]
+fn csharp_commented_out_package_is_not_bloated() {
+    let csproj = "<Project>\n  <ItemGroup>\n    <!-- <PackageReference Include=\"Removed.Package\" Version=\"1.0.0\" /> -->\n    <PackageReference Include=\"Newtonsoft.Json\" Version=\"13.0.1\" />\n  </ItemGroup>\n</Project>\n";
+    let dir = project(&[("App.csproj", csproj), ("Program.cs", "using Newtonsoft.Json;\nclass P {}\n")]);
+    let findings = run_deps(dir.path());
+    assert!(bloated_names(&findings).is_empty(), "a commented-out PackageReference is not a real dep: {findings:?}");
+}
+
+#[test]
+fn csharp_abstraction_package_is_covered_by_the_shorter_namespace() {
+    let csproj = "<Project>\n  <ItemGroup>\n    <PackageReference Include=\"Microsoft.Extensions.DependencyInjection.Abstractions\" Version=\"8.0.0\" />\n  </ItemGroup>\n</Project>\n";
+    let dir = project(&[
+        ("App.csproj", csproj),
+        ("Program.cs", "using Microsoft.Extensions.DependencyInjection;\nclass P {}\n"),
+    ]);
+    let findings = run_deps(dir.path());
+    assert!(bloated_names(&findings).is_empty(), "an import shorter than the package id still covers it: {findings:?}");
+}
+
+#[test]
+fn csharp_divergent_namespace_family_is_aliased() {
+    let csproj = "<Project>\n  <ItemGroup>\n    <PackageReference Include=\"AWSSDK.S3\" Version=\"3.7.0\" />\n  </ItemGroup>\n</Project>\n";
+    let dir = project(&[("App.csproj", csproj), ("Program.cs", "using Amazon.S3;\nclass P {}\n")]);
+    let findings = run_deps(dir.path());
+    assert!(bloated_names(&findings).is_empty(), "AWSSDK.* maps to the Amazon.* namespace: {findings:?}");
+}
