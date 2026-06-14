@@ -75,6 +75,9 @@ fn is_dead_store(
     if r.kind != DefUse::Def || r.block == cpg.cfg.entry || !flow.reachable.contains(&r.block) {
         return false;
     }
+    if r.name.starts_with('_') {
+        return false;
+    }
     if !cpg.flag_all_dead_stores && !declared.contains(r.name.as_str()) {
         return false;
     }

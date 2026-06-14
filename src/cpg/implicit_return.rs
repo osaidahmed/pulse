@@ -17,6 +17,48 @@ pub(crate) fn seed_string_interpolation(node: Node, source: &str, exit: u32, out
     }
 }
 
+pub(crate) fn seed_format_uses(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
+    let Some(_g) = DepthGuard::enter() else { return };
+    if matches!(node.kind(), "string_literal" | "raw_string_literal") {
+        scan_brace_idents(node, source, exit, out);
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            seed_format_uses(child, source, exit, out);
+        }
+    }
+}
+
+fn scan_brace_idents(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
+    let text = node_text(node, source);
+    let line = node.start_position().row as u32 + 1;
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] != b'{' {
+            i += 1;
+            continue;
+        }
+        if bytes.get(i + 1) == Some(&b'{') {
+            i += 2;
+            continue;
+        }
+        let start = i + 1;
+        if !bytes.get(start).is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_') {
+            i += 1;
+            continue;
+        }
+        let mut j = start;
+        while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
+            j += 1;
+        }
+        out.push(DefUseRecord { name: text[start..j].to_string(), block: exit, kind: DefUse::Use, line, decl: false });
+        i = j;
+    }
+}
+
 fn scan_dollar_idents(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
     let text = node_text(node, source);
     let line = node.start_position().row as u32 + 1;

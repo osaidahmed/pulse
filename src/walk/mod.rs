@@ -122,6 +122,7 @@ pub(crate) fn cpg_for(
     crate::cpg::defuse::seed_params(fn_node, source, cfg.entry, &mut def_use);
     crate::cpg::defuse::seed_hoisted(body, source, cfg.entry, lang, &mut def_use);
     crate::cpg::implicit_return::seed(body, source, cfg.exit, &mut def_use);
+    crate::cpg::implicit_return::seed_format_uses(body, source, cfg.exit, &mut def_use);
     Some(crate::cpg::CpgMetrics { cfg, def_use, ..Default::default() })
 }
 

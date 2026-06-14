@@ -240,6 +240,20 @@ fn if_let_binding_is_a_definition() {
 }
 
 #[test]
+fn format_interpolated_variable_is_not_a_dead_store() {
+    let src = "fn f() {\n    let name = compute();\n    println!(\"hello {name}\");\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "a variable used in a format string is read: {f:?}");
+}
+
+#[test]
+fn underscore_prefixed_binding_is_not_a_dead_store() {
+    let src = "fn f() {\n    let _guard = acquire();\n    work();\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "an underscore-prefixed binding is intentionally unused: {f:?}");
+}
+
+#[test]
 fn cpg_smells_off_when_disabled() {
     let findings =
         analyze_source("t.py", "def f():\n    return 1\n    dead = 2\n", Language::Python, None, ScanOptions::check())
