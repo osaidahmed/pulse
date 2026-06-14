@@ -27,7 +27,7 @@ pub struct DefUseRecord {
     pub decl: bool,
 }
 
-const DECL_KINDS: &[&str] = &[
+pub(crate) const DECL_KINDS: &[&str] = &[
     "let_declaration",
     "variable_declarator",
     "init_declarator",
@@ -39,8 +39,8 @@ const DECL_KINDS: &[&str] = &[
 pub(crate) fn collect(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
-    if lang.nested_fn_kinds.contains(&k) {
-        push_idents(node, source, block, Mark::Use, out);
+    let ctx = super::nested::FreeCtx { source, block, lang };
+    if super::nested::dispatch(k, node, &ctx, out) {
         return;
     }
     if lang.def_kinds.contains(&k) {
@@ -126,7 +126,7 @@ pub(crate) fn seed_hoisted(node: Node, source: &str, entry: u32, lang: &CfgLang,
     }
     let Some(_g) = DepthGuard::enter() else { return };
     let k = node.kind();
-    if lang.nested_fn_kinds.contains(&k) {
+    if lang.nested.fns.contains(&k) || lang.nested.items.contains(&k) {
         return;
     }
     if lang.hoist_kinds.contains(&k) {
@@ -200,7 +200,7 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     }
 }
 
-fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
+pub(crate) fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
     for field in ["left", "pattern", "name", "declarator", "target"] {
         let mut cursor = node.walk();
         let mut any = false;
@@ -219,7 +219,7 @@ fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
     }
 }
 
-fn is_field_or_index_target(kind: &str) -> bool {
+pub(crate) fn is_field_or_index_target(kind: &str) -> bool {
     matches!(
         kind,
         "attribute"
@@ -308,7 +308,7 @@ pub(crate) fn push_idents(node: Node, source: &str, block: u32, mark: Mark, out:
     }
 }
 
-fn rec(node: Node, source: &str, block: u32, mark: Mark) -> DefUseRecord {
+pub(crate) fn rec(node: Node, source: &str, block: u32, mark: Mark) -> DefUseRecord {
     let (kind, decl) = match mark {
         Mark::Use => (DefUse::Use, false),
         Mark::Assign => (DefUse::Def, false),

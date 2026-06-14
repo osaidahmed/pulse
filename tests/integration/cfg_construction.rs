@@ -198,6 +198,27 @@ fn param_use_is_not_use_before_def() {
 }
 
 #[test]
+fn closure_param_is_not_an_outer_use_before_def() {
+    let src = "fn outer() -> i32 {\n    let g = |value: i32| value * 2;\n    let r = g(3);\n    let value = r + 1;\n    value\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a closure param is not an outer use: {f:?}");
+}
+
+#[test]
+fn nested_item_param_is_not_an_outer_use_before_def() {
+    let src = "fn outer() -> i32 {\n    fn helper(value: i32) -> i32 { value + 1 }\n    let value = helper(2);\n    value\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a nested fn param is not an outer use: {f:?}");
+}
+
+#[test]
+fn closure_capture_is_not_a_dead_store() {
+    let src = "fn f() -> i32 {\n    let base = 10;\n    let g = |x: i32| base + x;\n    g(1)\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "a closure capture keeps base live: {f:?}");
+}
+
+#[test]
 fn cpg_smells_off_when_disabled() {
     let findings =
         analyze_source("t.py", "def f():\n    return 1\n    dead = 2\n", Language::Python, None, ScanOptions::check())

@@ -45,6 +45,11 @@ pub struct Cfg {
     pub exit: u32,
 }
 
+pub struct NestedKinds {
+    pub fns: &'static [&'static str],
+    pub items: &'static [&'static str],
+}
+
 #[allow(clippy::struct_field_names)]
 pub struct CfgLang {
     pub if_kinds: &'static [&'static str],
@@ -57,7 +62,7 @@ pub struct CfgLang {
     pub def_kinds: &'static [&'static str],
     pub aug_kinds: &'static [&'static str],
     pub block_kinds: &'static [&'static str],
-    pub nested_fn_kinds: &'static [&'static str],
+    pub nested: NestedKinds,
     pub switch_kinds: &'static [&'static str],
     pub case_kinds: &'static [&'static str],
     pub hoist_kinds: &'static [&'static str],
