@@ -29,7 +29,7 @@ impl CachedAnalysis {
 }
 
 pub fn thresholds_fingerprint(t: &crate::thresholds::Thresholds) -> u64 {
-    xxhash_rust::xxh3::xxh3_64(format!("{t:?}").as_bytes())
+    xxhash_rust::xxh3::xxh3_64(format!("{t:?}|fp{}", crate::walk::fingerprint::FINGERPRINT_VERSION).as_bytes())
 }
 
 pub fn store(file_path: &str, source: &str, analysis: &AnalysisResultFull) {
