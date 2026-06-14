@@ -2660,6 +2660,11 @@
               "smell": "deep_nested_complexity",
               "location": "process_data_pipeline L133-180",
               "detail": "depth=5 (threshold: 4)"
+            },
+            {
+              "smell": "code_duplication",
+              "location": "module",
+              "detail": "2 functions with identical structure: format_user_report (L101-114), format_admin_report (L116-129)"
             }
           ]
         },
@@ -6085,6 +6090,11 @@
               "smell": "deep_nested_complexity",
               "location": "process_data_pipeline L133-180",
               "detail": "depth=5 (threshold: 4)"
+            },
+            {
+              "smell": "code_duplication",
+              "location": "module",
+              "detail": "2 functions with identical structure: format_user_report (L101-114), format_admin_report (L116-129)"
             }
           ]
         },

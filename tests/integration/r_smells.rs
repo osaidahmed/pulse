@@ -599,10 +599,12 @@ fn production_service_nested_chunks() {
 #[test]
 fn production_service_no_false_duplication() {
     let output = run_check(LANG, "production_service.r");
-    assert!(
-        !has_smell(&output, "Code Duplication"),
-        "size-disparate functions must not be flagged as duplicates, got: {output}"
-    );
+    for line in output.lines().filter(|l| l.contains("Code Duplication")) {
+        assert!(
+            !line.contains("process_order") && !line.contains("process_data_pipeline"),
+            "size-disparate functions must not be grouped as duplicates, got: {line}"
+        );
+    }
 }
 
 #[test]

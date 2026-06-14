@@ -24,6 +24,16 @@ fn structural_fingerprint_collapses_identifiers_and_literals() {
 }
 
 #[test]
+fn structural_fingerprint_distinguishes_expression_structure() {
+    let a = first_fn("def f(x):\n    if x > 0:\n        y = x + 1\n    return y\n");
+    let b = first_fn("def g(x):\n    if x > 0:\n        y = x + 1 + 1\n    return y\n");
+    assert_ne!(
+        a.structural_hash, b.structural_hash,
+        "distinct right-hand-side expression structure must change the structural hash"
+    );
+}
+
+#[test]
 fn structural_fingerprint_varies_with_control_flow() {
     let one = first_fn("def f(x):\n    if x > 0:\n        return 1\n    return 2\n");
     let two = first_fn("def f(x):\n    if x > 0:\n        return 1\n    if x < 0:\n        return 3\n    return 2\n");

@@ -22525,6 +22525,11 @@
     ],
     "findings": [
       {
+        "smell": "Code Duplication",
+        "location": "module",
+        "detail": "2 functions with identical structure: format_user_report (L101-114), format_admin_report (L116-129)"
+      },
+      {
         "smell": "Complex Method",
         "location": "fn:process_data_pipeline:133:180",
         "detail": "cc=16, cogc=37 [alert] (cc threshold: 9, cogc threshold: 15)"

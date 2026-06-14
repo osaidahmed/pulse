@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use tree_sitter::Node;
 use xxhash_rust::xxh3::Xxh3;
 
-pub const FINGERPRINT_VERSION: u64 = 1;
+pub const FINGERPRINT_VERSION: u64 = 2;
 
 fn fingerprint_hasher() -> Xxh3 {
     Xxh3::with_seed(FINGERPRINT_VERSION)
@@ -126,7 +126,7 @@ fn fingerprint_cursor(cursor: &mut tree_sitter::TreeCursor, hasher: &mut impl Ha
 
     kind.hash(hasher);
 
-    if is_expression_leaf(kind) {
+    if is_fingerprint_leaf(kind) {
         return;
     }
 
@@ -150,10 +150,8 @@ fn fingerprint_siblings(cursor: &mut tree_sitter::TreeCursor, hasher: &mut impl 
     }
 }
 
-fn is_expression_leaf(kind: &str) -> bool {
-    kind.ends_with("_expression")
-        || kind.ends_with("_operator")
-        || kind.ends_with("_literal")
+fn is_fingerprint_leaf(kind: &str) -> bool {
+    kind.ends_with("_literal")
         || kind.ends_with("_type")
         || matches!(
             kind,
