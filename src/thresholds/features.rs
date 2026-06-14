@@ -30,7 +30,7 @@ impl CloneClusterThresholds {
 }
 
 impl CpgThresholds {
-    pub const DEFAULTS: Self = Self { enabled: false, dead_store: true, use_before_def: true, unreachable_code: true };
+    pub const DEFAULTS: Self = Self { enabled: false, dead_store: true, use_before_def: false, unreachable_code: true };
 }
 
 impl NaturalnessThresholds {

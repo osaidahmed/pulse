@@ -6,7 +6,7 @@ use pulse::parse::Language;
 use pulse::smells::{Finding, Smell};
 
 fn cpg_config() -> PulseConfig {
-    toml::from_str("[thresholds.cpg]\nenabled = true\n").unwrap()
+    toml::from_str("[thresholds.cpg]\nenabled = true\nuse_before_def = true\n").unwrap()
 }
 
 fn cfg_of(src: &str, lang: Language, ext: &str, fname: &str) -> Cfg {

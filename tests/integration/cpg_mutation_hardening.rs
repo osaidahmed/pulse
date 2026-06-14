@@ -4,7 +4,7 @@ use pulse::parse::Language;
 use pulse::smells::{Finding, Smell};
 
 fn cpg_config(extra: &str) -> PulseConfig {
-    toml::from_str(&format!("[thresholds.cpg]\nenabled = true\n{extra}")).unwrap()
+    toml::from_str(&format!("[thresholds.cpg]\nenabled = true\nuse_before_def = true\n{extra}")).unwrap()
 }
 
 fn findings_of(src: &str, lang: Language, ext: &str, extra: &str) -> Vec<Finding> {
