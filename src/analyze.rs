@@ -3,6 +3,7 @@ use std::path::Path;
 
 use crate::applicability::{self, Surface};
 use crate::config;
+use crate::framework;
 use crate::parse::{self, Language};
 use crate::smells::{self, Finding, Location};
 use crate::thresholds::Thresholds;
@@ -57,7 +58,12 @@ pub fn analyze_source(
     cfg: Option<&config::PulseConfig>,
     opts: ScanOptions,
 ) -> Option<AnalysisResultFull> {
-    let thresholds = config::resolve_thresholds(cfg, lang);
+    let mut thresholds = config::resolve_thresholds(cfg, lang);
+    if framework::di_framework_declared(file_path, lang) {
+        let floor = thresholds.function.constructor_arg_max;
+        let m = &mut thresholds.analysis.constructor_dep_injection_min;
+        *m = (*m).max(floor);
+    }
     let metrics = parse::parse_and_walk_scoped(source, lang, opts.edit_byte_range, thresholds.cpg.enabled)?;
     let disabled = config::resolve_disabled(cfg);
     let mut findings = smells::detect(&metrics, source, &thresholds);

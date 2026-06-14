@@ -34,6 +34,9 @@ mod dead_function_corpus;
 #[path = "integration/cpg_corpus.rs"]
 mod cpg_corpus;
 
+#[path = "integration/framework_applicability.rs"]
+mod framework_applicability;
+
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
 

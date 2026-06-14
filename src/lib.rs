@@ -15,6 +15,7 @@ pub mod cpg;
 pub mod dead_function;
 pub mod duplication;
 pub mod extract;
+pub mod framework;
 pub mod history;
 pub mod hook;
 pub mod import_check;
