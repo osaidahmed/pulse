@@ -60,7 +60,7 @@ pub fn analyze_source(
 ) -> Option<AnalysisResultFull> {
     let mut thresholds = config::resolve_thresholds(cfg, lang);
     if framework::di_framework_declared(file_path, lang) {
-        let floor = thresholds.function.constructor_arg_max;
+        let floor = thresholds.analysis.framework_dep_injection_min;
         let m = &mut thresholds.analysis.constructor_dep_injection_min;
         *m = (*m).max(floor);
     }

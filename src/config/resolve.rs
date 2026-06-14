@@ -68,6 +68,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             primitive_min_typed_params: a.primitive_min_typed_params.unwrap_or(ba.primitive_min_typed_params),
             primitive_min_same_count: a.primitive_min_same_count.unwrap_or(ba.primitive_min_same_count),
             constructor_dep_injection_min: a.constructor_dep_injection_min.unwrap_or(ba.constructor_dep_injection_min),
+            framework_dep_injection_min: a.framework_dep_injection_min.unwrap_or(ba.framework_dep_injection_min),
             lcom4_warning: a.lcom4_warning.unwrap_or(ba.lcom4_warning),
             short_var_min_fn_loc: a.short_var_min_fn_loc.unwrap_or(ba.short_var_min_fn_loc),
             short_var_max_count: a.short_var_max_count.unwrap_or(ba.short_var_max_count),

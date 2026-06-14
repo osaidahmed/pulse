@@ -125,6 +125,7 @@ pub struct AnalysisThresholds {
     pub primitive_min_typed_params: Option<u32>,
     pub primitive_min_same_count: Option<u32>,
     pub constructor_dep_injection_min: Option<u32>,
+    pub framework_dep_injection_min: Option<u32>,
     pub lcom4_warning: Option<u32>,
     pub short_var_min_fn_loc: Option<u32>,
     pub short_var_max_count: Option<u32>,

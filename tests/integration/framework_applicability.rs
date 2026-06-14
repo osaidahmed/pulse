@@ -55,6 +55,18 @@ fn idiomatic_injection_is_allowed_when_a_di_framework_is_declared() {
 }
 
 #[test]
+fn a_transitive_di_dependency_does_not_relax_the_threshold() {
+    let p = Project::new("package.json", "{\"dependencies\": {\"express\": \"^4.0.0\"}}\n");
+    p.write(
+        "package-lock.json",
+        "{\"lockfileVersion\": 3, \"packages\": {\"node_modules/@nestjs/common\": {\"version\": \"10.0.0\"}}}\n",
+    );
+    let file = p.write("widget.ts", &service(5));
+    let out = p.check(&file);
+    assert!(flags_over_injection(&out), "a DI framework present only transitively must not relax the threshold: {out}");
+}
+
+#[test]
 fn excessive_injection_still_fires_under_a_di_framework() {
     let p = Project::new("package.json", "{\"dependencies\": {\"@nestjs/common\": \"^10.0.0\"}}\n");
     let file = p.write("widget.ts", &service(9));
