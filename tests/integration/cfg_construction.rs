@@ -219,6 +219,13 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn destructured_names_are_definitions() {
+    let src = "fn f() -> i32 {\n    let (a, b) = (1, 2);\n    a + b\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "destructured names are defined: {f:?}");
+}
+
+#[test]
 fn cpg_smells_off_when_disabled() {
     let findings =
         analyze_source("t.py", "def f():\n    return 1\n    dead = 2\n", Language::Python, None, ScanOptions::check())

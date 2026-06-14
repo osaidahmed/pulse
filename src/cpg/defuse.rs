@@ -191,8 +191,9 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     for t in targets {
         if is_field_or_index_target(t.kind()) {
             collect(t, source, block, lang, out);
-        } else if !is_destructure_pattern(t.kind()) {
-            push_idents(t, source, block, def_mark, out);
+        } else {
+            let mark = if is_destructure_pattern(t.kind()) { Mark::Assign } else { def_mark };
+            push_idents(t, source, block, mark, out);
             if aug {
                 push_idents(t, source, block, Mark::Use, out);
             }
@@ -219,6 +220,10 @@ pub(crate) fn collect_binding_targets<'a>(node: Node<'a>, out: &mut Vec<Node<'a>
     }
 }
 
+fn is_destructure_pattern(kind: &str) -> bool {
+    matches!(kind, "array_pattern" | "object_pattern" | "tuple_pattern" | "list_pattern")
+}
+
 pub(crate) fn is_field_or_index_target(kind: &str) -> bool {
     matches!(
         kind,
@@ -241,10 +246,6 @@ pub(crate) fn is_field_or_index_target(kind: &str) -> bool {
             | "element_reference"
             | "scope_resolution"
     )
-}
-
-fn is_destructure_pattern(kind: &str) -> bool {
-    matches!(kind, "array_pattern" | "object_pattern" | "tuple_pattern" | "list_pattern")
 }
 
 pub(crate) fn seed_params(fn_node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
