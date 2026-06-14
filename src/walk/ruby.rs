@@ -145,24 +145,17 @@ fn build_metrics(node: Node, source: &str) -> Option<FunctionMetrics> {
         bump_count: s.bump_count,
         arg_count,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: sh,
         distinct_node_kinds: dk,
         skeleton_hash: sk,
         consecutive_asserts: ca,
         assert_hash: ah,
-        primitive_type_count: 0,
-        typed_param_count: 0,
-        max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: body.map_or(0, |b| count_short_variables(b, source, &["assignment", "operator_assignment"])),
         string_match_arms: body.map_or(0, |b| count_string_match_arms(b, "case", "when", &["string"], &["else"])),
         cpg: body.and_then(|b| super::cpg_for_suppressed(b, node, source, &crate::cpg::RUBY)),
+        ..Default::default()
     })
 }
 

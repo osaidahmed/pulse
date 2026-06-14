@@ -181,24 +181,8 @@ fn emit_primary_ctor(class_node: Node, source: &str, cls: &str, fns: &mut Vec<Fu
         primitive_type_count: prim,
         typed_param_count: typed,
         max_same_primitive_count: max_same,
-        foreign_field_accesses: Vec::new(),
         class_name: Some(cls.to_string()),
-        parent_class: None,
-        cognitive_complexity: 0,
-        max_nesting: 0,
-        bump_count: 0,
-        compound_condition_count: 0,
-        max_embedded_block_loc: 0,
-        structural_hash: 0,
-        distinct_node_kinds: 0,
-        skeleton_hash: 0,
-        consecutive_asserts: 0,
-        assert_hash: 0,
-        empty_catch_count: 0,
-        field_accesses: Vec::new(),
-        short_var_count: 0,
-        string_match_arms: 0,
-        cpg: None,
+        ..Default::default()
     });
 }
 
@@ -245,7 +229,6 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
     let sl = node.start_position().row as u32 + 1;
     let el = node.end_position().row as u32 + 1;
     FunctionMetrics {
-        name: String::new(),
         start_line: sl,
         end_line: el,
         loc: crate::walk::span_code_lines(node, source, COMMENT_PREFIXES),
@@ -253,23 +236,14 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,
         bump_count: s.bump_count,
-        arg_count: 0,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
         skeleton_hash: compute_skeleton_hash(body),
         consecutive_asserts: count_consecutive_asserts(body, "call_expression"),
         assert_hash: compute_assert_fingerprint(body, "call_expression"),
-        primitive_type_count: 0,
-        typed_param_count: 0,
-        max_same_primitive_count: 0,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
         string_match_arms: count_string_match_arms(body, "when_expression", "when_entry", &["string_literal"], &[]),
         cpg: super::cpg_for(body, node, source, &crate::cpg::KOTLIN).map(|mut c| {
@@ -277,6 +251,7 @@ fn walked_metrics(node: Node, body: Node, source: &str, s: &WalkState) -> Functi
             crate::cpg::implicit_return::seed_string_interpolation(body, source, exit, &mut c.def_use);
             c
         }),
+        ..Default::default()
     }
 }
 

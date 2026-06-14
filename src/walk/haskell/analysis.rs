@@ -108,7 +108,6 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
     let name = extract_name(first, source);
     let (prim, typed, max_same) = typed_from_signature(first, source, &name);
     FunctionMetrics {
-        name: String::new(),
         start_line: sl,
         end_line: el,
         loc: crate::walk::line_span_code_lines(source, sl..=el, super::COMMENT_PREFIXES),
@@ -116,9 +115,7 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         cognitive_complexity: s.cogc,
         max_nesting: s.max_nesting,
         bump_count: s.bump_count,
-        arg_count: 0,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
@@ -128,13 +125,8 @@ fn build_metrics(first: Node, last: Node, body: Node, source: &str, s: &WalkStat
         primitive_type_count: prim,
         typed_param_count: typed,
         max_same_primitive_count: max_same,
-        empty_catch_count: 0,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: count_short_variables(body, source, &["bind"]),
         string_match_arms: count_string_match_arms(body, "case", "alternative", &["string"], &[]),
-        cpg: None,
+        ..Default::default()
     }
 }

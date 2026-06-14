@@ -142,7 +142,6 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
         bump_count: s.bump_count,
         arg_count,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
@@ -153,10 +152,6 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
         typed_param_count: typed,
         max_same_primitive_count: max_same,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: count_short_variables(body, source, &["local_variable_declaration"]),
         string_match_arms: count_string_match_arms(
             body,
@@ -165,7 +160,7 @@ fn analyze_callable(node: Node, source: &str, cfg: &CallableConfig) -> Option<Fu
             &["string_literal"],
             &[],
         ),
-        cpg: None,
+        ..Default::default()
     })
 }
 

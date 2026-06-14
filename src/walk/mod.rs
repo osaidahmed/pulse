@@ -143,7 +143,7 @@ pub fn track_embedded_block(max: &mut u32, node: Node) {
 }
 
 mod metrics {
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Default)]
     pub struct FunctionMetrics {
         pub name: String,
         pub start_line: u32,

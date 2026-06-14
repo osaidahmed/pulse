@@ -181,18 +181,9 @@ fn build_metrics(node: Node, source: &str, info: FnInfo) -> Option<FunctionMetri
         skeleton_hash: body.map_or(0, compute_skeleton_hash),
         consecutive_asserts: body.map_or(0, |b| count_consecutive_asserts(b, "function_call")),
         assert_hash: body.map_or(0, |b| compute_assert_fingerprint(b, "function_call")),
-        primitive_type_count: 0,
-        typed_param_count: 0,
-        max_same_primitive_count: 0,
-        empty_catch_count: 0,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: body
             .map_or(0, |b| count_short_variables(b, source, &["assignment_statement", "variable_declaration"])),
-        string_match_arms: 0,
-        cpg: None,
+        ..Default::default()
     })
 }
 

@@ -134,7 +134,6 @@ fn build_metrics(node: Node, source: &str, name: String, params: ParamCounts) ->
         bump_count: s.bump_count,
         arg_count: params.total,
         compound_condition_count: s.compound_condition_count,
-        is_constructor: false,
         max_embedded_block_loc: s.max_embedded_block_loc,
         structural_hash: compute_structural_fingerprint(body),
         distinct_node_kinds: count_distinct_node_kinds(body),
@@ -144,14 +143,9 @@ fn build_metrics(node: Node, source: &str, name: String, params: ParamCounts) ->
         primitive_type_count: params.primitive,
         typed_param_count: params.typed,
         max_same_primitive_count: params.max_same,
-        empty_catch_count: 0,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: count_short_variables(body, source, &["VarDecl"]),
         string_match_arms: count_string_match_arms(body, "SwitchExpr", "SwitchProng", &["STRINGLITERALSINGLE"], &[]),
-        cpg: None,
+        ..Default::default()
     })
 }
 

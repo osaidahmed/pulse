@@ -183,10 +183,6 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
         typed_param_count,
         max_same_primitive_count,
         empty_catch_count: s.empty_catch_count,
-        field_accesses: Vec::new(),
-        foreign_field_accesses: Vec::new(),
-        class_name: None,
-        parent_class: None,
         short_var_count: count_short_variables(body, source, &["property_declaration"]),
         string_match_arms: count_string_match_arms(
             body,
@@ -196,6 +192,7 @@ fn analyze_callable(node: Node, source: &str, is_init: bool) -> Option<FunctionM
             &[],
         ),
         cpg: super::cpg_for(hash_node, node, source, &crate::cpg::SWIFT),
+        ..Default::default()
     })
 }
 
