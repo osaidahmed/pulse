@@ -1,4 +1,5 @@
 pub mod cfg;
+mod cfg_goto;
 mod cfg_langs;
 mod cfg_nodes;
 pub mod cpg_smells;

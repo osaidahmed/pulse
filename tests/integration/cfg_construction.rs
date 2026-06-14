@@ -219,6 +219,21 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn c_goto_target_label_block_is_not_unreachable() {
+    let src = "int f(int x) {\n    if (x) goto done;\n    return 1;\ndone:\n    return 0;\n}\n";
+    let f = smells_of(src, Language::C, "c");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "a label reached only via goto is reachable: {f:?}");
+}
+
+#[test]
+fn c_value_read_only_on_a_goto_path_is_not_a_dead_store() {
+    let src =
+        "int f(int x) {\n    int r = compute();\n    if (x) goto used;\n    r = 0;\n    return r;\nused:\n    return r;\n}\n";
+    let f = smells_of(src, Language::C, "c");
+    assert!(!has_finding(&f, Smell::DeadStore), "r is read on the goto path so its store is live: {f:?}");
+}
+
+#[test]
 fn trailing_comment_after_return_is_not_unreachable() {
     let src = "function f(x: any): x is null {\n    return x === null; // a trailing note\n}\n";
     let f = smells_of(src, Language::TypeScript, "ts");

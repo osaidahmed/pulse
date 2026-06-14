@@ -69,7 +69,7 @@ pub struct CfgLang {
     pub hoist_kinds: &'static [&'static str],
 }
 
-type Incoming = Option<(u32, EdgeLabel)>;
+pub(super) type Incoming = Option<(u32, EdgeLabel)>;
 
 #[derive(Clone, Copy)]
 enum JumpTo {
@@ -83,15 +83,17 @@ struct LoopCtx {
     after: u32,
 }
 
-struct Builder<'a> {
-    lang: &'a CfgLang,
-    source: &'a str,
-    nodes: Vec<CfgNode>,
-    edges: Vec<CfgEdge>,
+pub(super) struct Builder<'a> {
+    pub(super) lang: &'a CfgLang,
+    pub(super) source: &'a str,
+    pub(super) nodes: Vec<CfgNode>,
+    pub(super) edges: Vec<CfgEdge>,
     loops: Vec<LoopCtx>,
-    def_use: Vec<DefUseRecord>,
+    pub(super) def_use: Vec<DefUseRecord>,
     entry: u32,
     exit: u32,
+    pub(super) labels: Vec<(String, u32)>,
+    pub(super) pending_gotos: Vec<(u32, String)>,
 }
 
 pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRecord>) {
@@ -104,6 +106,8 @@ pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRe
         def_use: Vec::new(),
         entry: 0,
         exit: 0,
+        labels: Vec::new(),
+        pending_gotos: Vec::new(),
     };
     let entry = b.add(NodeKind::Entry, line(body));
     let exit = b.add(NodeKind::Exit, end_line(body));
@@ -112,27 +116,31 @@ pub fn build_cfg(body: Node, source: &str, lang: &CfgLang) -> (Cfg, Vec<DefUseRe
     if let Some(e) = b.seq(body, Some((entry, EdgeLabel::Epsilon))) {
         b.edge(e, exit, EdgeLabel::Epsilon);
     }
+    b.resolve_gotos();
     (Cfg { nodes: b.nodes, edges: b.edges, entry, exit }, b.def_use)
 }
 
 impl Builder<'_> {
-    fn add(&mut self, kind: NodeKind, line: u32) -> u32 {
+    pub(super) fn add(&mut self, kind: NodeKind, line: u32) -> u32 {
         let id = self.nodes.len() as u32;
         self.nodes.push(CfgNode { id, line, kind });
         id
     }
 
-    fn edge(&mut self, from: u32, to: u32, label: EdgeLabel) {
+    pub(super) fn edge(&mut self, from: u32, to: u32, label: EdgeLabel) {
         self.edges.push(CfgEdge { from, to, label });
     }
 
-    fn link(&mut self, incoming: Incoming, to: u32) {
+    pub(super) fn link(&mut self, incoming: Incoming, to: u32) {
         if let Some((from, label)) = incoming {
             self.edge(from, to, label);
         }
     }
 
     fn seq(&mut self, block: Node, incoming: Incoming) -> Option<u32> {
+        if self.is_dispatched_stmt(block.kind()) {
+            return self.stmt(block, incoming);
+        }
         let seq_node = stmt_seq_node(block);
         let mut cursor = seq_node.walk();
         let nodes: Vec<Node> = seq_node.children(&mut cursor).collect();
@@ -160,6 +168,9 @@ impl Builder<'_> {
         let _g = DepthGuard::enter()?;
         let node = unwrap_stmt(node);
         let k = node.kind();
+        if let Some(result) = self.goto_or_label(node, k, incoming) {
+            return result;
+        }
         if self.lang.if_kinds.contains(&k) {
             return self.do_if(node, incoming);
         }
@@ -176,7 +187,7 @@ impl Builder<'_> {
             return self.do_jump(node, incoming, to);
         }
         let is_def = self.lang.nested.fns.contains(&k) || self.lang.nested.items.contains(&k);
-        let kind = if is_def { NodeKind::Def } else { NodeKind::Stmt };
+        let kind = [NodeKind::Stmt, NodeKind::Def][usize::from(is_def)];
         let n = self.add(kind, line(node));
         self.link(incoming, n);
         if matches!(k, "global_declaration" | "function_static_declaration") {
