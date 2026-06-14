@@ -226,6 +226,20 @@ fn destructured_names_are_definitions() {
 }
 
 #[test]
+fn match_arm_binding_is_a_definition() {
+    let src = "fn f(r: Result<i32, ()>) -> i32 {\n    match r {\n        Ok(value) => value + 1,\n        Err(_) => 0,\n    }\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a match-arm binding is defined: {f:?}");
+}
+
+#[test]
+fn if_let_binding_is_a_definition() {
+    let src = "fn f(o: Option<i32>) -> i32 {\n    if let Some(x) = o {\n        return x + 1;\n    }\n    0\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "an if-let binding is defined: {f:?}");
+}
+
+#[test]
 fn cpg_smells_off_when_disabled() {
     let findings =
         analyze_source("t.py", "def f():\n    return 1\n    dead = 2\n", Language::Python, None, ScanOptions::check())

@@ -215,7 +215,14 @@ impl Builder<'_> {
     fn record_cond(&mut self, node: Node, block: u32) {
         let mut cursor = node.walk();
         for c in node.children_by_field_name("condition", &mut cursor) {
-            defuse::collect(c, self.source, block, self.lang, &mut self.def_use);
+            if let Some(pat) = c.child_by_field_name("pattern") {
+                defuse::push_idents(pat, self.source, self.entry, defuse::Mark::Assign, &mut self.def_use);
+                if let Some(val) = c.child_by_field_name("value") {
+                    defuse::collect(val, self.source, block, self.lang, &mut self.def_use);
+                }
+            } else {
+                defuse::collect(c, self.source, block, self.lang, &mut self.def_use);
+            }
         }
     }
 
@@ -271,6 +278,9 @@ impl Builder<'_> {
         }
         if matches!(case.kind(), "case_clause" | "match_arm" | "when" | "in_clause" | "when_entry") {
             self.record_cond(case, p);
+            if let Some(pat) = case.child_by_field_name("pattern") {
+                defuse::push_idents(pat, self.source, self.entry, defuse::Mark::Assign, &mut self.def_use);
+            }
             let body = case
                 .child_by_field_name("consequence")
                 .or_else(|| case.child_by_field_name("value"))
