@@ -167,3 +167,50 @@ fn an_exported_go_func_is_not_flagged_but_an_unexported_orphan_is() {
     assert!(!out.contains("ZztopExported"), "an exported Go func is API: {out}");
     assert!(out.contains("zztopOrphan"), "an unexported Go orphan is still flagged: {out}");
 }
+
+#[test]
+fn a_multiline_decorator_is_not_flagged() {
+    let p = GitProject::new();
+    p.write("base.py", "def entrypoint():\n    return 0\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write(
+        "routes.py",
+        "@app.route(\n    \"/zztop\",\n    methods=[\"GET\"],\n)\ndef zztop_multiline_handler():\n    return 1\n",
+    );
+    let out = p.pulse("--stop");
+    assert!(!flags(&out), "a function under a multi-line decorator is framework-managed: {out}");
+}
+
+#[test]
+fn a_comment_between_decorator_and_def_is_not_flagged() {
+    let p = GitProject::new();
+    p.write("base.py", "def entrypoint():\n    return 0\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write("routes.py", "@register\n# wires up the handler\ndef zztop_commented_handler():\n    return 1\n");
+    let out = p.pulse("--stop");
+    assert!(!flags(&out), "a comment between a decorator and its def does not unmask it: {out}");
+}
+
+#[test]
+fn an_entry_point_named_function_is_not_flagged() {
+    let p = GitProject::new();
+    p.write("app.py", "def helper():\n    return 0\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write("app.py", "def helper():\n    return 0\n\ndef main():\n    return 1\n");
+    let out = p.pulse("--stop");
+    assert!(!flags(&out), "an entry point is invoked by the runtime, not called by name: {out}");
+}
+
+#[test]
+fn a_name_that_is_only_a_prefix_of_another_identifier_is_still_flagged() {
+    let p = GitProject::new();
+    p.write("app.py", "def setup():\n    return 0\n");
+    p.commit_all();
+    p.pulse("--cleanup");
+    p.write("app.py", "def setup():\n    return zztop_metric_extended\n\ndef zztop_metric():\n    return 1\n");
+    let out = p.pulse("--stop");
+    assert!(out.contains("zztop_metric"), "a prefix match is not a reference; the orphan is still flagged: {out}");
+}
