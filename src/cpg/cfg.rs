@@ -155,12 +155,7 @@ impl Builder<'_> {
             if !child.is_named() || child.is_extra() {
                 continue;
             }
-            match cur {
-                Some(_) => cur = self.stmt(child, cur).map(|id| (id, EdgeLabel::Epsilon)),
-                None => {
-                    self.stmt(child, None);
-                }
-            }
+            cur = self.stmt(child, cur).map(|id| (id, EdgeLabel::Epsilon));
         }
         cur.map(|(id, _)| id)
     }

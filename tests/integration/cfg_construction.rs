@@ -263,6 +263,16 @@ fn c_goto_target_label_block_is_not_unreachable() {
 }
 
 #[test]
+fn c_cleanup_label_with_statements_after_a_return_is_not_unreachable() {
+    let src = "char *f(char *line) {\n    if (*line == '\"') {\n        if (a(line))\n            goto fail;\n        if (b(line))\n            goto fail;\n        return detach(line);\nfail:\n        release(line);\n        cleanup(line);\n        return 0;\n    }\n    return 0;\n}\n";
+    let f = smells_of(src, Language::C, "c");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "cleanup statements after a goto-reached label are reachable: {f:?}"
+    );
+}
+
+#[test]
 fn c_value_read_only_on_a_goto_path_is_not_a_dead_store() {
     let src =
         "int f(int x) {\n    int r = compute();\n    if (x) goto used;\n    r = 0;\n    return r;\nused:\n    return r;\n}\n";
