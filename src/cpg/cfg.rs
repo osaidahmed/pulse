@@ -175,7 +175,8 @@ impl Builder<'_> {
         if let Some(to) = self.jump_kind(k) {
             return self.do_jump(node, incoming, to);
         }
-        let kind = if self.is_definition(k) { NodeKind::Def } else { NodeKind::Stmt };
+        let is_def = self.lang.nested.fns.contains(&k) || self.lang.nested.items.contains(&k);
+        let kind = if is_def { NodeKind::Def } else { NodeKind::Stmt };
         let n = self.add(kind, line(node));
         self.link(incoming, n);
         if matches!(k, "global_declaration" | "function_static_declaration") {
@@ -184,10 +185,6 @@ impl Builder<'_> {
             defuse::collect(node, self.source, n, self.lang, &mut self.def_use);
         }
         Some(n)
-    }
-
-    fn is_definition(&self, k: &str) -> bool {
-        self.lang.nested.fns.contains(&k) || self.lang.nested.items.contains(&k)
     }
 
     fn jump_kind(&self, k: &str) -> Option<JumpTo> {
