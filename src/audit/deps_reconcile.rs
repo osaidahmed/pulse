@@ -16,7 +16,8 @@ struct ImportedRoots {
 }
 
 pub fn run_from(corpus: &Corpus, root: &Path, _thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    let meta = buildmeta::discover(root);
+    let mut meta = buildmeta::discover(root);
+    meta.manifests.extend(buildmeta::csproj_manifests(root));
     if meta.manifests.is_empty() {
         return Vec::new();
     }
@@ -88,6 +89,9 @@ fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
     if eco == Ecosystem::Go {
         return imported.go_targets.iter().any(|t| t == name || t.starts_with(&format!("{name}/")));
     }
+    if eco == Ecosystem::NuGet {
+        return roots.iter().any(|t| t.starts_with(&format!("{name}.")));
+    }
     false
 }
 
@@ -143,7 +147,12 @@ fn prefix_member(eco: Ecosystem, names: &HashSet<String>, target: &str) -> bool 
     if names.contains(target) {
         return true;
     }
-    eco == Ecosystem::Go && names.iter().any(|n| target.starts_with(&format!("{n}/")))
+    let sep = match eco {
+        Ecosystem::Go => "/",
+        Ecosystem::NuGet => ".",
+        _ => return false,
+    };
+    names.iter().any(|n| target.starts_with(&format!("{n}{sep}")))
 }
 
 fn names_by_eco(meta: &BuildMeta) -> HashMap<Ecosystem, HashSet<String>> {

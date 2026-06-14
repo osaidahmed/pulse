@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 mod cargo;
+mod csproj;
 pub mod declared;
 mod gemfile;
 mod golang;
@@ -15,6 +16,7 @@ pub enum Ecosystem {
     Pip,
     Go,
     RubyGems,
+    NuGet,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -105,6 +107,37 @@ fn collect_dir(dir: &Path, meta: &mut BuildMeta) {
         let path = dir.join(name);
         if let Some(l) = read_capped(&path).and_then(|s| parser(&path, &s)) {
             meta.lockfiles.push(l);
+        }
+    }
+}
+
+const CSPROJ_SKIP_DIRS: &[&str] = &["bin", "obj", "node_modules", "target", "packages"];
+
+pub fn csproj_manifests(root: &Path) -> Vec<Manifest> {
+    let mut out = Vec::new();
+    collect_csproj(root, 0, &mut out);
+    out
+}
+
+fn collect_csproj(dir: &Path, depth: usize, out: &mut Vec<Manifest>) {
+    if depth > 12 || out.len() >= 2000 {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        handle_csproj_entry(&entry.path(), depth, out);
+    }
+}
+
+fn handle_csproj_entry(path: &Path, depth: usize, out: &mut Vec<Manifest>) {
+    if path.is_dir() {
+        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if !CSPROJ_SKIP_DIRS.contains(&name.as_str()) && !name.starts_with('.') {
+            collect_csproj(path, depth + 1, out);
+        }
+    } else if path.extension().is_some_and(|e| e == "csproj") {
+        if let Some(m) = read_capped(path).and_then(|s| csproj::parse_manifest(path, &s)) {
+            out.push(m);
         }
     }
 }

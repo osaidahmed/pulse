@@ -240,5 +240,6 @@ pub fn is_stdlib(eco: Ecosystem, root: &str) -> bool {
         Ecosystem::RubyGems => RUBY_STDLIB.contains(&root),
         Ecosystem::Cargo => RUST_BUILTIN_ROOTS.contains(&root),
         Ecosystem::Go => !root.split('/').next().unwrap_or(root).contains('.'),
+        Ecosystem::NuGet => matches!(root.split('.').next().unwrap_or(root), "system" | "mscorlib"),
     }
 }

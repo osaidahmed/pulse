@@ -150,3 +150,33 @@ fn projects_without_manifests_produce_nothing() {
     let findings = run_deps(dir.path());
     assert!(findings.is_empty(), "{findings:?}");
 }
+
+const CSPROJ: &str = "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <ItemGroup>\n    <PackageReference Include=\"Newtonsoft.Json\" Version=\"13.0.1\" />\n    <PackageReference Include=\"Stale.Package\" Version=\"2.0.0\" />\n  </ItemGroup>\n</Project>\n";
+
+#[test]
+fn csharp_unused_dependency_is_bloated() {
+    let dir = project(&[
+        ("App.csproj", CSPROJ),
+        ("Program.cs", "using Newtonsoft.Json;\nclass P { static void Main() {} }\n"),
+    ]);
+    let findings = run_deps(dir.path());
+    assert_eq!(bloated_names(&findings), vec!["Stale.Package"], "{findings:?}");
+}
+
+#[test]
+fn csharp_subnamespace_import_covers_the_package() {
+    let csproj = "<Project>\n  <ItemGroup>\n    <PackageReference Include=\"Microsoft.Extensions.Logging\" Version=\"8.0.0\" />\n  </ItemGroup>\n</Project>\n";
+    let dir = project(&[
+        ("App.csproj", csproj),
+        ("Program.cs", "using Microsoft.Extensions.Logging.Abstractions;\nclass P {}\n"),
+    ]);
+    let findings = run_deps(dir.path());
+    assert!(bloated_names(&findings).is_empty(), "a sub-namespace import satisfies the package: {findings:?}");
+}
+
+#[test]
+fn csharp_project_in_a_subdirectory_is_discovered() {
+    let dir = project(&[("src/App.csproj", CSPROJ), ("src/Program.cs", "using Newtonsoft.Json;\nclass P {}\n")]);
+    let findings = run_deps(dir.path());
+    assert_eq!(bloated_names(&findings), vec!["Stale.Package"], "a .csproj in a subdirectory is found: {findings:?}");
+}

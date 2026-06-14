@@ -211,3 +211,14 @@ fn lockfile_only_transitive_packages_resolve() {
     let out = p.hook(&file);
     assert!(!flags_hallucination(&out), "lockfile transitive entries count as declared: {out}");
 }
+
+#[test]
+fn csharp_blocking_hallucination_check_is_held() {
+    let p = Project::new(
+        "App.csproj",
+        "<Project>\n  <ItemGroup>\n    <PackageReference Include=\"Newtonsoft.Json\" Version=\"13.0.1\" />\n  </ItemGroup>\n</Project>\n",
+    );
+    let file = p.write("Program.cs", "using Totally.Fake.Package;\nclass P {}\n");
+    let out = p.hook(&file);
+    assert!(!flags_hallucination(&out), "blocking hallucinated-import is held for C# pending corpus validation: {out}");
+}

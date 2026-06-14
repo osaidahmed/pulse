@@ -66,6 +66,7 @@ pub(crate) fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
         Language::Rust => Some(Ecosystem::Cargo),
         Language::Go => Some(Ecosystem::Go),
         Language::Ruby => Some(Ecosystem::RubyGems),
+        Language::CSharp => Some(Ecosystem::NuGet),
         _ => None,
     }
 }
@@ -78,7 +79,7 @@ pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
         Ecosystem::Pip => Some(target.split('.').next().unwrap_or(target).to_string()),
         Ecosystem::Npm => npm_root(target),
         Ecosystem::Cargo => Some(target.split("::").next().unwrap_or(target).trim_start_matches("r#").to_string()),
-        Ecosystem::Go => Some(target.to_string()),
+        Ecosystem::Go | Ecosystem::NuGet => Some(target.to_string()),
         Ecosystem::RubyGems => Some(target.split('/').next().unwrap_or(target).to_string()),
     }
 }
