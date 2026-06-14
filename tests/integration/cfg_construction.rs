@@ -219,6 +219,26 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn java_catch_block_after_returning_try_is_not_unreachable() {
+    let src = "class C {\n    int f(String s) {\n        try {\n            return Integer.parseInt(s);\n        } catch (NumberFormatException e) {\n            return -1;\n        }\n    }\n}\n";
+    let f = smells_of(src, Language::Java, "java");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "a catch handler is reachable even if the try body returns: {f:?}"
+    );
+}
+
+#[test]
+fn python_except_block_after_returning_try_is_not_unreachable() {
+    let src = "def f(s):\n    try:\n        return int(s)\n    except ValueError:\n        return -1\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "an except handler is reachable even if the try body returns: {f:?}"
+    );
+}
+
+#[test]
 fn c_goto_target_label_block_is_not_unreachable() {
     let src = "int f(int x) {\n    if (x) goto done;\n    return 1;\ndone:\n    return 0;\n}\n";
     let f = smells_of(src, Language::C, "c");

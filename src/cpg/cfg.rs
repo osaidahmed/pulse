@@ -26,6 +26,7 @@ pub enum NodeKind {
     Exit,
     Stmt,
     Def,
+    Join,
     Predicate,
     LoopHead,
     Handler,
@@ -262,7 +263,7 @@ impl Builder<'_> {
         if let Some(alias) = node.child_by_field_name("alias") {
             defuse::push_idents(alias, self.source, self.entry, defuse::Mark::Decl, &mut self.def_use);
         }
-        let after = self.add(NodeKind::Stmt, end_line(node));
+        let after = self.add(NodeKind::Join, end_line(node));
         self.edge(p, after, EdgeLabel::False);
         let continue_head = self.loops.last().map_or(after, |l| l.head);
         self.loops.push(LoopCtx { head: continue_head, after });
@@ -344,7 +345,7 @@ impl Builder<'_> {
         if then_end.is_none() && else_end.is_none() {
             return None;
         }
-        let merge = self.add(NodeKind::Stmt, end_line(node));
+        let merge = self.add(NodeKind::Join, end_line(node));
         if let Some(e) = then_end {
             self.edge(e, merge, EdgeLabel::Epsilon);
         }
@@ -397,7 +398,7 @@ impl Builder<'_> {
         if then_end.is_none() && else_end.is_none() {
             return None;
         }
-        let merge = self.add(NodeKind::Stmt, end_line(clause));
+        let merge = self.add(NodeKind::Join, end_line(clause));
         if let Some(e) = then_end {
             self.edge(e, merge, EdgeLabel::Epsilon);
         }
@@ -413,7 +414,7 @@ impl Builder<'_> {
         let head = self.add(NodeKind::LoopHead, line(node));
         self.link(incoming, head);
         defuse::loop_header(node, self.source, head, self.lang, &mut self.def_use);
-        let after = self.add(NodeKind::Stmt, end_line(node));
+        let after = self.add(NodeKind::Join, end_line(node));
         self.edge(head, after, EdgeLabel::False);
         self.loops.push(LoopCtx { head, after });
         let body = node.child_by_field_name("body").or_else(|| find_child_by_kinds(node, self.lang.block_kinds));
@@ -429,7 +430,7 @@ impl Builder<'_> {
     fn do_try(&mut self, node: Node, incoming: Incoming) -> Option<u32> {
         let entry = self.add(NodeKind::Stmt, line(node));
         self.link(incoming, entry);
-        let after = self.add(NodeKind::Stmt, end_line(node));
+        let after = self.add(NodeKind::Join, end_line(node));
         let body_end =
             node.child_by_field_name("body").map_or(Some(entry), |b| self.seq(b, Some((entry, EdgeLabel::Epsilon))));
         let mut normal = body_end;
