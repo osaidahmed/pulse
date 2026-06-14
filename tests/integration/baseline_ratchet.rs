@@ -17,6 +17,14 @@ fn padded_fn(name: &str, ifs: u32, loc: u32) -> String {
     s
 }
 
+fn cmp_fn(name: &str, op: &str) -> String {
+    let mut s = format!("def {name}(a, b):\n");
+    for _ in 0..12 {
+        s.push_str(&format!("    if a {op} b:\n        a = 0\n"));
+    }
+    s
+}
+
 fn run_hook_edit(content: &str, old: &str, new: &str) -> String {
     let dir = tempfile::tempdir().unwrap();
     let baseline_dir = tempfile::tempdir().unwrap();
@@ -79,6 +87,17 @@ fn rename_and_worsen_fires() {
     let new = cc_fn("renamed_worker", 15);
     let out = run_hook_edit(&new, &old, &new);
     assert!(out.to_lowercase().contains("complex method"), "renamed and worsened function must fire: {out}");
+}
+
+#[test]
+fn rename_with_structural_body_change_refires() {
+    let old = cmp_fn("worker", ">");
+    let new = cmp_fn("renamed_worker", "<");
+    let out = run_hook_edit(&new, &old, &new);
+    assert!(
+        out.to_lowercase().contains("complex method"),
+        "a renamed function whose body structure changed no longer matches its grandfathered baseline, so the still-present finding re-surfaces: {out}"
+    );
 }
 
 #[test]

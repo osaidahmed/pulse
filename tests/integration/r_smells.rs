@@ -599,12 +599,17 @@ fn production_service_nested_chunks() {
 #[test]
 fn production_service_no_false_duplication() {
     let output = run_check(LANG, "production_service.r");
-    for line in output.lines().filter(|l| l.contains("Code Duplication")) {
-        assert!(
-            !line.contains("process_order") && !line.contains("process_data_pipeline"),
-            "size-disparate functions must not be grouped as duplicates, got: {line}"
-        );
-    }
+    let dup_lines: Vec<&str> = output.lines().filter(|l| l.contains("Code Duplication")).collect();
+    assert_eq!(dup_lines.len(), 1, "exactly one legitimate clone group is expected, got: {output}");
+    let group = dup_lines[0];
+    assert!(
+        group.contains("format_user_report") && group.contains("format_admin_report"),
+        "the only clone group must be the two report formatters, got: {group}"
+    );
+    assert!(
+        !group.contains("process_order") && !group.contains("process_data_pipeline"),
+        "size-disparate functions must not be grouped as duplicates, got: {group}"
+    );
 }
 
 #[test]
