@@ -23,6 +23,31 @@ pub(crate) fn dispatch(kind: &str, node: Node, ctx: &FreeCtx, out: &mut Vec<DefU
     false
 }
 
+pub(crate) fn captured_names(body: Node, source: &str, lang: &CfgLang) -> HashSet<String> {
+    let ctx = FreeCtx { source, block: 0, lang };
+    let mut recs = Vec::new();
+    walk_for_nested(body, &ctx, &mut recs);
+    recs.into_iter().map(|r| r.name).collect()
+}
+
+fn walk_for_nested(node: Node, ctx: &FreeCtx, out: &mut Vec<DefUseRecord>) {
+    let Some(_g) = DepthGuard::enter() else { return };
+    let k = node.kind();
+    if ctx.lang.nested.items.contains(&k) {
+        return;
+    }
+    if ctx.lang.nested.fns.contains(&k) {
+        collect_free_uses(node, ctx, out);
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            walk_for_nested(child, ctx, out);
+        }
+    }
+}
+
 fn collect_free_uses(node: Node, ctx: &FreeCtx, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     let bound = scope_bound(node, ctx);

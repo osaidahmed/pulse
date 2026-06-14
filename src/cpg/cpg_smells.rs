@@ -78,6 +78,9 @@ fn is_dead_store(
     if r.name.starts_with('_') {
         return false;
     }
+    if cpg.captured.contains(r.name.as_str()) {
+        return false;
+    }
     if !cpg.flag_all_dead_stores && !declared.contains(r.name.as_str()) {
         return false;
     }

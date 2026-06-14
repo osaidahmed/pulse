@@ -4,7 +4,7 @@ mod cfg_nodes;
 pub mod cpg_smells;
 pub mod defuse;
 pub mod implicit_return;
-mod nested;
+pub(crate) mod nested;
 pub mod reaching;
 mod types;
 

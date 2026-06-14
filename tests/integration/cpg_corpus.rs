@@ -97,11 +97,11 @@ fn cpg_findings(src: &str, lang: Language, t: &Thresholds) -> Vec<(&'static str,
         .collect()
 }
 
-fn lang_dirs(root: &Path, only: &Option<String>) -> Vec<(String, PathBuf)> {
+fn lang_dirs(root: &Path, only: Option<&String>) -> Vec<(String, PathBuf)> {
     sorted_subdirs(root)
         .into_iter()
         .map(|d| (d.file_name().unwrap_or_default().to_string_lossy().into_owned(), d))
-        .filter(|(name, _)| only.as_ref().is_none_or(|l| l == name))
+        .filter(|(name, _)| only.is_none_or(|l| l == name))
         .collect()
 }
 
@@ -123,7 +123,7 @@ fn scan_corpus_for_cpg_findings() {
     let t = cpg_thresholds();
     let mut samples: Vec<String> = Vec::new();
 
-    for (lang, lang_dir) in lang_dirs(&PathBuf::from(&corpus), &only) {
+    for (lang, lang_dir) in lang_dirs(&PathBuf::from(&corpus), only.as_ref()) {
         let (mut files, mut functions) = (0u64, 0u64);
         let mut by_smell: BTreeMap<&'static str, u64> = BTreeMap::new();
         for repo in sorted_subdirs(&lang_dir) {
@@ -168,7 +168,7 @@ fn scan_corpus_for_transient_cpg_findings() {
     let t = cpg_thresholds();
     let mut samples: Vec<String> = Vec::new();
 
-    for (lang, lang_dir) in lang_dirs(&PathBuf::from(&corpus), &only) {
+    for (lang, lang_dir) in lang_dirs(&PathBuf::from(&corpus), only.as_ref()) {
         let mut files = 0u64;
         let mut by_smell: BTreeMap<&'static str, u64> = BTreeMap::new();
         for repo in sorted_subdirs(&lang_dir) {

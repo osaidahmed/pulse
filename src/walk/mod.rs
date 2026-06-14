@@ -124,7 +124,8 @@ pub(crate) fn cpg_for(
     crate::cpg::implicit_return::seed(body, source, cfg.exit, &mut def_use);
     crate::cpg::implicit_return::seed_format_uses(body, source, cfg.exit, &mut def_use);
     crate::cpg::implicit_return::seed_comprehension_bindings(body, source, cfg.entry, &mut def_use);
-    Some(crate::cpg::CpgMetrics { cfg, def_use, ..Default::default() })
+    let captured = crate::cpg::nested::captured_names(body, source, lang);
+    Some(crate::cpg::CpgMetrics { cfg, def_use, captured, ..Default::default() })
 }
 
 pub(crate) fn cpg_for_suppressed(

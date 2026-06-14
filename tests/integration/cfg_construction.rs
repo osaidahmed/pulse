@@ -219,6 +219,13 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn variable_read_only_in_nested_function_is_not_a_dead_store() {
+    let src = "function main() {\n    const out = compute();\n    run(visit);\n    return;\n    function visit(name) {\n        return name + out;\n    }\n}\n";
+    let f = smells_of(src, Language::JavaScript, "js");
+    assert!(!has_finding(&f, Smell::DeadStore), "a var read inside a hoisted nested fn is live: {f:?}");
+}
+
+#[test]
 fn destructured_names_are_definitions() {
     let src = "fn f() -> i32 {\n    let (a, b) = (1, 2);\n    a + b\n}\n";
     let f = smells_of(src, Language::Rust, "rs");
