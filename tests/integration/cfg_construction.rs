@@ -240,10 +240,24 @@ fn if_let_binding_is_a_definition() {
 }
 
 #[test]
+fn struct_pattern_shorthand_binding_is_a_definition() {
+    let src = "enum E { V { x: i32 } }\nfn f(e: E) -> i32 {\n    match e {\n        E::V { x } => x + 1,\n    }\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a struct-pattern shorthand binding is defined: {f:?}");
+}
+
+#[test]
 fn format_interpolated_variable_is_not_a_dead_store() {
     let src = "fn f() {\n    let name = compute();\n    println!(\"hello {name}\");\n}\n";
     let f = smells_of(src, Language::Rust, "rs");
     assert!(!has_finding(&f, Smell::DeadStore), "a variable used in a format string is read: {f:?}");
+}
+
+#[test]
+fn comprehension_variable_is_a_definition() {
+    let src = "def f(items):\n    return [x + 1 for x in items]\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::UseBeforeDef), "a comprehension variable is defined: {f:?}");
 }
 
 #[test]

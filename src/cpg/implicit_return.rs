@@ -17,6 +17,21 @@ pub(crate) fn seed_string_interpolation(node: Node, source: &str, exit: u32, out
     }
 }
 
+pub(crate) fn seed_comprehension_bindings(node: Node, source: &str, entry: u32, out: &mut Vec<DefUseRecord>) {
+    let Some(_g) = DepthGuard::enter() else { return };
+    if node.kind() == "for_in_clause" {
+        if let Some(l) = node.child_by_field_name("left") {
+            push_idents(l, source, entry, Mark::Assign, out);
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.is_named() {
+            seed_comprehension_bindings(child, source, entry, out);
+        }
+    }
+}
+
 pub(crate) fn seed_format_uses(node: Node, source: &str, exit: u32, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
     if matches!(node.kind(), "string_literal" | "raw_string_literal") {

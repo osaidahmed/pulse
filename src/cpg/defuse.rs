@@ -292,7 +292,7 @@ fn initializer_child(node: Node) -> Option<Node> {
 
 pub(crate) fn push_idents(node: Node, source: &str, block: u32, mark: Mark, out: &mut Vec<DefUseRecord>) {
     let Some(_g) = DepthGuard::enter() else { return };
-    if matches!(node.kind(), "identifier" | "variable_name" | "simple_identifier") {
+    if matches!(node.kind(), "identifier" | "variable_name" | "simple_identifier" | "shorthand_field_identifier") {
         if node_text(node, source) != "_" {
             out.push(rec(node, source, block, mark));
         }
