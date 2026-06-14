@@ -219,6 +219,31 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn hoisted_function_after_return_is_not_unreachable() {
+    let src =
+        "function main() {\n    run(visit);\n    return;\n    function visit(name) {\n        return name;\n    }\n}\n";
+    let f = smells_of(src, Language::JavaScript, "js");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "a hoisted fn decl after return is callable, not unreachable: {f:?}"
+    );
+}
+
+#[test]
+fn type_predicate_return_oneliner_is_not_unreachable() {
+    let src = "function isNil(x: any): x is null | undefined {\n    return x === undefined || x === null;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "the sole return of a type-predicate fn is reachable: {f:?}");
+}
+
+#[test]
+fn generic_return_type_oneliner_is_not_unreachable() {
+    let src = "function make<T>(): SortedArray<T> {\n    return [] as any as SortedArray<T>;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "the sole return of a generic fn is reachable: {f:?}");
+}
+
+#[test]
 fn variable_read_only_in_nested_function_is_not_a_dead_store() {
     let src = "function main() {\n    const out = compute();\n    run(visit);\n    return;\n    function visit(name) {\n        return name + out;\n    }\n}\n";
     let f = smells_of(src, Language::JavaScript, "js");
