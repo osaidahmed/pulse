@@ -87,7 +87,7 @@ pub const TYPESCRIPT: CfgLang = CfgLang {
             "generator_function",
             "generator_function_declaration",
         ],
-        items: &[],
+        items: &["type_alias_declaration", "interface_declaration", "function_signature", "abstract_method_signature"],
     },
     switch_kinds: &["switch_statement"],
     case_kinds: &["switch_case", "switch_default"],

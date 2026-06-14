@@ -219,6 +219,23 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn finally_block_after_returning_try_is_not_unreachable() {
+    let src = "def f(x):\n    try:\n        return g(x)\n    finally:\n        cleanup()\n";
+    let f = smells_of(src, Language::Python, "py");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "a finally block always runs and is reachable: {f:?}");
+}
+
+#[test]
+fn typescript_type_declaration_after_return_is_not_unreachable() {
+    let src = "function f(): number {\n    return 1;\n    type Local = number;\n    interface Shape { x: number }\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(
+        !has_finding(&f, Smell::UnreachableCode),
+        "type-level declarations are not executable unreachable code: {f:?}"
+    );
+}
+
+#[test]
 fn java_catch_block_after_returning_try_is_not_unreachable() {
     let src = "class C {\n    int f(String s) {\n        try {\n            return Integer.parseInt(s);\n        } catch (NumberFormatException e) {\n            return -1;\n        }\n    }\n}\n";
     let f = smells_of(src, Language::Java, "java");
