@@ -31,6 +31,9 @@ mod dead_function;
 #[path = "integration/dead_function_corpus.rs"]
 mod dead_function_corpus;
 
+#[path = "integration/cpg_corpus.rs"]
+mod cpg_corpus;
+
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
 
