@@ -219,6 +219,13 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn trailing_comment_after_return_is_not_unreachable() {
+    let src = "function f(x: any): x is null {\n    return x === null; // a trailing note\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::UnreachableCode), "a comment after the sole return is not unreachable code: {f:?}");
+}
+
+#[test]
 fn hoisted_function_after_return_is_not_unreachable() {
     let src =
         "function main() {\n    run(visit);\n    return;\n    function visit(name) {\n        return name;\n    }\n}\n";

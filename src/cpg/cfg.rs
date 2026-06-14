@@ -143,7 +143,7 @@ impl Builder<'_> {
         let _g = DepthGuard::enter()?;
         let mut cur = incoming;
         for &child in nodes {
-            if !child.is_named() {
+            if !child.is_named() || child.is_extra() {
                 continue;
             }
             match cur {
