@@ -452,6 +452,7 @@ impl Builder<'_> {
         }
         match finalizer {
             Some(fc) => {
+                self.edge(entry, after, EdgeLabel::Epsilon);
                 self.seq_opt_block(find_child_by_kinds(fc, self.lang.block_kinds), Some((after, EdgeLabel::Epsilon)))
             }
             None => Some(after),
