@@ -219,6 +219,20 @@ fn closure_capture_is_not_a_dead_store() {
 }
 
 #[test]
+fn rust_cfg_gated_bindings_are_not_dead_stores() {
+    let src = "fn f() -> i32 {\n    #[cfg(unix)]\n    let x = 1;\n    #[cfg(windows)]\n    let x = 2;\n    x\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "cfg-gated bindings are mutually exclusive, not overwrites: {f:?}");
+}
+
+#[test]
+fn rust_deref_assignment_is_not_a_dead_store() {
+    let src = "fn f(p: &mut i32) {\n    *p = 1;\n    *p = 2;\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "writing through a reference is observable, not a dead store: {f:?}");
+}
+
+#[test]
 fn finally_block_after_returning_try_is_not_unreachable() {
     let src = "def f(x):\n    try:\n        return g(x)\n    finally:\n        cleanup()\n";
     let f = smells_of(src, Language::Python, "py");

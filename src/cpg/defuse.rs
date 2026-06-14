@@ -185,7 +185,11 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     collect(r, source, block, lang, out);
     let aug = lang.aug_kinds.contains(&node.kind())
         || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=");
-    let def_mark = DEF_MARKS[usize::from(DECL_KINDS.contains(&node.kind()))];
+    let cfg_gated = node
+        .prev_named_sibling()
+        .filter(|p| p.kind() == "attribute_item")
+        .is_some_and(|p| node_text(p, source).contains("cfg"));
+    let def_mark = DEF_MARKS[usize::from(DECL_KINDS.contains(&node.kind()) && !cfg_gated)];
     let mut targets: Vec<Node> = Vec::new();
     collect_binding_targets(node, &mut targets);
     for t in targets {
@@ -240,6 +244,7 @@ pub(crate) fn is_field_or_index_target(kind: &str) -> bool {
             | "selector_expression"
             | "dynamic_variable_name"
             | "pointer_expression"
+            | "unary_expression"
             | "navigation_expression"
             | "call_expression"
             | "call"
