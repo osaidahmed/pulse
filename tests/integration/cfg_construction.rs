@@ -184,6 +184,30 @@ fn use_before_def_flagged() {
 }
 
 #[test]
+fn rust_let_else_variant_binding_is_not_a_dead_store() {
+    let src = "fn f(o: Option<i32>) -> i32 {\n    let Some(v) = o else { return 0; };\n    v\n}\n";
+    let f = smells_of(src, Language::Rust, "rs");
+    assert!(!has_finding(&f, Smell::DeadStore), "a let-else variant constructor is not a stored local: {f:?}");
+}
+
+#[test]
+fn typescript_uninitialized_typed_declaration_is_not_a_dead_store() {
+    let src = "function f(c: boolean): number {\n    let x: number;\n    if (c) {\n        x = 1;\n    } else {\n        x = 2;\n    }\n    return x;\n}\n";
+    let f = smells_of(src, Language::TypeScript, "ts");
+    assert!(!has_finding(&f, Smell::DeadStore), "a bare typed declaration writes no value, not a dead store: {f:?}");
+}
+
+#[test]
+fn go_switch_arm_assignment_read_after_switch_is_not_a_dead_store() {
+    let src = "func f(x any) error {\n    var err error\n    switch v := x.(type) {\n    case int:\n        err = use(v)\n    }\n    return err\n}\n";
+    let f = smells_of(src, Language::Go, "go");
+    assert!(
+        !has_finding(&f, Smell::DeadStore),
+        "a value written in a switch arm and read after the switch is live: {f:?}"
+    );
+}
+
+#[test]
 fn clean_function_has_no_cpg_smells() {
     let f = smells_of("def f(a):\n    x = a + 1\n    return x\n", Language::Python, "py");
     assert!(!has_finding(&f, Smell::DeadStore), "{f:?}");

@@ -288,7 +288,7 @@ fn initializer_child(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
     let mut found = None;
     for child in node.children(&mut cursor) {
-        if child.is_named() && Some(child.id()) != name_id {
+        if child.is_named() && Some(child.id()) != name_id && child.kind() != "type_annotation" {
             found = Some(child);
         }
     }
