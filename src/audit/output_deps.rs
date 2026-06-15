@@ -37,17 +37,6 @@ fn dispatch_metric_block(out: &mut String, kind: &AuditKind, root: Option<&Path>
             summary: format!("conditionals:  {} preprocessor conditional blocks", e.conditional_count),
             confidence: e.confidence,
         },
-        AuditKind::DeadConditionalBranch(e) => MetricBlock {
-            title: "dead conditional branch",
-            file: &e.file,
-            line: e.line,
-            loc_label: "branch at:     ",
-            summary: format!(
-                "`{}` is fixed by the build's -D configuration → this branch is unreachable",
-                e.macro_name
-            ),
-            confidence: e.confidence,
-        },
         _ => return false,
     };
     write_metric_block(out, &block, root, action);
@@ -115,13 +104,6 @@ fn dispatch_metric_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_j
             "file": display_path(&e.file, root),
             "line": e.line,
             "conditional_count": e.conditional_count,
-            "confidence": confidence_str(e.confidence),
-        })),
-        AuditKind::DeadConditionalBranch(e) => Some(serde_json::json!({
-            "kind": "DeadConditionalBranch",
-            "file": display_path(&e.file, root),
-            "line": e.line,
-            "macro": e.macro_name,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,

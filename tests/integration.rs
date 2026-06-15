@@ -108,8 +108,6 @@ mod audit_cross_language_separation;
 mod audit_cycle_shapes;
 #[path = "integration/audit_cycles.rs"]
 mod audit_cycles;
-#[path = "integration/audit_dead_variability.rs"]
-mod audit_dead_variability;
 #[path = "integration/audit_decoupling.rs"]
 mod audit_decoupling;
 #[path = "integration/audit_definitions.rs"]

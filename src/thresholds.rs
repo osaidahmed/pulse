@@ -81,7 +81,6 @@ pub struct AuditThresholds {
     pub ifdef_min_conditionals: u32,
     pub ifdef_max_findings: u32,
     pub reflexion_max_findings: u32,
-    pub dead_variability_max_findings: u32,
     pub max_locations_per_finding: usize,
     pub cross_validate_history: bool,
 }
@@ -347,7 +346,6 @@ impl AuditThresholds {
         ifdef_min_conditionals: 40,
         ifdef_max_findings: 12,
         reflexion_max_findings: 20,
-        dead_variability_max_findings: 20,
         max_locations_per_finding: 10,
         cross_validate_history: false,
     };
