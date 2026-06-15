@@ -2,8 +2,8 @@ use std::fmt::Write;
 use std::path::Path;
 
 use super::finding::{
-    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, IfdefDensityEvidence, PhantomDepEvidence,
-    StrictnessEvidence, UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
+    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, ImportConfidence, PhantomDepEvidence,
+    UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
 };
 use super::output_helpers::{confidence_str, display_path};
 
@@ -14,8 +14,35 @@ pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, a
         AuditKind::ConstraintSmell(e) => write_constraint(out, e, root, action),
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
         AuditKind::UnusedDeclaredDependency(e) => write_unused(out, e, root, action),
-        AuditKind::StrictnessDebt(e) => write_strictness(out, e, root, action),
-        AuditKind::IfdefDensity(e) => write_ifdef_density(out, e, root, action),
+        AuditKind::StrictnessDebt(e) => write_metric_block(
+            out,
+            &MetricBlock {
+                title: "type strictness debt",
+                file: &e.file,
+                line: e.line,
+                loc_label: "first `any`:   ",
+                summary: format!(
+                    "any count:     {} explicit `any` annotations under a non-strict tsconfig",
+                    e.any_count
+                ),
+                confidence: e.confidence,
+            },
+            root,
+            action,
+        ),
+        AuditKind::IfdefDensity(e) => write_metric_block(
+            out,
+            &MetricBlock {
+                title: "conditional-compilation density",
+                file: &e.file,
+                line: e.line,
+                loc_label: "first `#if`:    ",
+                summary: format!("conditionals:  {} preprocessor conditional blocks", e.conditional_count),
+                confidence: e.confidence,
+            },
+            root,
+            action,
+        ),
         _ => return false,
     }
     true
@@ -107,22 +134,21 @@ fn write_phantom(out: &mut String, e: &PhantomDepEvidence, root: Option<&Path>, 
     let _ = writeln!(out);
 }
 
-fn write_strictness(out: &mut String, e: &StrictnessEvidence, root: Option<&Path>, action: &'static str) {
-    let _ = writeln!(out, "audit: type strictness debt — {}", display_path(&e.file, root));
-    let _ = writeln!(out, "  first `any`:   {}:{}", display_path(&e.file, root), e.line);
-    let _ = writeln!(out, "  any count:     {} explicit `any` annotations under a non-strict tsconfig", e.any_count);
-    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
-    if !action.is_empty() {
-        let _ = writeln!(out, "  action:        {action}");
-    }
-    let _ = writeln!(out);
+struct MetricBlock<'a> {
+    title: &'a str,
+    file: &'a Path,
+    line: u32,
+    loc_label: &'a str,
+    summary: String,
+    confidence: ImportConfidence,
 }
 
-fn write_ifdef_density(out: &mut String, e: &IfdefDensityEvidence, root: Option<&Path>, action: &'static str) {
-    let _ = writeln!(out, "audit: conditional-compilation density — {}", display_path(&e.file, root));
-    let _ = writeln!(out, "  first `#if`:    {}:{}", display_path(&e.file, root), e.line);
-    let _ = writeln!(out, "  conditionals:  {} preprocessor conditional blocks", e.conditional_count);
-    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+fn write_metric_block(out: &mut String, b: &MetricBlock, root: Option<&Path>, action: &'static str) {
+    let path = display_path(b.file, root);
+    let _ = writeln!(out, "audit: {} — {}", b.title, path);
+    let _ = writeln!(out, "  {}{}:{}", b.loc_label, path, b.line);
+    let _ = writeln!(out, "  {}", b.summary);
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(b.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");
     }
