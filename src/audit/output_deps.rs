@@ -2,8 +2,8 @@ use std::fmt::Write;
 use std::path::Path;
 
 use super::finding::{
-    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, PhantomDepEvidence, StrictnessEvidence,
-    UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
+    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, IfdefDensityEvidence, PhantomDepEvidence,
+    StrictnessEvidence, UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
 };
 use super::output_helpers::{confidence_str, display_path};
 
@@ -15,6 +15,7 @@ pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, a
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
         AuditKind::UnusedDeclaredDependency(e) => write_unused(out, e, root, action),
         AuditKind::StrictnessDebt(e) => write_strictness(out, e, root, action),
+        AuditKind::IfdefDensity(e) => write_ifdef_density(out, e, root, action),
         _ => return false,
     }
     true
@@ -70,6 +71,13 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "any_count": e.any_count,
             "confidence": confidence_str(e.confidence),
         })),
+        AuditKind::IfdefDensity(e) => Some(serde_json::json!({
+            "kind": "IfdefDensity",
+            "file": display_path(&e.file, root),
+            "line": e.line,
+            "conditional_count": e.conditional_count,
+            "confidence": confidence_str(e.confidence),
+        })),
         _ => None,
     }
 }
@@ -103,6 +111,17 @@ fn write_strictness(out: &mut String, e: &StrictnessEvidence, root: Option<&Path
     let _ = writeln!(out, "audit: type strictness debt — {}", display_path(&e.file, root));
     let _ = writeln!(out, "  first `any`:   {}:{}", display_path(&e.file, root), e.line);
     let _ = writeln!(out, "  any count:     {} explicit `any` annotations under a non-strict tsconfig", e.any_count);
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+    let _ = writeln!(out);
+}
+
+fn write_ifdef_density(out: &mut String, e: &IfdefDensityEvidence, root: Option<&Path>, action: &'static str) {
+    let _ = writeln!(out, "audit: conditional-compilation density — {}", display_path(&e.file, root));
+    let _ = writeln!(out, "  first `#if`:    {}:{}", display_path(&e.file, root), e.line);
+    let _ = writeln!(out, "  conditionals:  {} preprocessor conditional blocks", e.conditional_count);
     let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");

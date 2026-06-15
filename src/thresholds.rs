@@ -78,6 +78,7 @@ pub struct AuditThresholds {
     pub clone_cluster: CloneClusterThresholds,
     pub naturalness: NaturalnessThresholds,
     pub strictness: StrictnessThresholds,
+    pub ifdef_min_conditionals: u32,
     pub max_locations_per_finding: usize,
     pub cross_validate_history: bool,
 }
@@ -340,6 +341,7 @@ impl AuditThresholds {
         clone_cluster: CloneClusterThresholds::DEFAULTS,
         naturalness: NaturalnessThresholds::DEFAULTS,
         strictness: StrictnessThresholds::DEFAULTS,
+        ifdef_min_conditionals: 24,
         max_locations_per_finding: 10,
         cross_validate_history: false,
     };

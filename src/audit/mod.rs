@@ -34,6 +34,7 @@ pub mod finding_confidence;
 pub mod finding_evidence;
 pub mod graph;
 pub mod hist_crossval;
+pub mod ifdef_density;
 pub mod import_call_form;
 pub mod import_command_form;
 pub mod import_jsts;
@@ -119,6 +120,7 @@ pub enum PassChoice {
     Clones,
     Naturalness,
     VulnClones,
+    IfdefDensity,
     All,
 }
 

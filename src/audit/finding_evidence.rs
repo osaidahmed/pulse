@@ -146,6 +146,14 @@ pub struct StrictnessEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct IfdefDensityEvidence {
+    pub file: PathBuf,
+    pub line: u32,
+    pub conditional_count: u32,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UndeclaredModuleDepEvidence {
     pub from_component: String,
     pub to_component: String,

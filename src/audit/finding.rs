@@ -35,13 +35,14 @@ pub enum AuditKind {
     UndeclaredModuleDependency(UndeclaredModuleDepEvidence),
     UnusedDeclaredDependency(UnusedDeclaredDepEvidence),
     StrictnessDebt(StrictnessEvidence),
+    IfdefDensity(IfdefDensityEvidence),
 }
 
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
-    HubLikeEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence,
-    PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence, UndeclaredModuleDepEvidence, UnstableDepEvidence,
-    UnusedDeclaredDepEvidence, VulnCloneEvidence,
+    HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence,
+    NaturalnessEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence, UndeclaredModuleDepEvidence,
+    UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -328,7 +329,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 27] = [
+const VARIANT_TABLE: [VariantInfo; 28] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -336,6 +337,14 @@ const VARIANT_TABLE: [VariantInfo; 27] = [
         action: "",
         label: "Cross-file pattern",
         pillar: AuditPillar::Patterns,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::IfdefDensity(_)),
+        pass: "ifdef-density",
+        slug: "ifdef_density",
+        action: "reduce conditional-compilation branching — extract platform variants behind a thin interface",
+        label: "Conditional-compilation density",
+        pillar: AuditPillar::Architecture,
     },
     VariantInfo {
         test: |k| matches!(k, AuditKind::StrictnessDebt(_)),

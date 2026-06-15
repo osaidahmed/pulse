@@ -144,6 +144,8 @@ mod audit_god_class;
 mod audit_god_class_extended;
 #[path = "integration/audit_graph.rs"]
 mod audit_graph;
+#[path = "integration/audit_ifdef_density.rs"]
+mod audit_ifdef_density;
 #[path = "integration/audit_ignore.rs"]
 mod audit_ignore;
 #[path = "integration/audit_import_call_form_extended.rs"]

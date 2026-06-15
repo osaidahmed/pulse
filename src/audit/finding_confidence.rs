@@ -9,6 +9,7 @@ fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
         .or_else(|| named_smell_confidence(kind))
         .or_else(|| advisory_confidence(kind))
         .or_else(|| deps_confidence(kind))
+        .or_else(|| ifdef_confidence(kind))
 }
 
 fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
@@ -60,6 +61,8 @@ confidence_lookup!(deps_confidence {
     UnusedDeclaredDependency,
     StrictnessDebt
 });
+
+confidence_lookup!(ifdef_confidence { IfdefDensity });
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);
