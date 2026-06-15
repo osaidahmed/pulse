@@ -158,13 +158,14 @@ fn phantom_findings(meta: &BuildMeta, imported: &ImportedRoots) -> Vec<AuditFind
         let declared = manifest_names.get(eco).is_some_and(|names| prefix_member(*eco, names, name));
         let locked = lockfile_names.get(eco).is_some_and(|names| prefix_member(*eco, names, name));
         if !declared && locked {
+            let confidence = if *eco == Ecosystem::Npm { ImportConfidence::Low } else { ImportConfidence::Medium };
             findings.push(wrap(
                 name.clone(),
                 AuditKind::PhantomDependency(PhantomDepEvidence {
                     file: file.clone(),
                     line: *line,
                     name: name.clone(),
-                    confidence: ImportConfidence::Medium,
+                    confidence,
                 }),
             ));
         }

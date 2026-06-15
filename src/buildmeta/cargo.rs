@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::{line_of, DeclaredDep, DepScope, Ecosystem, Lockfile, Manifest};
 
@@ -29,16 +29,13 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
             own: true,
         });
     }
+    let base = path.parent().unwrap_or_else(|| Path::new("."));
     let workspace_members = doc
         .get("workspace")
         .and_then(|w| w.get("members"))
         .and_then(|m| m.as_array())
-        .into_iter()
-        .flatten()
-        .filter_map(|m| m.as_str())
-        .filter(|m| !m.contains('*'))
-        .map(PathBuf::from)
-        .collect();
+        .map(|arr| super::expand_members(arr.iter().filter_map(|m| m.as_str()), base, "Cargo.toml"))
+        .unwrap_or_default();
     Some(Manifest { path: path.to_path_buf(), ecosystem: Ecosystem::Cargo, deps, workspace_members })
 }
 

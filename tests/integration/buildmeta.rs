@@ -151,6 +151,24 @@ fn empty_root_yields_empty_metadata() {
 }
 
 #[test]
+fn glob_workspace_members_are_expanded() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("Cargo.toml"), "[workspace]\nmembers = [\"crates/*\"]\n").unwrap();
+    for m in ["alpha", "beta"] {
+        let cd = dir.path().join("crates").join(m);
+        std::fs::create_dir_all(&cd).unwrap();
+        std::fs::write(
+            cd.join("Cargo.toml"),
+            format!("[package]\nname = \"{m}\"\n\n[dependencies]\n{m}_dep = \"1.0\"\n"),
+        )
+        .unwrap();
+    }
+    let meta = discover(dir.path());
+    assert_eq!(dep(&meta, "alpha_dep").constraint, "1.0", "crates/* glob expands to discover member crates");
+    assert_eq!(dep(&meta, "beta_dep").constraint, "1.0");
+}
+
+#[test]
 fn go_indirect_deps_are_build_scoped() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(

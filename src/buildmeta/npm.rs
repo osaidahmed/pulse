@@ -31,15 +31,12 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
             own: true,
         });
     }
+    let base = path.parent().unwrap_or_else(|| std::path::Path::new("."));
     let workspace_members = doc
         .get("workspaces")
         .and_then(|w| w.as_array().or_else(|| w.get("packages").and_then(|p| p.as_array())))
-        .into_iter()
-        .flatten()
-        .filter_map(|m| m.as_str())
-        .filter(|m| !m.contains('*'))
-        .map(std::path::PathBuf::from)
-        .collect();
+        .map(|arr| super::expand_members(arr.iter().filter_map(|m| m.as_str()), base, "package.json"))
+        .unwrap_or_default();
     Some(Manifest { path: path.to_path_buf(), ecosystem: Ecosystem::Npm, deps, workspace_members })
 }
 

@@ -174,6 +174,32 @@ fn handle_csproj_entry(path: &Path, depth: usize, out: &mut Vec<Manifest>) {
     }
 }
 
+pub(super) fn expand_members<'a>(
+    patterns: impl Iterator<Item = &'a str>,
+    base: &Path,
+    manifest_name: &str,
+) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for pattern in patterns {
+        if let Some(prefix) = pattern.strip_suffix("/*") {
+            collect_glob_members(&base.join(prefix), prefix, manifest_name, &mut out);
+        } else if !pattern.contains('*') {
+            out.push(PathBuf::from(pattern));
+        }
+    }
+    out.sort();
+    out
+}
+
+fn collect_glob_members(dir: &Path, prefix: &str, manifest_name: &str, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        if entry.path().join(manifest_name).is_file() {
+            out.push(Path::new(prefix).join(entry.file_name()));
+        }
+    }
+}
+
 const MAX_MANIFEST_BYTES: u64 = 8 * 1024 * 1024;
 
 fn read_capped(path: &Path) -> Option<String> {
