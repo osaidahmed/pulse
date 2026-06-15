@@ -399,3 +399,27 @@ fn python_sanitized_request_source_is_not_flagged() {
     let body = "def view(request, cursor):\n    q = escape(request.GET)\n    cursor.execute(q)\n";
     assert!(taint_findings("views.py", body).is_empty(), "a sanitized web source is safe");
 }
+
+#[test]
+fn csharp_request_cookies_source_to_sink_is_flagged() {
+    let body = "class C {\n  void Handler(SqlCommand cmd) {\n    var q = Request.Cookies[\"id\"];\n    cmd.ExecuteReader(q);\n  }\n}\n";
+    let found = taint_findings("App.cs", body);
+    assert_eq!(found.len(), 1, "Request.Cookies is a taint source: {found:?}");
+    assert_eq!(found[0].source_name, "Request.Cookies");
+}
+
+#[test]
+fn php_files_superglobal_source_to_sink_is_flagged() {
+    let body = "<?php\nfunction handler($db) {\n  $q = $_FILES['doc'];\n  $db->query($q);\n}\n";
+    let found = taint_findings("app.php", body);
+    assert_eq!(found.len(), 1, "$_FILES is a taint source: {found:?}");
+    assert_eq!(found[0].source_name, "$_FILES");
+}
+
+#[test]
+fn java_request_body_reader_source_to_sink_is_flagged() {
+    let body = "class C {\n  void handler(Statement stmt, Request req) {\n    String q = req.getReader();\n    stmt.executeQuery(q);\n  }\n}\n";
+    let found = taint_findings("App.java", body);
+    assert_eq!(found.len(), 1, "request body reader is a taint source: {found:?}");
+    assert_eq!(found[0].source_name, "getReader");
+}
