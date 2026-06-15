@@ -2,8 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::buildmeta::{self, BuildMeta, DeclaredDep, DepScope, Ecosystem, Manifest};
-use crate::import_check::{external_root, normalize};
-use crate::parse::Language;
+use crate::import_check::{ecosystem_for, external_root, normalize};
 use crate::thresholds::AuditThresholds;
 
 use super::corpus::Corpus;
@@ -18,6 +17,7 @@ struct Component {
     dir: PathBuf,
     manifest: PathBuf,
     deps: Vec<DeclaredDep>,
+    ecosystem: Ecosystem,
 }
 
 struct DeclaredEdge {
@@ -54,16 +54,28 @@ pub fn workspace_internal_names(meta: &BuildMeta) -> HashSet<String> {
     comps.iter().map(|c| normalize(&c.name)).collect()
 }
 
+fn workspace_manifest_name(eco: Ecosystem) -> Option<&'static str> {
+    match eco {
+        Ecosystem::Cargo => Some("Cargo.toml"),
+        Ecosystem::Npm => Some("package.json"),
+        _ => None,
+    }
+}
+
 fn components(meta: &BuildMeta) -> Vec<Component> {
     let mut comps = Vec::new();
-    let workspaces =
-        meta.manifests.iter().filter(|m| m.ecosystem == Ecosystem::Cargo && !m.workspace_members.is_empty());
+    let workspaces = meta
+        .manifests
+        .iter()
+        .filter(|m| workspace_manifest_name(m.ecosystem).is_some() && !m.workspace_members.is_empty());
     for ws in workspaces {
-        let Some(ws_dir) = ws.path.parent() else { continue };
+        let (Some(ws_dir), Some(member_file)) = (ws.path.parent(), workspace_manifest_name(ws.ecosystem)) else {
+            continue;
+        };
         push_component(&mut comps, ws, ws_dir);
         for member in &ws.workspace_members {
             let dir = ws_dir.join(member);
-            if let Some(m) = meta.manifests.iter().find(|m| m.path == dir.join("Cargo.toml")) {
+            if let Some(m) = meta.manifests.iter().find(|m| m.path == dir.join(member_file)) {
                 push_component(&mut comps, m, &dir);
             }
         }
@@ -81,6 +93,7 @@ fn push_component(comps: &mut Vec<Component>, manifest: &Manifest, dir: &Path) {
         dir: dir.to_path_buf(),
         manifest: manifest.path.clone(),
         deps: manifest.deps.clone(),
+        ecosystem: manifest.ecosystem,
     });
 }
 
@@ -127,11 +140,15 @@ fn declared_edges(comps: &[Component]) -> HashMap<(usize, usize), DeclaredEdge> 
 fn actual_edges(comps: &[Component], corpus: &Corpus) -> HashMap<(usize, usize), Witness> {
     let index = name_index(comps);
     let mut pairs = Vec::new();
-    for file in corpus.files.iter().filter(|f| f.lang == Language::Rust) {
+    for file in &corpus.files {
         let Some(i) = maps_to(comps, &file.path) else { continue };
+        let eco = comps[i].ecosystem;
+        if ecosystem_for(file.lang) != Some(eco) {
+            continue;
+        }
         let Some((source, tree)) = file.parsed() else { continue };
         for import in extract_imports(tree, source, file.lang) {
-            let Some(root_name) = external_root(Ecosystem::Cargo, &import.target) else { continue };
+            let Some(root_name) = external_root(eco, &import.target) else { continue };
             let Some(j) = edge_target(&index, &root_name, i) else { continue };
             pairs.push(((i, j), Witness { file: file.path.clone(), line: import.line, target: import.target }));
         }

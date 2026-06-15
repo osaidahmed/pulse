@@ -207,3 +207,50 @@ fn root_package_participates_as_a_component() {
     let pairs = undeclared_pairs(&run_deps(dir.path()));
     assert_eq!(pairs, vec![("root_crate".to_string(), "member_b".to_string())], "{pairs:?}");
 }
+
+const NPM_ROOT: &str = "{\"private\":true,\"workspaces\":[\"packages/a\",\"packages/b\",\"packages/c\"]}";
+const NPM_A: &str = "{\"name\":\"@org/a\",\"dependencies\":{\"@org/b\":\"1.0.0\",\"@org/c\":\"1.0.0\"}}";
+const NPM_B: &str = "{\"name\":\"@org/b\"}";
+const NPM_C: &str = "{\"name\":\"@org/c\"}";
+
+fn npm_workspace() -> tempfile::TempDir {
+    workspace(&[
+        ("package.json", NPM_ROOT),
+        ("packages/a/package.json", NPM_A),
+        ("packages/b/package.json", NPM_B),
+        ("packages/c/package.json", NPM_C),
+        ("packages/a/index.ts", "import { helper } from \"@org/b\";\nexport function run() { return helper(); }\n"),
+        ("packages/b/index.ts", "import { run } from \"@org/a\";\nexport function helper() { return run(); }\n"),
+        ("packages/c/index.ts", "export function three() { return 3; }\n"),
+    ])
+}
+
+#[test]
+fn npm_undeclared_cross_package_import_is_flagged() {
+    let dir = npm_workspace();
+    let pairs = undeclared_pairs(&run_deps(dir.path()));
+    assert_eq!(pairs, vec![("@org/b".to_string(), "@org/a".to_string())], "{pairs:?}");
+}
+
+#[test]
+fn npm_unused_declared_package_dep_is_flagged() {
+    let dir = npm_workspace();
+    let pairs = unused_pairs(&run_deps(dir.path()));
+    assert_eq!(pairs, vec![("@org/a".to_string(), "@org/c".to_string())], "{pairs:?}");
+}
+
+#[test]
+fn npm_workspace_internal_deps_are_not_reported_as_bloated() {
+    let dir = npm_workspace();
+    let names = bloated_names(&run_deps(dir.path()));
+    assert!(names.is_empty(), "{names:?}");
+}
+
+#[test]
+fn npm_declared_and_imported_package_edge_is_silent() {
+    let dir = npm_workspace();
+    let findings = run_deps(dir.path());
+    let a_to_b = ("@org/a".to_string(), "@org/b".to_string());
+    assert!(!undeclared_pairs(&findings).contains(&a_to_b));
+    assert!(!unused_pairs(&findings).contains(&a_to_b));
+}

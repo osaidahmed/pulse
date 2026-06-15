@@ -74,7 +74,7 @@ fn is_bloated(
         return false;
     }
     let name = normalize(&dep.name);
-    if manifest.ecosystem == Ecosystem::Cargo && workspace_internal.contains(&name) {
+    if matches!(manifest.ecosystem, Ecosystem::Cargo | Ecosystem::Npm) && workspace_internal.contains(&name) {
         return false;
     }
     !is_imported(manifest.ecosystem, &name, imported) && !is_referenced_in_source(&dep.name, corpus)
