@@ -33,6 +33,7 @@ pub mod expression_filter;
 pub mod finding;
 pub mod finding_confidence;
 pub mod finding_evidence;
+pub mod freshness;
 pub mod graph;
 pub mod hist_crossval;
 pub mod ifdef_density;
@@ -134,10 +135,21 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
 }
 
 pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &IgnoreFilter) -> Vec<AuditFinding> {
+    run_with_filter_online(opts, thresholds, filter, false, &std::env::temp_dir())
+}
+
+pub fn run_with_filter_online(
+    opts: &AuditOpts,
+    thresholds: &AuditThresholds,
+    filter: &IgnoreFilter,
+    online: bool,
+    cache_dir: &Path,
+) -> Vec<AuditFinding> {
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let shared = corpus::Corpus::load(&typed_files);
     let active = active_passes(opts.pass);
-    let ctx = passes::PassCtx { shared: &shared, typed_files: &typed_files, root: &opts.root, thresholds };
+    let ctx =
+        passes::PassCtx { shared: &shared, typed_files: &typed_files, root: &opts.root, thresholds, online, cache_dir };
     let mut findings: Vec<AuditFinding> = Vec::new();
     passes::run_selected_passes(&mut findings, &active, &ctx);
     maybe_cross_validate(&mut findings, opts, thresholds, filter, &active);

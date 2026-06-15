@@ -156,7 +156,8 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
         show_noise: args.show_noise,
         suppression,
     };
-    let findings = audit::run_with_filter(&opts, &thresholds.audit, &filter);
+    let cache_dir = pulse::registry::cache_dir();
+    let findings = audit::run_with_filter_online(&opts, &thresholds.audit, &filter, args.online, &cache_dir);
     let ctx = audit::output::RenderCtx {
         root: Some(&root),
         show_noise: opts.show_noise,

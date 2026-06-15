@@ -6,8 +6,8 @@ use crate::thresholds::AuditThresholds;
 use super::finding::AuditFinding;
 use super::{
     complexity_floor, constraint_smells, corpus, corpus_stats, deps_reconcile, discovery, duplication_clusters,
-    expression_filter, ifdef_density, mdl, named_smells, record_extraction, reflexion, scoring, strictness, taint,
-    vendor_filter, vuln_clones, PassChoice,
+    expression_filter, freshness, ifdef_density, mdl, named_smells, record_extraction, reflexion, scoring, strictness,
+    taint, vendor_filter, vuln_clones, PassChoice,
 };
 
 pub(super) struct PassCtx<'a> {
@@ -15,6 +15,8 @@ pub(super) struct PassCtx<'a> {
     pub typed_files: &'a [(PathBuf, Language)],
     pub root: &'a Path,
     pub thresholds: &'a AuditThresholds,
+    pub online: bool,
+    pub cache_dir: &'a Path,
 }
 
 type PassRunner = fn(&PassCtx) -> Vec<AuditFinding>;
@@ -30,6 +32,9 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
         found.extend(constraint_smells::run_from(ctx.root, ctx.thresholds));
         found.extend(reflexion::run_from(ctx.shared, ctx.root, ctx.thresholds));
         found.extend(strictness::run_from(ctx.shared, ctx.root, ctx.thresholds));
+        if ctx.online {
+            found.extend(freshness::run_from(ctx.root, ctx.cache_dir, ctx.online, &ctx.thresholds.freshness));
+        }
         found
     }),
     (PassChoice::Taint, |ctx| taint::run_from(ctx.shared, ctx.thresholds)),

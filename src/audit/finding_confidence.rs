@@ -59,7 +59,8 @@ confidence_lookup!(deps_confidence {
     ConstraintSmell,
     UndeclaredModuleDependency,
     UnusedDeclaredDependency,
-    StrictnessDebt
+    StrictnessDebt,
+    OutdatedDependency
 });
 
 confidence_lookup!(ifdef_confidence { IfdefDensity });

@@ -27,6 +27,7 @@ pub mod naturalness;
 pub mod output;
 pub mod parse;
 pub mod refmine;
+pub mod registry;
 pub mod session_clones;
 pub mod smells;
 pub mod test_detection;

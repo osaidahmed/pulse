@@ -120,6 +120,18 @@ pub struct BloatedDepEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct OutdatedDepEvidence {
+    pub manifest: PathBuf,
+    pub line: u32,
+    pub name: String,
+    pub current_version: String,
+    pub latest_version: String,
+    pub missed_releases: u32,
+    pub abandoned: bool,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct PhantomDepEvidence {
     pub file: PathBuf,
     pub line: u32,

@@ -2,14 +2,15 @@ use std::fmt::Write;
 use std::path::Path;
 
 use super::finding::{
-    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, ImportConfidence, PhantomDepEvidence,
-    UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
+    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, ImportConfidence, OutdatedDepEvidence,
+    PhantomDepEvidence, UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
 };
 use super::output_helpers::{confidence_str, display_path};
 
 pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, action: &'static str) -> bool {
     match &f.kind {
         AuditKind::BloatedDependency(e) => write_bloated(out, e, root, action),
+        AuditKind::OutdatedDependency(e) => write_outdated(out, e, root, action),
         AuditKind::PhantomDependency(e) => write_phantom(out, e, root, action),
         AuditKind::ConstraintSmell(e) => write_constraint(out, e, root, action),
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
@@ -51,6 +52,17 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "line": e.line,
             "name": e.name,
             "constraint": e.constraint,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::OutdatedDependency(e) => Some(serde_json::json!({
+            "kind": "OutdatedDependency",
+            "manifest": display_path(&e.manifest, root),
+            "line": e.line,
+            "name": e.name,
+            "current_version": e.current_version,
+            "latest_version": e.latest_version,
+            "missed_releases": e.missed_releases,
+            "abandoned": e.abandoned,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::PhantomDependency(e) => Some(serde_json::json!({
@@ -117,6 +129,22 @@ fn write_bloated(out: &mut String, e: &BloatedDepEvidence, root: Option<&Path>, 
         let _ = writeln!(out, "  constraint:    {}", e.constraint);
     }
     let _ = writeln!(out, "  usage:         no analyzed source file imports or references it");
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+    let _ = writeln!(out);
+}
+
+fn write_outdated(out: &mut String, e: &OutdatedDepEvidence, root: Option<&Path>, action: &'static str) {
+    let _ = writeln!(out, "audit: outdated dependency — {}", e.name);
+    let _ = writeln!(out, "  declared at:   {}:{}", display_path(&e.manifest, root), e.line);
+    let _ = writeln!(out, "  version:       {} (latest {})", e.current_version, e.latest_version);
+    if e.abandoned {
+        let _ = writeln!(out, "  status:        abandoned — no recent release upstream");
+    } else {
+        let _ = writeln!(out, "  behind:        {} newer releases published", e.missed_releases);
+    }
     let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");

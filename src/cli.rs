@@ -83,6 +83,10 @@ pub struct AuditArgs {
     /// Surface framework-convention and uncategorized findings (hidden by default).
     #[arg(long = "show-noise")]
     pub show_noise: bool,
+
+    /// Query deps.dev for dependency freshness and known vulnerabilities (opt-in network, cached).
+    #[arg(long)]
+    pub online: bool,
 }
 
 #[derive(clap::Args, Debug)]

@@ -36,13 +36,14 @@ pub enum AuditKind {
     UnusedDeclaredDependency(UnusedDeclaredDepEvidence),
     StrictnessDebt(StrictnessEvidence),
     IfdefDensity(IfdefDensityEvidence),
+    OutdatedDependency(OutdatedDepEvidence),
 }
 
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
     HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence,
-    NaturalnessEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence, UndeclaredModuleDepEvidence,
-    UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
+    NaturalnessEvidence, OutdatedDepEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence,
+    UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -329,7 +330,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 28] = [
+const VARIANT_TABLE: [VariantInfo; 29] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -352,6 +353,14 @@ const VARIANT_TABLE: [VariantInfo; 28] = [
         slug: "strictness_debt",
         action: "enable strict type-checking and replace the `any` annotations with precise types",
         label: "Type strictness debt",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::OutdatedDependency(_)),
+        pass: "deps",
+        slug: "outdated_dependency",
+        action: "update to a current release, or replace the dependency if it is abandoned",
+        label: "Outdated dependency",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {
