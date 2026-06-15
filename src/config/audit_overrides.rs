@@ -33,6 +33,14 @@ pub struct NaturalnessConfig {
 pub struct NamedSmellsConfig {
     #[serde(default)]
     pub god_class: GodClassConfig,
+    #[serde(default)]
+    pub refused_bequest: RefusedBequestConfig,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct RefusedBequestConfig {
+    pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]

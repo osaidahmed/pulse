@@ -51,6 +51,7 @@ fn refused_bequest_finding_routes_named_confidence() {
 
     let mut audit_t = t().audit;
     let rb = &mut audit_t.named_smells.refused_bequest;
+    rb.enabled = true;
     rb.min_parent_methods = 2;
     rb.max_override_ratio = 0.9;
 
@@ -61,6 +62,12 @@ fn refused_bequest_finding_routes_named_confidence() {
     let AuditKind::RefusedBequest(e) = &rb_found.unwrap().kind else { unreachable!() };
     assert_eq!(e.subclass_name, "Child");
     assert_eq!(e.parent_name, "Base");
+
+    let default_findings = run_named(dir.path(), &t().audit);
+    assert!(
+        !default_findings.iter().any(|f| matches!(f.kind, AuditKind::RefusedBequest(_))),
+        "refused bequest is opt-in: the default pass must not emit it"
+    );
 }
 
 #[test]

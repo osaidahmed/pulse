@@ -1,12 +1,12 @@
 use crate::parse::Language;
 use crate::thresholds::{
     AuditThresholds, CloneClusterThresholds, GodClassThresholds, NamedSmellThresholds, NaturalnessThresholds,
-    PackageMetricsThresholds, TaintThresholds, Thresholds,
+    PackageMetricsThresholds, RefusedBequestThresholds, TaintThresholds, Thresholds,
 };
 
 use super::{
     CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, GodClassConfig, NamedSmellsConfig,
-    NaturalnessConfig, PackageMetricsConfig, PulseConfig, TaintConfig,
+    NaturalnessConfig, PackageMetricsConfig, PulseConfig, RefusedBequestConfig, TaintConfig,
 };
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -93,7 +93,15 @@ fn resolve_audit(base: &AuditThresholds, o: &ConfigThresholds) -> AuditThreshold
 }
 
 fn resolve_named_smells(o: &NamedSmellsConfig, base: &NamedSmellThresholds) -> NamedSmellThresholds {
-    NamedSmellThresholds { god_class: resolve_god_class(&o.god_class, &base.god_class), ..*base }
+    NamedSmellThresholds {
+        god_class: resolve_god_class(&o.god_class, &base.god_class),
+        refused_bequest: resolve_refused_bequest(o.refused_bequest, &base.refused_bequest),
+        ..*base
+    }
+}
+
+fn resolve_refused_bequest(o: RefusedBequestConfig, base: &RefusedBequestThresholds) -> RefusedBequestThresholds {
+    RefusedBequestThresholds { enabled: o.enabled.unwrap_or(base.enabled), ..*base }
 }
 
 fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresholds) -> PackageMetricsThresholds {

@@ -14,7 +14,8 @@ pub use crate::config_history::{
 mod audit_overrides;
 mod resolve;
 pub use audit_overrides::{
-    CloneClusterConfig, GodClassConfig, NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig, TaintConfig,
+    CloneClusterConfig, GodClassConfig, NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig,
+    RefusedBequestConfig, TaintConfig,
 };
 pub use resolve::{resolve_base_thresholds, resolve_thresholds};
 

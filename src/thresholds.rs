@@ -196,6 +196,7 @@ pub struct ParallelInheritanceThresholds {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RefusedBequestThresholds {
+    pub enabled: bool,
     pub max_override_ratio: f64,
     pub min_parent_methods: u32,
 }
@@ -317,7 +318,7 @@ impl ParallelInheritanceThresholds {
 }
 
 impl RefusedBequestThresholds {
-    pub const DEFAULTS: Self = Self { max_override_ratio: 0.3, min_parent_methods: 3 };
+    pub const DEFAULTS: Self = Self { enabled: false, max_override_ratio: 0.3, min_parent_methods: 3 };
 }
 
 impl NamedSmellThresholds {

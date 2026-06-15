@@ -29,6 +29,22 @@ fn minimal_threshold_override() {
 }
 
 #[test]
+fn refused_bequest_is_opt_in_via_config() {
+    let default_rb = t().audit.named_smells.refused_bequest;
+    assert!(!default_rb.enabled, "refused bequest is off by default");
+    let cfg: PulseConfig = toml::from_str(
+        r"
+        [thresholds.named_smells.refused_bequest]
+        enabled = true
+        ",
+    )
+    .unwrap();
+    let rb = config::resolve_base_thresholds(Some(&cfg)).audit.named_smells.refused_bequest;
+    assert!(rb.enabled, "config opts refused bequest back on");
+    assert_eq!(rb.min_parent_methods, default_rb.min_parent_methods, "other fields keep defaults");
+}
+
+#[test]
 fn package_metrics_thresholds_are_overridable() {
     let cfg: PulseConfig = toml::from_str(
         r"
