@@ -32,7 +32,7 @@ struct Witness {
     target: String,
 }
 
-pub fn run_from(corpus: &Corpus, root: &Path, _thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let meta = buildmeta::discover(root);
     let comps = components(&meta);
     if comps.len() < 2 {
@@ -43,7 +43,16 @@ pub fn run_from(corpus: &Corpus, root: &Path, _thresholds: &AuditThresholds) -> 
     let mut findings = divergence_findings(&comps, &declared, &actual);
     findings.extend(absence_findings(&comps, &declared, &actual, corpus));
     findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
+    findings.truncate(thresholds.reflexion_max_findings as usize);
     findings
+}
+
+fn edge_confidence(eco: Ecosystem) -> ImportConfidence {
+    if eco == Ecosystem::Npm {
+        ImportConfidence::Low
+    } else {
+        ImportConfidence::Medium
+    }
 }
 
 pub fn workspace_internal_names(meta: &BuildMeta) -> HashSet<String> {
@@ -86,7 +95,8 @@ fn components(meta: &BuildMeta) -> Vec<Component> {
 
 fn push_component(comps: &mut Vec<Component>, manifest: &Manifest, dir: &Path) {
     let Some(own) = manifest.deps.iter().find(|d| d.own) else { return };
-    if comps.iter().any(|c| c.dir == dir) {
+    let name = normalize(&own.name);
+    if comps.iter().any(|c| c.dir == dir || normalize(&c.name) == name) {
         return;
     }
     comps.push(Component {
@@ -209,7 +219,7 @@ fn divergence_findings(
                     file: w.file.clone(),
                     line: w.line,
                     import_target: w.target.clone(),
-                    confidence: ImportConfidence::Medium,
+                    confidence: edge_confidence(comps[i].ecosystem),
                 }),
             )
         })
@@ -234,7 +244,7 @@ fn absence_findings(
                     line: edge.line,
                     from_component: comps[i].name.clone(),
                     to_component: comps[j].name.clone(),
-                    confidence: ImportConfidence::Medium,
+                    confidence: edge_confidence(comps[i].ecosystem),
                 }),
             )
         })

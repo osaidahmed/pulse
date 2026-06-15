@@ -1,4 +1,4 @@
-use pulse::audit::finding::{AuditFinding, AuditKind};
+use pulse::audit::finding::{AuditFinding, AuditKind, ImportConfidence};
 use pulse::audit::{self, AuditOpts, PassChoice};
 use pulse::config::AuditSuppression;
 use std::path::Path;
@@ -244,6 +244,46 @@ fn npm_workspace_internal_deps_are_not_reported_as_bloated() {
     let dir = npm_workspace();
     let names = bloated_names(&run_deps(dir.path()));
     assert!(names.is_empty(), "{names:?}");
+}
+
+fn undeclared_confidences(findings: &[AuditFinding]) -> Vec<ImportConfidence> {
+    findings
+        .iter()
+        .filter_map(|f| match &f.kind {
+            AuditKind::UndeclaredModuleDependency(e) => Some(e.confidence),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn duplicate_package_names_do_not_self_reference() {
+    let dir = workspace(&[
+        ("package.json", "{\"private\":true,\"workspaces\":[\"packages/a\",\"packages/b\"]}"),
+        ("packages/a/package.json", "{\"name\":\"@org/dup\"}"),
+        ("packages/b/package.json", "{\"name\":\"@org/dup\"}"),
+        ("packages/a/index.ts", "import { x } from \"@org/dup\";\nexport const y = x;\n"),
+        ("packages/b/index.ts", "export const x = 1;\n"),
+    ]);
+    let findings = run_deps(dir.path());
+    assert!(
+        !undeclared_pairs(&findings).iter().any(|(from, to)| from == to),
+        "duplicate package names must not produce a self-referential reflexion edge"
+    );
+}
+
+#[test]
+fn npm_reflexion_findings_are_low_confidence() {
+    let confs = undeclared_confidences(&run_deps(npm_workspace().path()));
+    assert!(!confs.is_empty(), "the npm workspace fixture produces an undeclared finding");
+    assert!(confs.iter().all(|c| *c == ImportConfidence::Low), "npm imports resolve via hoisting → Low confidence");
+}
+
+#[test]
+fn cargo_reflexion_findings_are_medium_confidence() {
+    let confs = undeclared_confidences(&run_deps(canonical_workspace().path()));
+    assert!(!confs.is_empty());
+    assert!(confs.iter().all(|c| *c == ImportConfidence::Medium), "cargo requires declaration → Medium confidence");
 }
 
 #[test]
