@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 mod cargo;
+mod compdb;
 mod csproj;
 pub mod declared;
 mod gemfile;
@@ -52,10 +53,23 @@ pub struct Lockfile {
     pub resolved: Vec<(String, String)>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CompDbEntry {
+    pub file: PathBuf,
+    pub defines: Vec<String>,
+    pub includes: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompDb {
+    pub entries: Vec<CompDbEntry>,
+}
+
 #[derive(Debug, Default)]
 pub struct BuildMeta {
     pub manifests: Vec<Manifest>,
     pub lockfiles: Vec<Lockfile>,
+    pub compdb: Option<CompDb>,
 }
 
 impl BuildMeta {
@@ -98,7 +112,19 @@ pub fn discover(root: &Path) -> BuildMeta {
             collect_dir(&dir, &mut meta);
         }
     }
+    meta.compdb = compile_db(root);
     meta
+}
+
+pub fn compile_db(root: &Path) -> Option<CompDb> {
+    for cand in [root.join("compile_commands.json"), root.join("build").join("compile_commands.json")] {
+        if let Some(src) = read_capped(&cand) {
+            if let Some(db) = compdb::parse(&src) {
+                return Some(db);
+            }
+        }
+    }
+    None
 }
 
 fn collect_dir(dir: &Path, meta: &mut BuildMeta) {

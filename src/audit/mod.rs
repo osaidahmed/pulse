@@ -19,6 +19,7 @@ pub mod corpus_stats;
 pub mod coverage;
 pub mod cycle_shapes;
 pub mod cycles;
+pub mod dead_variability;
 pub mod definitions;
 pub mod deps_reconcile;
 pub mod detector_divergent_change;
@@ -121,6 +122,7 @@ pub enum PassChoice {
     Naturalness,
     VulnClones,
     IfdefDensity,
+    DeadVariability,
     All,
 }
 

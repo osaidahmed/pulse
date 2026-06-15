@@ -36,13 +36,14 @@ pub enum AuditKind {
     UnusedDeclaredDependency(UnusedDeclaredDepEvidence),
     StrictnessDebt(StrictnessEvidence),
     IfdefDensity(IfdefDensityEvidence),
+    DeadConditionalBranch(DeadBranchEvidence),
 }
 
 pub use super::finding_evidence::{
-    BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
-    HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence,
-    NaturalnessEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence, UndeclaredModuleDepEvidence,
-    UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
+    BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, DeadBranchEvidence,
+    GodComponentEvidence, HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence,
+    MoveFileEvidence, NaturalnessEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence,
+    UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -329,7 +330,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 28] = [
+const VARIANT_TABLE: [VariantInfo; 29] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -344,6 +345,14 @@ const VARIANT_TABLE: [VariantInfo; 28] = [
         slug: "ifdef_density",
         action: "reduce conditional-compilation branching — extract platform variants behind a thin interface",
         label: "Conditional-compilation density",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::DeadConditionalBranch(_)),
+        pass: "dead-variability",
+        slug: "dead_conditional_branch",
+        action: "remove this branch — the build's configured macros make it unreachable in this configuration",
+        label: "Dead conditional branch",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {

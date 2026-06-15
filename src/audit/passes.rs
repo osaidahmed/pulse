@@ -5,9 +5,9 @@ use crate::thresholds::AuditThresholds;
 
 use super::finding::AuditFinding;
 use super::{
-    complexity_floor, constraint_smells, corpus, corpus_stats, deps_reconcile, discovery, duplication_clusters,
-    expression_filter, ifdef_density, mdl, named_smells, record_extraction, reflexion, scoring, strictness, taint,
-    vendor_filter, vuln_clones, PassChoice,
+    complexity_floor, constraint_smells, corpus, corpus_stats, dead_variability, deps_reconcile, discovery,
+    duplication_clusters, expression_filter, ifdef_density, mdl, named_smells, record_extraction, reflexion, scoring,
+    strictness, taint, vendor_filter, vuln_clones, PassChoice,
 };
 
 pub(super) struct PassCtx<'a> {
@@ -37,6 +37,7 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
     (PassChoice::Naturalness, |ctx| crate::naturalness::run_from(ctx.shared, ctx.thresholds)),
     (PassChoice::VulnClones, |ctx| vuln_clones::run_from(ctx.shared, ctx.thresholds)),
     (PassChoice::IfdefDensity, |ctx| ifdef_density::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::DeadVariability, |ctx| dead_variability::run_from(ctx.shared, ctx.root, ctx.thresholds)),
 ];
 
 pub(super) fn run_selected_passes(findings: &mut Vec<AuditFinding>, passes: &[PassChoice], ctx: &PassCtx) {

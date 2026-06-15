@@ -149,3 +149,19 @@ fn empty_root_yields_empty_metadata() {
     let meta = discover(dir.path());
     assert!(meta.manifests.is_empty() && meta.lockfiles.is_empty());
 }
+
+#[test]
+fn compile_db_extracts_defines_and_includes_from_both_forms() {
+    let dir = tempfile::tempdir().unwrap();
+    let ccj = "[\
+      {\"directory\":\".\",\"command\":\"cc -DDEBUG -DLEVEL=2 -I/usr/inc -c a.c\",\"file\":\"/p/a.c\"},\
+      {\"directory\":\".\",\"arguments\":[\"cc\",\"-D\",\"SEPARATED\",\"-I\",\"/sep/inc\",\"-c\",\"b.c\"],\"file\":\"/p/b.c\"}]";
+    std::fs::write(dir.path().join("compile_commands.json"), ccj).unwrap();
+    let db = pulse::buildmeta::compile_db(dir.path()).expect("compile_commands.json parsed");
+    assert_eq!(db.entries.len(), 2);
+    assert!(db.entries[0].defines.contains(&"DEBUG".to_string()), "{:?}", db.entries[0].defines);
+    assert!(db.entries[0].defines.contains(&"LEVEL".to_string()), "=value is stripped to the macro name");
+    assert!(db.entries[0].includes.contains(&PathBuf::from("/usr/inc")));
+    assert!(db.entries[1].defines.contains(&"SEPARATED".to_string()), "separated `-D NAME` form");
+    assert!(db.entries[1].includes.contains(&PathBuf::from("/sep/inc")), "separated `-I path` form");
+}

@@ -62,7 +62,7 @@ confidence_lookup!(deps_confidence {
     StrictnessDebt
 });
 
-confidence_lookup!(ifdef_confidence { IfdefDensity });
+confidence_lookup!(ifdef_confidence { IfdefDensity, DeadConditionalBranch });
 
 fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
     let category = f.pattern_category.unwrap_or(PatternCategory::Other);

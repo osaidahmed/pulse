@@ -154,6 +154,14 @@ pub struct IfdefDensityEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct DeadBranchEvidence {
+    pub file: PathBuf,
+    pub line: u32,
+    pub macro_name: String,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UndeclaredModuleDepEvidence {
     pub from_component: String,
     pub to_component: String,

@@ -14,37 +14,43 @@ pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, a
         AuditKind::ConstraintSmell(e) => write_constraint(out, e, root, action),
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
         AuditKind::UnusedDeclaredDependency(e) => write_unused(out, e, root, action),
-        AuditKind::StrictnessDebt(e) => write_metric_block(
-            out,
-            &MetricBlock {
-                title: "type strictness debt",
-                file: &e.file,
-                line: e.line,
-                loc_label: "first `any`:   ",
-                summary: format!(
-                    "any count:     {} explicit `any` annotations under a non-strict tsconfig",
-                    e.any_count
-                ),
-                confidence: e.confidence,
-            },
-            root,
-            action,
-        ),
-        AuditKind::IfdefDensity(e) => write_metric_block(
-            out,
-            &MetricBlock {
-                title: "conditional-compilation density",
-                file: &e.file,
-                line: e.line,
-                loc_label: "first `#if`:    ",
-                summary: format!("conditionals:  {} preprocessor conditional blocks", e.conditional_count),
-                confidence: e.confidence,
-            },
-            root,
-            action,
-        ),
-        _ => return false,
+        _ => return dispatch_metric_block(out, &f.kind, root, action),
     }
+    true
+}
+
+fn dispatch_metric_block(out: &mut String, kind: &AuditKind, root: Option<&Path>, action: &'static str) -> bool {
+    let block = match kind {
+        AuditKind::StrictnessDebt(e) => MetricBlock {
+            title: "type strictness debt",
+            file: &e.file,
+            line: e.line,
+            loc_label: "first `any`:   ",
+            summary: format!("any count:     {} explicit `any` annotations under a non-strict tsconfig", e.any_count),
+            confidence: e.confidence,
+        },
+        AuditKind::IfdefDensity(e) => MetricBlock {
+            title: "conditional-compilation density",
+            file: &e.file,
+            line: e.line,
+            loc_label: "first `#if`:    ",
+            summary: format!("conditionals:  {} preprocessor conditional blocks", e.conditional_count),
+            confidence: e.confidence,
+        },
+        AuditKind::DeadConditionalBranch(e) => MetricBlock {
+            title: "dead conditional branch",
+            file: &e.file,
+            line: e.line,
+            loc_label: "branch at:     ",
+            summary: format!(
+                "`{}` is fixed by the build's -D configuration → this branch is unreachable",
+                e.macro_name
+            ),
+            confidence: e.confidence,
+        },
+        _ => return false,
+    };
+    write_metric_block(out, &block, root, action);
     true
 }
 
@@ -91,6 +97,12 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "to_component": e.to_component,
             "confidence": confidence_str(e.confidence),
         })),
+        _ => dispatch_metric_json(&f.kind, root),
+    }
+}
+
+fn dispatch_metric_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::Value> {
+    match kind {
         AuditKind::StrictnessDebt(e) => Some(serde_json::json!({
             "kind": "StrictnessDebt",
             "file": display_path(&e.file, root),
@@ -103,6 +115,13 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "file": display_path(&e.file, root),
             "line": e.line,
             "conditional_count": e.conditional_count,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::DeadConditionalBranch(e) => Some(serde_json::json!({
+            "kind": "DeadConditionalBranch",
+            "file": display_path(&e.file, root),
+            "line": e.line,
+            "macro": e.macro_name,
             "confidence": confidence_str(e.confidence),
         })),
         _ => None,
