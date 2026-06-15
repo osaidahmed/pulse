@@ -184,6 +184,13 @@ fn use_before_def_flagged() {
 }
 
 #[test]
+fn swift_conditional_compilation_branches_are_not_dead_stores() {
+    let src = "func f() -> String {\n    #if os(macOS)\n    let v = \"mac\"\n    #else\n    let v = \"other\"\n    #endif\n    return v\n}\n";
+    let f = smells_of(src, Language::Swift, "swift");
+    assert!(!has_finding(&f, Smell::DeadStore), "compile-time-exclusive branches are not sequential overwrites: {f:?}");
+}
+
+#[test]
 fn rust_let_else_variant_binding_is_not_a_dead_store() {
     let src = "fn f(o: Option<i32>) -> i32 {\n    let Some(v) = o else { return 0; };\n    v\n}\n";
     let f = smells_of(src, Language::Rust, "rs");

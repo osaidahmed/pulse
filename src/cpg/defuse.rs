@@ -185,10 +185,9 @@ fn handle_binding(node: Node, source: &str, block: u32, lang: &CfgLang, out: &mu
     collect(r, source, block, lang, out);
     let aug = lang.aug_kinds.contains(&node.kind())
         || node.child_by_field_name("operator").is_some_and(|op| node_text(op, source) != "=");
-    let cfg_gated = node
-        .prev_named_sibling()
-        .filter(|p| p.kind() == "attribute_item")
-        .is_some_and(|p| node_text(p, source).contains("cfg"));
+    let cfg_gated = node.prev_named_sibling().is_some_and(|p| {
+        p.kind() == "directive" || (p.kind() == "attribute_item" && node_text(p, source).contains("cfg"))
+    });
     let def_mark = DEF_MARKS[usize::from(DECL_KINDS.contains(&node.kind()) && !cfg_gated)];
     let mut targets: Vec<Node> = Vec::new();
     collect_binding_targets(node, &mut targets);
