@@ -58,6 +58,7 @@ fn workspace_manifest_name(eco: Ecosystem) -> Option<&'static str> {
     match eco {
         Ecosystem::Cargo => Some("Cargo.toml"),
         Ecosystem::Npm => Some("package.json"),
+        Ecosystem::Go => Some("go.mod"),
         _ => None,
     }
 }
@@ -106,6 +107,32 @@ fn edge_target(index: &HashMap<String, usize>, name: &str, from: usize) -> Optio
     (j != from).then_some(j)
 }
 
+fn resolve_target(
+    comps: &[Component],
+    index: &HashMap<String, usize>,
+    eco: Ecosystem,
+    name: &str,
+    from: usize,
+) -> Option<usize> {
+    if eco == Ecosystem::Go {
+        return go_prefix_target(comps, name, from);
+    }
+    edge_target(index, name, from)
+}
+
+fn go_prefix_target(comps: &[Component], target: &str, from: usize) -> Option<usize> {
+    let target = normalize(target);
+    comps
+        .iter()
+        .enumerate()
+        .filter(|&(j, c)| {
+            let cn = normalize(&c.name);
+            j != from && (target == cn || target.starts_with(&format!("{cn}/")))
+        })
+        .max_by_key(|(_, c)| c.name.len())
+        .map(|(j, _)| j)
+}
+
 fn merge_edges<V>(pairs: Vec<((usize, usize), V)>, merge: fn(&mut V, &V)) -> HashMap<(usize, usize), V> {
     let mut edges: HashMap<(usize, usize), V> = HashMap::new();
     for (pair, value) in pairs {
@@ -149,7 +176,7 @@ fn actual_edges(comps: &[Component], corpus: &Corpus) -> HashMap<(usize, usize),
         let Some((source, tree)) = file.parsed() else { continue };
         for import in extract_imports(tree, source, file.lang) {
             let Some(root_name) = external_root(eco, &import.target) else { continue };
-            let Some(j) = edge_target(&index, &root_name, i) else { continue };
+            let Some(j) = resolve_target(comps, &index, eco, &root_name, i) else { continue };
             pairs.push(((i, j), Witness { file: file.path.clone(), line: import.line, target: import.target }));
         }
     }

@@ -17,7 +17,8 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
                 line: lineno,
                 own: true,
             });
-        } else if let Some(dep) = require_spec(line, &mut in_require_block).and_then(|s| module_dep(s, lineno)) {
+        } else if let Some(dep) = block_spec(line, "require", &mut in_require_block).and_then(|s| module_dep(s, lineno))
+        {
             deps.push(dep);
         }
     }
@@ -29,8 +30,8 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
     })
 }
 
-fn require_spec<'a>(line: &'a str, in_block: &mut bool) -> Option<&'a str> {
-    if line.starts_with("require (") {
+fn block_spec<'a>(line: &'a str, keyword: &str, in_block: &mut bool) -> Option<&'a str> {
+    if line.starts_with(&format!("{keyword} (")) {
         *in_block = true;
         return None;
     }
@@ -41,7 +42,7 @@ fn require_spec<'a>(line: &'a str, in_block: &mut bool) -> Option<&'a str> {
         }
         return Some(line);
     }
-    line.strip_prefix("require ").map(str::trim)
+    line.strip_prefix(&format!("{keyword} ")).map(str::trim)
 }
 
 fn module_dep(spec: &str, line: u32) -> Option<DeclaredDep> {
@@ -52,6 +53,28 @@ fn module_dep(spec: &str, line: u32) -> Option<DeclaredDep> {
     }
     let constraint = parts.next().unwrap_or_default().to_string();
     Some(DeclaredDep { name: name.to_string(), constraint, scope: DepScope::Deployed, line, own: false })
+}
+
+pub(super) fn parse_workspace(path: &Path, source: &str) -> Option<Manifest> {
+    let mut members = Vec::new();
+    let mut in_use_block = false;
+    for raw in source.lines() {
+        let line = raw.split("//").next().unwrap_or(raw).trim();
+        let Some(dir) = block_spec(line, "use", &mut in_use_block).map(member_path) else { continue };
+        if !dir.as_os_str().is_empty() && dir != Path::new(".") {
+            members.push(dir);
+        }
+    }
+    (!members.is_empty()).then(|| Manifest {
+        path: path.to_path_buf(),
+        ecosystem: Ecosystem::Go,
+        deps: Vec::new(),
+        workspace_members: members,
+    })
+}
+
+fn member_path(dir: &str) -> std::path::PathBuf {
+    std::path::PathBuf::from(dir.trim_start_matches("./").trim_end_matches('/'))
 }
 
 pub(super) fn parse_lockfile(path: &Path, source: &str) -> Option<Lockfile> {

@@ -254,3 +254,50 @@ fn npm_declared_and_imported_package_edge_is_silent() {
     assert!(!undeclared_pairs(&findings).contains(&a_to_b));
     assert!(!unused_pairs(&findings).contains(&a_to_b));
 }
+
+const GO_WORK: &str = "go 1.21\n\nuse (\n\t./mod-a\n\t./mod-b\n\t./mod-c\n)\n";
+const GO_A: &str = "module example.com/a\n\ngo 1.21\n\nrequire (\n\texample.com/b v0.0.0\n\texample.com/c v0.0.0\n)\n";
+const GO_B: &str = "module example.com/b\n\ngo 1.21\n";
+const GO_C: &str = "module example.com/c\n\ngo 1.21\n";
+
+fn go_workspace() -> tempfile::TempDir {
+    workspace(&[
+        ("go.work", GO_WORK),
+        ("mod-a/go.mod", GO_A),
+        ("mod-b/go.mod", GO_B),
+        ("mod-c/go.mod", GO_C),
+        ("mod-a/main.go", "package a\n\nimport \"example.com/b/sub\"\n\nfunc Run() {}\n"),
+        ("mod-b/main.go", "package b\n\nimport \"example.com/a\"\n\nfunc Helper() {}\n"),
+        ("mod-c/main.go", "package c\n\nfunc Three() {}\n"),
+    ])
+}
+
+#[test]
+fn go_undeclared_cross_module_import_is_flagged() {
+    let dir = go_workspace();
+    let pairs = undeclared_pairs(&run_deps(dir.path()));
+    assert_eq!(pairs, vec![("example.com/b".to_string(), "example.com/a".to_string())], "{pairs:?}");
+}
+
+#[test]
+fn go_unused_declared_module_dep_is_flagged() {
+    let dir = go_workspace();
+    let pairs = unused_pairs(&run_deps(dir.path()));
+    assert_eq!(pairs, vec![("example.com/a".to_string(), "example.com/c".to_string())], "{pairs:?}");
+}
+
+#[test]
+fn go_subpackage_import_resolves_to_module_by_prefix() {
+    let dir = go_workspace();
+    let findings = run_deps(dir.path());
+    let a_to_b = ("example.com/a".to_string(), "example.com/b".to_string());
+    assert!(!undeclared_pairs(&findings).contains(&a_to_b), "declared+imported edge stays silent");
+    assert!(!unused_pairs(&findings).contains(&a_to_b));
+}
+
+#[test]
+fn go_workspace_internal_deps_are_not_reported_as_bloated() {
+    let dir = go_workspace();
+    let names = bloated_names(&run_deps(dir.path()));
+    assert!(names.is_empty(), "{names:?}");
+}

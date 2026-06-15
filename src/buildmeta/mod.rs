@@ -75,6 +75,7 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("pyproject.toml", python::parse_pyproject),
     ("requirements.txt", python::parse_requirements),
     ("go.mod", golang::parse_manifest),
+    ("go.work", golang::parse_workspace),
     ("Gemfile", gemfile::parse_manifest),
     ("Package.swift", swiftpm::parse_manifest),
 ];
