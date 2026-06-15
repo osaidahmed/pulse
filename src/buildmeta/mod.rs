@@ -8,6 +8,7 @@ mod golang;
 mod npm;
 mod python;
 pub mod stdlib;
+mod swiftpm;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {
@@ -17,6 +18,7 @@ pub enum Ecosystem {
     Go,
     RubyGems,
     NuGet,
+    Swift,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +76,7 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("requirements.txt", python::parse_requirements),
     ("go.mod", golang::parse_manifest),
     ("Gemfile", gemfile::parse_manifest),
+    ("Package.swift", swiftpm::parse_manifest),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
@@ -81,6 +84,7 @@ const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
     ("package-lock.json", npm::parse_lockfile),
     ("go.sum", golang::parse_lockfile),
     ("Gemfile.lock", gemfile::parse_lockfile),
+    ("Package.resolved", swiftpm::parse_lockfile),
 ];
 
 pub fn discover(root: &Path) -> BuildMeta {

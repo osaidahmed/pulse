@@ -118,12 +118,17 @@ fn is_referenced_in_source(name: &str, corpus: &Corpus) -> bool {
     corpus
         .files
         .iter()
+        .filter(|f| f.path.file_name().and_then(|n| n.to_str()) != Some("Package.swift"))
         .filter_map(|f| f.source.as_deref())
         .any(|source| buildmeta::line_of(source, name) != 0 || buildmeta::line_of(source, &underscore) != 0)
 }
 
 fn bloated(manifest: PathBuf, line: u32, dep: &buildmeta::DeclaredDep, eco: Ecosystem) -> AuditFinding {
-    let confidence = if eco == Ecosystem::NuGet { ImportConfidence::Low } else { ImportConfidence::Medium };
+    let confidence = if matches!(eco, Ecosystem::NuGet | Ecosystem::Swift) {
+        ImportConfidence::Low
+    } else {
+        ImportConfidence::Medium
+    };
     wrap(
         dep.name.clone(),
         AuditKind::BloatedDependency(BloatedDepEvidence {

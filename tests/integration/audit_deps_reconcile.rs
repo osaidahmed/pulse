@@ -207,3 +207,13 @@ fn csharp_divergent_namespace_family_is_aliased() {
     let findings = run_deps(dir.path());
     assert!(bloated_names(&findings).is_empty(), "AWSSDK.* maps to the Amazon.* namespace: {findings:?}");
 }
+
+#[test]
+fn swift_unused_dependency_is_bloated() {
+    let manifest = "// swift-tools-version:5.9\nimport PackageDescription\nlet package = Package(\n    name: \"Demo\",\n    dependencies: [\n        .package(url: \"https://github.com/Alamofire/Alamofire.git\", from: \"5.8.0\"),\n        .package(url: \"https://github.com/acme/UnusedKit.git\", from: \"1.0.0\"),\n    ]\n)\n";
+    let dir = project(&[("Package.swift", manifest), ("Sources/Demo/main.swift", "import Alamofire\n\nfunc f() {}\n")]);
+    let findings = run_deps(dir.path());
+    let bloated = bloated_names(&findings);
+    assert!(bloated.contains(&"UnusedKit".to_string()), "an unused swift dependency is bloated: {bloated:?}");
+    assert!(!bloated.contains(&"Alamofire".to_string()), "an imported swift dependency is not bloated: {bloated:?}");
+}

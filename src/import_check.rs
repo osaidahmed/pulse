@@ -67,6 +67,7 @@ pub(crate) fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
         Language::Go => Some(Ecosystem::Go),
         Language::Ruby => Some(Ecosystem::RubyGems),
         Language::CSharp => Some(Ecosystem::NuGet),
+        Language::Swift => Some(Ecosystem::Swift),
         _ => None,
     }
 }
@@ -76,7 +77,7 @@ pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
         return None;
     }
     match eco {
-        Ecosystem::Pip => Some(target.split('.').next().unwrap_or(target).to_string()),
+        Ecosystem::Pip | Ecosystem::Swift => Some(target.split('.').next().unwrap_or(target).to_string()),
         Ecosystem::Npm => npm_root(target),
         Ecosystem::Cargo => Some(target.split("::").next().unwrap_or(target).trim_start_matches("r#").to_string()),
         Ecosystem::Go | Ecosystem::NuGet => Some(target.to_string()),

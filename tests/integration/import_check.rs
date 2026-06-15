@@ -222,3 +222,17 @@ fn csharp_blocking_hallucination_check_is_held() {
     let out = p.hook(&file);
     assert!(!flags_hallucination(&out), "blocking hallucinated-import is held for C# pending corpus validation: {out}");
 }
+
+#[test]
+fn swift_blocking_hallucination_check_is_held() {
+    let p = Project::new(
+        "Package.swift",
+        "// swift-tools-version:5.9\nimport PackageDescription\nlet package = Package(name: \"Demo\", dependencies: [.package(url: \"https://github.com/Alamofire/Alamofire.git\", from: \"5.8.0\")])\n",
+    );
+    let file = p.write("Sources/Demo/main.swift", "import TotallyFakeModule\nfunc f() {}\n");
+    let out = p.hook(&file);
+    assert!(
+        !flags_hallucination(&out),
+        "blocking hallucinated-import is held for Swift (product\u{2260}package mapping not sound): {out}"
+    );
+}

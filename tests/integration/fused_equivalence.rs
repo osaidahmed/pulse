@@ -124,6 +124,9 @@ fn collect_source_files(dir: &Path, out: &mut Vec<PathBuf>) {
     paths.sort();
     for path in paths {
         if path.is_dir() {
+            if path.file_name().and_then(|n| n.to_str()) == Some("buildmeta") {
+                continue;
+            }
             collect_source_files(&path, out);
         } else if parse::detect_language(&path).is_some() {
             out.push(path);

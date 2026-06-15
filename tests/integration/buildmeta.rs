@@ -126,6 +126,24 @@ fn declared_names_unions_manifests_and_lockfiles() {
 }
 
 #[test]
+fn swift_package_manifest_extracts_dependencies() {
+    let meta = discover(&meta_root("swift"));
+    assert_eq!(dep(&meta, "Alamofire").scope, DepScope::Deployed);
+    assert_eq!(dep(&meta, "Alamofire").constraint, "5.8.0");
+    assert_eq!(dep(&meta, "swift-log").name, "swift-log", "url-derived name strips .git");
+    assert_eq!(dep(&meta, "Renamed").name, "Renamed", "explicit name: wins over url");
+    assert!(meta.manifests.iter().flat_map(|m| &m.deps).all(|d| d.name != "LocalLib"), "path: deps are local, skipped");
+    assert!(dep(&meta, "Alamofire").line > 0, "manifest line resolved");
+}
+
+#[test]
+fn swift_package_resolved_lists_pinned_versions() {
+    let meta = discover(&meta_root("swift"));
+    let lock = meta.lockfiles.iter().find(|l| l.ecosystem == Ecosystem::Swift).expect("Package.resolved");
+    assert!(lock.resolved.contains(&("alamofire".to_string(), "5.8.1".to_string())), "{:?}", lock.resolved);
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

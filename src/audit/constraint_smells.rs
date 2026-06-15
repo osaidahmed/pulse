@@ -74,7 +74,7 @@ fn exact_pin(eco: Ecosystem, constraint: &str) -> bool {
         Ecosystem::Npm => !c.is_empty() && c.chars().next().is_some_and(|ch| ch.is_ascii_digit()),
         Ecosystem::Cargo => c.starts_with('='),
         Ecosystem::Pip => c.starts_with("=="),
-        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet => false,
+        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => false,
     }
 }
 
@@ -107,7 +107,7 @@ fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
         Ecosystem::Npm => c.chars().next().is_some_and(|ch| ch.is_ascii_digit()).then_some(c),
         Ecosystem::Cargo => c.strip_prefix('='),
         Ecosystem::Pip => c.strip_prefix("=="),
-        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet => None,
+        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => None,
     }
     .map(str::trim)
 }
