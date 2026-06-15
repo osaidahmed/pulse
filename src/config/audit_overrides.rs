@@ -55,5 +55,6 @@ pub struct PackageMetricsConfig {
     pub unstable_dep_strength: Option<f64>,
     pub hublike_imbalance_ratio: Option<f64>,
     pub god_component_loc_percentile: Option<f64>,
+    pub martin_min_coupling: Option<u32>,
     pub max_arch_findings_reported: Option<usize>,
 }

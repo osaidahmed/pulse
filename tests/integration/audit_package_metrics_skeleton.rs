@@ -99,11 +99,22 @@ fn cycle_confidence_inherits_minimum_member_confidence() {
 }
 
 #[test]
-fn distance_finding_emitted_for_unstable_concrete_module() {
-    let edges = [rust_edge("hub.rs", "a.rs"), rust_edge("hub.rs", "b.rs"), rust_edge("hub.rs", "c.rs")];
+fn distance_finding_emitted_for_stable_concrete_module() {
+    let edges = [rust_edge("dep1.rs", "core.rs"), rust_edge("dep2.rs", "core.rs"), rust_edge("dep3.rs", "core.rs")];
     let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
     let distance_count = findings.iter().filter(|f| matches!(f.kind, AuditKind::DistanceFromMainSequence(_))).count();
-    assert!(distance_count >= 1, "concrete unstable modules without abstractness should appear");
+    assert!(distance_count >= 1, "a depended-upon concrete module (zone of pain) appears once it clears min coupling");
+}
+
+#[test]
+fn distance_finding_suppressed_for_low_coupling_leaf() {
+    let edges = [rust_edge("only.rs", "leaf.rs")];
+    let findings = run_from_edges(&edges, high_concrete_profile, &t().audit);
+    let on_leaf = findings
+        .iter()
+        .filter(|f| matches!(&f.kind, AuditKind::DistanceFromMainSequence(m) if m.module == p("leaf.rs")))
+        .count();
+    assert_eq!(on_leaf, 0, "a leaf with total coupling 1 is below min coupling — D is meaningless there");
 }
 
 #[test]

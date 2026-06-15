@@ -125,6 +125,9 @@ fn martin_finding_for(
     if metrics.tier == MartinTier::Healthy {
         return None;
     }
+    if metrics.afferent + metrics.efferent < thresholds.package_metrics.martin_min_coupling {
+        return None;
+    }
     let module_path: PathBuf = path.to_path_buf();
     Some(AuditFinding {
         kind: AuditKind::DistanceFromMainSequence(metrics.clone()),

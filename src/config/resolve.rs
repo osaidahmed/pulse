@@ -107,6 +107,7 @@ fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresh
         unstable_dep_strength: o.unstable_dep_strength.unwrap_or(base.unstable_dep_strength),
         hublike_imbalance_ratio: o.hublike_imbalance_ratio.unwrap_or(base.hublike_imbalance_ratio),
         god_component_loc_percentile: o.god_component_loc_percentile.unwrap_or(base.god_component_loc_percentile),
+        martin_min_coupling: o.martin_min_coupling.unwrap_or(base.martin_min_coupling),
         pagerank: base.pagerank,
         community: base.community,
         max_arch_findings_reported: o.max_arch_findings_reported.unwrap_or(base.max_arch_findings_reported),
