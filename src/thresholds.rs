@@ -341,7 +341,7 @@ impl AuditThresholds {
         clone_cluster: CloneClusterThresholds::DEFAULTS,
         naturalness: NaturalnessThresholds::DEFAULTS,
         strictness: StrictnessThresholds::DEFAULTS,
-        ifdef_min_conditionals: 24,
+        ifdef_min_conditionals: 40,
         max_locations_per_finding: 10,
         cross_validate_history: false,
     };

@@ -71,6 +71,15 @@ fn cpp_conditionals_are_also_counted() {
 }
 
 #[test]
+fn objc_conditionals_are_also_counted() {
+    let min = t().audit.ifdef_min_conditionals as usize;
+    let dir = project(&[("src/view.m", &conditional_blocks(min + 1))]);
+    let found = densities(&run_ifdef(dir.path()));
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(found[0].0.ends_with("view.m"));
+}
+
+#[test]
 fn non_c_family_file_is_not_flagged() {
     let min = t().audit.ifdef_min_conditionals as usize;
     let dir = project(&[("src/lib.rs", &conditional_blocks(min + 8))]);
