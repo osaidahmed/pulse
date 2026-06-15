@@ -144,11 +144,23 @@ fn resolve_targets(
         }
     }
     let by_name = reg.lookup_by_name(&call.call.callee_name);
-    if by_name.is_empty() {
+    if by_name.is_empty() || distinct_target_classes(reg, by_name) > MAX_AMBIGUOUS_TARGET_CLASSES {
         return Vec::new();
     }
     let confidence = if by_name.len() == 1 { ImportConfidence::Medium } else { ImportConfidence::Low };
     by_name.iter().map(|i| (*i, confidence)).collect()
+}
+
+const MAX_AMBIGUOUS_TARGET_CLASSES: usize = 4;
+
+fn distinct_target_classes(reg: &MethodRegistry, idxs: &[MethodIndex]) -> usize {
+    let mut classes: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    for idx in idxs {
+        if let Some(class) = reg.get(*idx).and_then(|m| m.class.as_deref()) {
+            classes.insert(class);
+        }
+    }
+    classes.len()
 }
 
 fn effective_class(call: &LocatedCall, caller: &MethodIdentity) -> Option<String> {

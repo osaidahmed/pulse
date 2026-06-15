@@ -86,6 +86,50 @@ fn build_resolves_ambiguous_name_to_low_confidence() {
 }
 
 #[test]
+fn over_ambiguous_name_creates_no_edges() {
+    let mut defs: Vec<DefinitionRecord> =
+        (0..10).map(|i| def(&format!("c{i}.py"), Some(&format!("C{i}")), "get", 1)).collect();
+    let caller = def("call.py", Some("Caller"), "use", 1);
+    defs.push(caller);
+    let calls = vec![call_to(defs.last().unwrap(), "get", None)];
+    let graph = CallGraph::build(defs, calls);
+    let caller_idx = graph.registry.lookup_by_class_and_name("Caller", "use")[0];
+    assert_eq!(
+        graph.adjacency.outgoing(caller_idx).len(),
+        0,
+        "a name implemented in too many classes is unresolvable and must fabricate no coupling"
+    );
+}
+
+#[test]
+fn moderately_shared_name_still_resolves_without_a_hint() {
+    let mut defs: Vec<DefinitionRecord> =
+        (0..2).map(|i| def(&format!("c{i}.py"), Some(&format!("C{i}")), "render", 1)).collect();
+    let caller = def("call.py", Some("Caller"), "use", 1);
+    defs.push(caller);
+    let calls = vec![call_to(defs.last().unwrap(), "render", None)];
+    let graph = CallGraph::build(defs, calls);
+    let caller_idx = graph.registry.lookup_by_class_and_name("Caller", "use")[0];
+    assert_eq!(graph.adjacency.outgoing(caller_idx).len(), 2, "a name in few classes still resolves by name");
+}
+
+#[test]
+fn exact_receiver_hint_resolves_even_when_name_is_globally_ambiguous() {
+    let mut defs: Vec<DefinitionRecord> =
+        (0..10).map(|i| def(&format!("c{i}.py"), Some(&format!("C{i}")), "get", 1)).collect();
+    let caller = def("call.py", Some("Caller"), "use", 1);
+    defs.push(caller);
+    let calls = vec![call_to(defs.last().unwrap(), "get", Some("C3"))];
+    let graph = CallGraph::build(defs, calls);
+    let target = graph.registry.lookup_by_class_and_name("C3", "get")[0];
+    assert_eq!(
+        graph.adjacency.incoming(target).len(),
+        1,
+        "the ambiguity cap only gates name-fallback; a resolved receiver class is precise"
+    );
+}
+
+#[test]
 fn build_drops_calls_with_no_target() {
     let caller = def("a.py", None, "caller", 1);
     let calls = vec![call_to(&caller, "nonexistent", None)];
