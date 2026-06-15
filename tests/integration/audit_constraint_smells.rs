@@ -81,6 +81,33 @@ fn mixed_constraints_do_not_trip_the_pinning_smell() {
 }
 
 #[test]
+fn npm_dot_x_range_is_not_a_divergence() {
+    let dir = project(&[
+        ("package.json", r#"{"name": "demo", "dependencies": {"typescript": "5.8.x"}}"#),
+        (
+            "package-lock.json",
+            r#"{"lockfileVersion": 3, "packages": {"node_modules/typescript": {"version": "5.8.3"}}}"#,
+        ),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "`5.8.x` is a range, not an exact pin — 5.8.3 satisfies it: {problems:?}");
+}
+
+#[test]
+fn build_metadata_suffix_is_not_a_divergence() {
+    let dir = project(&[
+        (
+            "Cargo.toml",
+            "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nre_log = \"=0.34.0-alpha.1\"\n",
+        ),
+        ("Cargo.lock", "version = 3\n\n[[package]]\nname = \"re_log\"\nversion = \"0.34.0-alpha.1+dev\"\n"),
+        ("src-lib.rs", ""),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "semver build metadata (+dev) is not a version divergence: {problems:?}");
+}
+
+#[test]
 fn pin_and_lockfile_divergence_is_flagged() {
     let dir = project(&[
         ("Cargo.toml", "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = \"=1.0.100\"\n"),

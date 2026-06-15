@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::buildmeta::{self, BuildMeta, DeclaredDep, Ecosystem, Manifest};
@@ -11,9 +11,10 @@ const MIN_DEPS_FOR_PINNING_SMELL: usize = 3;
 
 pub fn run_from(root: &Path, _thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let meta = buildmeta::discover(root);
+    let internal = super::reflexion::workspace_internal_names(&meta);
     let mut findings = Vec::new();
     for manifest in &meta.manifests {
-        findings.extend(wildcard_findings(manifest));
+        findings.extend(wildcard_findings(manifest, &internal));
         findings.extend(pinned_without_lockfile(manifest, &meta));
         findings.extend(divergence_findings(manifest, &meta));
     }
@@ -25,9 +26,9 @@ fn declared(manifest: &Manifest) -> impl Iterator<Item = &DeclaredDep> {
     manifest.deps.iter().filter(|d| !d.own)
 }
 
-fn wildcard_findings(manifest: &Manifest) -> Vec<AuditFinding> {
+fn wildcard_findings(manifest: &Manifest, internal: &HashSet<String>) -> Vec<AuditFinding> {
     declared(manifest)
-        .filter(|d| is_wildcard(&d.constraint))
+        .filter(|d| is_wildcard(&d.constraint) && !internal.contains(&normalize(&d.name)))
         .map(|d| {
             finding(
                 manifest,
@@ -69,13 +70,18 @@ fn has_lockfile(meta: &BuildMeta, eco: Ecosystem) -> bool {
 }
 
 fn exact_pin(eco: Ecosystem, constraint: &str) -> bool {
-    let c = constraint.trim();
-    match eco {
-        Ecosystem::Npm => !c.is_empty() && c.chars().next().is_some_and(|ch| ch.is_ascii_digit()),
-        Ecosystem::Cargo => c.starts_with('='),
-        Ecosystem::Pip => c.starts_with("=="),
-        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => false,
-    }
+    exact_version(eco, constraint).is_some()
+}
+
+fn npm_exact(c: &str) -> bool {
+    let core = c.split(['-', '+']).next().unwrap_or(c);
+    c.starts_with(|ch: char| ch.is_ascii_digit())
+        && !core.is_empty()
+        && core.chars().all(|ch| ch.is_ascii_digit() || ch == '.')
+}
+
+fn strip_build(version: &str) -> &str {
+    version.split('+').next().unwrap_or(version)
 }
 
 fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFinding> {
@@ -89,7 +95,7 @@ fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFindin
         .filter_map(|d| {
             let pin = exact_version(manifest.ecosystem, &d.constraint)?;
             let resolved = locked.get(&normalize(&d.name))?;
-            (!resolved.is_empty() && *resolved != pin).then(|| {
+            (!resolved.is_empty() && strip_build(resolved) != strip_build(pin)).then(|| {
                 finding(
                     manifest,
                     d,
@@ -104,7 +110,7 @@ fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFindin
 fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
     let c = constraint.trim();
     match eco {
-        Ecosystem::Npm => c.chars().next().is_some_and(|ch| ch.is_ascii_digit()).then_some(c),
+        Ecosystem::Npm => npm_exact(c).then_some(c),
         Ecosystem::Cargo => c.strip_prefix('='),
         Ecosystem::Pip => c.strip_prefix("=="),
         Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => None,
