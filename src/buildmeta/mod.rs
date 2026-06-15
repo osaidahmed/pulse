@@ -10,6 +10,9 @@ mod npm;
 mod python;
 pub mod stdlib;
 mod swiftpm;
+mod test_roots;
+
+pub use test_roots::{declared_test_roots, is_under_test_root};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ecosystem {

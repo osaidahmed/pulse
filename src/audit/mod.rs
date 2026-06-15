@@ -285,6 +285,12 @@ pub fn walk_typed_source_files_filtered(
     }
     let mut files = Vec::new();
     walk_typed_dir(root, include_tests, filter, &mut files);
+    if !include_tests {
+        let test_roots = crate::buildmeta::declared_test_roots(root);
+        if !test_roots.is_empty() {
+            files.retain(|(p, _)| !crate::buildmeta::is_under_test_root(p, &test_roots));
+        }
+    }
     files.sort_by(|a, b| a.0.cmp(&b.0));
     files
 }

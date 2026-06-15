@@ -250,6 +250,8 @@ mod audit_suppression;
 mod audit_taint;
 #[path = "integration/audit_test_exclusion.rs"]
 mod audit_test_exclusion;
+#[path = "integration/audit_test_roots.rs"]
+mod audit_test_roots;
 #[path = "integration/audit_threshold_martin.rs"]
 mod audit_threshold_martin;
 #[path = "integration/audit_vendor_filter_unit.rs"]
