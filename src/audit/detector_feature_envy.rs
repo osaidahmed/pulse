@@ -42,18 +42,26 @@ fn evaluate_method(
     idx: MethodIndex,
     t: &AuditThresholds,
 ) -> Option<AuditFinding> {
-    let atfd = distinct_foreign_targets(&def.foreign_field_accesses);
+    let ft = &t.named_smells.feature_envy;
+    let (atfd, envied, dominant) = named_provider_envy(&def.foreign_field_accesses);
+    if atfd <= ft.atfd {
+        return None;
+    }
+    if f64::from(dominant) / f64::from(atfd) < ft.locality {
+        return None;
+    }
+    if envies_own_class(envied.as_deref(), def.identity.class.as_deref()) {
+        return None;
+    }
     let (intra, foreign) = count_intra_and_foreign(graph, idx, def.identity.class.as_deref());
     let total = intra.saturating_add(foreign);
-    let ft = &t.named_smells.feature_envy;
-    if total == 0 || atfd <= ft.atfd {
+    if total == 0 {
         return None;
     }
     let ratio = f64::from(foreign) / f64::from(total);
     if ratio <= ft.foreign_ratio {
         return None;
     }
-    let envied = dominant_envied_class(&def.foreign_field_accesses);
     let evidence = FeatureEnvyEvidence {
         method_file: def.identity.file.clone(),
         method_class: def.identity.class.clone(),
@@ -79,8 +87,24 @@ fn evaluate_method(
     })
 }
 
-fn distinct_foreign_targets(foreign: &[(String, String)]) -> u32 {
-    foreign.len() as u32
+fn envies_own_class(envied: Option<&str>, class: Option<&str>) -> bool {
+    matches!(envied, Some("Self")) || (envied.is_some() && envied == class)
+}
+
+fn named_provider_envy(foreign: &[(String, String)]) -> (u32, Option<String>, u32) {
+    let mut counts: BTreeMap<&str, u32> = BTreeMap::new();
+    let mut atfd = 0u32;
+    for (recv, _) in foreign {
+        if recv == "?" {
+            continue;
+        }
+        atfd += 1;
+        *counts.entry(recv.as_str()).or_insert(0) += 1;
+    }
+    match counts.iter().max_by_key(|(k, n)| (**n, std::cmp::Reverse(**k))) {
+        Some((name, count)) => (atfd, Some((*name).to_string()), *count),
+        None => (atfd, None, 0),
+    }
 }
 
 fn count_intra_and_foreign(graph: &CallGraph, idx: MethodIndex, self_class: Option<&str>) -> (u32, u32) {
@@ -96,14 +120,6 @@ fn count_intra_and_foreign(graph: &CallGraph, idx: MethodIndex, self_class: Opti
         }
     }
     (intra, foreign)
-}
-
-fn dominant_envied_class(foreign: &[(String, String)]) -> Option<String> {
-    let mut counts: BTreeMap<&str, u32> = BTreeMap::new();
-    for (recv, _) in foreign {
-        *counts.entry(recv.as_str()).or_insert(0) += 1;
-    }
-    counts.into_iter().max_by_key(|(k, n)| (*n, std::cmp::Reverse(*k))).map(|(k, _)| k.to_string())
 }
 
 fn envy_atfd(f: &AuditFinding) -> u32 {

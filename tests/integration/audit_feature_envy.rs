@@ -165,6 +165,60 @@ fn raising_atfd_threshold_suppresses_finding() {
 }
 
 #[test]
+fn unattributable_chain_receivers_do_not_count_toward_atfd() {
+    let m =
+        def("a.py", Some("Foo"), "m", 1, vec![("?", "a"), ("?", "b"), ("?", "c"), ("?", "d"), ("?", "e"), ("?", "f")]);
+    let bar = def("b.py", Some("Bar"), "do", 1, vec![]);
+    let calls = vec![call_to(&m, "do", Some("Bar"))];
+    assert!(
+        detect_with(vec![m, bar], calls, &t().audit).is_empty(),
+        "accesses through unresolvable chains name no envied class, so they are not feature envy"
+    );
+}
+
+#[test]
+fn data_spread_across_many_providers_is_not_envy() {
+    let m =
+        def("a.py", Some("Foo"), "m", 1, vec![("a", "f"), ("b", "f"), ("c", "f"), ("d", "f"), ("e", "f"), ("g", "f")]);
+    let other = def("b.py", Some("Bar"), "do", 1, vec![]);
+    let calls = vec![call_to(&m, "do", Some("Bar"))];
+    assert!(
+        detect_with(vec![m, other], calls, &t().audit).is_empty(),
+        "no dominant provider (share 1/6) means a coordinator, not feature envy"
+    );
+}
+
+#[test]
+fn envying_an_instance_of_own_class_is_not_feature_envy() {
+    let m = def(
+        "a.py",
+        Some("Range"),
+        "equals",
+        1,
+        vec![("Range", "lo"), ("Range", "hi"), ("Range", "lb"), ("Range", "ub"), ("Range", "t"), ("Range", "k")],
+    );
+    assert!(
+        detect_with(vec![m], Vec::new(), &t().audit).is_empty(),
+        "accessing another instance of the same class (equals/compareTo) is not envy of a foreign class"
+    );
+}
+
+#[test]
+fn envying_the_self_type_alias_is_not_feature_envy() {
+    let m = def(
+        "a.rs",
+        Some("Headers"),
+        "from_headers",
+        1,
+        vec![("Self", "a"), ("Self", "b"), ("Self", "c"), ("Self", "d"), ("Self", "e"), ("Self", "f")],
+    );
+    assert!(
+        detect_with(vec![m], Vec::new(), &t().audit).is_empty(),
+        "Self resolves to the method's own type, not a foreign class"
+    );
+}
+
+#[test]
 fn determinism_two_runs_equal() {
     let envious = def(
         "a.py",

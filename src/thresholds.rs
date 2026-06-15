@@ -178,6 +178,7 @@ pub struct DivergentChangeThresholds {
 pub struct FeatureEnvyThresholds {
     pub atfd: u32,
     pub foreign_ratio: f64,
+    pub locality: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -302,7 +303,7 @@ impl DivergentChangeThresholds {
 }
 
 impl FeatureEnvyThresholds {
-    pub const DEFAULTS: Self = Self { atfd: 5, foreign_ratio: 0.6 };
+    pub const DEFAULTS: Self = Self { atfd: 5, foreign_ratio: 0.6, locality: 0.5 };
 }
 
 impl GodClassThresholds {
