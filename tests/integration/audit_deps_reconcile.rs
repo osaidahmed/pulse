@@ -217,3 +217,62 @@ fn swift_unused_dependency_is_bloated() {
     assert!(bloated.contains(&"UnusedKit".to_string()), "an unused swift dependency is bloated: {bloated:?}");
     assert!(!bloated.contains(&"Alamofire".to_string()), "an imported swift dependency is not bloated: {bloated:?}");
 }
+
+fn strictness_files(findings: &[AuditFinding]) -> Vec<String> {
+    findings
+        .iter()
+        .filter_map(|f| match &f.kind {
+            AuditKind::StrictnessDebt(e) => Some(e.file.to_string_lossy().into_owned()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn ts_with_anys(n: usize) -> String {
+    let mut s = String::from("export function f() {\n");
+    for i in 0..n {
+        s.push_str(&format!("  const v{i}: any = 0;\n"));
+    }
+    s.push_str("}\n");
+    s
+}
+
+#[test]
+fn typescript_any_density_under_nonstrict_tsconfig_is_flagged() {
+    let min = t().audit.strictness.any_min as usize;
+    let dir = project(&[
+        ("tsconfig.json", "{\n  \"compilerOptions\": { \"strict\": false }\n}\n"),
+        ("src/app.ts", &ts_with_anys(min + 4)),
+    ]);
+    let files = strictness_files(&run_deps(dir.path()));
+    assert!(
+        files.iter().any(|f| f.ends_with("app.ts")),
+        "high any-density under non-strict tsconfig is flagged: {files:?}"
+    );
+}
+
+#[test]
+fn typescript_strict_tsconfig_suppresses_strictness_debt() {
+    let min = t().audit.strictness.any_min as usize;
+    let dir = project(&[
+        ("tsconfig.json", "{\n  \"compilerOptions\": { \"strict\": true }\n}\n"),
+        ("src/app.ts", &ts_with_anys(min + 4)),
+    ]);
+    assert!(strictness_files(&run_deps(dir.path())).is_empty(), "strict projects are not flagged for any-debt");
+}
+
+#[test]
+fn typescript_low_any_density_is_not_strictness_debt() {
+    let dir = project(&[
+        ("tsconfig.json", "{\n  \"compilerOptions\": { \"strict\": false }\n}\n"),
+        ("src/app.ts", &ts_with_anys(1)),
+    ]);
+    assert!(strictness_files(&run_deps(dir.path())).is_empty(), "a single any is below the debt threshold");
+}
+
+#[test]
+fn typescript_without_tsconfig_has_no_strictness_basis() {
+    let min = t().audit.strictness.any_min as usize;
+    let dir = project(&[("src/app.ts", &ts_with_anys(min + 4))]);
+    assert!(strictness_files(&run_deps(dir.path())).is_empty(), "no tsconfig means no basis to judge strictness");
+}

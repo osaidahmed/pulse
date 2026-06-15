@@ -2,8 +2,8 @@ use std::fmt::Write;
 use std::path::Path;
 
 use super::finding::{
-    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, PhantomDepEvidence, UndeclaredModuleDepEvidence,
-    UnusedDeclaredDepEvidence,
+    AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, PhantomDepEvidence, StrictnessEvidence,
+    UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
 };
 use super::output_helpers::{confidence_str, display_path};
 
@@ -14,6 +14,7 @@ pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, a
         AuditKind::ConstraintSmell(e) => write_constraint(out, e, root, action),
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
         AuditKind::UnusedDeclaredDependency(e) => write_unused(out, e, root, action),
+        AuditKind::StrictnessDebt(e) => write_strictness(out, e, root, action),
         _ => return false,
     }
     true
@@ -62,6 +63,13 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "to_component": e.to_component,
             "confidence": confidence_str(e.confidence),
         })),
+        AuditKind::StrictnessDebt(e) => Some(serde_json::json!({
+            "kind": "StrictnessDebt",
+            "file": display_path(&e.file, root),
+            "line": e.line,
+            "any_count": e.any_count,
+            "confidence": confidence_str(e.confidence),
+        })),
         _ => None,
     }
 }
@@ -84,6 +92,17 @@ fn write_phantom(out: &mut String, e: &PhantomDepEvidence, root: Option<&Path>, 
     let _ = writeln!(out, "audit: phantom dependency — {}", e.name);
     let _ = writeln!(out, "  imported at:   {}:{}", display_path(&e.file, root), e.line);
     let _ = writeln!(out, "  resolution:    present only in the lockfile as a transitive dependency");
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+    let _ = writeln!(out);
+}
+
+fn write_strictness(out: &mut String, e: &StrictnessEvidence, root: Option<&Path>, action: &'static str) {
+    let _ = writeln!(out, "audit: type strictness debt — {}", display_path(&e.file, root));
+    let _ = writeln!(out, "  first `any`:   {}:{}", display_path(&e.file, root), e.line);
+    let _ = writeln!(out, "  any count:     {} explicit `any` annotations under a non-strict tsconfig", e.any_count);
     let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");

@@ -77,8 +77,18 @@ pub struct AuditThresholds {
     pub taint: TaintThresholds,
     pub clone_cluster: CloneClusterThresholds,
     pub naturalness: NaturalnessThresholds,
+    pub strictness: StrictnessThresholds,
     pub max_locations_per_finding: usize,
     pub cross_validate_history: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StrictnessThresholds {
+    pub any_min: u32,
+}
+
+impl StrictnessThresholds {
+    pub const DEFAULTS: Self = Self { any_min: 8 };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -329,6 +339,7 @@ impl AuditThresholds {
         taint: TaintThresholds::DEFAULTS,
         clone_cluster: CloneClusterThresholds::DEFAULTS,
         naturalness: NaturalnessThresholds::DEFAULTS,
+        strictness: StrictnessThresholds::DEFAULTS,
         max_locations_per_finding: 10,
         cross_validate_history: false,
     };

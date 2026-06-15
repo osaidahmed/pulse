@@ -34,12 +34,13 @@ pub enum AuditKind {
     ConstraintSmell(ConstraintEvidence),
     UndeclaredModuleDependency(UndeclaredModuleDepEvidence),
     UnusedDeclaredDependency(UnusedDeclaredDepEvidence),
+    StrictnessDebt(StrictnessEvidence),
 }
 
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
     HubLikeEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence, NaturalnessEvidence,
-    PhantomDepEvidence, SplitComponentEvidence, UndeclaredModuleDepEvidence, UnstableDepEvidence,
+    PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence, UndeclaredModuleDepEvidence, UnstableDepEvidence,
     UnusedDeclaredDepEvidence, VulnCloneEvidence,
 };
 
@@ -327,7 +328,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 26] = [
+const VARIANT_TABLE: [VariantInfo; 27] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -335,6 +336,14 @@ const VARIANT_TABLE: [VariantInfo; 26] = [
         action: "",
         label: "Cross-file pattern",
         pillar: AuditPillar::Patterns,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::StrictnessDebt(_)),
+        pass: "deps",
+        slug: "strictness_debt",
+        action: "enable strict type-checking and replace the `any` annotations with precise types",
+        label: "Type strictness debt",
+        pillar: AuditPillar::Architecture,
     },
     VariantInfo {
         test: |k| matches!(k, AuditKind::ConstraintSmell(_)),
@@ -566,74 +575,4 @@ pub fn action_for_kind(kind: &AuditKind, category: Option<PatternCategory>) -> &
     category.map_or("review case-by-case", PatternCategory::action)
 }
 
-pub fn finding_confidence(f: &AuditFinding) -> ImportConfidence {
-    evidence_confidence(&f.kind).unwrap_or_else(|| pattern_confidence(f))
-}
-
-fn evidence_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    package_metric_confidence(kind)
-        .or_else(|| named_smell_confidence(kind))
-        .or_else(|| advisory_confidence(kind))
-        .or_else(|| deps_confidence(kind))
-}
-
-fn package_metric_confidence(kind: &AuditKind) -> Option<ImportConfidence> {
-    if matches!(kind, AuditKind::ZeroEdgeProject { .. }) {
-        return Some(ImportConfidence::Medium);
-    }
-    package_metric_evidence_confidence(kind)
-}
-
-macro_rules! confidence_lookup {
-    ($name:ident { $($variant:ident),+ $(,)? }) => {
-        fn $name(kind: &AuditKind) -> Option<ImportConfidence> {
-            match kind {
-                $( AuditKind::$variant(e) => Some(e.confidence), )+
-                _ => None,
-            }
-        }
-    };
-}
-
-confidence_lookup!(package_metric_evidence_confidence {
-    DistanceFromMainSequence,
-    ImportCycle,
-    UnstableDependency,
-    HubLikeDependency,
-    GodComponent,
-    CompoundArchSmell,
-    SplitComponent,
-    MoveFile,
-    MergeComponents
-});
-
-confidence_lookup!(named_smell_confidence {
-    ShotgunSurgery,
-    DivergentChange,
-    FeatureEnvy,
-    GodClass,
-    ParallelInheritance,
-    RefusedBequest
-});
-
-confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });
-
-confidence_lookup!(deps_confidence {
-    BloatedDependency,
-    PhantomDependency,
-    ConstraintSmell,
-    UndeclaredModuleDependency,
-    UnusedDeclaredDependency
-});
-
-fn pattern_confidence(f: &AuditFinding) -> ImportConfidence {
-    let category = f.pattern_category.unwrap_or(PatternCategory::Other);
-    if category.is_noise() {
-        return ImportConfidence::Low;
-    }
-    match f.support {
-        s if s >= 50 => ImportConfidence::High,
-        s if s >= 10 => ImportConfidence::Medium,
-        _ => ImportConfidence::Low,
-    }
-}
+pub use super::finding_confidence::finding_confidence;

@@ -138,6 +138,14 @@ pub struct ConstraintEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct StrictnessEvidence {
+    pub file: PathBuf,
+    pub line: u32,
+    pub any_count: u32,
+    pub confidence: ImportConfidence,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct UndeclaredModuleDepEvidence {
     pub from_component: String,
     pub to_component: String,
