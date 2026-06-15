@@ -64,7 +64,7 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
             "class_declaration" | "struct_declaration" | "interface_declaration" | "record_declaration" => {
                 collect_class_methods(child, source, functions);
             }
-            "namespace_declaration" => recurse_namespace(child, source, functions),
+            "namespace_declaration" => shared::recurse_namespace(child, source, functions, collect_functions),
             "method_declaration" | "local_function_statement" => {
                 if let Some(m) = analyze_callable(child, source, &METHOD_CFG) {
                     functions.push(m);
@@ -73,13 +73,6 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
             _ => collect_functions(child, source, functions),
         }
     }
-}
-
-fn recurse_namespace(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let Some(body) = find_child_by_kind(node, "declaration_list") else {
-        return;
-    };
-    collect_functions(body, source, functions);
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {

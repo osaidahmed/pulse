@@ -64,7 +64,7 @@ fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetri
         match child.kind() {
             "function_definition" => extend_with_metrics(child, source, functions),
             "class_specifier" | "struct_specifier" => collect_class_methods(child, source, functions),
-            "namespace_definition" => recurse_namespace(child, source, functions),
+            "namespace_definition" => shared::recurse_namespace(child, source, functions, collect_functions),
             _ => {}
         }
     }
@@ -74,13 +74,6 @@ fn extend_with_metrics(node: Node, source: &str, functions: &mut Vec<FunctionMet
     if let Some(m) = analyze_function(node, source) {
         functions.push(m);
     }
-}
-
-fn recurse_namespace(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
-    let Some(body) = find_child_by_kind(node, "declaration_list") else {
-        return;
-    };
-    collect_functions(body, source, functions);
 }
 
 fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {

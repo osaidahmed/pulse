@@ -198,6 +198,21 @@ fn handle_catch_block(child: Node, ctx: &mut BlockWalkCtx, body_kind: &str, walk
     walk_block_children(child, ctx, body_kind, walk_body_fn);
 }
 
+pub fn handle_catch(child: Node, source: &str, depth: u32, s: &mut super::WalkState, walk_body_fn: WalkFn) {
+    handle_catch_block(child, &mut BlockWalkCtx { source, depth, state: s }, "block", walk_body_fn);
+}
+
+pub fn recurse_namespace(
+    node: Node,
+    source: &str,
+    functions: &mut Vec<super::FunctionMetrics>,
+    collect: fn(Node, &str, &mut Vec<super::FunctionMetrics>),
+) {
+    if let Some(body) = find_child_by_kind(node, "declaration_list") {
+        collect(body, source, functions);
+    }
+}
+
 pub fn is_catch_body_empty(catch_node: Node, body_kind: &str, pass_kind: Option<&str>) -> bool {
     let Some(body) = find_child_by_kind(catch_node, body_kind) else {
         return true;

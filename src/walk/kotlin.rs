@@ -5,8 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
-    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -282,7 +281,7 @@ fn walk_node(child: Node, source: &str, depth: u32, s: &mut WalkState) {
     match kind {
         "if_expression" => handle_if(child, source, depth, s),
         "when_expression" => handle_when(child, source, depth, s),
-        "catch_block" => handle_catch(child, source, depth, s),
+        "catch_block" => shared::handle_catch(child, source, depth, s, walk_body),
         _ => walk_default(child, source, depth, s),
     }
 }
@@ -364,15 +363,6 @@ fn handle_when(node: Node, source: &str, depth: u32, s: &mut WalkState) {
         }
     }
     s.cogc_nesting = saved;
-}
-
-fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    s.cc += 1;
-    s.track_cogc_branch();
-    if is_catch_body_empty(child, "block", None) {
-        s.empty_catch_count += 1;
-    }
-    shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
 }
 
 fn count_parameters(node: Node, source: &str) -> (u32, u32, u32, u32) {

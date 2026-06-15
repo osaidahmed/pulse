@@ -5,8 +5,7 @@ use super::shared::{self, count_boolean_ops, count_cogc_sequences, GlobalMetrics
 use super::{
     collect_field_accesses_for, collect_foreign_field_accesses_for, compute_assert_fingerprint, compute_skeleton_hash,
     compute_structural_fingerprint, count_code_lines, count_consecutive_asserts, count_distinct_node_kinds,
-    find_child_by_kind, is_catch_body_empty, node_text, track_embedded_block, FileMetrics, FunctionMetrics,
-    ModuleMetrics, WalkState,
+    find_child_by_kind, node_text, track_embedded_block, FileMetrics, FunctionMetrics, ModuleMetrics, WalkState,
 };
 
 const COMMENT_PREFIXES: &[&str] = &["//", "/*", "*"];
@@ -192,7 +191,7 @@ fn walk_node_inner(child: Node, kind: &str, source: &str, depth: u32, s: &mut Wa
         "if_statement" => handle_if(child, source, depth, s),
         "switch_expression" => handle_switch(child, source, depth, s),
         "switch_block_statement_group" => handle_switch_case(child, source, depth, s),
-        "catch_clause" => handle_catch(child, source, depth, s),
+        "catch_clause" => shared::handle_catch(child, source, depth, s, walk_body),
         "ternary_expression" => {
             s.cc += 1;
             s.track_cogc_branch();
@@ -230,15 +229,6 @@ fn handle_switch_case(child: Node, source: &str, depth: u32, s: &mut WalkState) 
     walk_body(child, source, depth, s);
 }
 
-fn handle_catch(child: Node, source: &str, depth: u32, s: &mut WalkState) {
-    s.cc += 1;
-    s.track_cogc_branch();
-    if is_catch_body_empty(child, "block", None) {
-        s.empty_catch_count += 1;
-    }
-    shared::walk_block_children(child, &mut shared::BlockWalkCtx { source, depth, state: s }, "block", walk_body);
-}
-
 const BLOCK_KINDS: &[&str] = &["block", "switch_block", "constructor_body", "closure", "expression_statement"];
 
 fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
@@ -256,7 +246,7 @@ fn walk_children(node: Node, source: &str, depth: u32, s: &mut WalkState) {
                     handle_elif(child, source, depth, s);
                     saw_else = false;
                 }
-                "catch_clause" => handle_catch(child, source, depth, s),
+                "catch_clause" => shared::handle_catch(child, source, depth, s, walk_body),
                 "finally_clause" => shared::walk_block_children(
                     child,
                     &mut shared::BlockWalkCtx { source, depth, state: s },
