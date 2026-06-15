@@ -2,7 +2,8 @@ use std::fs;
 
 use pulse::audit::finding::AuditKind;
 use pulse::audit::freshness::{assess, run_from};
-use pulse::registry::{parse_package, FreshnessThresholds, PackageInfo, VersionInfo, VersionKey};
+use pulse::audit::vuln_deps;
+use pulse::registry::{parse_package, parse_version_detail, FreshnessThresholds, PackageInfo, VersionInfo, VersionKey};
 
 fn ver(version: &str, published_at: &str, is_default: bool) -> VersionInfo {
     VersionInfo { version_key: VersionKey { version: version.into() }, published_at: published_at.into(), is_default }
@@ -81,4 +82,43 @@ fn run_from_emits_outdated_from_a_cached_registry_without_network() {
     assert_eq!(outdated[0].current_version, "1.0.100");
     assert_eq!(outdated[0].latest_version, "1.0.200");
     assert_eq!(outdated[0].missed_releases, 1);
+}
+
+#[test]
+fn parse_version_detail_reads_advisory_keys() {
+    let d = parse_version_detail(r#"{"advisoryKeys":[{"id":"GHSA-aaaa"},{"id":"GHSA-bbbb"}]}"#)
+        .expect("valid version detail");
+    assert_eq!(d.advisory_keys.len(), 2);
+    assert_eq!(d.advisory_keys[0].id, "GHSA-aaaa");
+}
+
+#[test]
+fn vuln_deps_flags_a_cached_vulnerable_version_without_network() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("package.json"), r#"{"name":"app","dependencies":{"lodash":"^4.17.0"}}"#).unwrap();
+    fs::write(
+        dir.path().join("package-lock.json"),
+        r#"{"lockfileVersion":3,"packages":{"node_modules/lodash":{"version":"4.17.11"}}}"#,
+    )
+    .unwrap();
+
+    let cache = tempfile::tempdir().unwrap();
+    fs::write(
+        cache.path().join("npm__lodash__4.17.11.json"),
+        r#"{"advisoryKeys":[{"id":"GHSA-jf85-cpcp-j695"},{"id":"GHSA-p6mc-m468-83gw"}]}"#,
+    )
+    .unwrap();
+
+    let findings = vuln_deps::run_from(dir.path(), cache.path(), false, 30);
+    let vulns: Vec<_> = findings
+        .iter()
+        .filter_map(|f| match &f.kind {
+            AuditKind::VulnerableDependency(e) => Some(e),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(vulns.len(), 1, "{findings:#?}");
+    assert_eq!(vulns[0].name, "lodash");
+    assert_eq!(vulns[0].version, "4.17.11");
+    assert_eq!(vulns[0].advisory_ids.len(), 2);
 }

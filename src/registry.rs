@@ -26,6 +26,17 @@ pub struct PackageInfo {
     pub versions: Vec<VersionInfo>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct AdvisoryKey {
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct VersionDetail {
+    #[serde(rename = "advisoryKeys", default)]
+    pub advisory_keys: Vec<AdvisoryKey>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FreshnessThresholds {
     pub min_missed: u32,
@@ -64,22 +75,44 @@ pub fn depsdev_system(eco: Ecosystem) -> Option<&'static str> {
 
 pub fn lookup(eco: Ecosystem, name: &str, cache_dir: &Path, online: bool) -> Option<PackageInfo> {
     let system = depsdev_system(eco)?;
-    let cache_path = cache_dir.join(format!("{system}__{}.json", encode(name)));
-    if let Ok(cached) = std::fs::read_to_string(&cache_path) {
-        return parse_package(&cached);
+    let path = cache_dir.join(format!("{system}__{}.json", encode(name)));
+    let url = format!("https://api.deps.dev/v3/systems/{system}/packages/{}", encode(name));
+    parse_package(&cached(&path, online, &url)?)
+}
+
+pub fn lookup_version(
+    eco: Ecosystem,
+    name: &str,
+    version: &str,
+    cache_dir: &Path,
+    online: bool,
+) -> Option<VersionDetail> {
+    let system = depsdev_system(eco)?;
+    let path = cache_dir.join(format!("{system}__{}__{}.json", encode(name), encode(version)));
+    let url =
+        format!("https://api.deps.dev/v3/systems/{system}/packages/{}/versions/{}", encode(name), encode(version));
+    parse_version_detail(&cached(&path, online, &url)?)
+}
+
+pub fn parse_version_detail(json: &str) -> Option<VersionDetail> {
+    serde_json::from_str(json).ok()
+}
+
+fn cached(cache_path: &Path, online: bool, url: &str) -> Option<String> {
+    if let Ok(body) = std::fs::read_to_string(cache_path) {
+        return Some(body);
     }
     if !online {
         return None;
     }
-    let body = fetch(system, name)?;
-    let _ = std::fs::create_dir_all(cache_dir);
-    let _ = std::fs::write(&cache_path, &body);
-    parse_package(&body)
+    let body = fetch_url(url)?;
+    let _ = std::fs::create_dir_all(cache_path.parent()?);
+    let _ = std::fs::write(cache_path, &body);
+    Some(body)
 }
 
-fn fetch(system: &str, name: &str) -> Option<String> {
-    let url = format!("https://api.deps.dev/v3/systems/{system}/packages/{}", encode(name));
-    ureq::get(&url).timeout(Duration::from_secs(10)).call().ok()?.into_string().ok()
+fn fetch_url(url: &str) -> Option<String> {
+    ureq::get(url).timeout(Duration::from_secs(10)).call().ok()?.into_string().ok()
 }
 
 fn encode(s: &str) -> String {

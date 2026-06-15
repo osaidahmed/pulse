@@ -3,7 +3,7 @@ use std::path::Path;
 
 use super::finding::{
     AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, ImportConfidence, OutdatedDepEvidence,
-    PhantomDepEvidence, UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence,
+    PhantomDepEvidence, UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence, VulnDepEvidence,
 };
 use super::output_helpers::{confidence_str, display_path};
 
@@ -11,6 +11,7 @@ pub fn dispatch_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, a
     match &f.kind {
         AuditKind::BloatedDependency(e) => write_bloated(out, e, root, action),
         AuditKind::OutdatedDependency(e) => write_outdated(out, e, root, action),
+        AuditKind::VulnerableDependency(e) => write_vuln(out, e, root, action),
         AuditKind::PhantomDependency(e) => write_phantom(out, e, root, action),
         AuditKind::ConstraintSmell(e) => write_constraint(out, e, root, action),
         AuditKind::UndeclaredModuleDependency(e) => write_undeclared(out, e, root, action),
@@ -63,6 +64,15 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "latest_version": e.latest_version,
             "missed_releases": e.missed_releases,
             "abandoned": e.abandoned,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::VulnerableDependency(e) => Some(serde_json::json!({
+            "kind": "VulnerableDependency",
+            "manifest": display_path(&e.manifest, root),
+            "line": e.line,
+            "name": e.name,
+            "version": e.version,
+            "advisories": e.advisory_ids,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::PhantomDependency(e) => Some(serde_json::json!({
@@ -145,6 +155,17 @@ fn write_outdated(out: &mut String, e: &OutdatedDepEvidence, root: Option<&Path>
     } else {
         let _ = writeln!(out, "  behind:        {} newer releases published", e.missed_releases);
     }
+    let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+    if !action.is_empty() {
+        let _ = writeln!(out, "  action:        {action}");
+    }
+    let _ = writeln!(out);
+}
+
+fn write_vuln(out: &mut String, e: &VulnDepEvidence, root: Option<&Path>, action: &'static str) {
+    let _ = writeln!(out, "audit: vulnerable dependency — {} {}", e.name, e.version);
+    let _ = writeln!(out, "  declared at:   {}:{}", display_path(&e.manifest, root), e.line);
+    let _ = writeln!(out, "  advisories:    {}", e.advisory_ids.join(", "));
     let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");

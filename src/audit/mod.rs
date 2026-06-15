@@ -74,6 +74,7 @@ pub mod swap_significance;
 pub mod taint;
 pub mod vendor_filter;
 pub mod vuln_clones;
+pub mod vuln_deps;
 pub mod walker;
 
 use std::path::{Path, PathBuf};

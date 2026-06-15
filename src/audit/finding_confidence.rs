@@ -60,7 +60,8 @@ confidence_lookup!(deps_confidence {
     UndeclaredModuleDependency,
     UnusedDeclaredDependency,
     StrictnessDebt,
-    OutdatedDependency
+    OutdatedDependency,
+    VulnerableDependency
 });
 
 confidence_lookup!(ifdef_confidence { IfdefDensity });

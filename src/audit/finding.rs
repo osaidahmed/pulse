@@ -37,13 +37,14 @@ pub enum AuditKind {
     StrictnessDebt(StrictnessEvidence),
     IfdefDensity(IfdefDensityEvidence),
     OutdatedDependency(OutdatedDepEvidence),
+    VulnerableDependency(VulnDepEvidence),
 }
 
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
     HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence,
     NaturalnessEvidence, OutdatedDepEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence,
-    UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence,
+    UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence, VulnDepEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -330,7 +331,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 29] = [
+const VARIANT_TABLE: [VariantInfo; 30] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -362,6 +363,14 @@ const VARIANT_TABLE: [VariantInfo; 29] = [
         action: "update to a current release, or replace the dependency if it is abandoned",
         label: "Outdated dependency",
         pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::VulnerableDependency(_)),
+        pass: "deps",
+        slug: "vulnerable_dependency",
+        action: "upgrade to a fixed release for the reported advisories",
+        label: "Vulnerable dependency",
+        pillar: AuditPillar::Security,
     },
     VariantInfo {
         test: |k| matches!(k, AuditKind::ConstraintSmell(_)),

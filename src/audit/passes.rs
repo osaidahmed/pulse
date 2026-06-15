@@ -7,7 +7,7 @@ use super::finding::AuditFinding;
 use super::{
     complexity_floor, constraint_smells, corpus, corpus_stats, deps_reconcile, discovery, duplication_clusters,
     expression_filter, freshness, ifdef_density, mdl, named_smells, record_extraction, reflexion, scoring, strictness,
-    taint, vendor_filter, vuln_clones, PassChoice,
+    taint, vendor_filter, vuln_clones, vuln_deps, PassChoice,
 };
 
 pub(super) struct PassCtx<'a> {
@@ -34,6 +34,12 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
         found.extend(strictness::run_from(ctx.shared, ctx.root, ctx.thresholds));
         if ctx.online {
             found.extend(freshness::run_from(ctx.root, ctx.cache_dir, ctx.online, &ctx.thresholds.freshness));
+            found.extend(vuln_deps::run_from(
+                ctx.root,
+                ctx.cache_dir,
+                ctx.online,
+                ctx.thresholds.freshness.max_findings,
+            ));
         }
         found
     }),

@@ -14,36 +14,30 @@ pub struct FreshnessVerdict {
     pub abandoned: bool,
 }
 
-struct FreshCtx<'a> {
-    meta: &'a BuildMeta,
-    cache_dir: &'a Path,
-    online: bool,
-    now_year: i64,
-    t: &'a FreshnessThresholds,
-}
-
-pub fn run_from(root: &Path, cache_dir: &Path, online: bool, t: &FreshnessThresholds) -> Vec<AuditFinding> {
+pub(super) fn for_each_deployed_locked<F>(root: &Path, max_findings: usize, build: F) -> Vec<AuditFinding>
+where
+    F: Fn(&Manifest, &DeclaredDep, &str) -> Option<AuditFinding>,
+{
     let meta = buildmeta::discover(root);
-    let ctx = FreshCtx { meta: &meta, cache_dir, online, now_year: current_year(), t };
     let mut findings: Vec<AuditFinding> = meta
         .manifests
         .iter()
         .flat_map(|m| m.deps.iter().map(move |d| (m, d)))
-        .filter_map(|(m, d)| dep_finding(&ctx, m, d))
+        .filter(|(_, d)| !d.own && d.scope == DepScope::Deployed)
+        .filter_map(|(m, d)| locked_version(&meta, m.ecosystem, &d.name).and_then(|v| build(m, d, &v)))
         .collect();
     findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
-    findings.truncate(t.max_findings);
+    findings.truncate(max_findings);
     findings
 }
 
-fn dep_finding(ctx: &FreshCtx, manifest: &Manifest, dep: &DeclaredDep) -> Option<AuditFinding> {
-    if dep.own || dep.scope != DepScope::Deployed {
-        return None;
-    }
-    let current = locked_version(ctx.meta, manifest.ecosystem, &dep.name)?;
-    let pkg = registry::lookup(manifest.ecosystem, &dep.name, ctx.cache_dir, ctx.online)?;
-    let verdict = assess(&pkg, &current, ctx.now_year, ctx.t)?;
-    Some(finding(&manifest.path, dep.line, &dep.name, verdict))
+pub fn run_from(root: &Path, cache_dir: &Path, online: bool, t: &FreshnessThresholds) -> Vec<AuditFinding> {
+    let now_year = current_year();
+    for_each_deployed_locked(root, t.max_findings, |manifest, dep, current| {
+        let pkg = registry::lookup(manifest.ecosystem, &dep.name, cache_dir, online)?;
+        let verdict = assess(&pkg, current, now_year, t)?;
+        Some(finding(&manifest.path, dep.line, &dep.name, verdict))
+    })
 }
 
 pub fn assess(pkg: &PackageInfo, current: &str, now_year: i64, t: &FreshnessThresholds) -> Option<FreshnessVerdict> {
