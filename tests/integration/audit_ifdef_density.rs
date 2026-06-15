@@ -87,6 +87,21 @@ fn non_c_family_file_is_not_flagged() {
 }
 
 #[test]
+fn findings_are_capped_at_max_keeping_the_densest() {
+    let min = t().audit.ifdef_min_conditionals as usize;
+    let max = t().audit.ifdef_max_findings as usize;
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    for i in 0..(max + 5) {
+        std::fs::write(dir.path().join(format!("src/f{i}.c")), conditional_blocks(min + 1 + i)).unwrap();
+    }
+    let found = densities(&run_ifdef(dir.path()));
+    assert_eq!(found.len(), max, "capped at the max-findings ceiling, got {}", found.len());
+    let densest = (min + 1 + (max + 4)) as u32;
+    assert!(found.iter().any(|(_, c)| *c == densest), "the densest file is retained: {found:?}");
+}
+
+#[test]
 fn ifdef_density_finding_renders_human_and_json() {
     let min = t().audit.ifdef_min_conditionals as usize;
     let dir = project(&[("src/platform.c", &conditional_blocks(min + 4))]);

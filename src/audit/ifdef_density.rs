@@ -10,7 +10,7 @@ use super::finding::{AuditFinding, AuditKind, IfdefDensityEvidence, ImportConfid
 
 pub fn run_from(corpus: &Corpus, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     let min = thresholds.ifdef_min_conditionals;
-    let mut findings = Vec::new();
+    let mut scored: Vec<(u32, AuditFinding)> = Vec::new();
     for file in &corpus.files {
         if !matches!(file.lang, Language::C | Language::Cpp | Language::ObjectiveC) {
             continue;
@@ -18,7 +18,7 @@ pub fn run_from(corpus: &Corpus, thresholds: &AuditThresholds) -> Vec<AuditFindi
         let Some((_, tree)) = file.parsed() else { continue };
         let (count, first_line) = count_conditionals(tree.root_node());
         if count >= min {
-            findings.push(wrap(
+            let finding = wrap(
                 file.path.to_string_lossy().into_owned(),
                 AuditKind::IfdefDensity(IfdefDensityEvidence {
                     file: file.path.clone(),
@@ -26,11 +26,13 @@ pub fn run_from(corpus: &Corpus, thresholds: &AuditThresholds) -> Vec<AuditFindi
                     conditional_count: count,
                     confidence: ImportConfidence::Medium,
                 }),
-            ));
+            );
+            scored.push((count, finding));
         }
     }
-    findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
-    findings
+    scored.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.representative_snippet.cmp(&b.1.representative_snippet)));
+    scored.truncate(thresholds.ifdef_max_findings as usize);
+    scored.into_iter().map(|(_, f)| f).collect()
 }
 
 #[derive(Default)]
