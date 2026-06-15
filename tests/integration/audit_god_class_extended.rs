@@ -62,6 +62,27 @@ fn high_atfd_method(file: &str, class: &str, name: &str, line: u32, cc: u32, fie
 }
 
 #[test]
+fn stateless_utility_class_is_not_a_god_class() {
+    let mut defs = Vec::new();
+    for i in 0..10 {
+        defs.push(def(
+            "util.py",
+            Some("Util"),
+            &format!("m{i}"),
+            10 + i,
+            30,
+            vec![],
+            vec![("a", "x"), ("b", "y"), ("c", "z"), ("d", "w"), ("e", "v"), ("f", "u")],
+            false,
+        ));
+    }
+    assert!(
+        detect_with(defs, &t().audit).is_empty(),
+        "a class with no instance state is a function library, not a god class (TCC is trivially 0)"
+    );
+}
+
+#[test]
 fn boundary_method_count_strictly_above_three() {
     let mut defs = Vec::new();
     for i in 0..2 {

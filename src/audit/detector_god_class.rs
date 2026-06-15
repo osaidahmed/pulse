@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::thresholds::AuditThresholds;
 
@@ -22,6 +22,21 @@ pub fn detect(
     }
     findings.sort_by_key(|f| std::cmp::Reverse(god_wmc(f)));
     findings
+}
+
+fn class_is_stateless(
+    reg: &ClassRegistry,
+    idx: ClassIndex,
+    fields_for: &impl Fn(MethodIndex) -> (Vec<String>, bool),
+) -> bool {
+    let mut fields: HashSet<String> = HashSet::new();
+    for m in reg.methods_in(idx) {
+        let (fs, is_ctor) = fields_for(*m);
+        if !is_ctor {
+            fields.extend(fs);
+        }
+    }
+    fields.is_empty()
 }
 
 fn evaluate_class(
@@ -57,6 +72,9 @@ fn evaluate_class(
         return None;
     }
     if wmc <= gt.wmc || tcc >= gt.tcc || atfd <= gt.atfd {
+        return None;
+    }
+    if class_is_stateless(registry, idx, &fields_lookup) {
         return None;
     }
     let evidence = GodClassEvidence {
