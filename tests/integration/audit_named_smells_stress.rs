@@ -293,7 +293,7 @@ fn empty_inputs_never_panic_across_all_detectors() {
     let _ = fe::detect(&[], &g, &t().audit);
     let _ = gc::detect(&r, &[], &gc::build_method_idx_lookup(&g, &[]), &t().audit);
     let _ = pi::detect(&r, &inh, &t().audit);
-    let _ = rb::detect(&r, &[], &|_: &std::path::Path| -> Option<f64> { None }, &t().audit);
+    let _ = rb::detect(&r, &[], &g, &|_: &std::path::Path| -> Option<f64> { None }, &t().audit);
 }
 
 #[test]
@@ -310,7 +310,7 @@ fn unicode_identifiers_round_trip_through_all_detectors() {
     let _ = fe::detect(&defs, &g, &t().audit);
     let _ = gc::detect(&r, &defs, &gc::build_method_idx_lookup(&g, &defs), &t().audit);
     let _ = pi::detect(&r, &inh, &t().audit);
-    let _ = rb::detect(&r, &defs, &|_: &std::path::Path| -> Option<f64> { None }, &t().audit);
+    let _ = rb::detect(&r, &defs, &g, &|_: &std::path::Path| -> Option<f64> { None }, &t().audit);
 }
 
 #[test]

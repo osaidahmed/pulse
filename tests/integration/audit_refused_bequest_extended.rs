@@ -28,7 +28,7 @@ fn detect_with(defs: Vec<DefinitionRecord>, th: &pulse::thresholds::AuditThresho
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let abstractness = |_: &std::path::Path| -> Option<f64> { None };
-    detect(&registry, &defs, &abstractness, th)
+    detect(&registry, &defs, &graph, &abstractness, th)
 }
 
 fn rb(f: &AuditFinding) -> &RefusedBequestEvidence {

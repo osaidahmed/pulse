@@ -38,7 +38,7 @@ fn rb_subclass_with_same_name_as_parent_skipped() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lookup = |_: &Path| -> Option<f64> { None };
-    let findings = rb::detect(&registry, &defs, &lookup, &t().audit);
+    let findings = rb::detect(&registry, &defs, &graph, &lookup, &t().audit);
     assert!(findings.is_empty());
 }
 
@@ -87,7 +87,7 @@ fn rb_with_real_python_abstract_parent_skipped() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lang_lookup = |p: &Path| -> Option<f64> { (p.extension()?.to_str()? == "py").then_some(0.0) };
-    let _ = rb::detect(&registry, &defs, &lang_lookup, &t().audit);
+    let _ = rb::detect(&registry, &defs, &graph, &lang_lookup, &t().audit);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn rb_with_real_concrete_python_parent_can_fire() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lang_lookup = |p: &Path| -> Option<f64> { (p.extension()?.to_str()? == "py").then_some(0.0) };
-    let _ = rb::detect(&registry, &defs, &lang_lookup, &t().audit);
+    let _ = rb::detect(&registry, &defs, &graph, &lang_lookup, &t().audit);
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn rb_with_unresolvable_file_lang_treated_as_concrete() {
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let lookup = |_: &Path| -> Option<f64> { None };
-    let _ = rb::detect(&registry, &defs, &lookup, &t().audit);
+    let _ = rb::detect(&registry, &defs, &graph, &lookup, &t().audit);
 }
 
 #[test]

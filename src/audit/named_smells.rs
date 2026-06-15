@@ -75,7 +75,13 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
     all.extend(super::detector_feature_envy::detect(&ctx.definitions, &ctx.graph, thresholds));
     all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
-    all.extend(super::detector_refused_bequest::detect(&ctx.registry, &ctx.definitions, &abstractness_of, thresholds));
+    all.extend(super::detector_refused_bequest::detect(
+        &ctx.registry,
+        &ctx.definitions,
+        &ctx.graph,
+        &abstractness_of,
+        thresholds,
+    ));
     all
 }
 

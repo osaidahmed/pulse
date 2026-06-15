@@ -2,53 +2,54 @@ use std::collections::HashSet;
 
 use crate::thresholds::AuditThresholds;
 
+use super::call_graph::CallGraph;
 use super::class_registry::{ClassIdentity, ClassIndex, ClassRegistry};
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, ImportConfidence, RefusedBequestEvidence};
 
+struct RbCtx<'a> {
+    registry: &'a ClassRegistry,
+    defs: &'a [DefinitionRecord],
+    graph: &'a CallGraph,
+    abstractness_of: &'a dyn Fn(&std::path::Path) -> Option<f64>,
+    t: &'a AuditThresholds,
+}
+
 pub fn detect(
     registry: &ClassRegistry,
     defs: &[DefinitionRecord],
+    graph: &CallGraph,
     abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>,
     t: &AuditThresholds,
 ) -> Vec<AuditFinding> {
-    let mut findings = Vec::new();
-    for i in 0..registry.count() {
-        let idx = ClassIndex(i as u32);
-        if let Some(f) = evaluate_class(registry, defs, idx, abstractness_of, t) {
-            findings.push(f);
-        }
-    }
+    let ctx = RbCtx { registry, defs, graph, abstractness_of, t };
+    let mut findings: Vec<AuditFinding> =
+        (0..registry.count()).filter_map(|i| evaluate_class(&ctx, ClassIndex(i as u32))).collect();
     findings.sort_by_key(|f| std::cmp::Reverse(refused_count(f)));
     findings
 }
 
-fn evaluate_class(
-    registry: &ClassRegistry,
-    defs: &[DefinitionRecord],
-    sub_idx: ClassIndex,
-    abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>,
-    t: &AuditThresholds,
-) -> Option<AuditFinding> {
-    let subclass = registry.get(sub_idx)?;
+fn evaluate_class(ctx: &RbCtx, sub_idx: ClassIndex) -> Option<AuditFinding> {
+    let subclass = ctx.registry.get(sub_idx)?;
     subclass.parent_class.as_ref()?;
-    let parents = registry.lookup_parent(sub_idx);
+    let parents = ctx.registry.lookup_parent(sub_idx);
     let parent_idx = parents.first().copied()?;
-    let parent = registry.get(parent_idx)?;
+    let parent = ctx.registry.get(parent_idx)?;
     if subclass.name == parent.name {
         return None;
     }
-    if parent_is_abstract(parent, abstractness_of) {
+    if parent_is_abstract(parent, ctx.abstractness_of) {
         return None;
     }
-    let parent_method_count = count_non_ctor_methods(registry, parent_idx, defs);
-    let rt = &t.named_smells.refused_bequest;
+    let parent_method_count = count_non_ctor_methods(ctx.registry, parent_idx, ctx.defs);
+    let rt = &ctx.t.named_smells.refused_bequest;
     if parent_method_count < rt.min_parent_methods {
         return None;
     }
-    let override_count = count_overrides(registry, defs, sub_idx, parent_idx);
+    let override_count = count_overrides(ctx.registry, ctx.defs, sub_idx, parent_idx);
     let override_ratio = f64::from(override_count) / f64::from(parent_method_count);
-    if override_ratio >= rt.max_override_ratio {
+    let used = inherited_usage(ctx, sub_idx, parent_idx);
+    if f64::from(used) / f64::from(parent_method_count) >= rt.max_override_ratio {
         return None;
     }
     Some(AuditFinding {
@@ -72,6 +73,24 @@ fn evaluate_class(
         p_value: None,
         locations: Vec::new(),
     })
+}
+
+fn inherited_usage(ctx: &RbCtx, sub_idx: ClassIndex, parent_idx: ClassIndex) -> u32 {
+    let parent_names = method_names(ctx.registry, ctx.defs, parent_idx);
+    let sub_names = method_names(ctx.registry, ctx.defs, sub_idx);
+    let mut used: HashSet<String> = parent_names.intersection(&sub_names).cloned().collect();
+    let Some(parent) = ctx.registry.get(parent_idx) else {
+        return used.len() as u32;
+    };
+    for m in ctx.registry.methods_in(sub_idx) {
+        for edge in ctx.graph.adjacency.outgoing(*m) {
+            let Some(target) = ctx.graph.registry.get(edge.target) else { continue };
+            if target.class.as_deref() == Some(parent.name.as_str()) && parent_names.contains(&target.name) {
+                used.insert(target.name.clone());
+            }
+        }
+    }
+    used.len() as u32
 }
 
 fn parent_is_abstract(parent: &ClassIdentity, abstractness_of: &dyn Fn(&std::path::Path) -> Option<f64>) -> bool {

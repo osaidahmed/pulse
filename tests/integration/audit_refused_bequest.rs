@@ -38,7 +38,28 @@ fn detect_with(
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
     let abstractness = |_: &std::path::Path| -> Option<f64> { None };
-    detect(&registry, &defs, &abstractness, audit_t)
+    detect(&registry, &defs, &graph, &abstractness, audit_t)
+}
+
+#[test]
+fn subclass_that_calls_inherited_methods_does_not_refuse_bequest() {
+    use pulse::audit::call_walker::LocatedCall;
+    use pulse::audit::calls::RawCall;
+    let mut defs: Vec<DefinitionRecord> =
+        (0..4).map(|i| def("base.py", "Base", &format!("m{i}"), 10 + i, None, false)).collect();
+    let child = def("child.py", "Child", "extra", 1, Some("Base"), false);
+    defs.push(child.clone());
+    let call = |name: &str, line: u32| LocatedCall {
+        call: RawCall { callee_name: name.to_string(), receiver_hint: Some("Base".to_string()), line },
+        caller: Some(child.identity.clone()),
+        file: child.identity.file.clone(),
+    };
+    let calls = vec![call("m0", 2), call("m1", 3)];
+    let graph = CallGraph::build(defs.clone(), calls);
+    let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
+    let abstractness = |_: &std::path::Path| -> Option<f64> { None };
+    let findings = detect(&registry, &defs, &graph, &abstractness, &t().audit);
+    assert!(findings.is_empty(), "a subclass that calls inherited methods is using its bequest, not refusing it");
 }
 
 #[test]
