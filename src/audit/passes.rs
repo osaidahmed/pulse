@@ -36,6 +36,7 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
             found.extend(freshness::run_from(ctx.root, ctx.cache_dir, ctx.online, &ctx.thresholds.freshness));
             found.extend(vuln_deps::run_from(
                 ctx.root,
+                ctx.shared,
                 ctx.cache_dir,
                 ctx.online,
                 ctx.thresholds.freshness.max_findings,

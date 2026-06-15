@@ -138,6 +138,7 @@ pub struct VulnDepEvidence {
     pub name: String,
     pub version: String,
     pub advisory_ids: Vec<String>,
+    pub reachable: bool,
     pub confidence: ImportConfidence,
 }
 

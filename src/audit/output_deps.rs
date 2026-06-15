@@ -73,6 +73,7 @@ pub fn dispatch_json(f: &AuditFinding, root: Option<&Path>) -> Option<serde_json
             "name": e.name,
             "version": e.version,
             "advisories": e.advisory_ids,
+            "reachable": e.reachable,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::PhantomDependency(e) => Some(serde_json::json!({
@@ -166,6 +167,8 @@ fn write_vuln(out: &mut String, e: &VulnDepEvidence, root: Option<&Path>, action
     let _ = writeln!(out, "audit: vulnerable dependency — {} {}", e.name, e.version);
     let _ = writeln!(out, "  declared at:   {}:{}", display_path(&e.manifest, root), e.line);
     let _ = writeln!(out, "  advisories:    {}", e.advisory_ids.join(", "));
+    let reach = if e.reachable { "imported in analyzed source" } else { "not imported — likely unreachable" };
+    let _ = writeln!(out, "  reachability:  {reach}");
     let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
     if !action.is_empty() {
         let _ = writeln!(out, "  action:        {action}");

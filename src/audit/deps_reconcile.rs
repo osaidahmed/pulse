@@ -10,7 +10,7 @@ use super::corpus::Corpus;
 use super::finding::{AuditFinding, AuditKind, BloatedDepEvidence, ImportConfidence, PhantomDepEvidence};
 use super::imports::extract_imports;
 
-struct ImportedRoots {
+pub(super) struct ImportedRoots {
     by_eco: HashMap<Ecosystem, HashSet<String>>,
     first_seen: HashMap<(Ecosystem, String), (PathBuf, u32)>,
     go_targets: Vec<String>,
@@ -30,7 +30,7 @@ pub fn run_from(corpus: &Corpus, root: &Path, _thresholds: &AuditThresholds) -> 
     findings
 }
 
-fn collect_imports(corpus: &Corpus) -> ImportedRoots {
+pub(super) fn collect_imports(corpus: &Corpus) -> ImportedRoots {
     let mut imported = ImportedRoots { by_eco: HashMap::new(), first_seen: HashMap::new(), go_targets: Vec::new() };
     for file in &corpus.files {
         let Some(eco) = ecosystem_for(file.lang) else { continue };
@@ -86,7 +86,7 @@ fn bloat_unverifiable(eco: Ecosystem) -> bool {
     eco == Ecosystem::RubyGems
 }
 
-fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
+pub(super) fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
     let empty = HashSet::new();
     let roots = imported.by_eco.get(&eco).unwrap_or(&empty);
     if roots.contains(name) {

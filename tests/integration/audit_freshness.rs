@@ -1,8 +1,10 @@
 use std::fs;
 
-use pulse::audit::finding::AuditKind;
+use pulse::audit::corpus::Corpus;
+use pulse::audit::finding::{AuditKind, ImportConfidence};
 use pulse::audit::freshness::{assess, run_from};
 use pulse::audit::vuln_deps;
+use pulse::parse::Language;
 use pulse::registry::{parse_package, parse_version_detail, FreshnessThresholds, PackageInfo, VersionInfo, VersionKey};
 
 fn ver(version: &str, published_at: &str, is_default: bool) -> VersionInfo {
@@ -92,8 +94,7 @@ fn parse_version_detail_reads_advisory_keys() {
     assert_eq!(d.advisory_keys[0].id, "GHSA-aaaa");
 }
 
-#[test]
-fn vuln_deps_flags_a_cached_vulnerable_version_without_network() {
+fn lodash_project() -> (tempfile::TempDir, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("package.json"), r#"{"name":"app","dependencies":{"lodash":"^4.17.0"}}"#).unwrap();
     fs::write(
@@ -101,24 +102,49 @@ fn vuln_deps_flags_a_cached_vulnerable_version_without_network() {
         r#"{"lockfileVersion":3,"packages":{"node_modules/lodash":{"version":"4.17.11"}}}"#,
     )
     .unwrap();
-
     let cache = tempfile::tempdir().unwrap();
     fs::write(
         cache.path().join("npm__lodash__4.17.11.json"),
         r#"{"advisoryKeys":[{"id":"GHSA-jf85-cpcp-j695"},{"id":"GHSA-p6mc-m468-83gw"}]}"#,
     )
     .unwrap();
+    (dir, cache)
+}
 
-    let findings = vuln_deps::run_from(dir.path(), cache.path(), false, 30);
-    let vulns: Vec<_> = findings
+fn vuln_evidence(findings: &[pulse::audit::finding::AuditFinding]) -> Vec<&pulse::audit::finding::VulnDepEvidence> {
+    findings
         .iter()
         .filter_map(|f| match &f.kind {
             AuditKind::VulnerableDependency(e) => Some(e),
             _ => None,
         })
-        .collect();
-    assert_eq!(vulns.len(), 1, "{findings:#?}");
+        .collect()
+}
+
+#[test]
+fn vuln_deps_flags_a_reachable_cached_vulnerable_version_without_network() {
+    let (dir, cache) = lodash_project();
+    fs::write(dir.path().join("index.js"), "const _ = require('lodash');\n_.merge({}, {});\n").unwrap();
+    let corpus = Corpus::load(&[(dir.path().join("index.js"), Language::JavaScript)]);
+
+    let findings = vuln_deps::run_from(dir.path(), &corpus, cache.path(), false, 30);
+    let vulns = vuln_evidence(&findings);
+    assert_eq!(vulns.len(), 1);
     assert_eq!(vulns[0].name, "lodash");
     assert_eq!(vulns[0].version, "4.17.11");
     assert_eq!(vulns[0].advisory_ids.len(), 2);
+    assert!(vulns[0].reachable, "lodash is imported, so the advisory is reachable");
+    assert_eq!(vulns[0].confidence, ImportConfidence::High);
+}
+
+#[test]
+fn vuln_on_an_unimported_dependency_is_downgraded_as_unreachable() {
+    let (dir, cache) = lodash_project();
+    let corpus = Corpus::load(&[]);
+
+    let findings = vuln_deps::run_from(dir.path(), &corpus, cache.path(), false, 30);
+    let vulns = vuln_evidence(&findings);
+    assert_eq!(vulns.len(), 1);
+    assert!(!vulns[0].reachable, "lodash is never imported, so the advisory is unreachable");
+    assert_eq!(vulns[0].confidence, ImportConfidence::Low);
 }
