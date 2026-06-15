@@ -3,12 +3,24 @@ use super::jit_thresholds::JitThresholds;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HistoryThresholds {
     pub co_change: CoChangeThresholds,
+    pub build_co_change: BuildCoChangeThresholds,
     pub hotspot: HotspotThresholds,
     pub contributors: ContributorThresholds,
     pub hist: HistSmellThresholds,
     pub arch_trend: bool,
     pub max_commit_files: u32,
     pub jit: JitThresholds,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BuildCoChangeThresholds {
+    pub min_support: u32,
+    pub min_ratio: f64,
+    pub max_findings_reported: u32,
+}
+
+impl BuildCoChangeThresholds {
+    pub const DEFAULTS: Self = Self { min_support: 3, min_ratio: 0.5, max_findings_reported: 15 };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -69,6 +81,7 @@ impl HistSmellThresholds {
 impl HistoryThresholds {
     pub const DEFAULTS: Self = Self {
         co_change: CoChangeThresholds::DEFAULTS,
+        build_co_change: BuildCoChangeThresholds::DEFAULTS,
         hotspot: HotspotThresholds::DEFAULTS,
         contributors: ContributorThresholds::DEFAULTS,
         hist: HistSmellThresholds::DEFAULTS,

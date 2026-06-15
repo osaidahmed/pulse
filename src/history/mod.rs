@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub mod arch_trend;
+pub mod build_co_change;
 pub mod cmd;
 pub mod co_change;
 pub mod contributors;
@@ -13,6 +14,7 @@ pub mod hotspots;
 pub mod jit_risk;
 pub mod jit_thresholds;
 pub mod output;
+pub mod output_json;
 pub mod thresholds;
 
 use finding::HistoryFinding;
@@ -61,7 +63,9 @@ pub fn run_with_filter(
     let pairs = co_change::mine(&commits, t);
     let scope = co_change::revisions_in_scope(&commits, t);
     let hist = hist_smells::rank(&commits, &pairs, &scope, &typed_paths, t);
+    let build_drift = build_co_change::rank_build_drift(&pairs, &scope, &typed_paths, t);
     let mut findings = co_change::rank_drift(pairs, &scope, &graph, &typed_paths, t);
+    findings.extend(build_drift);
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
     findings.extend(hist);

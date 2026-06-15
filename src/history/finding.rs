@@ -15,6 +15,18 @@ pub enum HistoryKind {
     ChangeShotgun(ChangeShotgunEvidence),
     CatalystWarning(CatalystEvidence),
     DecayTrend(DecayEvidence),
+    BuildCoChange(BuildCoChangeEvidence),
+}
+
+#[derive(Debug, Clone)]
+pub struct BuildCoChangeEvidence {
+    pub build_file: PathBuf,
+    pub source_file: PathBuf,
+    pub support: u32,
+    pub source_revisions: u32,
+    pub ratio: f64,
+    pub last_seen_unix: i64,
+    pub distinct_authors: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +103,7 @@ pub struct VariantInfo {
     pub action: &'static str,
 }
 
-const VARIANT_TABLE: [VariantInfo; 7] = [
+const VARIANT_TABLE: [VariantInfo; 8] = [
     VariantInfo {
         pillar: HistoryPillar::Drift,
         slug: "architectural_drift",
@@ -134,6 +146,12 @@ const VARIANT_TABLE: [VariantInfo; 7] = [
         label: "decaying cycle",
         action: "this dependency cycle is growing across history — break it before it absorbs more modules",
     },
+    VariantInfo {
+        pillar: HistoryPillar::Evolution,
+        slug: "build_co_change",
+        label: "build co-change coupling",
+        action: "when you change this source file, check whether the build manifest needs updating too",
+    },
 ];
 
 pub fn variant_info(k: &HistoryKind) -> VariantInfo {
@@ -146,8 +164,15 @@ fn variant_index(k: &HistoryKind) -> usize {
         HistoryKind::Hotspot(_) => 1,
         HistoryKind::KnowledgeFragmentation(_) => 2,
         HistoryKind::FileBlob(_) => 3,
+        _ => late_variant_index(k),
+    }
+}
+
+fn late_variant_index(k: &HistoryKind) -> usize {
+    match k {
         HistoryKind::ChangeShotgun(_) => 4,
         HistoryKind::CatalystWarning(_) => 5,
         HistoryKind::DecayTrend(_) => 6,
+        _ => 7,
     }
 }

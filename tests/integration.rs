@@ -372,6 +372,8 @@ mod haskell_stress;
 mod hist_crossval;
 #[path = "integration/history_arch_trend.rs"]
 mod history_arch_trend;
+#[path = "integration/history_build_co_change.rs"]
+mod history_build_co_change;
 #[path = "integration/history_cli.rs"]
 mod history_cli;
 #[path = "integration/history_cli_overrides.rs"]
