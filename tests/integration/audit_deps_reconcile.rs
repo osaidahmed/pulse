@@ -50,6 +50,18 @@ fn project(files: &[(&str, &str)]) -> tempfile::TempDir {
 }
 
 #[test]
+fn ruby_gems_are_not_flagged_bloated() {
+    let dir = project(&[
+        ("Gemfile", "source 'https://rubygems.org'\ngem 'rails'\ngem 'nokogiri'\n"),
+        ("app/main.rb", "puts 'hello'\n"),
+    ]);
+    assert!(
+        bloated_names(&run_deps(dir.path())).is_empty(),
+        "Bundler.require auto-loads gems, so a never-`require`d gem is not verifiably bloated"
+    );
+}
+
+#[test]
 fn cargo_unused_dependency_is_bloated() {
     let dir = project(&[
         (

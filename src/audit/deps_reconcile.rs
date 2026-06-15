@@ -70,7 +70,7 @@ fn is_bloated(
     imported: &ImportedRoots,
     corpus: &Corpus,
 ) -> bool {
-    if dep.own || dep.scope != DepScope::Deployed {
+    if dep.own || dep.scope != DepScope::Deployed || bloat_unverifiable(manifest.ecosystem) {
         return false;
     }
     let name = normalize(&dep.name);
@@ -80,6 +80,10 @@ fn is_bloated(
         return false;
     }
     !is_imported(manifest.ecosystem, &name, imported) && !is_referenced_in_source(&dep.name, corpus)
+}
+
+fn bloat_unverifiable(eco: Ecosystem) -> bool {
+    eco == Ecosystem::RubyGems
 }
 
 fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {

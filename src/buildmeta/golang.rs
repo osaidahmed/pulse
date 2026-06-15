@@ -17,7 +17,8 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
                 line: lineno,
                 own: true,
             });
-        } else if let Some(dep) = block_spec(line, "require", &mut in_require_block).and_then(|s| module_dep(s, lineno))
+        } else if let Some(dep) =
+            block_spec(line, "require", &mut in_require_block).and_then(|s| module_dep(s, lineno, is_indirect(raw)))
         {
             deps.push(dep);
         }
@@ -45,14 +46,19 @@ fn block_spec<'a>(line: &'a str, keyword: &str, in_block: &mut bool) -> Option<&
     line.strip_prefix(&format!("{keyword} ")).map(str::trim)
 }
 
-fn module_dep(spec: &str, line: u32) -> Option<DeclaredDep> {
+fn module_dep(spec: &str, line: u32, indirect: bool) -> Option<DeclaredDep> {
     let mut parts = spec.split_whitespace();
     let name = parts.next()?;
     if !name.contains('/') && !name.contains('.') {
         return None;
     }
     let constraint = parts.next().unwrap_or_default().to_string();
-    Some(DeclaredDep { name: name.to_string(), constraint, scope: DepScope::Deployed, line, own: false })
+    let scope = if indirect { DepScope::Build } else { DepScope::Deployed };
+    Some(DeclaredDep { name: name.to_string(), constraint, scope, line, own: false })
+}
+
+fn is_indirect(raw: &str) -> bool {
+    raw.split_once("//").is_some_and(|(_, comment)| comment.contains("indirect"))
 }
 
 pub(super) fn parse_workspace(path: &Path, source: &str) -> Option<Manifest> {

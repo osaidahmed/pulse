@@ -151,6 +151,23 @@ fn empty_root_yields_empty_metadata() {
 }
 
 #[test]
+fn go_indirect_deps_are_build_scoped() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("go.mod"),
+        "module example.com/x\n\ngo 1.21\n\nrequire (\n\texample.com/direct v1.0.0\n\texample.com/transitive v1.0.0 // indirect\n)\n",
+    )
+    .unwrap();
+    let meta = discover(dir.path());
+    assert_eq!(dep(&meta, "example.com/direct").scope, DepScope::Deployed);
+    assert_eq!(
+        dep(&meta, "example.com/transitive").scope,
+        DepScope::Build,
+        "// indirect deps are transitive pins, build-scoped so they are exempt from bloated-dependency"
+    );
+}
+
+#[test]
 fn compile_db_extracts_defines_and_includes_from_both_forms() {
     let dir = tempfile::tempdir().unwrap();
     let ccj = "[\
