@@ -377,3 +377,25 @@ fn ruby_proc_call_shorthand_receiver_is_not_a_sink() {
         "`execute.(q)` is Proc#call sugar; the receiver is not a method-named sink"
     );
 }
+
+#[test]
+fn python_django_request_source_to_sink_is_flagged() {
+    let body = "def view(request, cursor):\n    name = request.GET\n    cursor.execute(name)\n";
+    let found = taint_findings("views.py", body);
+    assert_eq!(found.len(), 1, "django request.GET is a taint source: {found:?}");
+    assert_eq!(found[0].source_name, "request.GET");
+    assert_eq!(found[0].sink_name, "execute");
+}
+
+#[test]
+fn python_flask_request_args_to_sink_is_flagged() {
+    let body = "def handler(cursor):\n    q = request.args\n    cursor.execute(q)\n";
+    let found = taint_findings("app.py", body);
+    assert_eq!(found.len(), 1, "flask request.args is a taint source: {found:?}");
+}
+
+#[test]
+fn python_sanitized_request_source_is_not_flagged() {
+    let body = "def view(request, cursor):\n    q = escape(request.GET)\n    cursor.execute(q)\n";
+    assert!(taint_findings("views.py", body).is_empty(), "a sanitized web source is safe");
+}
