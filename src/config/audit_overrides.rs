@@ -30,6 +30,21 @@ pub struct NaturalnessConfig {
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]
 #[serde(deny_unknown_fields)]
+pub struct NamedSmellsConfig {
+    #[serde(default)]
+    pub god_class: GodClassConfig,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct GodClassConfig {
+    pub wmc: Option<u32>,
+    pub tcc: Option<f64>,
+    pub atfd: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
 pub struct PackageMetricsConfig {
     pub martin_distance_warning: Option<f64>,
     pub martin_distance_alert: Option<f64>,

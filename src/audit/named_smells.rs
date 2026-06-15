@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::parse::Language;
@@ -7,14 +7,26 @@ use crate::thresholds::AuditThresholds;
 use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
 use super::call_walker::LocatedCall;
 use super::class_registry::ClassRegistry;
+use super::component_thresholds;
+use super::corpus::Corpus;
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence};
+use super::inheritance::InheritanceGraph;
 
 pub fn run(typed_files: &[(PathBuf, Language)], root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
-    run_from(&super::corpus::Corpus::load(typed_files), root, thresholds)
+    run_from(&Corpus::load(typed_files), root, thresholds)
 }
 
-pub fn run_from(corpus: &super::corpus::Corpus, _root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+struct NamedContext<'a> {
+    corpus: &'a Corpus,
+    definitions: Vec<DefinitionRecord>,
+    graph: CallGraph,
+    registry: ClassRegistry,
+    method_idx_lookup: HashMap<MethodIndex, usize>,
+    inh: InheritanceGraph,
+}
+
+pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     use rayon::prelude::*;
     let extracted: Vec<(Vec<DefinitionRecord>, Vec<LocatedCall>)> = corpus
         .files
@@ -31,19 +43,39 @@ pub fn run_from(corpus: &super::corpus::Corpus, _root: &Path, thresholds: &Audit
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
     let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
     let inh = super::inheritance::build_inheritance_graph(&registry);
+    let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh };
+    let strata = component_thresholds::nested_strata(corpus, root);
     let mut all = Vec::new();
-    all.extend(detect_shotgun_surgery(&graph, thresholds));
-    all.extend(super::detector_divergent_change::detect(&registry, &graph, thresholds));
-    all.extend(super::detector_feature_envy::detect(&definitions, &graph, thresholds));
-    all.extend(super::detector_god_class::detect(&registry, &definitions, &method_idx_lookup, thresholds));
-    all.extend(super::detector_parallel_inheritance::detect(&registry, &inh, thresholds));
-    let file_lang = |path: &std::path::Path| -> Option<Language> { corpus.get(path).map(|f| f.lang) };
-    let abstractness_of = |path: &std::path::Path| -> Option<f64> {
-        let file = corpus.get(path)?;
+    if strata.is_empty() {
+        all = detect_named(&ctx, thresholds);
+    } else {
+        let root_owned =
+            detect_named(&ctx, thresholds).into_iter().filter(|f| component_thresholds::is_root_owned(f, &strata));
+        all.extend(root_owned);
+        for stratum in &strata {
+            let owned = detect_named(&ctx, &stratum.thresholds)
+                .into_iter()
+                .filter(|f| component_thresholds::is_owned_by(f, &stratum.dir, &strata));
+            all.extend(owned);
+        }
+    }
+    let file_lang = |path: &Path| -> Option<Language> { corpus.get(path).map(|f| f.lang) };
+    apply_named_confidence(&mut all, &file_lang);
+    all
+}
+
+fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
+    let abstractness_of = |path: &Path| -> Option<f64> {
+        let file = ctx.corpus.get(path)?;
         super::abstractness::abstractness_from_parsed(file.tree.as_ref(), file.lang).abstractness
     };
-    all.extend(super::detector_refused_bequest::detect(&registry, &definitions, &abstractness_of, thresholds));
-    apply_named_confidence(&mut all, &file_lang);
+    let mut all = Vec::new();
+    all.extend(detect_shotgun_surgery(&ctx.graph, thresholds));
+    all.extend(super::detector_divergent_change::detect(&ctx.registry, &ctx.graph, thresholds));
+    all.extend(super::detector_feature_envy::detect(&ctx.definitions, &ctx.graph, thresholds));
+    all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
+    all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
+    all.extend(super::detector_refused_bequest::detect(&ctx.registry, &ctx.definitions, &abstractness_of, thresholds));
     all
 }
 

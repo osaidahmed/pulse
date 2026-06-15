@@ -1,12 +1,12 @@
 use crate::parse::Language;
 use crate::thresholds::{
-    AuditThresholds, CloneClusterThresholds, NaturalnessThresholds, PackageMetricsThresholds, TaintThresholds,
-    Thresholds,
+    AuditThresholds, CloneClusterThresholds, GodClassThresholds, NamedSmellThresholds, NaturalnessThresholds,
+    PackageMetricsThresholds, TaintThresholds, Thresholds,
 };
 
 use super::{
-    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, NaturalnessConfig, PackageMetricsConfig,
-    PulseConfig, TaintConfig,
+    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, GodClassConfig, NamedSmellsConfig,
+    NaturalnessConfig, PackageMetricsConfig, PulseConfig, TaintConfig,
 };
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -87,8 +87,13 @@ fn resolve_audit(base: &AuditThresholds, o: &ConfigThresholds) -> AuditThreshold
         taint: resolve_taint(&o.taint, &base.taint),
         clone_cluster: resolve_clone_cluster(&o.clone_cluster, &base.clone_cluster),
         naturalness: resolve_naturalness(&o.naturalness, &base.naturalness),
+        named_smells: resolve_named_smells(&o.named_smells, &base.named_smells),
         ..*base
     }
+}
+
+fn resolve_named_smells(o: &NamedSmellsConfig, base: &NamedSmellThresholds) -> NamedSmellThresholds {
+    NamedSmellThresholds { god_class: resolve_god_class(&o.god_class, &base.god_class), ..*base }
 }
 
 fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresholds) -> PackageMetricsThresholds {
@@ -149,5 +154,10 @@ field_resolvers! {
         jm_gamma <- jm_gamma,
         min_fn_tokens <- min_fn_tokens,
         zscore_cutoff <- zscore_cutoff,
+    }
+    fn resolve_god_class(GodClassConfig => GodClassThresholds) {
+        wmc <- wmc,
+        tcc <- tcc,
+        atfd <- atfd,
     }
 }

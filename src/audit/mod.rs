@@ -10,6 +10,7 @@ pub mod centrality;
 pub mod class_registry;
 pub mod community;
 pub mod complexity_floor;
+pub mod component_thresholds;
 pub mod components;
 pub mod compound;
 pub mod confidence;

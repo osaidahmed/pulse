@@ -13,7 +13,9 @@ pub use crate::config_history::{
 
 mod audit_overrides;
 mod resolve;
-pub use audit_overrides::{CloneClusterConfig, NaturalnessConfig, PackageMetricsConfig, TaintConfig};
+pub use audit_overrides::{
+    CloneClusterConfig, GodClassConfig, NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig, TaintConfig,
+};
 pub use resolve::{resolve_base_thresholds, resolve_thresholds};
 
 const CONFIG_FILENAME: &str = ".pulse.toml";
@@ -69,6 +71,8 @@ pub struct ConfigThresholds {
     pub clone_cluster: CloneClusterConfig,
     #[serde(default)]
     pub naturalness: NaturalnessConfig,
+    #[serde(default)]
+    pub named_smells: NamedSmellsConfig,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -248,6 +252,11 @@ pub fn find_config(start: &Path) -> Option<PathBuf> {
         }
         dir = dir.parent()?;
     }
+}
+
+pub fn local_config(dir: &Path) -> Option<PathBuf> {
+    let candidate = dir.join(CONFIG_FILENAME);
+    candidate.is_file().then_some(candidate)
 }
 
 pub fn load_config(start: &Path) -> Option<PulseConfig> {

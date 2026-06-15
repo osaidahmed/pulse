@@ -94,6 +94,8 @@ mod audit_class_registry;
 mod audit_clones;
 #[path = "integration/audit_community.rs"]
 mod audit_community;
+#[path = "integration/audit_component_thresholds.rs"]
+mod audit_component_thresholds;
 #[path = "integration/audit_components.rs"]
 mod audit_components;
 #[path = "integration/audit_constraint_smells.rs"]
