@@ -209,6 +209,40 @@ fn go_receiver_method_call_resolves_via_enrichment() {
 }
 
 #[test]
+fn go_struct_embedding_is_extracted_as_parents() {
+    let src = "package p\ntype Base struct {}\ntype Server struct {\n\t*Base\n\tname string\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let server = class_binding(&out, "Server").expect("Server class");
+    assert!(server.parents.contains(&"Base".to_string()), "embedded type is a parent");
+    assert!(!server.parents.contains(&"name".to_string()), "named field is not an embedded parent");
+}
+
+#[test]
+fn go_promoted_method_resolves_via_embedded_type() {
+    let src = "package p\ntype Base struct {}\nfunc (b *Base) Helper() {}\ntype Server struct {\n\t*Base\n}\nfunc (s *Server) Run() {\n\ts.Helper()\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let idx = bound
+        .registry
+        .methods
+        .iter()
+        .position(|m| m.class.as_deref() == Some("Server") && m.name == "Run")
+        .map(|i| MethodIndex(i as u32))
+        .expect("Server.Run definition");
+    let targets: Vec<_> = bound
+        .adjacency
+        .outgoing(idx)
+        .iter()
+        .filter_map(|e| bound.registry.get(e.target))
+        .filter(|m| m.name == "Helper")
+        .collect();
+    assert_eq!(targets.len(), 1, "s.Helper() resolves to the embedded Base.Helper via the ancestor walk");
+    assert_eq!(targets[0].class.as_deref(), Some("Base"));
+}
+
+#[test]
 fn cpp_binds_class_members_and_parents() {
     let src = "class Widget : public Base {\n  Foo helper;\n  Bar* ptr;\n  int count;\n};\n";
     let (_d, corpus) = one_source(src, "sample.cpp", Language::Cpp);

@@ -50,6 +50,7 @@ const CLASS_KINDS: &[&str] = &[
     "struct_item",
     "enum_item",
     "type_definition",
+    "type_spec",
 ];
 
 pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {

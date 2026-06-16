@@ -53,8 +53,24 @@ pub fn class_field_types(_class_node: Node, _source: &str) -> TypeEnv {
     TypeEnv::new()
 }
 
-pub fn class_parents(_class_node: Node, _source: &str) -> Vec<String> {
-    Vec::new()
+pub fn class_parents(class_node: Node, source: &str) -> Vec<String> {
+    let Some(st) = find_child_by_kind(class_node, "struct_type") else {
+        return Vec::new();
+    };
+    let Some(fdl) = find_child_by_kind(st, "field_declaration_list") else {
+        return Vec::new();
+    };
+    let mut parents = Vec::new();
+    let mut cursor = fdl.walk();
+    for fd in fdl.children(&mut cursor) {
+        if fd.kind() != "field_declaration" || fd.child_by_field_name("name").is_some() {
+            continue;
+        }
+        if let Some(ty) = fd.child_by_field_name("type").and_then(|t| type_head(t, source)) {
+            parents.push(ty);
+        }
+    }
+    parents
 }
 
 fn type_param_names(method_node: Node, source: &str) -> BTreeSet<String> {
