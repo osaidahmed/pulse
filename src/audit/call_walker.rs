@@ -150,7 +150,8 @@ fn maybe_push_method(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>,
         return false;
     }
     let name = identifier_in(node, ctx.source).unwrap_or_else(|| "<anonymous>".to_string());
-    let class = stack.iter().rev().find_map(|f| f.class.clone());
+    let class =
+        binding::caller_class(node, ctx.source, ctx.lang).or_else(|| stack.iter().rev().find_map(|f| f.class.clone()));
     let identity =
         MethodIdentity { file: ctx.path.to_path_buf(), class, name, line: node.start_position().row as u32 + 1 };
     if binding::supports(ctx.lang) {

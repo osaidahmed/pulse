@@ -209,6 +209,40 @@ fn go_receiver_method_call_resolves_via_enrichment() {
 }
 
 #[test]
+fn go_struct_named_fields_are_bound() {
+    let src = "package p\ntype Server struct {\n\tconn Conn\n\tname string\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let server = class_binding(&out, "Server").expect("Server class");
+    assert_eq!(server.fields.get("conn").map(String::as_str), Some("Conn"));
+    assert!(server.fields.get("name").is_none(), "string primitive field not bound");
+}
+
+#[test]
+fn go_struct_field_typed_call_resolves() {
+    let src = "package p\ntype Conn struct {}\nfunc (c *Conn) Send() {}\ntype Server struct {\n\tconn Conn\n}\nfunc (s *Server) Run() {\n\ts.conn.Send()\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let idx = bound
+        .registry
+        .methods
+        .iter()
+        .position(|m| m.class.as_deref() == Some("Server") && m.name == "Run")
+        .map(|i| MethodIndex(i as u32))
+        .expect("Server.Run definition");
+    let targets: Vec<_> = bound
+        .adjacency
+        .outgoing(idx)
+        .iter()
+        .filter_map(|e| bound.registry.get(e.target))
+        .filter(|m| m.name == "Send")
+        .collect();
+    assert_eq!(targets.len(), 1, "s.conn.Send() resolves to Conn.Send via struct-field binding");
+    assert_eq!(targets[0].class.as_deref(), Some("Conn"));
+}
+
+#[test]
 fn go_struct_embedding_is_extracted_as_parents() {
     let src = "package p\ntype Base struct {}\ntype Server struct {\n\t*Base\n\tname string\n}\n";
     let (_d, corpus) = one_source(src, "sample.go", Language::Go);

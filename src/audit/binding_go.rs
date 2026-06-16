@@ -49,15 +49,36 @@ pub fn method_var_types(method_node: Node, source: &str) -> TypeEnv {
     builder.into_env(&type_param_names(method_node, source))
 }
 
-pub fn class_field_types(_class_node: Node, _source: &str) -> TypeEnv {
-    TypeEnv::new()
+pub fn caller_class(method_node: Node, source: &str) -> Option<String> {
+    let receiver = method_node.child_by_field_name("receiver")?;
+    let param = find_child_by_kind(receiver, "parameter_declaration")?;
+    if let Some(ti) = find_child_by_kind(param, "type_identifier") {
+        return Some(node_text(ti, source).to_string());
+    }
+    let ptr = find_child_by_kind(param, "pointer_type")?;
+    let ti = find_child_by_kind(ptr, "type_identifier")?;
+    Some(node_text(ti, source).to_string())
+}
+
+pub fn class_field_types(class_node: Node, source: &str) -> TypeEnv {
+    let mut builder = EnvBuilder::default();
+    let Some(fdl) = struct_fields(class_node) else {
+        return builder.into_env(&BTreeSet::new());
+    };
+    let mut cursor = fdl.walk();
+    for fd in fdl.children(&mut cursor) {
+        if fd.kind() != "field_declaration" {
+            continue;
+        }
+        if let Some(ty) = fd.child_by_field_name("type").and_then(|t| type_head(t, source)) {
+            bind_field_idents(fd, source, &ty, &mut builder);
+        }
+    }
+    builder.into_env(&BTreeSet::new())
 }
 
 pub fn class_parents(class_node: Node, source: &str) -> Vec<String> {
-    let Some(st) = find_child_by_kind(class_node, "struct_type") else {
-        return Vec::new();
-    };
-    let Some(fdl) = find_child_by_kind(st, "field_declaration_list") else {
+    let Some(fdl) = struct_fields(class_node) else {
         return Vec::new();
     };
     let mut parents = Vec::new();
@@ -71,6 +92,20 @@ pub fn class_parents(class_node: Node, source: &str) -> Vec<String> {
         }
     }
     parents
+}
+
+fn struct_fields(class_node: Node) -> Option<Node> {
+    let st = find_child_by_kind(class_node, "struct_type")?;
+    find_child_by_kind(st, "field_declaration_list")
+}
+
+fn bind_field_idents(fd: Node, source: &str, ty: &str, builder: &mut EnvBuilder) {
+    let mut cursor = fd.walk();
+    for c in fd.children(&mut cursor) {
+        if c.kind() == "field_identifier" {
+            builder.bind(node_text(c, source).to_string(), ty.to_string());
+        }
+    }
 }
 
 fn type_param_names(method_node: Node, source: &str) -> BTreeSet<String> {

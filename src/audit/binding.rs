@@ -200,6 +200,13 @@ pub fn class_parents(class_node: Node, source: &str, lang: Language) -> Vec<Stri
     binder_for(lang).map_or_else(Vec::new, |b| (b.class_parents)(class_node, source))
 }
 
+pub fn caller_class(method_node: Node, source: &str, lang: Language) -> Option<String> {
+    match lang {
+        Language::Go => super::binding_go::caller_class(method_node, source),
+        _ => None,
+    }
+}
+
 pub fn supports(lang: Language) -> bool {
     binder_for(lang).is_some()
 }
