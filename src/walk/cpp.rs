@@ -108,6 +108,7 @@ fn collect_class_methods(class_node: Node, source: &str, functions: &mut Vec<Fun
 
 fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
     let name = extract_function_name(node, source);
+    let class_name = class_from_qualified(&name);
 
     let start_line = node.start_position().row as u32 + 1;
     let end_line = node.end_position().row as u32 + 1;
@@ -155,9 +156,21 @@ fn analyze_function(node: Node, source: &str) -> Option<FunctionMetrics> {
             &["string_literal", "raw_string_literal", "concatenated_string"],
             &[],
         ),
+        class_name,
         cpg,
         ..Default::default()
     })
+}
+
+fn class_from_qualified(name: &str) -> Option<String> {
+    let idx = name.rfind("::")?;
+    let class_part = &name[..idx];
+    let class = class_part.rsplit("::").next().unwrap_or(class_part);
+    if class.is_empty() {
+        None
+    } else {
+        Some(class.to_string())
+    }
 }
 
 const NAME_KINDS: &[&str] = &["identifier", "field_identifier", "qualified_identifier", "destructor_name"];

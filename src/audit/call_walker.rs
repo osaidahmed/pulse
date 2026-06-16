@@ -40,6 +40,8 @@ const FUNCTION_KINDS: &[&str] = &[
 const CLASS_KINDS: &[&str] = &[
     "class_definition",
     "class_declaration",
+    "class_specifier",
+    "struct_specifier",
     "impl_item",
     "interface_declaration",
     "trait_item",

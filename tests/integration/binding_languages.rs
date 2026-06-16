@@ -209,6 +209,51 @@ fn go_receiver_method_call_resolves_via_enrichment() {
 }
 
 #[test]
+fn cpp_binds_class_members_and_parents() {
+    let src = "class Widget : public Base {\n  Foo helper;\n  Bar* ptr;\n  int count;\n};\n";
+    let (_d, corpus) = one_source(src, "sample.cpp", Language::Cpp);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let w = class_binding(&out, "Widget").expect("widget");
+    assert_eq!(w.fields.get("helper").map(String::as_str), Some("Foo"));
+    assert_eq!(w.fields.get("ptr").map(String::as_str), Some("Bar"), "pointer field binds to its pointee");
+    assert!(w.fields.get("count").is_none(), "primitive field not bound");
+    assert!(w.parents.contains(&"Base".to_string()));
+}
+
+#[test]
+fn cpp_out_of_line_method_is_associated_with_its_class() {
+    let src = "class Repo { public: void run(); };\nvoid Repo::run() {\n  Foo x;\n}\n";
+    let (_d, corpus) = one_source(src, "sample.cpp", Language::Cpp);
+    let a = analyze(corpus.files.first().unwrap());
+    let run = a.defs.iter().find(|d| d.identity.name == "run" && d.identity.class.as_deref() == Some("Repo"));
+    assert!(run.is_some(), "out-of-line Repo::run is associated with class Repo");
+}
+
+#[test]
+fn cpp_typed_receiver_resolves_via_binding_and_enrichment() {
+    let src = "class Other { public: void foo() {} };\nclass Repo {\n public:\n  void run() {\n    Other o;\n    o.foo();\n  }\n};\n";
+    let (_d, corpus) = one_source(src, "sample.cpp", Language::Cpp);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let idx = bound
+        .registry
+        .methods
+        .iter()
+        .position(|m| m.class.as_deref() == Some("Repo") && m.name == "run")
+        .map(|i| MethodIndex(i as u32))
+        .expect("Repo.run definition");
+    let targets: Vec<_> = bound
+        .adjacency
+        .outgoing(idx)
+        .iter()
+        .filter_map(|e| bound.registry.get(e.target))
+        .filter(|m| m.name == "foo")
+        .collect();
+    assert_eq!(targets.len(), 1, "o.foo() resolves to Other.foo via local binding + caller enrichment");
+    assert_eq!(targets[0].class.as_deref(), Some("Other"));
+}
+
+#[test]
 fn csharp_dynamic_local_is_not_bound() {
     assert!(env_type("class C { void M() { dynamic x = G(); } }\n", "Sample.cs", Language::CSharp, "M", "x").is_none());
 }

@@ -1,6 +1,7 @@
 pub mod abstractness;
 pub mod arch_smells;
 pub mod binding;
+pub mod binding_cpp;
 pub mod binding_csharp;
 pub mod binding_d;
 pub mod binding_extract;

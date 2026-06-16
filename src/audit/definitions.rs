@@ -49,6 +49,8 @@ fn record_from_metrics(path: &Path, f: FunctionMetrics) -> DefinitionRecord {
 
 fn strip_class_prefix(name: &str, class: Option<&str>) -> String {
     let Some(class) = class else { return name.to_string() };
-    let prefix = format!("{class}.");
-    name.strip_prefix(&prefix).unwrap_or(name).to_string()
+    name.strip_prefix(&format!("{class}::"))
+        .or_else(|| name.strip_prefix(&format!("{class}.")))
+        .unwrap_or(name)
+        .to_string()
 }
