@@ -297,6 +297,18 @@ mod cobol_smells;
 mod cobol_stress;
 #[path = "integration/config_tests.rs"]
 mod config_tests;
+#[path = "integration/cov2_audit_small.rs"]
+mod cov2_audit_small;
+#[path = "integration/cov2_binding_go.rs"]
+mod cov2_binding_go;
+#[path = "integration/cov2_binding_jvm_swift_cs.rs"]
+mod cov2_binding_jvm_swift_cs;
+#[path = "integration/cov2_binding_objc_d.rs"]
+mod cov2_binding_objc_d;
+#[path = "integration/cov2_freshness_registry.rs"]
+mod cov2_freshness_registry;
+#[path = "integration/cov2_history_cmd.rs"]
+mod cov2_history_cmd;
 #[path = "integration/cov_audit_compound_severity.rs"]
 mod cov_audit_compound_severity;
 #[path = "integration/cov_audit_cycle_shapes.rs"]
