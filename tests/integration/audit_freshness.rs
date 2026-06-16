@@ -96,6 +96,18 @@ fn progress_only_for_many_deps_on_a_terminal() {
 }
 
 #[test]
+fn progress_helpers_write_to_stderr_without_panic_and_honor_force_env() {
+    use pulse::audit::progress;
+    progress::show("  checking dependencies 1/2");
+    progress::clear();
+    let baseline = progress::is_active();
+    let _ = baseline; // is_terminal path is exercised (value depends on the harness)
+    std::env::set_var("PULSE_FORCE_PROGRESS", "1");
+    assert!(progress::is_active(), "the force env overrides the terminal check");
+    std::env::remove_var("PULSE_FORCE_PROGRESS");
+}
+
+#[test]
 fn parallel_lookups_are_deterministic_over_many_cached_deps() {
     let dir = tempfile::tempdir().unwrap();
     let cache = tempfile::tempdir().unwrap();

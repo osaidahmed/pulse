@@ -1,4 +1,3 @@
-use std::io::IsTerminal;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -31,7 +30,7 @@ where
         .filter_map(|(m, d)| locked_version(&meta, m.ecosystem, &d.name).map(|v| (m, d, v)))
         .collect();
     let total = candidates.len();
-    let progress = should_show_progress(total, std::io::stderr().is_terminal());
+    let progress = should_show_progress(total, super::progress::is_active());
     let done = std::sync::Mutex::new(0usize);
     let mut findings: Vec<AuditFinding> = candidates
         .par_iter()
@@ -46,7 +45,7 @@ where
         })
         .collect();
     if progress {
-        progress_write("\r\x1b[K");
+        super::progress::clear();
     }
     findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
     findings.truncate(max_findings);
@@ -58,14 +57,7 @@ pub fn should_show_progress(total: usize, stderr_is_terminal: bool) -> bool {
 }
 
 fn emit_progress(done: usize, total: usize) {
-    progress_write(&format!("\r  checking dependencies {done}/{total}"));
-}
-
-fn progress_write(s: &str) {
-    use std::io::Write;
-    let mut err = std::io::stderr().lock();
-    let _ = write!(err, "{s}");
-    let _ = err.flush();
+    super::progress::show(&format!("  checking dependencies {done}/{total}"));
 }
 
 pub fn run_from(root: &Path, cache_dir: &Path, online: bool, t: &FreshnessThresholds) -> Vec<AuditFinding> {

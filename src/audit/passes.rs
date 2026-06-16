@@ -21,13 +21,13 @@ pub(super) struct PassCtx<'a> {
 
 type PassRunner = fn(&PassCtx) -> Vec<AuditFinding>;
 
-const RUNNERS: &[(PassChoice, PassRunner)] = &[
-    (PassChoice::PatternMining, |ctx| run_pattern_mining(ctx.shared, ctx.thresholds)),
-    (PassChoice::PackageMetrics, |ctx| {
+const RUNNERS: &[(PassChoice, &str, PassRunner)] = &[
+    (PassChoice::PatternMining, "code patterns", |ctx| run_pattern_mining(ctx.shared, ctx.thresholds)),
+    (PassChoice::PackageMetrics, "package structure", |ctx| {
         super::run_package_metrics(ctx.shared, ctx.typed_files, ctx.root, ctx.thresholds)
     }),
-    (PassChoice::NamedSmells, |ctx| named_smells::run_from(ctx.shared, ctx.root, ctx.thresholds)),
-    (PassChoice::Deps, |ctx| {
+    (PassChoice::NamedSmells, "class smells", |ctx| named_smells::run_from(ctx.shared, ctx.root, ctx.thresholds)),
+    (PassChoice::Deps, "dependencies", |ctx| {
         let mut found = deps_reconcile::run_from(ctx.shared, ctx.root, ctx.thresholds);
         found.extend(constraint_smells::run_from(ctx.root, ctx.thresholds));
         found.extend(reflexion::run_from(ctx.shared, ctx.root, ctx.thresholds));
@@ -44,18 +44,27 @@ const RUNNERS: &[(PassChoice, PassRunner)] = &[
         }
         found
     }),
-    (PassChoice::Taint, |ctx| taint::run_from(ctx.shared, ctx.thresholds)),
-    (PassChoice::Clones, |ctx| duplication_clusters::run_from(ctx.shared, ctx.thresholds)),
-    (PassChoice::Naturalness, |ctx| crate::naturalness::run_from(ctx.shared, ctx.thresholds)),
-    (PassChoice::VulnClones, |ctx| vuln_clones::run_from(ctx.shared, ctx.thresholds)),
-    (PassChoice::IfdefDensity, |ctx| ifdef_density::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::Taint, "taint flows", |ctx| taint::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::Clones, "clones", |ctx| duplication_clusters::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::Naturalness, "naturalness", |ctx| crate::naturalness::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::VulnClones, "vulnerable clones", |ctx| vuln_clones::run_from(ctx.shared, ctx.thresholds)),
+    (PassChoice::IfdefDensity, "conditional compilation", |ctx| ifdef_density::run_from(ctx.shared, ctx.thresholds)),
 ];
 
+const PROGRESS_MIN_FILES: usize = 200;
+
 pub(super) fn run_selected_passes(findings: &mut Vec<AuditFinding>, passes: &[PassChoice], ctx: &PassCtx) {
-    for (choice, runner) in RUNNERS {
+    let progress = ctx.shared.files.len() > PROGRESS_MIN_FILES && super::progress::is_active();
+    for (choice, label, runner) in RUNNERS {
         if passes.contains(choice) {
+            if progress {
+                super::progress::show(&format!("  analyzing: {label}"));
+            }
             findings.extend(runner(ctx));
         }
+    }
+    if progress {
+        super::progress::clear();
     }
 }
 
