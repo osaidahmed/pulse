@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
 use super::binding::TypeEnv;
+use super::binding_extract::{head_of, EnvBuilder};
 
 const TYPE_KINDS: &[&str] = &[
     "type_identifier",
@@ -22,35 +23,6 @@ const PRIMITIVE_KINDS: &[&str] = &["integral_type", "floating_point_type", "bool
 
 const SCOPE_BOUNDARIES: &[&str] =
     &["lambda_expression", "class_declaration", "method_declaration", "constructor_declaration", "class_body"];
-
-#[derive(Default)]
-struct EnvBuilder {
-    env: TypeEnv,
-    conflicts: BTreeSet<String>,
-}
-
-impl EnvBuilder {
-    fn bind(&mut self, name: String, ty: String) {
-        if self.conflicts.contains(&name) {
-            return;
-        }
-        match self.env.get(&name) {
-            Some(existing) if *existing != ty => {
-                self.env.remove(&name);
-                self.conflicts.insert(name);
-            }
-            Some(_) => {}
-            None => {
-                self.env.insert(name, ty);
-            }
-        }
-    }
-
-    fn into_env(mut self, type_vars: &BTreeSet<String>) -> TypeEnv {
-        self.env.retain(|_, ty| !type_vars.contains(ty.as_str()));
-        self.env
-    }
-}
 
 pub fn method_var_types(method_node: Node, source: &str) -> TypeEnv {
     let mut builder = EnvBuilder::default();
@@ -207,15 +179,8 @@ fn type_head_name(node: Node, source: &str) -> Option<String> {
     if kind == "annotated_type" {
         return type_node_of(node).and_then(|c| type_head_name(c, source));
     }
-    head_of(node_text(node, source))
-}
-
-fn head_of(text: &str) -> Option<String> {
-    let before_generic = text.split('<').next()?.trim();
-    let simple = before_generic.rsplit('.').next()?.trim();
-    if simple.is_empty() || simple == "var" {
-        None
-    } else {
-        Some(simple.to_string())
+    match head_of(node_text(node, source)) {
+        Some(head) if head == "var" => None,
+        other => other,
     }
 }

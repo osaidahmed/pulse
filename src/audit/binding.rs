@@ -99,26 +99,39 @@ impl BindingTable {
     }
 }
 
-fn for_java<T: Default>(lang: Language, extract: impl FnOnce() -> T) -> T {
-    if matches!(lang, Language::Java) {
-        extract()
-    } else {
-        T::default()
-    }
+type EnvExtractor = fn(Node, &str) -> TypeEnv;
+type ParentsExtractor = fn(Node, &str) -> Vec<String>;
+
+struct LangBinder {
+    lang: Language,
+    method_var_types: EnvExtractor,
+    class_field_types: EnvExtractor,
+    class_parents: ParentsExtractor,
+}
+
+const BINDERS: &[LangBinder] = &[LangBinder {
+    lang: Language::Java,
+    method_var_types: super::binding_java::method_var_types,
+    class_field_types: super::binding_java::class_field_types,
+    class_parents: super::binding_java::class_parents,
+}];
+
+fn binder_for(lang: Language) -> Option<&'static LangBinder> {
+    BINDERS.iter().find(|b| b.lang == lang)
 }
 
 pub fn method_var_types(method_node: Node, source: &str, lang: Language) -> TypeEnv {
-    for_java(lang, || super::binding_java::method_var_types(method_node, source))
+    binder_for(lang).map_or_else(TypeEnv::new, |b| (b.method_var_types)(method_node, source))
 }
 
 pub fn class_field_types(class_node: Node, source: &str, lang: Language) -> TypeEnv {
-    for_java(lang, || super::binding_java::class_field_types(class_node, source))
+    binder_for(lang).map_or_else(TypeEnv::new, |b| (b.class_field_types)(class_node, source))
 }
 
 pub fn class_parents(class_node: Node, source: &str, lang: Language) -> Vec<String> {
-    for_java(lang, || super::binding_java::class_parents(class_node, source))
+    binder_for(lang).map_or_else(Vec::new, |b| (b.class_parents)(class_node, source))
 }
 
 pub fn supports(lang: Language) -> bool {
-    matches!(lang, Language::Java)
+    binder_for(lang).is_some()
 }
