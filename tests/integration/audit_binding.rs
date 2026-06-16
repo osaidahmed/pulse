@@ -171,6 +171,61 @@ fn field_typed_receiver_resolves_precisely() {
 }
 
 #[test]
+fn var_local_is_not_bound_and_recovers_via_name_fallback() {
+    let (_d, corpus) = java(
+        "class Bar { void shared() {} }\nclass Caller {\n  void run() {\n    var b = new Bar();\n    b.shared();\n  }\n}\n",
+    );
+    let file = only_file(&corpus);
+    let out = calls_and_bindings_from(file);
+    let run_env = out.method_envs.iter().find(|(id, _)| id.name == "run").map(|(_, e)| e).expect("run env");
+    assert!(run_env.get("b").is_none(), "a `var` local is not bound to the placeholder type name");
+    let a = analyze(file);
+    let caller = caller_of(&a.calls, "shared");
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    assert_eq!(targets_named(&bound, &caller, "shared").len(), 1, "the var receiver still resolves via name fallback");
+}
+
+#[test]
+fn varargs_parameter_is_bound() {
+    let (_d, corpus) = java("class Caller {\n  void take(Bar... items) {}\n}\n");
+    let out = calls_and_bindings_from(only_file(&corpus));
+    let take_env = out.method_envs.iter().find(|(id, _)| id.name == "take").map(|(_, e)| e).expect("take env");
+    assert_eq!(take_env.get("items").map(String::as_str), Some("Bar"));
+}
+
+#[test]
+fn interface_list_has_no_phantom_comma_parent() {
+    let (_d, corpus) = java("class Widget implements Drawable, Serializable {\n  void run() {}\n}\n");
+    let out = calls_and_bindings_from(only_file(&corpus));
+    let widget = out.classes.iter().find(|c| c.name == "Widget").expect("widget");
+    assert_eq!(widget.parents, vec!["Drawable".to_string(), "Serializable".to_string()]);
+}
+
+#[test]
+fn conflicting_same_name_locals_are_unbound() {
+    let (_d, corpus) = java(
+        "class Caller {\n  void m() {\n    { Foo x = new Foo(); x.run(); }\n    { Bar x = new Bar(); x.run(); }\n  }\n}\n",
+    );
+    let out = calls_and_bindings_from(only_file(&corpus));
+    let m_env = out.method_envs.iter().find(|(id, _)| id.name == "m").map(|(_, e)| e).expect("m env");
+    assert!(
+        m_env.get("x").is_none(),
+        "a name declared with two types in one method is poisoned, not arbitrarily bound"
+    );
+}
+
+#[test]
+fn class_type_parameter_does_not_bind_a_field() {
+    let (_d, corpus) = java("class Box<Foo> {\n  Foo item;\n  void use() {}\n}\nclass Foo { void run() {} }\n");
+    let out = calls_and_bindings_from(only_file(&corpus));
+    let box_class = out.classes.iter().find(|c| c.name == "Box").expect("box");
+    assert!(
+        box_class.fields.get("item").is_none(),
+        "a field typed by a class type parameter is not bound to the same-named concrete class"
+    );
+}
+
+#[test]
 fn non_java_languages_yield_no_bindings() {
     assert!(binding::supports(Language::Java));
     assert!(!binding::supports(Language::Python));
