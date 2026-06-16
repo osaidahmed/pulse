@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tree_sitter::Node;
 
@@ -65,6 +65,10 @@ impl BindingTable {
     pub fn field_type(&self, caller: &MethodIdentity, name: &str) -> Option<&str> {
         let class = caller.class.as_ref()?;
         self.fields.get(&(caller.file.clone(), class.clone()))?.get(name).map(String::as_str)
+    }
+
+    pub fn class_field_types_at(&self, file: &Path, class: &str) -> Option<&TypeEnv> {
+        self.fields.get(&(file.to_path_buf(), class.to_string()))
     }
 
     pub fn is_known_class(&self, name: &str) -> bool {

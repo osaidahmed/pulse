@@ -25,6 +25,7 @@ struct NamedContext<'a> {
     registry: ClassRegistry,
     method_idx_lookup: HashMap<MethodIndex, usize>,
     inh: InheritanceGraph,
+    bindings: BindingTable,
 }
 
 pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
@@ -45,7 +46,7 @@ pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> V
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
     let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
     let inh = super::inheritance::build_inheritance_graph(&registry);
-    let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh };
+    let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh, bindings };
     let strata = component_thresholds::nested_strata(corpus, root);
     let mut all = Vec::new();
     if strata.is_empty() {
@@ -88,15 +89,21 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
     all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
     if thresholds.named_smells.refused_bequest.enabled {
-        all.extend(super::detector_refused_bequest::detect(
+        let rb = super::detector_refused_bequest::detect(
             &ctx.registry,
             &ctx.definitions,
             &ctx.graph,
             &abstractness_of,
             thresholds,
-        ));
+        );
+        all.extend(rb.into_iter().filter(|f| !is_suppressed_wrapper(f, &ctx.bindings)));
     }
     all
+}
+
+fn is_suppressed_wrapper(finding: &AuditFinding, bindings: &BindingTable) -> bool {
+    matches!(&finding.kind, AuditKind::RefusedBequest(e)
+        if super::detector_refused_bequest::is_decorator_wrapper(e, bindings))
 }
 
 fn apply_named_confidence(findings: &mut [AuditFinding], file_lang: &impl Fn(&Path) -> Option<Language>) {

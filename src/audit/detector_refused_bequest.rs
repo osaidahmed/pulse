@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::thresholds::AuditThresholds;
 
+use super::binding::BindingTable;
 use super::call_graph::CallGraph;
 use super::class_registry::{ClassIdentity, ClassIndex, ClassRegistry};
 use super::definitions::DefinitionRecord;
@@ -73,6 +74,15 @@ fn evaluate_class(ctx: &RbCtx, sub_idx: ClassIndex) -> Option<AuditFinding> {
         p_value: None,
         locations: Vec::new(),
     })
+}
+
+pub fn is_decorator_wrapper(e: &RefusedBequestEvidence, bindings: &BindingTable) -> bool {
+    let Some(fields) = bindings.class_field_types_at(&e.subclass_file, &e.subclass_name) else {
+        return false;
+    };
+    let mut supertypes = bindings.ancestors(&e.subclass_name);
+    supertypes.push(e.parent_name.clone());
+    fields.values().any(|ty| supertypes.iter().any(|s| s == ty))
 }
 
 fn inherited_usage(ctx: &RbCtx, sub_idx: ClassIndex, parent_idx: ClassIndex) -> u32 {

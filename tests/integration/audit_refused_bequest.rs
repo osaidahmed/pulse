@@ -193,3 +193,50 @@ fn constructors_excluded_from_method_count() {
         assert_eq!(e.parent_method_count, 3, "ctor excluded");
     }
 }
+
+fn wrapper_evidence() -> RefusedBequestEvidence {
+    RefusedBequestEvidence {
+        subclass_file: PathBuf::from("wrap.java"),
+        subclass_name: "Wrapper".to_string(),
+        parent_file: PathBuf::from("base.java"),
+        parent_name: "Base".to_string(),
+        override_count: 1,
+        parent_method_count: 10,
+        override_ratio: 0.1,
+        confidence: pulse::audit::finding::ImportConfidence::Medium,
+    }
+}
+
+fn bindings_with_field(field_type: &str) -> pulse::audit::binding::BindingTable {
+    let mut fields = std::collections::BTreeMap::new();
+    fields.insert("delegate".to_string(), field_type.to_string());
+    let mut bindings = pulse::audit::binding::BindingTable::default();
+    bindings.insert_class(pulse::audit::binding::ClassBinding {
+        file: PathBuf::from("wrap.java"),
+        name: "Wrapper".to_string(),
+        parents: vec!["Base".to_string()],
+        fields,
+    });
+    bindings
+}
+
+#[test]
+fn decorator_wrapping_its_parent_is_recognized() {
+    use pulse::audit::detector_refused_bequest::is_decorator_wrapper;
+    assert!(
+        is_decorator_wrapper(&wrapper_evidence(), &bindings_with_field("Base")),
+        "a subclass holding a field typed as its parent is a wrapper, not a refusal"
+    );
+}
+
+#[test]
+fn subclass_without_ancestor_typed_field_is_not_a_wrapper() {
+    use pulse::audit::detector_refused_bequest::is_decorator_wrapper;
+    assert!(!is_decorator_wrapper(&wrapper_evidence(), &bindings_with_field("Logger")));
+}
+
+#[test]
+fn subclass_with_no_field_bindings_is_not_a_wrapper() {
+    use pulse::audit::detector_refused_bequest::is_decorator_wrapper;
+    assert!(!is_decorator_wrapper(&wrapper_evidence(), &pulse::audit::binding::BindingTable::default()));
+}
