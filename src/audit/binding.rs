@@ -152,6 +152,12 @@ const BINDERS: &[LangBinder] = &[
         class_field_types: super::binding_d::class_field_types,
         class_parents: super::binding_d::class_parents,
     },
+    LangBinder {
+        lang: Language::Go,
+        method_var_types: super::binding_go::method_var_types,
+        class_field_types: super::binding_go::class_field_types,
+        class_parents: super::binding_go::class_parents,
+    },
 ];
 
 fn binder_for(lang: Language) -> Option<&'static LangBinder> {

@@ -29,6 +29,7 @@ pub struct MethodRegistry {
     pub methods: Vec<MethodIdentity>,
     pub by_name: BTreeMap<String, Vec<MethodIndex>>,
     pub by_class_name: BTreeMap<(String, String), Vec<MethodIndex>>,
+    pub by_file_line: BTreeMap<(PathBuf, u32), Vec<MethodIndex>>,
 }
 
 impl MethodRegistry {
@@ -47,6 +48,7 @@ impl MethodRegistry {
         if let Some(class) = identity.class.clone() {
             self.by_class_name.entry((class, identity.name.clone())).or_default().push(idx);
         }
+        self.by_file_line.entry((identity.file.clone(), identity.line)).or_default().push(idx);
         self.methods.push(identity);
         idx
     }
@@ -132,7 +134,17 @@ fn insert_resolved(reg: &MethodRegistry, call: &LocatedCall, adj: &mut CallAdjac
 }
 
 fn find_caller_index(reg: &MethodRegistry, caller: &MethodIdentity) -> Option<MethodIndex> {
-    reg.methods.iter().enumerate().find(|(_, m)| *m == caller).map(|(i, _)| MethodIndex(i as u32))
+    if let Some((i, _)) = reg.methods.iter().enumerate().find(|(_, m)| *m == caller) {
+        return Some(MethodIndex(i as u32));
+    }
+    let lang = crate::parse::detect_language(&caller.file)?;
+    if !super::binding::supports(lang) {
+        return None;
+    }
+    match reg.by_file_line.get(&(caller.file.clone(), caller.line)) {
+        Some(idxs) if idxs.len() == 1 => Some(idxs[0]),
+        _ => None,
+    }
 }
 
 enum ReceiverClass {

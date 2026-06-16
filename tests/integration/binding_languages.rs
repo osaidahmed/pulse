@@ -1,7 +1,8 @@
+use pulse::audit::call_graph::{CallGraph, MethodIndex};
 use pulse::audit::call_walker::calls_and_bindings_from;
 use pulse::parse::Language;
 
-use crate::binding_common::{class_binding, method_env, one_source};
+use crate::binding_common::{analyze, class_binding, method_env, one_source};
 
 fn env_type(content: &str, ext: &str, lang: Language, method: &str, var: &str) -> Option<String> {
     let (_d, corpus) = one_source(content, ext, lang);
@@ -169,6 +170,42 @@ fn d_qualified_base_class_uses_last_segment() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let w = class_binding(&out, "Widget").expect("widget");
     assert!(w.parents.contains(&"Base".to_string()), "qualified base resolves to the type name, not the package");
+}
+
+#[test]
+fn go_binds_receiver_params_and_locals() {
+    let src = "package p\ntype Repo struct {}\nfunc (r *Repo) Run(dep Service) {\n\tvar b Worker\n\tx := make()\n\t_ = x\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let run = method_env(&out, "Run").expect("Run env");
+    assert_eq!(run.get("r").map(String::as_str), Some("Repo"), "receiver binds to its type");
+    assert_eq!(run.get("dep").map(String::as_str), Some("Service"));
+    assert_eq!(run.get("b").map(String::as_str), Some("Worker"));
+    assert!(run.get("x").is_none(), "short-var-declaration (inferred) local is not bound");
+}
+
+#[test]
+fn go_receiver_method_call_resolves_via_enrichment() {
+    let src = "package p\ntype Repo struct {}\nfunc (r *Repo) helper() {}\nfunc (r *Repo) Run() {\n\tr.helper()\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let idx = bound
+        .registry
+        .methods
+        .iter()
+        .position(|m| m.class.as_deref() == Some("Repo") && m.name == "Run")
+        .map(|i| MethodIndex(i as u32))
+        .expect("Repo.Run definition");
+    let targets: Vec<_> = bound
+        .adjacency
+        .outgoing(idx)
+        .iter()
+        .filter_map(|e| bound.registry.get(e.target))
+        .filter(|m| m.name == "helper")
+        .collect();
+    assert_eq!(targets.len(), 1, "the (file,line) enrichment + receiver binding resolve r.helper() to Repo.helper");
+    assert_eq!(targets[0].class.as_deref(), Some("Repo"));
 }
 
 #[test]

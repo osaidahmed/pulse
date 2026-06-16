@@ -4,6 +4,7 @@ pub mod binding;
 pub mod binding_csharp;
 pub mod binding_d;
 pub mod binding_extract;
+pub mod binding_go;
 pub mod binding_java;
 pub mod binding_kotlin;
 pub mod binding_rust;
