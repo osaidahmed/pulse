@@ -109,12 +109,50 @@ struct LangBinder {
     class_parents: ParentsExtractor,
 }
 
-const BINDERS: &[LangBinder] = &[LangBinder {
-    lang: Language::Java,
-    method_var_types: super::binding_java::method_var_types,
-    class_field_types: super::binding_java::class_field_types,
-    class_parents: super::binding_java::class_parents,
-}];
+const BINDERS: &[LangBinder] = &[
+    LangBinder {
+        lang: Language::Java,
+        method_var_types: super::binding_java::method_var_types,
+        class_field_types: super::binding_java::class_field_types,
+        class_parents: super::binding_java::class_parents,
+    },
+    LangBinder {
+        lang: Language::Kotlin,
+        method_var_types: super::binding_kotlin::method_var_types,
+        class_field_types: super::binding_kotlin::class_field_types,
+        class_parents: super::binding_kotlin::class_parents,
+    },
+    LangBinder {
+        lang: Language::TypeScript,
+        method_var_types: super::binding_typescript::method_var_types,
+        class_field_types: super::binding_typescript::class_field_types,
+        class_parents: super::binding_typescript::class_parents,
+    },
+    LangBinder {
+        lang: Language::Swift,
+        method_var_types: super::binding_swift::method_var_types,
+        class_field_types: super::binding_swift::class_field_types,
+        class_parents: super::binding_swift::class_parents,
+    },
+    LangBinder {
+        lang: Language::CSharp,
+        method_var_types: super::binding_csharp::method_var_types,
+        class_field_types: super::binding_csharp::class_field_types,
+        class_parents: super::binding_csharp::class_parents,
+    },
+    LangBinder {
+        lang: Language::Rust,
+        method_var_types: super::binding_rust::method_var_types,
+        class_field_types: super::binding_rust::class_field_types,
+        class_parents: super::binding_rust::class_parents,
+    },
+    LangBinder {
+        lang: Language::D,
+        method_var_types: super::binding_d::method_var_types,
+        class_field_types: super::binding_d::class_field_types,
+        class_parents: super::binding_d::class_parents,
+    },
+];
 
 fn binder_for(lang: Language) -> Option<&'static LangBinder> {
     BINDERS.iter().find(|b| b.lang == lang)

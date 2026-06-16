@@ -1,8 +1,14 @@
 pub mod abstractness;
 pub mod arch_smells;
 pub mod binding;
+pub mod binding_csharp;
+pub mod binding_d;
 pub mod binding_extract;
 pub mod binding_java;
+pub mod binding_kotlin;
+pub mod binding_rust;
+pub mod binding_swift;
+pub mod binding_typescript;
 pub mod call_graph;
 pub mod call_method_dotted;
 pub mod call_path_qualified;

@@ -273,6 +273,8 @@ mod audit_walker_extended;
 mod audit_ws1_stats;
 #[path = "integration/baseline_filtering.rs"]
 mod baseline_filtering;
+#[path = "integration/binding_languages.rs"]
+mod binding_languages;
 #[path = "integration/boundary_thresholds.rs"]
 mod boundary_thresholds;
 #[path = "integration/budget_command.rs"]
