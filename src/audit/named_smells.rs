@@ -96,14 +96,11 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
             &abstractness_of,
             thresholds,
         );
-        all.extend(rb.into_iter().filter(|f| !is_suppressed_wrapper(f, &ctx.bindings)));
+        all.extend(
+            rb.into_iter().filter(|f| !super::detector_refused_bequest::is_suppressed_wrapper(f, &ctx.bindings)),
+        );
     }
     all
-}
-
-fn is_suppressed_wrapper(finding: &AuditFinding, bindings: &BindingTable) -> bool {
-    matches!(&finding.kind, AuditKind::RefusedBequest(e)
-        if super::detector_refused_bequest::is_decorator_wrapper(e, bindings))
 }
 
 fn apply_named_confidence(findings: &mut [AuditFinding], file_lang: &impl Fn(&Path) -> Option<Language>) {

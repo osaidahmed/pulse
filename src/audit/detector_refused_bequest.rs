@@ -76,6 +76,10 @@ fn evaluate_class(ctx: &RbCtx, sub_idx: ClassIndex) -> Option<AuditFinding> {
     })
 }
 
+pub fn is_suppressed_wrapper(finding: &AuditFinding, bindings: &BindingTable) -> bool {
+    matches!(&finding.kind, AuditKind::RefusedBequest(e) if is_decorator_wrapper(e, bindings))
+}
+
 pub fn is_decorator_wrapper(e: &RefusedBequestEvidence, bindings: &BindingTable) -> bool {
     let mut supertypes = bindings.ancestors(&e.subclass_name);
     supertypes.push(e.parent_name.clone());
