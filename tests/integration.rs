@@ -305,14 +305,28 @@ mod cov_audit_cycle_shapes;
 mod cov_audit_expression_filter;
 #[path = "integration/cov_audit_import_call_form.rs"]
 mod cov_audit_import_call_form;
+#[path = "integration/cov_audit_misc.rs"]
+mod cov_audit_misc;
 #[path = "integration/cov_audit_named_smells_confidence.rs"]
 mod cov_audit_named_smells_confidence;
 #[path = "integration/cov_baselines_internals.rs"]
 mod cov_baselines_internals;
+#[path = "integration/cov_binding_cfamily.rs"]
+mod cov_binding_cfamily;
+#[path = "integration/cov_binding_jvm.rs"]
+mod cov_binding_jvm;
+#[path = "integration/cov_binding_misc.rs"]
+mod cov_binding_misc;
+#[path = "integration/cov_buildmeta.rs"]
+mod cov_buildmeta;
+#[path = "integration/cov_calibrate.rs"]
+mod cov_calibrate;
 #[path = "integration/cov_config_empty_branches.rs"]
 mod cov_config_empty_branches;
 #[path = "integration/cov_detector_parallel_inheritance_workaround.rs"]
 mod cov_detector_parallel_inheritance_workaround;
+#[path = "integration/cov_history.rs"]
+mod cov_history;
 #[path = "integration/cov_history_cmd_calibrate.rs"]
 mod cov_history_cmd_calibrate;
 #[path = "integration/cov_history_git_subprocess.rs"]
@@ -323,10 +337,16 @@ mod cov_history_output_blob_shotgun;
 mod cov_import_php;
 #[path = "integration/cov_import_preprocessor_branches.rs"]
 mod cov_import_preprocessor_branches;
+#[path = "integration/cov_network.rs"]
+mod cov_network;
 #[path = "integration/cov_output_arch.rs"]
 mod cov_output_arch;
+#[path = "integration/cov_output_deps_arch.rs"]
+mod cov_output_deps_arch;
 #[path = "integration/cov_r_walker_assignment_forms.rs"]
 mod cov_r_walker_assignment_forms;
+#[path = "integration/cov_runtime_misc.rs"]
+mod cov_runtime_misc;
 #[path = "integration/cov_setup_arch.rs"]
 mod cov_setup_arch;
 #[path = "integration/cov_taint_state_merge.rs"]
