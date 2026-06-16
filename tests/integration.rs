@@ -8,6 +8,9 @@ mod audit_common;
 #[path = "integration/binding_common.rs"]
 mod binding_common;
 
+#[path = "integration/cov3_stragglers.rs"]
+mod cov3_stragglers;
+
 #[path = "integration/boundaries.rs"]
 mod boundaries;
 
