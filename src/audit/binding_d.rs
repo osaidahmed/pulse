@@ -80,12 +80,19 @@ pub fn class_parents(class_node: Node, source: &str) -> Vec<String> {
     let mut cursor = class_node.walk();
     for child in class_node.children(&mut cursor) {
         if child.kind() == "base_class" {
-            if let Some(name) = type_node_head(child, source) {
+            if let Some(name) = base_parent_name(child, source) {
                 out.push(name);
             }
         }
     }
     out
+}
+
+fn base_parent_name(base: Node, source: &str) -> Option<String> {
+    if let Some(ti) = find_child_by_kind(base, "template_instance") {
+        return find_child_by_kind(ti, "identifier").map(|id| node_text(id, source).to_string());
+    }
+    head_of(node_text(base, source))
 }
 
 fn method_body(method_node: Node) -> Option<Node> {
@@ -170,6 +177,9 @@ fn bind_type_and_id(node: Node, source: &str, builder: &mut EnvBuilder) {
 
 fn type_node_head(node: Node, source: &str) -> Option<String> {
     let _guard = DepthGuard::enter()?;
+    if has_type_suffix(node) {
+        return None;
+    }
     let mut cursor = node.walk();
     let inner = node.children(&mut cursor).find(|c| c.is_named() && c.kind() != "type_ctor")?;
     let kind = inner.kind();
@@ -182,4 +192,12 @@ fn type_node_head(node: Node, source: &str) -> Option<String> {
         "type" => type_node_head(inner, source),
         _ => None,
     }
+}
+
+fn has_type_suffix(node: Node) -> bool {
+    let mut cursor = node.walk();
+    let suffix = node
+        .children(&mut cursor)
+        .any(|c| matches!(c.kind(), "*" | "[" | "]" | "delegate" | "function" | "parameters"));
+    suffix
 }

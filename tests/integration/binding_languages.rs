@@ -135,6 +135,43 @@ fn kotlin_vararg_parameter_is_not_bound() {
 }
 
 #[test]
+fn typescript_nested_function_drops_class_type_parameter() {
+    let src = "class Box<Item> {\n  m(): void {\n    function inner(x: Item) { x.run(); }\n  }\n}\n";
+    assert!(
+        env_type(src, "Sample.ts", Language::TypeScript, "inner", "x").is_none(),
+        "a class type variable is dropped even in a nested function"
+    );
+}
+
+#[test]
+fn swift_multi_declarator_property_is_not_mis_bound() {
+    let src = "class C {\n  func f() {\n    let a = makeFoo(), b: Bar\n  }\n}\n";
+    assert!(
+        env_type(src, "Sample.swift", Language::Swift, "f", "a").is_none(),
+        "an inferred first declarator is not bound to a later declarator's annotation"
+    );
+}
+
+#[test]
+fn d_array_and_pointer_locals_are_not_bound() {
+    let src = "class C { void f() { Bar[] xs; Foo* p; Baz one; } }\n";
+    let (_d, corpus) = one_source(src, "sample.d", Language::D);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let f = method_env(&out, "f").expect("f env");
+    assert!(f.get("xs").is_none(), "array local not bound to element type");
+    assert!(f.get("p").is_none(), "pointer local not bound to pointee type");
+    assert_eq!(f.get("one").map(String::as_str), Some("Baz"), "a plain typed local still binds");
+}
+
+#[test]
+fn d_qualified_base_class_uses_last_segment() {
+    let (_d, corpus) = one_source("class Widget : pkg.Base {}\n", "sample.d", Language::D);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let w = class_binding(&out, "Widget").expect("widget");
+    assert!(w.parents.contains(&"Base".to_string()), "qualified base resolves to the type name, not the package");
+}
+
+#[test]
 fn csharp_dynamic_local_is_not_bound() {
     assert!(env_type("class C { void M() { dynamic x = G(); } }\n", "Sample.cs", Language::CSharp, "M", "x").is_none());
 }

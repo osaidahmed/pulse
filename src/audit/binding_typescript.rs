@@ -42,11 +42,19 @@ fn scope_type_param_names(method_node: Node, source: &str) -> BTreeSet<String> {
 }
 
 fn enclosing_class(method_node: Node) -> Option<Node> {
-    let body = method_node.parent()?;
-    if body.kind() != "class_body" {
-        return None;
+    let mut node = method_node.parent();
+    let mut depth = 0;
+    while let Some(n) = node {
+        if depth > 12 {
+            break;
+        }
+        if n.kind() == "class_body" {
+            return n.parent();
+        }
+        node = n.parent();
+        depth += 1;
     }
-    body.parent()
+    None
 }
 
 pub fn class_field_types(class_node: Node, source: &str) -> TypeEnv {

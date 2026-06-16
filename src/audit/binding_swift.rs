@@ -158,10 +158,19 @@ fn bind_for_item(stmt: Node, source: &str, builder: &mut EnvBuilder) {
 }
 
 fn bind_property(decl: Node, source: &str, builder: &mut EnvBuilder) {
+    if is_multi_declarator(decl) {
+        return;
+    }
     let Some(pat) = decl.child_by_field_name("name") else {
         return;
     };
     bind_pattern_with_annotation(pat, decl, source, builder);
+}
+
+fn is_multi_declarator(decl: Node) -> bool {
+    let mut cursor = decl.walk();
+    let multi = decl.children(&mut cursor).any(|c| c.kind() == ",");
+    multi
 }
 
 fn bind_pattern_with_annotation(pattern: Node, owner: Node, source: &str, builder: &mut EnvBuilder) {
