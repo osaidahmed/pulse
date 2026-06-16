@@ -240,3 +240,38 @@ fn subclass_with_no_field_bindings_is_not_a_wrapper() {
     use pulse::audit::detector_refused_bequest::is_decorator_wrapper;
     assert!(!is_decorator_wrapper(&wrapper_evidence(), &pulse::audit::binding::BindingTable::default()));
 }
+
+#[test]
+fn subclass_inheriting_the_wrapped_field_from_a_base_wrapper_is_recognized() {
+    use pulse::audit::binding::{BindingTable, ClassBinding};
+    use pulse::audit::detector_refused_bequest::is_decorator_wrapper;
+    let mut bindings = BindingTable::default();
+    let mut wrapped = std::collections::BTreeMap::new();
+    wrapped.insert("delegate".to_string(), "Base".to_string());
+    bindings.insert_class(ClassBinding {
+        file: PathBuf::from("base_wrapper.java"),
+        name: "BaseWrapper".to_string(),
+        parents: vec!["Base".to_string()],
+        fields: wrapped,
+    });
+    bindings.insert_class(ClassBinding {
+        file: PathBuf::from("leaf.java"),
+        name: "Leaf".to_string(),
+        parents: vec!["BaseWrapper".to_string()],
+        fields: std::collections::BTreeMap::new(),
+    });
+    let e = RefusedBequestEvidence {
+        subclass_file: PathBuf::from("leaf.java"),
+        subclass_name: "Leaf".to_string(),
+        parent_file: PathBuf::from("base_wrapper.java"),
+        parent_name: "BaseWrapper".to_string(),
+        override_count: 1,
+        parent_method_count: 10,
+        override_ratio: 0.1,
+        confidence: pulse::audit::finding::ImportConfidence::Medium,
+    };
+    assert!(
+        is_decorator_wrapper(&e, &bindings),
+        "a leaf that inherits the wrapped field from a base wrapper is still part of the decoration hierarchy"
+    );
+}

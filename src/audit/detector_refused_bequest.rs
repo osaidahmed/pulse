@@ -77,12 +77,13 @@ fn evaluate_class(ctx: &RbCtx, sub_idx: ClassIndex) -> Option<AuditFinding> {
 }
 
 pub fn is_decorator_wrapper(e: &RefusedBequestEvidence, bindings: &BindingTable) -> bool {
-    let Some(fields) = bindings.class_field_types_at(&e.subclass_file, &e.subclass_name) else {
-        return false;
-    };
     let mut supertypes = bindings.ancestors(&e.subclass_name);
     supertypes.push(e.parent_name.clone());
-    fields.values().any(|ty| supertypes.iter().any(|s| s == ty))
+    let classes: Vec<&str> =
+        std::iter::once(e.subclass_name.as_str()).chain(supertypes.iter().map(String::as_str)).collect();
+    classes
+        .iter()
+        .any(|&cls| bindings.field_types_for_name(cls).iter().any(|ty| supertypes.iter().any(|s| s.as_str() == *ty)))
 }
 
 fn inherited_usage(ctx: &RbCtx, sub_idx: ClassIndex, parent_idx: ClassIndex) -> u32 {

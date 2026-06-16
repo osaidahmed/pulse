@@ -71,6 +71,14 @@ impl BindingTable {
         self.fields.get(&(file.to_path_buf(), class.to_string()))
     }
 
+    pub fn field_types_for_name(&self, name: &str) -> Vec<&str> {
+        self.fields
+            .iter()
+            .filter(|(key, _)| key.1.as_str() == name)
+            .flat_map(|(_, env)| env.values().map(String::as_str))
+            .collect()
+    }
+
     pub fn is_known_class(&self, name: &str) -> bool {
         self.known.contains(name)
     }
