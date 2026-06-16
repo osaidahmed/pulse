@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use super::binding::BindingTable;
 use super::call_walker::LocatedCall;
 use super::definitions::DefinitionRecord;
 use super::finding::ImportConfidence;
@@ -101,26 +102,30 @@ pub struct CallGraph {
 }
 
 impl CallGraph {
-    pub fn empty() -> Self {
-        Self::default()
+    pub fn build(definitions: Vec<DefinitionRecord>, calls: Vec<LocatedCall>) -> Self {
+        Self::build_with_bindings(definitions, calls, &BindingTable::default())
     }
 
-    pub fn build(definitions: Vec<DefinitionRecord>, calls: Vec<LocatedCall>) -> Self {
+    pub fn build_with_bindings(
+        definitions: Vec<DefinitionRecord>,
+        calls: Vec<LocatedCall>,
+        bindings: &BindingTable,
+    ) -> Self {
         let identities: Vec<MethodIdentity> = definitions.into_iter().map(|d| d.identity).collect();
         let registry = MethodRegistry::from_definitions(identities);
         let n = registry.count();
         let mut adjacency = CallAdjacency::with_capacity(n);
         for call in calls {
-            insert_resolved(&registry, &call, &mut adjacency);
+            insert_resolved(&registry, &call, &mut adjacency, bindings);
         }
         Self { registry, adjacency }
     }
 }
 
-fn insert_resolved(reg: &MethodRegistry, call: &LocatedCall, adj: &mut CallAdjacency) {
+fn insert_resolved(reg: &MethodRegistry, call: &LocatedCall, adj: &mut CallAdjacency, bindings: &BindingTable) {
     let Some(caller) = call.caller.as_ref() else { return };
     let Some(caller_idx) = find_caller_index(reg, caller) else { return };
-    let resolved = resolve_targets(reg, call, caller);
+    let resolved = resolve_targets(reg, call, caller, bindings);
     for (target_idx, confidence) in resolved {
         adj.insert(CallEdge { source: caller_idx, target: target_idx, confidence });
     }
@@ -130,20 +135,74 @@ fn find_caller_index(reg: &MethodRegistry, caller: &MethodIdentity) -> Option<Me
     reg.methods.iter().enumerate().find(|(_, m)| *m == caller).map(|(i, _)| MethodIndex(i as u32))
 }
 
+enum ReceiverClass {
+    Typed(String),
+    SelfClass(String),
+    Hint(String),
+    None,
+}
+
 fn resolve_targets(
     reg: &MethodRegistry,
     call: &LocatedCall,
     caller: &MethodIdentity,
+    bindings: &BindingTable,
 ) -> Vec<(MethodIndex, ImportConfidence)> {
-    let receiver_class = effective_class(call, caller);
-    if let Some(class) = receiver_class {
-        let exact = reg.lookup_by_class_and_name(&class, &call.call.callee_name);
-        if !exact.is_empty() {
-            let conf = if exact.len() == 1 { ImportConfidence::High } else { ImportConfidence::Medium };
-            return exact.iter().map(|i| (*i, conf)).collect();
+    let callee_name = &call.call.callee_name;
+    match effective_class(call, caller, bindings) {
+        ReceiverClass::Typed(ty) => resolve_in_hierarchy(reg, &ty, callee_name, bindings).unwrap_or_default(),
+        ReceiverClass::SelfClass(cls) => {
+            resolve_in_hierarchy(reg, &cls, callee_name, bindings).unwrap_or_else(|| name_fallback(reg, callee_name))
+        }
+        ReceiverClass::Hint(hint) => {
+            let exact = reg.lookup_by_class_and_name(&hint, callee_name);
+            if exact.is_empty() {
+                name_fallback(reg, callee_name)
+            } else {
+                let conf = if exact.len() == 1 { ImportConfidence::High } else { ImportConfidence::Medium };
+                exact.iter().map(|i| (*i, conf)).collect()
+            }
+        }
+        ReceiverClass::None => name_fallback(reg, callee_name),
+    }
+}
+
+fn effective_class(call: &LocatedCall, caller: &MethodIdentity, bindings: &BindingTable) -> ReceiverClass {
+    let Some(hint) = call.call.receiver_hint.as_deref() else {
+        return ReceiverClass::None;
+    };
+    if matches!(hint, "self" | "this" | "cls") {
+        return caller.class.clone().map_or(ReceiverClass::None, ReceiverClass::SelfClass);
+    }
+    if let Some(ty) = bindings.var_type(caller, hint).or_else(|| bindings.field_type(caller, hint)) {
+        return ReceiverClass::Typed(ty.to_string());
+    }
+    ReceiverClass::Hint(hint.to_string())
+}
+
+fn resolve_in_hierarchy(
+    reg: &MethodRegistry,
+    class: &str,
+    callee: &str,
+    bindings: &BindingTable,
+) -> Option<Vec<(MethodIndex, ImportConfidence)>> {
+    let exact = reg.lookup_by_class_and_name(class, callee);
+    if !exact.is_empty() {
+        let conf = if exact.len() == 1 { ImportConfidence::High } else { ImportConfidence::Medium };
+        return Some(exact.iter().map(|i| (*i, conf)).collect());
+    }
+    for ancestor in bindings.ancestors(class) {
+        let hits = reg.lookup_by_class_and_name(&ancestor, callee);
+        if !hits.is_empty() {
+            let conf = if hits.len() == 1 { ImportConfidence::Medium } else { ImportConfidence::Low };
+            return Some(hits.iter().map(|i| (*i, conf)).collect());
         }
     }
-    let by_name = reg.lookup_by_name(&call.call.callee_name);
+    None
+}
+
+fn name_fallback(reg: &MethodRegistry, callee: &str) -> Vec<(MethodIndex, ImportConfidence)> {
+    let by_name = reg.lookup_by_name(callee);
     if by_name.is_empty() || distinct_target_classes(reg, by_name) > MAX_AMBIGUOUS_TARGET_CLASSES {
         return Vec::new();
     }
@@ -161,12 +220,4 @@ fn distinct_target_classes(reg: &MethodRegistry, idxs: &[MethodIndex]) -> usize 
         }
     }
     classes.len()
-}
-
-fn effective_class(call: &LocatedCall, caller: &MethodIdentity) -> Option<String> {
-    let hint = call.call.receiver_hint.as_deref()?;
-    if matches!(hint, "self" | "this" | "cls") {
-        return caller.class.clone();
-    }
-    Some(hint.to_string())
 }

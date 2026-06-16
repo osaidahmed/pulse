@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::parse::{self, Language};
 
+use super::binding::{self, ClassBinding, TypeEnv};
 use super::call_graph::MethodIdentity;
 use super::calls::{self, RawCall};
 
@@ -12,6 +13,13 @@ pub struct LocatedCall {
     pub call: RawCall,
     pub caller: Option<MethodIdentity>,
     pub file: PathBuf,
+}
+
+#[derive(Debug, Default)]
+pub struct CallWalkOut {
+    pub calls: Vec<LocatedCall>,
+    pub method_envs: Vec<(MethodIdentity, TypeEnv)>,
+    pub classes: Vec<ClassBinding>,
 }
 
 const FUNCTION_KINDS: &[&str] = &[
@@ -48,19 +56,23 @@ pub fn calls_for_file(path: &Path, lang: Language) -> Vec<LocatedCall> {
     let Some(tree) = parse::parse_guarded(&source, lang) else {
         return Vec::new();
     };
-    calls_in_tree(&tree, &source, lang, path)
+    walk_tree(&tree, &source, lang, path).calls
 }
 
 pub fn calls_from(file: &super::corpus::CorpusFile) -> Vec<LocatedCall> {
-    let Some((source, tree)) = file.parsed() else {
-        return Vec::new();
-    };
-    calls_in_tree(tree, source, file.lang, &file.path)
+    calls_and_bindings_from(file).calls
 }
 
-fn calls_in_tree(tree: &tree_sitter::Tree, source: &str, lang: Language, path: &Path) -> Vec<LocatedCall> {
+pub fn calls_and_bindings_from(file: &super::corpus::CorpusFile) -> CallWalkOut {
+    let Some((source, tree)) = file.parsed() else {
+        return CallWalkOut::default();
+    };
+    walk_tree(tree, source, file.lang, &file.path)
+}
+
+fn walk_tree(tree: &tree_sitter::Tree, source: &str, lang: Language, path: &Path) -> CallWalkOut {
     let ctx = CallCtx { source, lang, path };
-    let mut out = Vec::new();
+    let mut out = CallWalkOut::default();
     let mut stack: Vec<EnclosingFrame> = Vec::new();
     visit(tree.root_node(), &ctx, &mut stack, &mut out);
     out
@@ -78,10 +90,10 @@ struct EnclosingFrame {
     method: Option<MethodIdentity>,
 }
 
-fn visit(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>, out: &mut Vec<LocatedCall>) {
-    let pushed_class = maybe_push_class(node, ctx.source, stack);
-    let pushed_method = maybe_push_method(node, ctx.source, ctx.path, stack);
-    collect_calls_at(node, ctx, stack, out);
+fn visit(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>, out: &mut CallWalkOut) {
+    let pushed_class = maybe_push_class(node, ctx, stack, out);
+    let pushed_method = maybe_push_method(node, ctx, stack, out);
+    collect_calls_at(node, ctx, stack, &mut out.calls);
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         visit(child, ctx, stack, out);
@@ -110,22 +122,36 @@ fn single_node_calls(node: Node, source: &str, lang: Language) -> Vec<RawCall> {
     calls::match_single(node, source, dispatchers).into_iter().collect()
 }
 
-fn maybe_push_class(node: Node, source: &str, stack: &mut Vec<EnclosingFrame>) -> bool {
+fn maybe_push_class(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>, out: &mut CallWalkOut) -> bool {
     if !CLASS_KINDS.contains(&node.kind()) {
         return false;
     }
-    let class_name = identifier_in(node, source);
+    let class_name = identifier_in(node, ctx.source);
+    if binding::supports(ctx.lang) {
+        if let Some(name) = class_name.clone() {
+            out.classes.push(ClassBinding {
+                file: ctx.path.to_path_buf(),
+                name,
+                parents: binding::class_parents(node, ctx.source, ctx.lang),
+                fields: binding::class_field_types(node, ctx.source, ctx.lang),
+            });
+        }
+    }
     stack.push(EnclosingFrame { class: class_name, method: None });
     true
 }
 
-fn maybe_push_method(node: Node, source: &str, path: &Path, stack: &mut Vec<EnclosingFrame>) -> bool {
+fn maybe_push_method(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>, out: &mut CallWalkOut) -> bool {
     if !FUNCTION_KINDS.contains(&node.kind()) {
         return false;
     }
-    let name = identifier_in(node, source).unwrap_or_else(|| "<anonymous>".to_string());
+    let name = identifier_in(node, ctx.source).unwrap_or_else(|| "<anonymous>".to_string());
     let class = stack.iter().rev().find_map(|f| f.class.clone());
-    let identity = MethodIdentity { file: path.to_path_buf(), class, name, line: node.start_position().row as u32 + 1 };
+    let identity =
+        MethodIdentity { file: ctx.path.to_path_buf(), class, name, line: node.start_position().row as u32 + 1 };
+    if binding::supports(ctx.lang) {
+        out.method_envs.push((identity.clone(), binding::method_var_types(node, ctx.source, ctx.lang)));
+    }
     stack.push(EnclosingFrame { class: None, method: Some(identity) });
     true
 }

@@ -76,6 +76,8 @@ mod applicability_matrix;
 mod audit_abstractness;
 #[path = "integration/audit_arch_smells.rs"]
 mod audit_arch_smells;
+#[path = "integration/audit_binding.rs"]
+mod audit_binding;
 #[path = "integration/audit_call_extraction_clean.rs"]
 mod audit_call_extraction_clean;
 #[path = "integration/audit_call_extraction_extended.rs"]

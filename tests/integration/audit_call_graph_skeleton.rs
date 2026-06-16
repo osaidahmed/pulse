@@ -143,7 +143,7 @@ fn adjacency_multiple_edges_to_same_target() {
 
 #[test]
 fn empty_call_graph_has_zero_methods() {
-    let g = CallGraph::empty();
+    let g = CallGraph::default();
     assert_eq!(g.registry.count(), 0);
 }
 

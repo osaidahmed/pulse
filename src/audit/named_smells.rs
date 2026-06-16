@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 
+use super::binding::BindingTable;
 use super::call_graph::{CallGraph, MethodIdentity, MethodIndex};
-use super::call_walker::LocatedCall;
+use super::call_walker::{CallWalkOut, LocatedCall};
 use super::class_registry::ClassRegistry;
 use super::component_thresholds;
 use super::corpus::Corpus;
@@ -28,18 +29,19 @@ struct NamedContext<'a> {
 
 pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     use rayon::prelude::*;
-    let extracted: Vec<(Vec<DefinitionRecord>, Vec<LocatedCall>)> = corpus
+    let extracted: Vec<(Vec<DefinitionRecord>, CallWalkOut)> = corpus
         .files
         .par_iter()
-        .map(|file| (super::definitions::definitions_from(file), super::call_walker::calls_from(file)))
+        .map(|file| (super::definitions::definitions_from(file), super::call_walker::calls_and_bindings_from(file)))
         .collect();
     let mut definitions = Vec::new();
     let mut calls = Vec::new();
-    for (defs, file_calls) in extracted {
+    let mut bindings = BindingTable::default();
+    for (defs, walk_out) in extracted {
         definitions.extend(defs);
-        calls.extend(file_calls);
+        absorb_bindings(walk_out, &mut calls, &mut bindings);
     }
-    let graph = CallGraph::build(definitions.clone(), calls);
+    let graph = CallGraph::build_with_bindings(definitions.clone(), calls, &bindings);
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
     let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
     let inh = super::inheritance::build_inheritance_graph(&registry);
@@ -62,6 +64,16 @@ pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> V
     let file_lang = |path: &Path| -> Option<Language> { corpus.get(path).map(|f| f.lang) };
     apply_named_confidence(&mut all, &file_lang);
     all
+}
+
+fn absorb_bindings(walk_out: CallWalkOut, calls: &mut Vec<LocatedCall>, bindings: &mut BindingTable) {
+    calls.extend(walk_out.calls);
+    for (id, env) in walk_out.method_envs {
+        bindings.insert_method(id, env);
+    }
+    for class in walk_out.classes {
+        bindings.insert_class(class);
+    }
 }
 
 fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFinding> {

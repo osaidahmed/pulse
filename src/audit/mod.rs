@@ -1,5 +1,7 @@
 pub mod abstractness;
 pub mod arch_smells;
+pub mod binding;
+pub mod binding_java;
 pub mod call_graph;
 pub mod call_method_dotted;
 pub mod call_path_qualified;
