@@ -44,6 +44,24 @@ fn analyze(file: &CorpusFile) -> Analyzed {
     Analyzed { defs, calls: out.calls, table }
 }
 
+fn analyze_corpus(corpus: &Corpus) -> Analyzed {
+    let mut defs = Vec::new();
+    let mut calls = Vec::new();
+    let mut table = BindingTable::default();
+    for file in &corpus.files {
+        defs.extend(definitions_from(file));
+        let out = calls_and_bindings_from(file);
+        calls.extend(out.calls);
+        for (id, env) in out.method_envs {
+            table.insert_method(id, env);
+        }
+        for class in out.classes {
+            table.insert_class(class);
+        }
+    }
+    Analyzed { defs, calls, table }
+}
+
 fn caller_of(calls: &[LocatedCall], callee: &str) -> MethodIdentity {
     calls.iter().find(|c| c.call.callee_name == callee).and_then(|c| c.caller.clone()).expect("caller present")
 }
@@ -163,6 +181,43 @@ fn non_java_languages_yield_no_bindings() {
     let out = calls_and_bindings_from(only_file(&corpus));
     assert!(out.method_envs.is_empty(), "unsupported languages contribute no type env");
     assert!(out.classes.is_empty(), "unsupported languages contribute no class bindings");
+}
+
+#[test]
+fn cross_file_same_name_target_is_suppressed() {
+    let (_d, corpus) = corpus_of(
+        &[
+            ("A.java", "class Bar { void shared() {} }\n"),
+            ("B.java", "class Bar { void shared() {} }\n"),
+            ("C.java", "class Caller {\n  void run() {\n    Bar b = new Bar();\n    b.shared();\n  }\n}\n"),
+        ],
+        Language::Java,
+    );
+    let a = analyze_corpus(&corpus);
+    let caller = caller_of(&a.calls, "shared");
+    let plain = CallGraph::build(a.defs.clone(), a.calls.clone());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    assert_eq!(targets_named(&plain, &caller, "shared").len(), 2, "name fan-out reaches both same-named Bars");
+    assert_eq!(
+        targets_named(&bound, &caller, "shared").len(),
+        0,
+        "a same-name class spanning two files is ambiguous and emits no edge"
+    );
+}
+
+#[test]
+fn divergent_same_name_parents_poison_the_ancestor_walk() {
+    let widget =
+        |parent: &str| ClassBinding { name: "Widget".into(), parents: vec![parent.into()], ..Default::default() };
+    let mut poisoned = BindingTable::default();
+    poisoned.insert_class(widget("Base"));
+    poisoned.insert_class(widget("Other"));
+    assert!(poisoned.ancestors("Widget").is_empty(), "divergent same-name parents suppress the ancestor walk");
+
+    let mut agreed = BindingTable::default();
+    agreed.insert_class(widget("Base"));
+    agreed.insert_class(widget("Base"));
+    assert_eq!(agreed.ancestors("Widget"), vec!["Base".to_string()], "identical parents are not poisoned");
 }
 
 #[test]

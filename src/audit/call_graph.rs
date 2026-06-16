@@ -187,18 +187,26 @@ fn resolve_in_hierarchy(
     bindings: &BindingTable,
 ) -> Option<Vec<(MethodIndex, ImportConfidence)>> {
     let exact = reg.lookup_by_class_and_name(class, callee);
-    if !exact.is_empty() {
-        let conf = if exact.len() == 1 { ImportConfidence::High } else { ImportConfidence::Medium };
-        return Some(exact.iter().map(|i| (*i, conf)).collect());
+    if !exact.is_empty() && distinct_class_identities(reg, exact) <= 1 {
+        return Some(exact.iter().map(|i| (*i, ImportConfidence::High)).collect());
     }
     for ancestor in bindings.ancestors(class) {
         let hits = reg.lookup_by_class_and_name(&ancestor, callee);
-        if !hits.is_empty() {
-            let conf = if hits.len() == 1 { ImportConfidence::Medium } else { ImportConfidence::Low };
-            return Some(hits.iter().map(|i| (*i, conf)).collect());
+        if !hits.is_empty() && distinct_class_identities(reg, hits) <= 1 {
+            return Some(hits.iter().map(|i| (*i, ImportConfidence::Medium)).collect());
         }
     }
     None
+}
+
+fn distinct_class_identities(reg: &MethodRegistry, idxs: &[MethodIndex]) -> usize {
+    let mut seen: std::collections::HashSet<(&std::path::Path, Option<&str>)> = std::collections::HashSet::new();
+    for idx in idxs {
+        if let Some(m) = reg.get(*idx) {
+            seen.insert((m.file.as_path(), m.class.as_deref()));
+        }
+    }
+    seen.len()
 }
 
 fn name_fallback(reg: &MethodRegistry, callee: &str) -> Vec<(MethodIndex, ImportConfidence)> {

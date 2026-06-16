@@ -22,6 +22,7 @@ pub struct BindingTable {
     methods: BTreeMap<MethodIdentity, TypeEnv>,
     fields: BTreeMap<(PathBuf, String), TypeEnv>,
     parents: BTreeMap<String, Vec<String>>,
+    poisoned: BTreeSet<String>,
     known: BTreeSet<String>,
 }
 
@@ -36,11 +37,24 @@ impl BindingTable {
 
     pub fn insert_class(&mut self, class: ClassBinding) {
         self.known.insert(class.name.clone());
-        if !class.parents.is_empty() {
-            self.parents.entry(class.name.clone()).or_default().extend(class.parents);
-        }
+        self.record_parents(&class.name, class.parents);
         if !class.fields.is_empty() {
             self.fields.insert((class.file, class.name), class.fields);
+        }
+    }
+
+    fn record_parents(&mut self, name: &str, parents: Vec<String>) {
+        if parents.is_empty() {
+            return;
+        }
+        match self.parents.get(name) {
+            Some(existing) if *existing != parents => {
+                self.poisoned.insert(name.to_string());
+            }
+            Some(_) => {}
+            None => {
+                self.parents.insert(name.to_string(), parents);
+            }
         }
     }
 
@@ -58,12 +72,18 @@ impl BindingTable {
     }
 
     pub fn ancestors(&self, class: &str) -> Vec<String> {
+        if self.poisoned.contains(class) {
+            return Vec::new();
+        }
         let mut seen: BTreeSet<&str> = BTreeSet::new();
         let mut out: Vec<String> = Vec::new();
         let mut queue: VecDeque<&str> = VecDeque::new();
         seen.insert(class);
         queue.push_back(class);
         while let Some(cur) = queue.pop_front() {
+            if self.poisoned.contains(cur) {
+                continue;
+            }
             let Some(parents) = self.parents.get(cur) else { continue };
             for parent in parents {
                 if seen.insert(parent.as_str()) {
