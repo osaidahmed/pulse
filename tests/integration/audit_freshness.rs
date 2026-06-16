@@ -100,8 +100,7 @@ fn progress_helpers_write_to_stderr_without_panic_and_honor_force_env() {
     use pulse::audit::progress;
     progress::show("  checking dependencies 1/2");
     progress::clear();
-    let baseline = progress::is_active();
-    let _ = baseline; // is_terminal path is exercised (value depends on the harness)
+    assert!(!progress::is_active(), "no force env and a non-terminal test harness -> inactive");
     std::env::set_var("PULSE_FORCE_PROGRESS", "1");
     assert!(progress::is_active(), "the force env overrides the terminal check");
     std::env::remove_var("PULSE_FORCE_PROGRESS");

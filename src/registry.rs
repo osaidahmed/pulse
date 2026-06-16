@@ -110,8 +110,6 @@ fn cached(cache_path: &Path, online: bool, url: &str) -> Option<String> {
     Some(body)
 }
 
-/// Write the cache entry atomically (temp file + rename) so concurrent lookups never
-/// observe a partially-written file and concurrent writes of the same key are safe.
 pub fn write_atomic(cache_path: &Path, body: &str) {
     let Some(parent) = cache_path.parent() else { return };
     if std::fs::create_dir_all(parent).is_err() {
