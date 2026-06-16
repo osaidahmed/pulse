@@ -254,6 +254,41 @@ fn cpp_typed_receiver_resolves_via_binding_and_enrichment() {
 }
 
 #[test]
+fn objc_message_send_resolves_via_binding_and_enrichment() {
+    let src = "@implementation Bar\n- (void)doThing {}\n@end\n@implementation Repo\n- (void)run:(Bar*)b {\n    [b doThing];\n}\n@end\n";
+    let (_d, corpus) = one_source(src, "sample.m", Language::ObjectiveC);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let idx = bound
+        .registry
+        .methods
+        .iter()
+        .position(|m| m.class.as_deref() == Some("Repo") && m.name == "run")
+        .map(|i| MethodIndex(i as u32))
+        .expect("Repo.run definition");
+    let targets: Vec<_> = bound
+        .adjacency
+        .outgoing(idx)
+        .iter()
+        .filter_map(|e| bound.registry.get(e.target))
+        .filter(|m| m.name == "doThing")
+        .collect();
+    assert_eq!(targets.len(), 1, "[b doThing] resolves to Bar.doThing via param binding + caller enrichment");
+    assert_eq!(targets[0].class.as_deref(), Some("Bar"));
+}
+
+#[test]
+fn objc_binds_method_param_and_local() {
+    let src = "@implementation Repo\n- (void)run:(Bar*)b {\n    Foo* x;\n}\n@end\n";
+    let (_d, corpus) = one_source(src, "sample.m", Language::ObjectiveC);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let found = out.method_envs.iter().any(|(_, env)| {
+        env.get("b").map(String::as_str) == Some("Bar") && env.get("x").map(String::as_str) == Some("Foo")
+    });
+    assert!(found, "objc method binds param b->Bar (pointer) and local x->Foo; envs: {:?}", out.method_envs);
+}
+
+#[test]
 fn csharp_dynamic_local_is_not_bound() {
     assert!(env_type("class C { void M() { dynamic x = G(); } }\n", "Sample.cs", Language::CSharp, "M", "x").is_none());
 }

@@ -10,6 +10,7 @@ const CALL_KINDS: &[&str] = &[
     "function_call",
     "function_call_expression",
     "method_call",
+    "message_expression",
     "send",
 ];
 

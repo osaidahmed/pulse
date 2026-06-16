@@ -2,10 +2,10 @@ use std::collections::BTreeSet;
 
 use tree_sitter::Node;
 
-use crate::walk::{find_child_by_kind, node_text, DepthGuard};
+use crate::walk::{find_child_by_kind, node_text};
 
 use super::binding::TypeEnv;
-use super::binding_extract::{head_of, EnvBuilder};
+use super::binding_extract::{bind_c_decl, collect_c_locals, head_of, EnvBuilder};
 
 const TYPE_KINDS: &[&str] = &["type_identifier", "qualified_identifier", "template_type"];
 
@@ -16,7 +16,7 @@ pub fn method_var_types(method_node: Node, source: &str) -> TypeEnv {
     let mut builder = EnvBuilder::default();
     collect_params(method_node, source, &mut builder);
     if let Some(body) = find_child_by_kind(method_node, "compound_statement") {
-        collect_locals(body, source, &mut builder);
+        collect_c_locals(body, source, &mut builder, type_head, SCOPE_BOUNDARIES);
     }
     builder.into_env(&BTreeSet::new())
 }
@@ -27,7 +27,7 @@ pub fn class_field_types(class_node: Node, source: &str) -> TypeEnv {
         let mut cursor = body.walk();
         for child in body.children(&mut cursor) {
             if child.kind() == "field_declaration" {
-                bind_decl(child, source, &mut builder);
+                bind_c_decl(child, source, &mut builder, type_head);
             }
         }
     }
@@ -59,52 +59,13 @@ fn collect_params(method_node: Node, source: &str, builder: &mut EnvBuilder) {
     let mut cursor = params.walk();
     for p in params.children(&mut cursor) {
         if p.kind() == "parameter_declaration" {
-            bind_decl(p, source, builder);
+            bind_c_decl(p, source, builder, type_head);
         }
     }
 }
 
 fn function_declarator_in(node: Node) -> Option<Node> {
     find_child_by_kind(node, "function_declarator")
-}
-
-fn collect_locals(node: Node, source: &str, builder: &mut EnvBuilder) {
-    let Some(_guard) = DepthGuard::enter() else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        let kind = child.kind();
-        if SCOPE_BOUNDARIES.contains(&kind) {
-            continue;
-        }
-        if kind == "declaration" {
-            bind_decl(child, source, builder);
-        }
-        collect_locals(child, source, builder);
-    }
-}
-
-fn bind_decl(decl: Node, source: &str, builder: &mut EnvBuilder) {
-    let Some(ty) = decl.child_by_field_name("type").and_then(|t| type_head(t, source)) else {
-        return;
-    };
-    let mut cursor = decl.walk();
-    for child in decl.children(&mut cursor) {
-        if let Some(name) = declarator_name(child, source) {
-            builder.bind(name, ty.clone());
-        }
-    }
-}
-
-fn declarator_name(node: Node, source: &str) -> Option<String> {
-    match node.kind() {
-        "identifier" | "field_identifier" => Some(node_text(node, source).to_string()),
-        "pointer_declarator" | "reference_declarator" | "init_declarator" => {
-            node.child_by_field_name("declarator").and_then(|d| declarator_name(d, source))
-        }
-        _ => None,
-    }
 }
 
 fn type_head(node: Node, source: &str) -> Option<String> {

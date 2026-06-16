@@ -34,7 +34,7 @@ fn dispatchers_table_all_languages_enumerable() {
 
 #[test]
 fn unsupported_languages_have_empty_dispatchers() {
-    let unsupported = [Language::Lua, Language::R, Language::Tcl, Language::Cobol, Language::ObjectiveC, Language::Zig];
+    let unsupported = [Language::Lua, Language::R, Language::Tcl, Language::Cobol, Language::Zig];
     for lang in unsupported {
         let d = dispatchers_for_lang(lang);
         assert!(d.is_empty(), "lang {lang:?} should have no dispatchers");

@@ -1,6 +1,12 @@
 use std::collections::BTreeSet;
 
+use tree_sitter::Node;
+
+use crate::walk::{node_text, DepthGuard};
+
 use super::binding::TypeEnv;
+
+pub type TypeHead = fn(Node, &str) -> Option<String>;
 
 #[derive(Default)]
 pub struct EnvBuilder {
@@ -39,5 +45,44 @@ pub fn head_of(text: &str) -> Option<String> {
         None
     } else {
         Some(simple.to_string())
+    }
+}
+
+pub fn c_declarator_name(node: Node, source: &str) -> Option<String> {
+    match node.kind() {
+        "identifier" | "field_identifier" => Some(node_text(node, source).to_string()),
+        "pointer_declarator" | "reference_declarator" | "init_declarator" => {
+            node.child_by_field_name("declarator").and_then(|d| c_declarator_name(d, source))
+        }
+        _ => None,
+    }
+}
+
+pub fn bind_c_decl(decl: Node, source: &str, builder: &mut EnvBuilder, type_head: TypeHead) {
+    let Some(ty) = decl.child_by_field_name("type").and_then(|t| type_head(t, source)) else {
+        return;
+    };
+    let mut cursor = decl.walk();
+    for child in decl.children(&mut cursor) {
+        if let Some(name) = c_declarator_name(child, source) {
+            builder.bind(name, ty.clone());
+        }
+    }
+}
+
+pub fn collect_c_locals(node: Node, source: &str, builder: &mut EnvBuilder, type_head: TypeHead, boundaries: &[&str]) {
+    let Some(_guard) = DepthGuard::enter() else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        let kind = child.kind();
+        if boundaries.contains(&kind) {
+            continue;
+        }
+        if kind == "declaration" {
+            bind_c_decl(child, source, builder, type_head);
+        }
+        collect_c_locals(child, source, builder, type_head, boundaries);
     }
 }

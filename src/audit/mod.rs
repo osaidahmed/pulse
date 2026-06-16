@@ -8,6 +8,7 @@ pub mod binding_extract;
 pub mod binding_go;
 pub mod binding_java;
 pub mod binding_kotlin;
+pub mod binding_objc;
 pub mod binding_rust;
 pub mod binding_swift;
 pub mod binding_typescript;

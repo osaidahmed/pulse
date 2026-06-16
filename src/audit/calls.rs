@@ -33,6 +33,7 @@ const DISPATCH_TABLE: &[(Language, &[CallDispatch])] = &[
     (Language::Go, &[CallDispatch::MethodDotted]),
     (Language::Cpp, &[CallDispatch::PathQualified, CallDispatch::MethodDotted]),
     (Language::C, &[CallDispatch::MethodDotted]),
+    (Language::ObjectiveC, &[CallDispatch::MethodDotted]),
     (Language::Haskell, &[CallDispatch::MethodDotted]),
     (Language::D, &[CallDispatch::MethodDotted, CallDispatch::PathQualified]),
 ];
