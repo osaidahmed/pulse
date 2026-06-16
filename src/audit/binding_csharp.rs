@@ -183,7 +183,10 @@ fn type_head_name(node: Node, source: &str) -> Option<String> {
     if !NAMED_TYPE_KINDS.contains(&kind) {
         return None;
     }
-    head_of(node_text(inner, source))
+    match head_of(node_text(inner, source)) {
+        Some(head) if head == "dynamic" => None,
+        other => other,
+    }
 }
 
 fn peel_type(node: Node) -> Node {

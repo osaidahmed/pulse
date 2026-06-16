@@ -31,7 +31,25 @@ pub fn method_var_types(method_node: Node, source: &str) -> TypeEnv {
     if let Some(body) = method_node.child_by_field_name("body") {
         collect_locals(body, source, &mut builder);
     }
-    builder.into_env(&type_param_names(method_node, source))
+    let mut tvars = type_param_names(method_node, source);
+    tvars.extend(enclosing_impl_type_params(method_node, source));
+    builder.into_env(&tvars)
+}
+
+fn enclosing_impl_type_params(method_node: Node, source: &str) -> BTreeSet<String> {
+    let mut node = method_node.parent();
+    let mut depth = 0;
+    while let Some(n) = node {
+        if depth > 6 {
+            break;
+        }
+        if matches!(n.kind(), "impl_item" | "trait_item") {
+            return type_param_names(n, source);
+        }
+        node = n.parent();
+        depth += 1;
+    }
+    BTreeSet::new()
 }
 
 pub fn class_field_types(class_node: Node, source: &str) -> TypeEnv {

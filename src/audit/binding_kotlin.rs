@@ -82,10 +82,15 @@ fn collect_ctor_fields(class_node: Node, source: &str, builder: &mut EnvBuilder)
     };
     let mut cursor = params.walk();
     for p in params.children(&mut cursor) {
-        if p.kind() == "class_parameter" && is_property_param(p) {
+        if p.kind() == "class_parameter" && is_property_param(p) && !has_vararg(p, source) {
             bind_named(p, source, builder);
         }
     }
+}
+
+fn has_vararg(node: Node, source: &str) -> bool {
+    find_child_by_kinds(node, &["modifiers", "parameter_modifiers"])
+        .is_some_and(|m| node_text(m, source).contains("vararg"))
 }
 
 fn is_property_param(param: Node) -> bool {
@@ -99,9 +104,17 @@ fn collect_params(method_node: Node, source: &str, builder: &mut EnvBuilder) {
         return;
     };
     let mut cursor = params.walk();
+    let mut vararg = false;
     for p in params.children(&mut cursor) {
-        if p.kind() == "parameter" {
-            bind_named(p, source, builder);
+        match p.kind() {
+            "parameter_modifiers" => vararg = node_text(p, source).contains("vararg"),
+            "parameter" => {
+                if !vararg {
+                    bind_named(p, source, builder);
+                }
+                vararg = false;
+            }
+            _ => vararg = false,
         }
     }
 }

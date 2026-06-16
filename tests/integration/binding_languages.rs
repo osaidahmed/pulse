@@ -98,6 +98,48 @@ fn rust_binds_typed_params_and_explicit_locals() {
 }
 
 #[test]
+fn swift_binds_parameter_name_not_argument_label() {
+    let src = "class C {\n  func f(_ dest: Bar, to other: Baz) {\n    dest.use()\n  }\n}\n";
+    let (_d, corpus) = one_source(src, "Sample.swift", Language::Swift);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let f = method_env(&out, "f").expect("f env");
+    assert_eq!(f.get("dest").map(String::as_str), Some("Bar"), "binds the local name, not the label");
+    assert_eq!(f.get("other").map(String::as_str), Some("Baz"));
+    assert!(f.get("_").is_none() && f.get("to").is_none(), "argument labels are not bound");
+}
+
+#[test]
+fn swift_variadic_parameter_is_not_bound() {
+    assert!(
+        env_type("class C { func f(values: Bar...) {} }\n", "Sample.swift", Language::Swift, "f", "values").is_none()
+    );
+}
+
+#[test]
+fn rust_impl_type_parameter_is_dropped() {
+    let src = "struct Wrapper;\nimpl<Item> Wrapper {\n  fn get(&self) {\n    let x: Item = make();\n  }\n}\n";
+    assert!(
+        env_type(src, "sample.rs", Language::Rust, "get", "x").is_none(),
+        "impl-level generic not bound to a class"
+    );
+}
+
+#[test]
+fn kotlin_vararg_parameter_is_not_bound() {
+    let src = "class C { fun m(vararg items: Item, single: Item) {} }\n";
+    let (_d, corpus) = one_source(src, "Sample.kt", Language::Kotlin);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let m = method_env(&out, "m").expect("m env");
+    assert!(m.get("items").is_none(), "vararg element type not bound");
+    assert_eq!(m.get("single").map(String::as_str), Some("Item"), "the following non-vararg param still binds");
+}
+
+#[test]
+fn csharp_dynamic_local_is_not_bound() {
+    assert!(env_type("class C { void M() { dynamic x = G(); } }\n", "Sample.cs", Language::CSharp, "M", "x").is_none());
+}
+
+#[test]
 fn d_binds_params_locals_fields_and_parents() {
     let src = "class Widget : Base, Drawable {\n  Foo helper;\n  void run(Bar b) {\n    Baz local;\n  }\n}\n";
     let (_d, corpus) = one_source(src, "sample.d", Language::D);

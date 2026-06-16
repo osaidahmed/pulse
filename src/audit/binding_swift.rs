@@ -110,13 +110,22 @@ fn collect_params(method_node: Node, source: &str, builder: &mut EnvBuilder) {
 }
 
 fn bind_param(param: Node, source: &str, builder: &mut EnvBuilder) {
-    let Some(name) = find_child_by_kind(param, "simple_identifier") else {
+    if is_variadic(param) {
+        return;
+    }
+    let Some(name) = param.child_by_field_name("name").filter(|n| n.kind() == "simple_identifier") else {
         return;
     };
     let ty = param.child_by_field_name("type").or_else(|| type_node_of(param));
     if let Some(head) = ty.and_then(|t| type_head_name(t, source)) {
         builder.bind(node_text(name, source).to_string(), head);
     }
+}
+
+fn is_variadic(param: Node) -> bool {
+    let mut cursor = param.walk();
+    let found = param.children(&mut cursor).any(|c| c.kind() == "...");
+    found
 }
 
 fn collect_locals(node: Node, source: &str, builder: &mut EnvBuilder) {
