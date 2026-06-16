@@ -13,8 +13,19 @@ pub struct CommunityThresholds {
     pub split_cohesion: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FragmentationThresholds {
+    pub min_coupled_files: u32,
+    pub min_density: f64,
+    pub max_avg_loc: u32,
+}
+
 impl PageRankThresholds {
     pub const DEFAULTS: Self = Self { damping: 0.85, max_iters: 100, epsilon: 1e-6 };
+}
+
+impl FragmentationThresholds {
+    pub const DEFAULTS: Self = Self { min_coupled_files: 8, min_density: 1.5, max_avg_loc: 80 };
 }
 
 impl CommunityThresholds {

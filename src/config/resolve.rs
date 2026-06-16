@@ -119,6 +119,7 @@ fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresh
         pagerank: base.pagerank,
         community: base.community,
         max_arch_findings_reported: o.max_arch_findings_reported.unwrap_or(base.max_arch_findings_reported),
+        fragmentation: base.fragmentation,
     }
 }
 

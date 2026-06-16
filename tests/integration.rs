@@ -145,6 +145,8 @@ mod audit_fingerprint;
 mod audit_fingerprint_extended;
 #[path = "integration/audit_fixture_loader.rs"]
 mod audit_fixture_loader;
+#[path = "integration/audit_fragmentation.rs"]
+mod audit_fragmentation;
 #[path = "integration/audit_freshness.rs"]
 mod audit_freshness;
 #[path = "integration/audit_god_class.rs"]

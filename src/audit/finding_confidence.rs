@@ -36,6 +36,7 @@ confidence_lookup!(package_metric_evidence_confidence {
     UnstableDependency,
     HubLikeDependency,
     GodComponent,
+    OverFragmentation,
     CompoundArchSmell,
     SplitComponent,
     MoveFile,

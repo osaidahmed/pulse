@@ -2,7 +2,7 @@ use crate::history::thresholds::HistoryThresholds;
 
 mod arch;
 mod features;
-pub use arch::{CommunityThresholds, PageRankThresholds};
+pub use arch::{CommunityThresholds, FragmentationThresholds, PageRankThresholds};
 pub use features::{CloneClusterThresholds, CpgThresholds, NaturalnessThresholds};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -148,6 +148,7 @@ pub struct PackageMetricsThresholds {
     pub pagerank: PageRankThresholds,
     pub community: CommunityThresholds,
     pub max_arch_findings_reported: usize,
+    pub fragmentation: FragmentationThresholds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -295,6 +296,7 @@ impl PackageMetricsThresholds {
         pagerank: PageRankThresholds::DEFAULTS,
         community: CommunityThresholds::DEFAULTS,
         max_arch_findings_reported: 50,
+        fragmentation: FragmentationThresholds::DEFAULTS,
     };
 }
 

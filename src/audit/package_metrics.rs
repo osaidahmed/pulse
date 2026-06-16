@@ -40,6 +40,7 @@ pub fn run_with_module_count(
     findings.extend(cycle_findings(&graph, &profile_lookup, thresholds));
     findings.extend(arch_findings(&graph, &profile_lookup, thresholds));
     findings.extend(super::remodularization::detect(&graph, thresholds));
+    findings.extend(super::fragmentation::detect(&graph, |p| profile_lookup(p).loc, thresholds));
     findings
 }
 

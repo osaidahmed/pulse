@@ -45,6 +45,7 @@ pub mod expression_filter;
 pub mod finding;
 pub mod finding_confidence;
 pub mod finding_evidence;
+pub mod fragmentation;
 pub mod freshness;
 pub mod graph;
 pub mod hist_crossval;

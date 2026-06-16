@@ -25,6 +25,7 @@ pub enum AuditKind {
     UnstableDependency(UnstableDepEvidence),
     HubLikeDependency(HubLikeEvidence),
     GodComponent(GodComponentEvidence),
+    OverFragmentation(OverFragmentationEvidence),
     CompoundArchSmell(CompoundEvidence),
     SplitComponent(SplitComponentEvidence),
     MoveFile(MoveFileEvidence),
@@ -46,6 +47,7 @@ pub use super::finding_evidence::{
     NaturalnessEvidence, OutdatedDepEvidence, PhantomDepEvidence, SplitComponentEvidence, StrictnessEvidence,
     UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence, VulnDepEvidence,
 };
+pub use super::fragmentation::OverFragmentationEvidence;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DivergentChangeEvidence {
@@ -331,7 +333,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 30] = [
+const VARIANT_TABLE: [VariantInfo; 31] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -450,6 +452,14 @@ const VARIANT_TABLE: [VariantInfo; 30] = [
         slug: "god_component",
         action: "split this oversized component or relocate cohesive files into a new module",
         label: "God component",
+        pillar: AuditPillar::Architecture,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::OverFragmentation(_)),
+        pass: "package-metrics",
+        slug: "over_fragmentation",
+        action: "consolidate these tightly-coupled sibling files into fewer cohesive modules",
+        label: "Over-fragmentation",
         pillar: AuditPillar::Architecture,
     },
     VariantInfo {

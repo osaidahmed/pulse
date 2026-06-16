@@ -49,6 +49,14 @@ fn render_component_smell(out: &mut String, kind: &AuditKind, root: Option<&Path
             let _ = writeln!(out, "  centrality:    {:.4}", e.centrality);
             let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
         }
+        AuditKind::OverFragmentation(e) => {
+            let _ = writeln!(out, "audit: over-fragmented directory — {}", display_path(&e.component, root));
+            let _ = writeln!(out, "  coupled files: {}", e.coupled_files);
+            let _ = writeln!(out, "  avg size:      {} LOC/file", e.avg_loc);
+            let _ = writeln!(out, "  intra-imports: {}", e.internal_edges);
+            let _ = writeln!(out, "  density:       {:.2} imports/file", e.density);
+            let _ = writeln!(out, "  confidence:    {}", confidence_str(e.confidence));
+        }
         AuditKind::CompoundArchSmell(e) => {
             let _ = writeln!(out, "audit: compound architecture smell — {}", display_path(&e.component, root));
             let _ = writeln!(out, "  smells:        {}", e.constituent_kinds.join(" + "));
@@ -121,6 +129,15 @@ fn component_json(kind: &AuditKind, root: Option<&Path>) -> Option<serde_json::V
             "file_count": e.file_count,
             "density": e.density,
             "centrality": e.centrality,
+            "confidence": confidence_str(e.confidence),
+        })),
+        AuditKind::OverFragmentation(e) => Some(serde_json::json!({
+            "kind": "OverFragmentation",
+            "component": display_path(&e.component, root),
+            "coupled_files": e.coupled_files,
+            "avg_loc": e.avg_loc,
+            "internal_edges": e.internal_edges,
+            "density": e.density,
             "confidence": confidence_str(e.confidence),
         })),
         AuditKind::CompoundArchSmell(e) => Some(serde_json::json!({
