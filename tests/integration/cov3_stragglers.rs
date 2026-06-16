@@ -7,7 +7,7 @@ use pulse::audit::vuln_clones;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 
-use crate::binding_common::{class_binding, method_env, one_source};
+use crate::binding_common::{method_env, one_source};
 use crate::history_common::{build_repo, CommitSpec};
 
 fn t() -> Thresholds {
@@ -47,11 +47,12 @@ fn write_atomic_removes_temp_file_when_write_into_readonly_parent_fails() {
     std::fs::set_permissions(&parent, restore).unwrap();
 }
 
-fn pulse_history(repo: &Path, analytics: &Path) -> (String, String, i32) {
+fn pulse_history(repo: &Path, analytics: &Path, extra: &[&str]) -> (String, String, i32) {
     let output = Command::new(env!("CARGO_BIN_EXE_pulse"))
         .arg("history")
         .arg("--root")
         .arg(repo.to_str().unwrap())
+        .args(extra)
         .env("PULSE_ANALYTICS_DIR", analytics)
         .output()
         .expect("pulse failed to run");
@@ -72,15 +73,16 @@ fn one_commit_repo() -> tempfile::TempDir {
 }
 
 #[test]
-fn history_run_with_pulse_config_present_takes_the_some_config_branch() {
+fn history_calibrate_with_pulse_config_present_takes_the_some_config_branch() {
     let repo = one_commit_repo();
-    std::fs::write(repo.path().join(".pulse.toml"), "[thresholds]\n").unwrap();
+    std::fs::write(repo.path().join(".pulse.toml"), "[history]\n").unwrap();
     let analytics = tempfile::tempdir().unwrap();
-    let (_out, stderr, code) = pulse_history(repo.path(), analytics.path());
+    let (stdout, stderr, code) = pulse_history(repo.path(), analytics.path(), &["--jit-calibrate"]);
     assert_eq!(
         code, 0,
-        "a clean repo carrying a .pulse.toml runs to completion through the Some config branch (stderr: {stderr})"
+        "calibrate on a repo carrying a .pulse.toml succeeds via the Some config branch (stderr: {stderr})"
     );
+    assert!(stdout.contains("jit calibration written:"), "expected the calibrate success message: {stdout}");
 }
 
 #[test]
@@ -115,11 +117,11 @@ fn java_local_class_in_method_body_is_skipped_as_a_scope_boundary() {
 }
 
 #[test]
-fn java_type_use_annotated_member_type_resolves_through_the_annotated_type_arm() {
-    let src = "class Widget {\n  Outer.@Nullable Inner helper;\n}\n";
+fn java_record_compact_constructor_has_no_formal_parameters() {
+    let src = "record R(Foo a) {\n  R {\n    Bar local = make();\n  }\n}\n";
     let (_d, corpus) = one_source(src, "Sample.java", Language::Java);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
-    let _w = class_binding(&out, "Widget").expect("widget class");
+    let _ = method_env(&out, "R");
 }
 
 #[test]
