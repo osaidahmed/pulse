@@ -106,10 +106,27 @@ fn cached(cache_path: &Path, online: bool, url: &str) -> Option<String> {
         return None;
     }
     let body = fetch_url(url)?;
-    let _ = std::fs::create_dir_all(cache_path.parent()?);
-    let _ = std::fs::write(cache_path, &body);
+    write_atomic(cache_path, &body);
     Some(body)
 }
+
+/// Write the cache entry atomically (temp file + rename) so concurrent lookups never
+/// observe a partially-written file and concurrent writes of the same key are safe.
+pub fn write_atomic(cache_path: &Path, body: &str) {
+    let Some(parent) = cache_path.parent() else { return };
+    if std::fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let seq = TMP_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = cache_path.with_file_name(format!(".pulse-tmp.{}.{seq}", std::process::id()));
+    if std::fs::write(&tmp, body).is_ok() {
+        let _ = std::fs::rename(&tmp, cache_path);
+    } else {
+        let _ = std::fs::remove_file(&tmp);
+    }
+}
+
+static TMP_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 fn fetch_url(url: &str) -> Option<String> {
     ureq::get(url).timeout(Duration::from_secs(10)).call().ok()?.into_string().ok()

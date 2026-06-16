@@ -1,3 +1,4 @@
+use std::io::IsTerminal;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -14,21 +15,57 @@ pub struct FreshnessVerdict {
     pub abandoned: bool,
 }
 
+const PROGRESS_MIN_DEPS: usize = 20;
+
 pub(super) fn for_each_deployed_locked<F>(root: &Path, max_findings: usize, build: F) -> Vec<AuditFinding>
 where
-    F: Fn(&Manifest, &DeclaredDep, &str) -> Option<AuditFinding>,
+    F: Fn(&Manifest, &DeclaredDep, &str) -> Option<AuditFinding> + Sync,
 {
+    use rayon::prelude::*;
     let meta = buildmeta::discover(root);
-    let mut findings: Vec<AuditFinding> = meta
+    let candidates: Vec<(&Manifest, &DeclaredDep, String)> = meta
         .manifests
         .iter()
         .flat_map(|m| m.deps.iter().map(move |d| (m, d)))
         .filter(|(_, d)| !d.own && d.scope == DepScope::Deployed)
-        .filter_map(|(m, d)| locked_version(&meta, m.ecosystem, &d.name).and_then(|v| build(m, d, &v)))
+        .filter_map(|(m, d)| locked_version(&meta, m.ecosystem, &d.name).map(|v| (m, d, v)))
         .collect();
+    let total = candidates.len();
+    let progress = should_show_progress(total, std::io::stderr().is_terminal());
+    let done = std::sync::Mutex::new(0usize);
+    let mut findings: Vec<AuditFinding> = candidates
+        .par_iter()
+        .filter_map(|(m, d, v)| {
+            let finding = build(m, d, v);
+            if progress {
+                let mut n = done.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                *n += 1;
+                emit_progress(*n, total);
+            }
+            finding
+        })
+        .collect();
+    if progress {
+        progress_write("\r\x1b[K");
+    }
     findings.sort_by(|a, b| a.representative_snippet.cmp(&b.representative_snippet));
     findings.truncate(max_findings);
     findings
+}
+
+pub fn should_show_progress(total: usize, stderr_is_terminal: bool) -> bool {
+    total > PROGRESS_MIN_DEPS && stderr_is_terminal
+}
+
+fn emit_progress(done: usize, total: usize) {
+    progress_write(&format!("\r  checking dependencies {done}/{total}"));
+}
+
+fn progress_write(s: &str) {
+    use std::io::Write;
+    let mut err = std::io::stderr().lock();
+    let _ = write!(err, "{s}");
+    let _ = err.flush();
 }
 
 pub fn run_from(root: &Path, cache_dir: &Path, online: bool, t: &FreshnessThresholds) -> Vec<AuditFinding> {

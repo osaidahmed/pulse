@@ -87,6 +87,74 @@ fn run_from_emits_outdated_from_a_cached_registry_without_network() {
 }
 
 #[test]
+fn progress_only_for_many_deps_on_a_terminal() {
+    use pulse::audit::freshness::should_show_progress;
+    assert!(!should_show_progress(20, true), "at the threshold (not over) -> no progress");
+    assert!(should_show_progress(21, true), "over the threshold on a tty -> progress");
+    assert!(!should_show_progress(1000, false), "never on a non-terminal (piped/CI)");
+    assert!(!should_show_progress(5, true), "few deps -> no progress");
+}
+
+#[test]
+fn parallel_lookups_are_deterministic_over_many_cached_deps() {
+    let dir = tempfile::tempdir().unwrap();
+    let cache = tempfile::tempdir().unwrap();
+    let n = 30;
+    let mut cargo_toml = String::from("[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\n");
+    let mut cargo_lock = String::from("version = 3\n");
+    let entry = r#"{"versions":[{"versionKey":{"version":"1.0.0"},"publishedAt":"2018-01-01T00:00:00Z","isDefault":false},{"versionKey":{"version":"2.0.0"},"publishedAt":"2024-01-01T00:00:00Z","isDefault":true}]}"#;
+    for i in 0..n {
+        let name = format!("dep{i:02}");
+        cargo_toml.push_str(&format!("{name} = \"1\"\n"));
+        cargo_lock.push_str(&format!("\n[[package]]\nname = \"{name}\"\nversion = \"1.0.0\"\n"));
+        fs::write(cache.path().join(format!("cargo__{name}.json")), entry).unwrap();
+    }
+    fs::write(dir.path().join("Cargo.toml"), cargo_toml).unwrap();
+    fs::write(dir.path().join("Cargo.lock"), cargo_lock).unwrap();
+
+    let names = |fs: &[pulse::audit::finding::AuditFinding]| -> Vec<String> {
+        fs.iter()
+            .filter_map(|f| match &f.kind {
+                AuditKind::OutdatedDependency(e) => Some(e.name.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    let r1 = run_from(dir.path(), cache.path(), false, &thresholds(1));
+    let r2 = run_from(dir.path(), cache.path(), false, &thresholds(1));
+    assert_eq!(r1.len(), n, "all {n} cached deps are outdated");
+    assert_eq!(names(&r1), names(&r2), "parallel lookups produce identical, deterministic output");
+}
+
+#[test]
+fn cache_write_round_trips_and_overwrites() {
+    use pulse::registry::write_atomic;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("nested/entry.json");
+    write_atomic(&path, "first");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "first", "creates parent dirs and writes");
+    write_atomic(&path, "second");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "second", "atomic overwrite");
+}
+
+#[test]
+fn cache_write_is_safe_under_concurrent_writers() {
+    use pulse::registry::write_atomic;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("entry.json");
+    std::thread::scope(|s| {
+        for _ in 0..16 {
+            s.spawn(|| write_atomic(&path, "{\"complete\":true}"));
+        }
+    });
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "{\"complete\":true}",
+        "concurrent writers never leave a partial/corrupt cache file"
+    );
+}
+
+#[test]
 fn parse_version_detail_reads_advisory_keys() {
     let d = parse_version_detail(r#"{"advisoryKeys":[{"id":"GHSA-aaaa"},{"id":"GHSA-bbbb"}]}"#)
         .expect("valid version detail");
