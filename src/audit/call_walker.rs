@@ -35,6 +35,7 @@ const FUNCTION_KINDS: &[&str] = &[
     "func_decl",
     "func_definition",
     "lambda_expression",
+    "func_literal",
 ];
 
 const CLASS_KINDS: &[&str] = &[

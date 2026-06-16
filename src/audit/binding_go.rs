@@ -59,18 +59,60 @@ pub fn class_parents(_class_node: Node, _source: &str) -> Vec<String> {
 
 fn type_param_names(method_node: Node, source: &str) -> BTreeSet<String> {
     let mut names = BTreeSet::new();
-    let Some(tps) = method_node.child_by_field_name("type_parameters") else {
-        return names;
-    };
-    let mut cursor = tps.walk();
-    for decl in tps.children(&mut cursor) {
-        if decl.kind() == "type_parameter_declaration" {
-            if let Some(id) = find_child_by_kind(decl, "identifier") {
-                names.insert(node_text(id, source).to_string());
-            }
-        }
+    if let Some(tps) = method_node.child_by_field_name("type_parameters") {
+        collect_method_type_params(tps, source, &mut names);
+    }
+    if let Some(recv) = method_node.child_by_field_name("receiver") {
+        collect_receiver_type_params(recv, source, &mut names);
     }
     names
+}
+
+fn collect_method_type_params(tps: Node, source: &str, names: &mut BTreeSet<String>) {
+    let mut cursor = tps.walk();
+    for decl in tps.children(&mut cursor) {
+        if decl.kind() != "type_parameter_declaration" {
+            continue;
+        }
+        if let Some(id) = find_child_by_kind(decl, "identifier") {
+            names.insert(node_text(id, source).to_string());
+        }
+    }
+}
+
+fn collect_receiver_type_params(recv: Node, source: &str, names: &mut BTreeSet<String>) {
+    let mut cursor = recv.walk();
+    for decl in recv.children(&mut cursor) {
+        if decl.kind() != "parameter_declaration" {
+            continue;
+        }
+        let Some(mut ty) = type_node_of(decl) else {
+            continue;
+        };
+        if ty.kind() == "pointer_type" {
+            let Some(inner) = type_node_of(ty) else {
+                continue;
+            };
+            ty = inner;
+        }
+        if ty.kind() != "generic_type" {
+            continue;
+        }
+        if let Some(args) = find_child_by_kind(ty, "type_arguments") {
+            collect_type_arg_idents(args, source, names);
+        }
+    }
+}
+
+fn collect_type_arg_idents(args: Node, source: &str, names: &mut BTreeSet<String>) {
+    let mut cursor = args.walk();
+    for child in args.children(&mut cursor) {
+        let id =
+            if child.kind() == "type_identifier" { Some(child) } else { find_child_by_kind(child, "type_identifier") };
+        if let Some(id) = id {
+            names.insert(node_text(id, source).to_string());
+        }
+    }
 }
 
 fn collect_param_list(list: Node, source: &str, builder: &mut EnvBuilder) {

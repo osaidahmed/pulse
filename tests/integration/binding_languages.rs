@@ -2,7 +2,7 @@ use pulse::audit::call_graph::{CallGraph, MethodIndex};
 use pulse::audit::call_walker::calls_and_bindings_from;
 use pulse::parse::Language;
 
-use crate::binding_common::{analyze, class_binding, method_env, one_source};
+use crate::binding_common::{analyze, class_binding, method_env, one_source, targets_named};
 
 fn env_type(content: &str, ext: &str, lang: Language, method: &str, var: &str) -> Option<String> {
     let (_d, corpus) = one_source(content, ext, lang);
@@ -286,6 +286,51 @@ fn objc_binds_method_param_and_local() {
         env.get("b").map(String::as_str) == Some("Bar") && env.get("x").map(String::as_str) == Some("Foo")
     });
     assert!(found, "objc method binds param b->Bar (pointer) and local x->Foo; envs: {:?}", out.method_envs);
+}
+
+#[test]
+fn go_closure_param_does_not_leak_to_enclosing_method_binding() {
+    let src = "package p\ntype RealConn struct {}\nfunc (c *RealConn) Send() {}\ntype FakeConn struct {}\nfunc (c *FakeConn) Send() {}\ntype Server struct {}\nfunc (s *Server) Run() {\n\tvar conn RealConn\n\tprocess(func(conn FakeConn) {\n\t\tconn.Send()\n\t})\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let a = analyze(corpus.files.first().unwrap());
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let run = bound
+        .registry
+        .methods
+        .iter()
+        .find(|m| m.class.as_deref() == Some("Server") && m.name == "Run")
+        .cloned()
+        .expect("Server.Run definition");
+    assert!(
+        targets_named(&bound, &run, "Send").is_empty(),
+        "a closure param shadowing a method var must not fabricate a receiver edge from the enclosing method"
+    );
+}
+
+#[test]
+fn go_receiver_type_param_is_not_bound_as_a_type() {
+    let src = "package p\nfunc (s *Box[T]) Set(v T) {\n\tv.Apply()\n}\n";
+    let (_d, corpus) = one_source(src, "sample.go", Language::Go);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let set = method_env(&out, "Set").expect("Set env");
+    assert!(
+        set.get("v").is_none(),
+        "a parameter typed by a receiver-level generic type parameter must not bind to a class"
+    );
+    assert_eq!(set.get("s").map(String::as_str), Some("Box"), "the receiver itself still binds to its base type");
+}
+
+#[test]
+fn cpp_nested_template_field_binds_to_inner_type_not_template() {
+    let src = "class C {\n  Cache<int>::Handle handle;\n};\n";
+    let (_d, corpus) = one_source(src, "sample.cpp", Language::Cpp);
+    let out = calls_and_bindings_from(corpus.files.first().unwrap());
+    let c = class_binding(&out, "C").expect("class C");
+    assert_eq!(
+        c.fields.get("handle").map(String::as_str),
+        Some("Handle"),
+        "Cache<int>::Handle binds to the nested type, not the template head"
+    );
 }
 
 #[test]

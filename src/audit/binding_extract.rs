@@ -38,14 +38,28 @@ impl EnvBuilder {
 }
 
 pub fn head_of(text: &str) -> Option<String> {
-    let before_generic = text.split('<').next()?.trim();
-    let unqualified = before_generic.rsplit("::").next()?.rsplit('.').next()?.trim();
+    let no_generics = strip_generics(text);
+    let unqualified = no_generics.rsplit("::").next()?.rsplit('.').next()?.trim();
     let simple = unqualified.trim_end_matches('?').trim();
     if simple.is_empty() {
         None
     } else {
         Some(simple.to_string())
     }
+}
+
+fn strip_generics(text: &str) -> String {
+    let mut out = String::new();
+    let mut depth: u32 = 0;
+    for c in text.chars() {
+        match c {
+            '<' => depth += 1,
+            '>' => depth = depth.saturating_sub(1),
+            _ if depth == 0 => out.push(c),
+            _ => {}
+        }
+    }
+    out
 }
 
 pub fn c_declarator_name(node: Node, source: &str) -> Option<String> {
