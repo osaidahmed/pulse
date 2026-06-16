@@ -157,6 +157,9 @@ fn maybe_push_method(node: Node, ctx: &CallCtx, stack: &mut Vec<EnclosingFrame>,
 }
 
 fn identifier_in(node: Node, source: &str) -> Option<String> {
+    if let Some(name) = node.child_by_field_name("name") {
+        return Some(source[name.byte_range()].to_string());
+    }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if matches!(

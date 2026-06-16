@@ -226,6 +226,20 @@ fn class_type_parameter_does_not_bind_a_field() {
 }
 
 #[test]
+fn object_returning_caller_resolves_its_internal_calls() {
+    let (_d, corpus) = java(
+        "class Helper { void process() {} }\nclass Repo {\n  Bar lookup() {\n    Helper h = new Helper();\n    h.process();\n    return null;\n  }\n}\n",
+    );
+    let a = analyze(only_file(&corpus));
+    let caller = caller_of(&a.calls, "process");
+    assert_eq!(caller.name, "lookup", "the caller is keyed by its method name, not its object return type");
+    let bound = CallGraph::build_with_bindings(a.defs, a.calls, &a.table);
+    let targets = targets_named(&bound, &caller, "process");
+    assert_eq!(targets.len(), 1, "the call inside an object-returning method now resolves");
+    assert_eq!(targets[0].class.as_deref(), Some("Helper"));
+}
+
+#[test]
 fn non_java_languages_yield_no_bindings() {
     assert!(binding::supports(Language::Java));
     assert!(!binding::supports(Language::Python));
