@@ -117,11 +117,14 @@ fn java_local_class_in_method_body_is_skipped_as_a_scope_boundary() {
 }
 
 #[test]
-fn java_record_compact_constructor_has_no_formal_parameters() {
-    let src = "record R(Foo a) {\n  R {\n    Bar local = make();\n  }\n}\n";
+fn java_record_with_compact_constructor_walks_without_routing_the_constructor() {
+    let src = "record R(Foo a) {\n  R {\n    validate(a);\n  }\n}\n";
     let (_d, corpus) = one_source(src, "Sample.java", Language::Java);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
-    let _ = method_env(&out, "R");
+    assert!(
+        method_env(&out, "R").is_none(),
+        "a record compact constructor is not a routed function kind so it yields no method env"
+    );
 }
 
 #[test]
