@@ -22,7 +22,7 @@ pub struct CallWalkOut {
     pub classes: Vec<ClassBinding>,
 }
 
-const FUNCTION_KINDS: &[&str] = &[
+pub(crate) const FUNCTION_KINDS: &[&str] = &[
     "function_definition",
     "function_declaration",
     "function_item",

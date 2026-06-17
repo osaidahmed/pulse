@@ -62,6 +62,7 @@ pub mod inheritance;
 pub mod lang_kinds;
 pub mod martin;
 pub mod mdl;
+pub mod method_vocab;
 pub mod named_smells;
 pub mod output;
 pub mod output_advisory;

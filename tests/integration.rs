@@ -191,6 +191,8 @@ mod audit_lang_kinds_table;
 mod audit_languages;
 #[path = "integration/audit_martin.rs"]
 mod audit_martin;
+#[path = "integration/audit_method_vocab.rs"]
+mod audit_method_vocab;
 #[path = "integration/audit_multi_lang_dirs.rs"]
 mod audit_multi_lang_dirs;
 #[path = "integration/audit_named_smell_confidence_routing.rs"]
