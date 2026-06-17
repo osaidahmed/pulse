@@ -186,6 +186,21 @@ fn maven_pom_extracts_coordinates_scopes_and_recurses_modules() {
 }
 
 #[test]
+fn zig_zon_extracts_dependency_fields_and_skips_path_deps() {
+    let meta = discover(&meta_root("zig"));
+    let dep = dep(&meta, "known_folders");
+    assert_eq!(dep.scope, DepScope::Deployed);
+    assert!(!dep.own, "a url dependency is a real dependency");
+    assert!(dep.line > 0, "dependency line resolved from the zon struct");
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(!names.contains(&"vendored_thing"), "a .path dependency is local and skipped: {names:?}");
+    assert!(
+        meta.manifests.iter().flat_map(|m| &m.deps).any(|d| d.name == "my_pkg" && d.own),
+        "the enum-literal .name is the own package: {names:?}"
+    );
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

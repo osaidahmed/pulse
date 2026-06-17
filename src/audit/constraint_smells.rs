@@ -119,7 +119,7 @@ fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
         Ecosystem::Cargo => c.strip_prefix('='),
         Ecosystem::Pip => c.strip_prefix("=="),
         Ecosystem::Maven => maven_exact(c),
-        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => None,
+        Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift | Ecosystem::Zig => None,
     }
     .map(str::trim)
 }

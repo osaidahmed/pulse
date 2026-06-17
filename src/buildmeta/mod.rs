@@ -13,6 +13,7 @@ mod python;
 pub mod stdlib;
 mod swiftpm;
 mod test_roots;
+mod zig;
 
 pub use test_roots::{declared_test_roots, is_under_test_root};
 
@@ -27,6 +28,7 @@ pub enum Ecosystem {
     Swift,
     Composer,
     Maven,
+    Zig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,6 +103,7 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("Package.swift", swiftpm::parse_manifest),
     ("composer.json", composer::parse_manifest),
     ("pom.xml", maven::parse_manifest),
+    ("build.zig.zon", zig::parse_manifest),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[

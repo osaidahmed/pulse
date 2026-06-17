@@ -1,0 +1,20 @@
+.{
+    .name = .my_pkg,
+    .version = "1.0.0",
+    .fingerprint = 0x1234abcd,
+    .minimum_zig_version = "0.13.0",
+    .dependencies = .{
+        .known_folders = .{
+            .url = "https://github.com/ziglibs/known-folders/archive/abc123.tar.gz",
+            .hash = "1220abcdef0123456789",
+        },
+        .vendored_thing = .{
+            .path = "../vendored_thing",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
