@@ -201,6 +201,32 @@ fn zig_zon_extracts_dependency_fields_and_skips_path_deps() {
 }
 
 #[test]
+fn gradle_groovy_extracts_string_and_map_coordinates() {
+    let meta = discover(&meta_root("gradle"));
+    assert_eq!(dep(&meta, "org.springframework:spring-core").constraint, "5.3.0", "single-quoted coordinate");
+    assert_eq!(dep(&meta, "com.google.guava:guava").constraint, "32.0.0-jre", "double-quoted coordinate");
+    assert_eq!(dep(&meta, "junit:junit").scope, DepScope::Dev, "testImplementation is dev-scoped");
+    assert_eq!(dep(&meta, "org.apache.commons:commons-lang3").constraint, "3.12.0", "groovy map form");
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(!names.iter().any(|n| n.starts_with(':')), "project(':shared') local module deps are skipped: {names:?}");
+}
+
+#[test]
+fn gradle_kotlin_dsl_extracts_coordinates_and_skips_unresolvable() {
+    let meta = discover(&meta_root("gradle_kts"));
+    assert_eq!(dep(&meta, "org.jetbrains.kotlin:kotlin-stdlib").constraint, "1.9.0");
+    assert_eq!(dep(&meta, "com.google.guava:guava").scope, DepScope::Deployed, "api is deployed");
+    assert_eq!(dep(&meta, "junit:junit").scope, DepScope::Dev);
+    assert_eq!(dep(&meta, "org.apache.commons:commons-lang3").constraint, "3.12.0", "kotlin named-argument form");
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(!names.contains(&"reflect"), "kotlin(\"reflect\") nested call is not a coordinate: {names:?}");
+    assert!(
+        !names.iter().any(|n| n.contains("retrofit")),
+        "libs.retrofit version-catalog ref is unresolvable: {names:?}"
+    );
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

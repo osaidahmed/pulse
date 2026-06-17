@@ -83,7 +83,7 @@ fn is_bloated(
 }
 
 fn bloat_unverifiable(eco: Ecosystem) -> bool {
-    matches!(eco, Ecosystem::RubyGems | Ecosystem::Composer | Ecosystem::Maven | Ecosystem::Zig)
+    matches!(eco, Ecosystem::RubyGems | Ecosystem::Composer | Ecosystem::Maven | Ecosystem::Zig | Ecosystem::Gradle)
 }
 
 pub(super) fn is_imported(eco: Ecosystem, name: &str, imported: &ImportedRoots) -> bool {
@@ -130,13 +130,8 @@ fn is_referenced_in_source(name: &str, corpus: &Corpus) -> bool {
 }
 
 fn bloated(manifest: PathBuf, line: u32, dep: &buildmeta::DeclaredDep, eco: Ecosystem) -> AuditFinding {
-    let confidence =
-        if matches!(eco, Ecosystem::NuGet | Ecosystem::Swift | Ecosystem::Composer | Ecosystem::Maven | Ecosystem::Zig)
-        {
-            ImportConfidence::Low
-        } else {
-            ImportConfidence::Medium
-        };
+    let sound = matches!(eco, Ecosystem::Cargo | Ecosystem::Npm | Ecosystem::Pip | Ecosystem::Go);
+    let confidence = if sound { ImportConfidence::Medium } else { ImportConfidence::Low };
     wrap(
         dep.name.clone(),
         AuditKind::BloatedDependency(BloatedDepEvidence {

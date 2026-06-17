@@ -7,6 +7,7 @@ mod csproj;
 pub mod declared;
 mod gemfile;
 mod golang;
+mod gradle;
 mod maven;
 mod npm;
 mod python;
@@ -29,6 +30,7 @@ pub enum Ecosystem {
     Composer,
     Maven,
     Zig,
+    Gradle,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -104,6 +106,8 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("composer.json", composer::parse_manifest),
     ("pom.xml", maven::parse_manifest),
     ("build.zig.zon", zig::parse_manifest),
+    ("build.gradle", gradle::parse_groovy),
+    ("build.gradle.kts", gradle::parse_kotlin),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
