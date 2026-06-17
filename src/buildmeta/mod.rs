@@ -7,6 +7,7 @@ mod csproj;
 pub mod declared;
 mod gemfile;
 mod golang;
+mod maven;
 mod npm;
 mod python;
 pub mod stdlib;
@@ -25,6 +26,7 @@ pub enum Ecosystem {
     NuGet,
     Swift,
     Composer,
+    Maven,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,6 +100,7 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("Gemfile", gemfile::parse_manifest),
     ("Package.swift", swiftpm::parse_manifest),
     ("composer.json", composer::parse_manifest),
+    ("pom.xml", maven::parse_manifest),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
@@ -235,4 +238,18 @@ pub(crate) fn line_of(source: &str, needle: &str) -> u32 {
 
 fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_' || b == b'-'
+}
+
+pub(super) fn strip_xml_comments(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let mut rest = source;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start..].find("-->") {
+            Some(end) => rest = &rest[start + end + 3..],
+            None => return out,
+        }
+    }
+    out.push_str(rest);
+    out
 }

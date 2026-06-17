@@ -170,6 +170,22 @@ fn composer_lock_reads_packages_and_dev_packages() {
 }
 
 #[test]
+fn maven_pom_extracts_coordinates_scopes_and_recurses_modules() {
+    let meta = discover(&meta_root("maven"));
+    assert_eq!(dep(&meta, "com.google.guava:guava").scope, DepScope::Deployed);
+    assert_eq!(dep(&meta, "com.google.guava:guava").constraint, "32.0.0-jre");
+    assert_eq!(dep(&meta, "org.junit.jupiter:junit-jupiter").scope, DepScope::Dev, "test scope is dev");
+    assert_eq!(
+        dep(&meta, "org.apache.commons:commons-lang3").constraint,
+        "3.13.0",
+        "the <module> child pom is discovered and parsed"
+    );
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(!names.contains(&"com.acme:acme-parent"), "the <parent> coordinate is not a dependency: {names:?}");
+    assert!(dep(&meta, "com.google.guava:guava").line > 0, "manifest line resolved");
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

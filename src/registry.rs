@@ -69,7 +69,7 @@ pub fn depsdev_system(eco: Ecosystem) -> Option<&'static str> {
         Ecosystem::Pip => Some("pypi"),
         Ecosystem::Go => Some("go"),
         Ecosystem::NuGet => Some("nuget"),
-        Ecosystem::RubyGems | Ecosystem::Swift | Ecosystem::Composer => None,
+        Ecosystem::RubyGems | Ecosystem::Swift | Ecosystem::Composer | Ecosystem::Maven => None,
     }
 }
 

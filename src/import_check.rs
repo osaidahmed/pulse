@@ -77,12 +77,25 @@ pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
         return None;
     }
     match eco {
-        Ecosystem::Pip | Ecosystem::Swift => Some(target.split('.').next().unwrap_or(target).to_string()),
         Ecosystem::Npm => npm_root(target),
         Ecosystem::Cargo => Some(target.split("::").next().unwrap_or(target).trim_start_matches("r#").to_string()),
-        Ecosystem::Go | Ecosystem::NuGet => Some(target.to_string()),
-        Ecosystem::RubyGems => Some(target.split('/').next().unwrap_or(target).to_string()),
-        Ecosystem::Composer => Some(target.split('\\').next().unwrap_or(target).to_string()),
+        _ => Some(root_before(root_separator(eco), target)),
+    }
+}
+
+fn root_before(sep: Option<char>, target: &str) -> String {
+    match sep {
+        Some(c) => target.split(c).next().unwrap_or(target).to_string(),
+        None => target.to_string(),
+    }
+}
+
+fn root_separator(eco: Ecosystem) -> Option<char> {
+    match eco {
+        Ecosystem::Pip | Ecosystem::Swift => Some('.'),
+        Ecosystem::RubyGems => Some('/'),
+        Ecosystem::Composer => Some('\\'),
+        _ => None,
     }
 }
 

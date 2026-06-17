@@ -84,6 +84,11 @@ fn strip_build(version: &str) -> &str {
     version.split('+').next().unwrap_or(version)
 }
 
+fn maven_exact(c: &str) -> Option<&str> {
+    let inner = c.strip_prefix('[')?.strip_suffix(']')?;
+    (!inner.is_empty() && !inner.contains(',')).then_some(inner)
+}
+
 fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFinding> {
     let locked: HashMap<String, &str> = meta
         .lockfiles
@@ -113,6 +118,7 @@ fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
         Ecosystem::Npm | Ecosystem::Composer => npm_exact(c).then_some(c),
         Ecosystem::Cargo => c.strip_prefix('='),
         Ecosystem::Pip => c.strip_prefix("=="),
+        Ecosystem::Maven => maven_exact(c),
         Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => None,
     }
     .map(str::trim)
