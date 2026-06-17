@@ -133,6 +133,12 @@ pub fn discover(root: &Path) -> BuildMeta {
     meta
 }
 
+pub fn discover_one(dir: &Path) -> BuildMeta {
+    let mut meta = BuildMeta::default();
+    collect_dir(dir, &mut meta);
+    meta
+}
+
 pub fn compile_db(root: &Path) -> Option<CompDb> {
     for cand in [root.join("compile_commands.json"), root.join("build").join("compile_commands.json")] {
         if let Some(src) = read_capped(&cand) {

@@ -17,6 +17,9 @@ mod boundaries;
 #[path = "integration/buildmeta.rs"]
 mod buildmeta;
 
+#[path = "integration/buildmeta_corpus.rs"]
+mod buildmeta_corpus;
+
 #[path = "integration/calibrate_census.rs"]
 mod calibrate_census;
 
