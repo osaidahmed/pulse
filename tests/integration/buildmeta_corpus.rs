@@ -9,6 +9,10 @@ use pulse::thresholds::Thresholds;
 
 const NEW_MANIFESTS: &[&str] = &["composer.json", "pom.xml", "build.gradle", "build.gradle.kts", "build.zig.zon"];
 
+fn member_dirs_resolve(base: &Path, members: &[std::path::PathBuf]) -> usize {
+    members.iter().filter(|m| base.join(m).join("package.json").is_file() || base.join(m).is_dir()).count()
+}
+
 #[test]
 fn scan_buildmeta_corpus() {
     let Ok(list) = std::env::var("SCAN_BUILDMETA_LIST") else { return };
@@ -23,11 +27,17 @@ fn scan_buildmeta_corpus() {
     let new_ecos = [Ecosystem::Composer, Ecosystem::Maven, Ecosystem::Gradle, Ecosystem::Zig];
     let mut manifests: BTreeMap<String, usize> = BTreeMap::new();
     let mut deps: BTreeMap<String, usize> = BTreeMap::new();
+    let mut members: BTreeMap<String, (usize, usize)> = BTreeMap::new();
     let mut zero_dep = 0usize;
     let mut findings = 0usize;
     let mut samples: Vec<String> = Vec::new();
     for dir in &dirs {
         let meta = buildmeta::discover_one(dir);
+        for manifest in meta.manifests.iter().filter(|m| !m.workspace_members.is_empty()) {
+            let entry = members.entry(format!("{:?}", manifest.ecosystem)).or_default();
+            entry.0 += manifest.workspace_members.len();
+            entry.1 += member_dirs_resolve(dir, &manifest.workspace_members);
+        }
         let mut composer_here = false;
         for manifest in meta.manifests.iter().filter(|m| new_ecos.contains(&m.ecosystem)) {
             if manifest.ecosystem == Ecosystem::Composer {
@@ -59,6 +69,7 @@ fn scan_buildmeta_corpus() {
     eprintln!("manifest dirs: {}", dirs.len());
     eprintln!("manifests by eco: {manifests:?}");
     eprintln!("deps by eco: {deps:?}");
+    eprintln!("workspace members by eco (total, resolved): {members:?}");
     eprintln!("zero-dep manifest instances: {zero_dep}");
     eprintln!("constraint findings (new ecosystems): {findings}");
     for sample in &samples {
