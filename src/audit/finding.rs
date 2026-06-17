@@ -39,8 +39,10 @@ pub enum AuditKind {
     IfdefDensity(IfdefDensityEvidence),
     OutdatedDependency(OutdatedDepEvidence),
     VulnerableDependency(VulnDepEvidence),
+    LowConceptualCohesion(ConceptualCohesionEvidence),
 }
 
+pub use super::conceptual_cohesion::ConceptualCohesionEvidence;
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
     HubLikeEvidence, IfdefDensityEvidence, InjectionEvidence, MergeComponentsEvidence, MoveFileEvidence,
@@ -333,7 +335,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 31] = [
+const VARIANT_TABLE: [VariantInfo; 32] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -581,6 +583,14 @@ const VARIANT_TABLE: [VariantInfo; 31] = [
         action: "audit this clone for the same tainted-input flow as its vulnerable sibling",
         label: "Vulnerable clone sibling",
         pillar: AuditPillar::Security,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::LowConceptualCohesion(_)),
+        pass: "named-smells",
+        slug: "low_conceptual_cohesion",
+        action: "split this class along its unrelated vocabulary clusters",
+        label: "Low conceptual cohesion",
+        pillar: AuditPillar::ClassSmells,
     },
 ];
 

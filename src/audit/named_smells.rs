@@ -13,6 +13,7 @@ use super::corpus::Corpus;
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence, ShotgunSurgeryEvidence};
 use super::inheritance::InheritanceGraph;
+use super::method_vocab::{method_vocab_from, VocabByMethod};
 
 pub fn run(typed_files: &[(PathBuf, Language)], root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     run_from(&Corpus::load(typed_files), root, thresholds)
@@ -26,27 +27,36 @@ struct NamedContext<'a> {
     method_idx_lookup: HashMap<MethodIndex, usize>,
     inh: InheritanceGraph,
     bindings: BindingTable,
+    method_vocab: VocabByMethod,
 }
 
 pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> Vec<AuditFinding> {
     use rayon::prelude::*;
-    let extracted: Vec<(Vec<DefinitionRecord>, CallWalkOut)> = corpus
+    let extracted: Vec<(Vec<DefinitionRecord>, CallWalkOut, VocabByMethod)> = corpus
         .files
         .par_iter()
-        .map(|file| (super::definitions::definitions_from(file), super::call_walker::calls_and_bindings_from(file)))
+        .map(|file| {
+            (
+                super::definitions::definitions_from(file),
+                super::call_walker::calls_and_bindings_from(file),
+                method_vocab_from(file),
+            )
+        })
         .collect();
     let mut definitions = Vec::new();
     let mut calls = Vec::new();
     let mut bindings = BindingTable::default();
-    for (defs, walk_out) in extracted {
+    let mut method_vocab = VocabByMethod::new();
+    for (defs, walk_out, vocab) in extracted {
         definitions.extend(defs);
         absorb_bindings(walk_out, &mut calls, &mut bindings);
+        method_vocab.extend(vocab);
     }
     let graph = CallGraph::build_with_bindings(definitions.clone(), calls, &bindings);
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
     let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
     let inh = super::inheritance::build_inheritance_graph(&registry);
-    let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh, bindings };
+    let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh, bindings, method_vocab };
     let strata = component_thresholds::nested_strata(corpus, root);
     let mut all = Vec::new();
     if strata.is_empty() {
@@ -88,6 +98,7 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
     all.extend(super::detector_feature_envy::detect(&ctx.definitions, &ctx.graph, thresholds));
     all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
+    all.extend(super::detector_conceptual_cohesion::detect(&ctx.registry, &ctx.graph, &ctx.method_vocab, thresholds));
     if thresholds.named_smells.refused_bequest.enabled {
         let rb = super::detector_refused_bequest::detect(
             &ctx.registry,

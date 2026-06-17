@@ -1,4 +1,17 @@
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+
+use super::finding::ImportConfidence;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConceptualCohesionEvidence {
+    pub class_file: PathBuf,
+    pub class_line: u32,
+    pub class_name: String,
+    pub cohesion: f64,
+    pub method_count: u32,
+    pub confidence: ImportConfidence,
+}
 
 pub struct VocabModel {
     idf: HashMap<String, f64>,

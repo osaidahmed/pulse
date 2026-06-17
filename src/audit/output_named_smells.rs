@@ -2,8 +2,8 @@ use std::fmt::Write;
 use std::path::Path;
 
 use super::finding::{
-    AuditKind, DivergentChangeEvidence, FeatureEnvyEvidence, GodClassEvidence, ImportConfidence,
-    ParallelInheritanceEvidence, RefusedBequestEvidence, ShotgunSurgeryEvidence,
+    AuditKind, ConceptualCohesionEvidence, DivergentChangeEvidence, FeatureEnvyEvidence, GodClassEvidence,
+    ImportConfidence, ParallelInheritanceEvidence, RefusedBequestEvidence, ShotgunSurgeryEvidence,
 };
 
 pub struct WriterCtx<'a> {
@@ -34,6 +34,10 @@ pub fn dispatch_human(out: &mut String, kind: &AuditKind, ctx: &WriterCtx) -> bo
         write_refused(out, e, ctx);
         return true;
     }
+    if let AuditKind::LowConceptualCohesion(e) = kind {
+        write_cohesion(out, e, ctx);
+        return true;
+    }
     false
 }
 
@@ -57,6 +61,9 @@ pub fn dispatch_json(
     }
     if let AuditKind::RefusedBequest(e) = kind {
         return Some(refused_json(e, root, confidence_str, display_path_for));
+    }
+    if let AuditKind::LowConceptualCohesion(e) = kind {
+        return Some(cohesion_json(e, root, confidence_str, display_path_for));
     }
     None
 }
@@ -219,6 +226,32 @@ fn refused_json(
         "override_count": e.override_count,
         "parent_method_count": e.parent_method_count,
         "override_ratio": e.override_ratio,
+        "confidence": conf_fn(e.confidence),
+    })
+}
+
+fn write_cohesion(out: &mut String, e: &ConceptualCohesionEvidence, ctx: &WriterCtx) {
+    let _ = writeln!(out, "audit: low conceptual cohesion — {}", e.class_name);
+    let _ = writeln!(out, "  file:          {}", (ctx.display_path)(&e.class_file, ctx.root));
+    let _ = writeln!(out, "  cohesion:      {:.3}", e.cohesion);
+    let _ = writeln!(out, "  method count:  {}", e.method_count);
+    let _ = writeln!(out, "  confidence:    {}", (ctx.confidence_str)(e.confidence));
+    write_action_row(out, ctx.action);
+    let _ = writeln!(out);
+}
+
+fn cohesion_json(
+    e: &ConceptualCohesionEvidence,
+    root: Option<&Path>,
+    conf_fn: fn(ImportConfidence) -> &'static str,
+    path_fn: fn(&Path, Option<&Path>) -> String,
+) -> serde_json::Value {
+    serde_json::json!({
+        "kind": "LowConceptualCohesion",
+        "class_file": path_fn(&e.class_file, root),
+        "class_name": e.class_name,
+        "cohesion": e.cohesion,
+        "method_count": e.method_count,
         "confidence": conf_fn(e.confidence),
     })
 }

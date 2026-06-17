@@ -35,6 +35,7 @@ pub mod cycle_shapes;
 pub mod cycles;
 pub mod definitions;
 pub mod deps_reconcile;
+pub mod detector_conceptual_cohesion;
 pub mod detector_divergent_change;
 pub mod detector_feature_envy;
 pub mod detector_god_class;

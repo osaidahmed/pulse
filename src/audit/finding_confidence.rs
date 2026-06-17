@@ -49,7 +49,8 @@ confidence_lookup!(named_smell_confidence {
     FeatureEnvy,
     GodClass,
     ParallelInheritance,
-    RefusedBequest
+    RefusedBequest,
+    LowConceptualCohesion
 });
 
 confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });

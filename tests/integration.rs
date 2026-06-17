@@ -111,6 +111,8 @@ mod audit_component_thresholds;
 mod audit_components;
 #[path = "integration/audit_conceptual_cohesion.rs"]
 mod audit_conceptual_cohesion;
+#[path = "integration/audit_conceptual_cohesion_e2e.rs"]
+mod audit_conceptual_cohesion_e2e;
 #[path = "integration/audit_constraint_smells.rs"]
 mod audit_constraint_smells;
 #[path = "integration/audit_corpus_stats_unit.rs"]
