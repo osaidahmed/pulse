@@ -82,6 +82,7 @@ pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
         Ecosystem::Cargo => Some(target.split("::").next().unwrap_or(target).trim_start_matches("r#").to_string()),
         Ecosystem::Go | Ecosystem::NuGet => Some(target.to_string()),
         Ecosystem::RubyGems => Some(target.split('/').next().unwrap_or(target).to_string()),
+        Ecosystem::Composer => Some(target.split('\\').next().unwrap_or(target).to_string()),
     }
 }
 

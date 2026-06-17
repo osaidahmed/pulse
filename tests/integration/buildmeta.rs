@@ -144,6 +144,32 @@ fn swift_package_resolved_lists_pinned_versions() {
 }
 
 #[test]
+fn composer_manifest_extracts_packages_and_skips_platform_requires() {
+    let meta = discover(&meta_root("composer"));
+    assert_eq!(dep(&meta, "monolog/monolog").scope, DepScope::Deployed);
+    assert_eq!(dep(&meta, "monolog/monolog").constraint, "^3.0");
+    assert_eq!(dep(&meta, "guzzlehttp/guzzle").constraint, "7.5.0");
+    assert_eq!(dep(&meta, "phpunit/phpunit").scope, DepScope::Dev, "require-dev is dev-scoped");
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(!names.contains(&"php"), "the php platform requirement is not a package: {names:?}");
+    assert!(!names.contains(&"ext-json"), "ext-* platform requirements are skipped: {names:?}");
+    assert!(meta.manifests.iter().flat_map(|m| &m.deps).any(|d| d.name == "acme/storefront" && d.own), "own name");
+    assert!(dep(&meta, "monolog/monolog").line > 0, "manifest line resolved");
+}
+
+#[test]
+fn composer_lock_reads_packages_and_dev_packages() {
+    let meta = discover(&meta_root("composer"));
+    let lock = meta.lockfiles.iter().find(|l| l.ecosystem == Ecosystem::Composer).expect("composer.lock");
+    assert!(lock.resolved.contains(&("monolog/monolog".to_string(), "3.5.0".to_string())), "{:?}", lock.resolved);
+    assert!(
+        lock.resolved.contains(&("phpunit/phpunit".to_string(), "10.5.2".to_string())),
+        "dev package: {:?}",
+        lock.resolved
+    );
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

@@ -110,7 +110,7 @@ fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFindin
 fn exact_version(eco: Ecosystem, constraint: &str) -> Option<&str> {
     let c = constraint.trim();
     match eco {
-        Ecosystem::Npm => npm_exact(c).then_some(c),
+        Ecosystem::Npm | Ecosystem::Composer => npm_exact(c).then_some(c),
         Ecosystem::Cargo => c.strip_prefix('='),
         Ecosystem::Pip => c.strip_prefix("=="),
         Ecosystem::RubyGems | Ecosystem::Go | Ecosystem::NuGet | Ecosystem::Swift => None,

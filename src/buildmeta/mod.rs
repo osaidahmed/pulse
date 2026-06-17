@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 mod cargo;
 mod compdb;
+mod composer;
 mod csproj;
 pub mod declared;
 mod gemfile;
@@ -23,6 +24,7 @@ pub enum Ecosystem {
     RubyGems,
     NuGet,
     Swift,
+    Composer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,6 +97,7 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("go.work", golang::parse_workspace),
     ("Gemfile", gemfile::parse_manifest),
     ("Package.swift", swiftpm::parse_manifest),
+    ("composer.json", composer::parse_manifest),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
@@ -103,6 +106,7 @@ const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
     ("go.sum", golang::parse_lockfile),
     ("Gemfile.lock", gemfile::parse_lockfile),
     ("Package.resolved", swiftpm::parse_lockfile),
+    ("composer.lock", composer::parse_lockfile),
 ];
 
 pub fn discover(root: &Path) -> BuildMeta {

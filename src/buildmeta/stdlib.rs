@@ -292,13 +292,23 @@ const SWIFT_FRAMEWORKS: &[&str] = &[
 ];
 
 pub fn is_stdlib(eco: Ecosystem, root: &str) -> bool {
+    if let Some(list) = stdlib_list(eco) {
+        return list.contains(&root);
+    }
     match eco {
-        Ecosystem::Pip => PYTHON_STDLIB.contains(&root),
-        Ecosystem::Npm => NODE_BUILTINS.contains(&root),
-        Ecosystem::RubyGems => RUBY_STDLIB.contains(&root),
-        Ecosystem::Cargo => RUST_BUILTIN_ROOTS.contains(&root),
         Ecosystem::Go => !root.split('/').next().unwrap_or(root).contains('.'),
         Ecosystem::NuGet => matches!(root.split('.').next().unwrap_or(root), "system" | "mscorlib"),
-        Ecosystem::Swift => SWIFT_FRAMEWORKS.contains(&root),
+        _ => false,
+    }
+}
+
+fn stdlib_list(eco: Ecosystem) -> Option<&'static [&'static str]> {
+    match eco {
+        Ecosystem::Pip => Some(PYTHON_STDLIB),
+        Ecosystem::Npm => Some(NODE_BUILTINS),
+        Ecosystem::RubyGems => Some(RUBY_STDLIB),
+        Ecosystem::Cargo => Some(RUST_BUILTIN_ROOTS),
+        Ecosystem::Swift => Some(SWIFT_FRAMEWORKS),
+        _ => None,
     }
 }
