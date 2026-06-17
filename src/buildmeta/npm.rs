@@ -67,7 +67,12 @@ fn pnpm_package_globs(source: &str) -> Vec<String> {
 }
 
 fn package_list_glob(line: &str) -> Option<String> {
-    let glob = line.trim().strip_prefix("- ")?.trim().trim_matches(['\'', '"']);
+    let item = line.trim().strip_prefix("- ")?.trim();
+    let value = match item.strip_prefix(['\'', '"']) {
+        Some(rest) => rest.split(item.as_bytes()[0] as char).next().unwrap_or(rest),
+        None => item.split(" #").next().unwrap_or(item),
+    };
+    let glob = value.trim();
     (!glob.is_empty() && !glob.starts_with('!')).then(|| glob.to_string())
 }
 

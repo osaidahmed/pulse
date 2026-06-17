@@ -10,3 +10,5 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation(libs.retrofit)
 }
+
+runtime("outside:block:*")

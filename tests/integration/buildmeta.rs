@@ -224,6 +224,21 @@ fn gradle_kotlin_dsl_extracts_coordinates_and_skips_unresolvable() {
         !names.iter().any(|n| n.contains("retrofit")),
         "libs.retrofit version-catalog ref is unresolvable: {names:?}"
     );
+    assert!(
+        !names.iter().any(|n| n.contains("outside")),
+        "a config-named call outside any dependencies block is not a dependency: {names:?}"
+    );
+}
+
+#[test]
+fn zig_malformed_zon_without_a_top_struct_yields_no_manifest_and_no_panic() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("build.zig.zon"), ".x = -\n-\n-0\n").unwrap();
+    let meta = discover(dir.path());
+    assert!(
+        !meta.manifests.iter().any(|m| m.ecosystem == Ecosystem::Zig),
+        "a zon that never forms a top-level struct yields no manifest without panicking"
+    );
 }
 
 #[test]

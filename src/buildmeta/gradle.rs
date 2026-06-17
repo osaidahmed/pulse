@@ -60,7 +60,7 @@ fn parse_gradle(path: &Path, source: &str, lang: Language, settings: bool) -> Op
     if settings {
         walk_includes(tree.root_node(), source, &mut members);
     } else {
-        walk(tree.root_node(), source, &mut deps);
+        walk(tree.root_node(), source, false, &mut deps);
     }
     gradle_manifest(path, deps, members)
 }
@@ -74,13 +74,16 @@ fn gradle_manifest(path: &Path, deps: Vec<DeclaredDep>, workspace_members: Vec<P
     })
 }
 
-fn walk(node: Node, source: &str, deps: &mut Vec<DeclaredDep>) {
-    if let Some(dep) = call_dep(node, source) {
-        deps.push(dep);
+fn walk(node: Node, source: &str, in_deps: bool, deps: &mut Vec<DeclaredDep>) {
+    if in_deps {
+        if let Some(dep) = call_dep(node, source) {
+            deps.push(dep);
+        }
     }
+    let here = in_deps || call_name(node, source) == Some("dependencies");
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, source, deps);
+        walk(child, source, here, deps);
     }
 }
 
@@ -92,17 +95,22 @@ fn call_dep(node: Node, source: &str) -> Option<DeclaredDep> {
     Some(DeclaredDep { name, constraint, scope, line: node.start_position().row as u32 + 1, own: false })
 }
 
-fn call_parts<'a>(node: Node<'a>, source: &str) -> Option<(String, Node<'a>)> {
+fn call_name<'a>(node: Node, source: &'a str) -> Option<&'a str> {
     match node.kind() {
-        "call_expression" => Some((
-            node_text(find_child_by_kind(node, "identifier")?, source).to_string(),
-            find_child_by_kind(node, "value_arguments")?,
-        )),
-        "juxt_function_call" => {
-            Some((node_text(node.child_by_field_name("name")?, source).to_string(), node.child_by_field_name("args")?))
-        }
+        "call_expression" => find_child_by_kind(node, "identifier").map(|n| node_text(n, source)),
+        "juxt_function_call" | "method_invocation" => node.child_by_field_name("name").map(|n| node_text(n, source)),
         _ => None,
     }
+}
+
+fn call_parts<'a>(node: Node<'a>, source: &str) -> Option<(String, Node<'a>)> {
+    let name = call_name(node, source)?.to_string();
+    let args = match node.kind() {
+        "call_expression" => find_child_by_kind(node, "value_arguments")?,
+        "juxt_function_call" => node.child_by_field_name("args")?,
+        _ => return None,
+    };
+    Some((name, args))
 }
 
 fn scope_for(config: &str) -> Option<DepScope> {
@@ -126,7 +134,8 @@ fn push_arg(child: Node, source: &str, positional: &mut Vec<String>, labeled: &m
     match child.kind() {
         "value_argument" => push_value_argument(child, source, positional, labeled),
         "map_item" => {
-            if let (Some(key), Some(value)) = (child.child_by_field_name("key"), value_string(child, source)) {
+            let value = child.child_by_field_name("value").and_then(|v| literal_text(v, source));
+            if let (Some(key), Some(value)) = (child.child_by_field_name("key"), value) {
                 labeled.push((node_text(key, source).to_string(), value));
             }
         }
@@ -149,10 +158,6 @@ fn push_value_argument(arg: Node, source: &str, positional: &mut Vec<String>, la
         Some(label) => labeled.push((node_text(label, source).to_string(), value)),
         None => positional.push(value),
     }
-}
-
-fn value_string(map_item: Node, source: &str) -> Option<String> {
-    literal_text(map_item.child_by_field_name("value")?, source)
 }
 
 fn coordinate(positional: &[String], labeled: &[(String, String)]) -> Option<(String, String)> {

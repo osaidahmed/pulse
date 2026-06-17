@@ -3,7 +3,7 @@ use std::path::Path;
 use tree_sitter::Node;
 
 use crate::parse::{parse_guarded, Language};
-use crate::walk::{find_child_by_kind, node_text};
+use crate::walk::{find_child_by_kind, node_text, DepthGuard};
 
 use super::{DeclaredDep, DepScope, Ecosystem, Manifest};
 
@@ -27,6 +27,7 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
 }
 
 fn find_struct(node: Node) -> Option<Node> {
+    let _guard = DepthGuard::enter()?;
     if node.kind() == "anonymous_struct_initializer" {
         return Some(node);
     }
