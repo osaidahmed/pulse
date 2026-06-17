@@ -236,6 +236,17 @@ fn pnpm_workspace_members_are_discovered_from_yaml() {
 }
 
 #[test]
+fn gradle_settings_include_aggregates_subproject_dependencies() {
+    let meta = discover(&meta_root("gradle_settings"));
+    assert_eq!(dep(&meta, "org.example:root-lib").constraint, "1.0.0", "root build.gradle deps");
+    assert_eq!(
+        dep(&meta, "org.example:core-lib").constraint,
+        "2.0.0",
+        "settings.gradle include(':core') is recursed into for the subproject build.gradle"
+    );
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

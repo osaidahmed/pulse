@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use tree_sitter::Node;
 
@@ -20,22 +20,57 @@ const DEPLOYED_CONFIGS: &[&str] = &[
 ];
 
 pub(super) fn parse_kotlin(path: &Path, source: &str) -> Option<Manifest> {
-    parse(path, source, Language::Kotlin)
+    parse_gradle(path, source, Language::Kotlin, false)
 }
 
 pub(super) fn parse_groovy(path: &Path, source: &str) -> Option<Manifest> {
-    parse(path, source, Language::Groovy)
+    parse_gradle(path, source, Language::Groovy, false)
 }
 
-fn parse(path: &Path, source: &str, lang: Language) -> Option<Manifest> {
+pub(super) fn parse_settings_kotlin(path: &Path, source: &str) -> Option<Manifest> {
+    parse_gradle(path, source, Language::Kotlin, true)
+}
+
+pub(super) fn parse_settings_groovy(path: &Path, source: &str) -> Option<Manifest> {
+    parse_gradle(path, source, Language::Groovy, true)
+}
+
+fn walk_includes(node: Node, source: &str, members: &mut Vec<PathBuf>) {
+    if let Some((config, args)) = call_parts(node, source) {
+        if config == "include" {
+            let (positional, _) = collect_args(args, source);
+            members.extend(positional.iter().filter_map(|p| include_path(p)));
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_includes(child, source, members);
+    }
+}
+
+fn include_path(raw: &str) -> Option<PathBuf> {
+    let path = raw.trim_start_matches(':').replace(':', "/");
+    (!path.is_empty()).then(|| PathBuf::from(path))
+}
+
+fn parse_gradle(path: &Path, source: &str, lang: Language, settings: bool) -> Option<Manifest> {
     let tree = parse_guarded(source, lang)?;
     let mut deps = Vec::new();
-    walk(tree.root_node(), source, &mut deps);
-    (!deps.is_empty()).then(|| Manifest {
+    let mut members = Vec::new();
+    if settings {
+        walk_includes(tree.root_node(), source, &mut members);
+    } else {
+        walk(tree.root_node(), source, &mut deps);
+    }
+    gradle_manifest(path, deps, members)
+}
+
+fn gradle_manifest(path: &Path, deps: Vec<DeclaredDep>, workspace_members: Vec<PathBuf>) -> Option<Manifest> {
+    (!deps.is_empty() || !workspace_members.is_empty()).then(|| Manifest {
         path: path.to_path_buf(),
         ecosystem: Ecosystem::Gradle,
         deps,
-        workspace_members: Vec::new(),
+        workspace_members,
     })
 }
 

@@ -108,6 +108,8 @@ const MANIFEST_FILES: &[(&str, ManifestParser)] = &[
     ("build.zig.zon", zig::parse_manifest),
     ("build.gradle", gradle::parse_groovy),
     ("build.gradle.kts", gradle::parse_kotlin),
+    ("settings.gradle", gradle::parse_settings_groovy),
+    ("settings.gradle.kts", gradle::parse_settings_kotlin),
 ];
 
 const LOCKFILE_FILES: &[(&str, LockfileParser)] = &[
