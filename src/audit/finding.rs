@@ -40,6 +40,7 @@ pub enum AuditKind {
     OutdatedDependency(OutdatedDepEvidence),
     VulnerableDependency(VulnDepEvidence),
     LowConceptualCohesion(ConceptualCohesionEvidence),
+    MultivariateAnomaly(MultivariateAnomalyEvidence),
 }
 
 pub use super::conceptual_cohesion::ConceptualCohesionEvidence;
@@ -50,6 +51,7 @@ pub use super::finding_evidence::{
     UndeclaredModuleDepEvidence, UnstableDepEvidence, UnusedDeclaredDepEvidence, VulnCloneEvidence, VulnDepEvidence,
 };
 pub use super::fragmentation::OverFragmentationEvidence;
+pub use super::mcd::MultivariateAnomalyEvidence;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DivergentChangeEvidence {
@@ -335,7 +337,7 @@ pub enum AuditPillar {
     Patterns,
 }
 
-const VARIANT_TABLE: [VariantInfo; 32] = [
+const VARIANT_TABLE: [VariantInfo; 33] = [
     VariantInfo {
         test: |k| matches!(k, AuditKind::UncategorizedPattern { .. }),
         pass: "pattern-mining",
@@ -590,6 +592,14 @@ const VARIANT_TABLE: [VariantInfo; 32] = [
         slug: "low_conceptual_cohesion",
         action: "split this class along its unrelated vocabulary clusters",
         label: "Low conceptual cohesion",
+        pillar: AuditPillar::ClassSmells,
+    },
+    VariantInfo {
+        test: |k| matches!(k, AuditKind::MultivariateAnomaly(_)),
+        pass: "named-smells",
+        slug: "multivariate_anomaly",
+        action: "investigate this class — its metric profile is a multivariate outlier relative to the project",
+        label: "Multivariate class anomaly",
         pillar: AuditPillar::ClassSmells,
     },
 ];

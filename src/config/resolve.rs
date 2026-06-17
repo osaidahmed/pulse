@@ -1,12 +1,12 @@
 use crate::parse::Language;
 use crate::thresholds::{
-    AuditThresholds, CloneClusterThresholds, GodClassThresholds, NamedSmellThresholds, NaturalnessThresholds,
-    PackageMetricsThresholds, RefusedBequestThresholds, TaintThresholds, Thresholds,
+    AuditThresholds, CloneClusterThresholds, GodClassThresholds, MultivariateAnomalyThresholds, NamedSmellThresholds,
+    NaturalnessThresholds, PackageMetricsThresholds, RefusedBequestThresholds, TaintThresholds, Thresholds,
 };
 
 use super::{
-    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, GodClassConfig, NamedSmellsConfig,
-    NaturalnessConfig, PackageMetricsConfig, PulseConfig, RefusedBequestConfig, TaintConfig,
+    CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, GodClassConfig, MultivariateAnomalyConfig,
+    NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig, PulseConfig, RefusedBequestConfig, TaintConfig,
 };
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -96,12 +96,25 @@ fn resolve_named_smells(o: &NamedSmellsConfig, base: &NamedSmellThresholds) -> N
     NamedSmellThresholds {
         god_class: resolve_god_class(&o.god_class, &base.god_class),
         refused_bequest: resolve_refused_bequest(o.refused_bequest, &base.refused_bequest),
+        multivariate_anomaly: resolve_multivariate_anomaly(o.multivariate_anomaly, &base.multivariate_anomaly),
         ..*base
     }
 }
 
 fn resolve_refused_bequest(o: RefusedBequestConfig, base: &RefusedBequestThresholds) -> RefusedBequestThresholds {
     RefusedBequestThresholds { enabled: o.enabled.unwrap_or(base.enabled), ..*base }
+}
+
+fn resolve_multivariate_anomaly(
+    o: MultivariateAnomalyConfig,
+    base: &MultivariateAnomalyThresholds,
+) -> MultivariateAnomalyThresholds {
+    MultivariateAnomalyThresholds {
+        enabled: o.enabled.unwrap_or(base.enabled),
+        min_classes: o.min_classes.unwrap_or(base.min_classes),
+        distance_quantile: o.distance_quantile.unwrap_or(base.distance_quantile),
+        max_findings: o.max_findings.unwrap_or(base.max_findings),
+    }
 }
 
 fn resolve_package_metrics(o: &PackageMetricsConfig, base: &PackageMetricsThresholds) -> PackageMetricsThresholds {

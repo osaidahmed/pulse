@@ -2,7 +2,10 @@ use crate::history::thresholds::HistoryThresholds;
 
 mod arch;
 mod features;
-pub use arch::{CommunityThresholds, ConceptualCohesionThresholds, FragmentationThresholds, PageRankThresholds};
+pub use arch::{
+    CommunityThresholds, ConceptualCohesionThresholds, FragmentationThresholds, MultivariateAnomalyThresholds,
+    PageRankThresholds,
+};
 pub use features::{CloneClusterThresholds, CpgThresholds, NaturalnessThresholds};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -160,6 +163,7 @@ pub struct NamedSmellThresholds {
     pub parallel_inheritance: ParallelInheritanceThresholds,
     pub refused_bequest: RefusedBequestThresholds,
     pub conceptual_cohesion: ConceptualCohesionThresholds,
+    pub multivariate_anomaly: MultivariateAnomalyThresholds,
     pub max_findings_reported: usize,
     pub max_caller_samples_per_finding: usize,
 }
@@ -334,6 +338,7 @@ impl NamedSmellThresholds {
         parallel_inheritance: ParallelInheritanceThresholds::DEFAULTS,
         refused_bequest: RefusedBequestThresholds::DEFAULTS,
         conceptual_cohesion: ConceptualCohesionThresholds::DEFAULTS,
+        multivariate_anomaly: MultivariateAnomalyThresholds::DEFAULTS,
         max_findings_reported: 50,
         max_caller_samples_per_finding: 20,
     };

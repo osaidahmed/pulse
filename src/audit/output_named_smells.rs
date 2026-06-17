@@ -3,7 +3,8 @@ use std::path::Path;
 
 use super::finding::{
     AuditKind, ConceptualCohesionEvidence, DivergentChangeEvidence, FeatureEnvyEvidence, GodClassEvidence,
-    ImportConfidence, ParallelInheritanceEvidence, RefusedBequestEvidence, ShotgunSurgeryEvidence,
+    ImportConfidence, MultivariateAnomalyEvidence, ParallelInheritanceEvidence, RefusedBequestEvidence,
+    ShotgunSurgeryEvidence,
 };
 
 pub struct WriterCtx<'a> {
@@ -38,6 +39,10 @@ pub fn dispatch_human(out: &mut String, kind: &AuditKind, ctx: &WriterCtx) -> bo
         write_cohesion(out, e, ctx);
         return true;
     }
+    if let AuditKind::MultivariateAnomaly(e) = kind {
+        write_multivariate(out, e, ctx);
+        return true;
+    }
     false
 }
 
@@ -64,6 +69,9 @@ pub fn dispatch_json(
     }
     if let AuditKind::LowConceptualCohesion(e) = kind {
         return Some(cohesion_json(e, root, confidence_str, display_path_for));
+    }
+    if let AuditKind::MultivariateAnomaly(e) = kind {
+        return Some(multivariate_json(e, root, confidence_str, display_path_for));
     }
     None
 }
@@ -252,6 +260,38 @@ fn cohesion_json(
         "class_name": e.class_name,
         "cohesion": e.cohesion,
         "method_count": e.method_count,
+        "confidence": conf_fn(e.confidence),
+    })
+}
+
+fn write_multivariate(out: &mut String, e: &MultivariateAnomalyEvidence, ctx: &WriterCtx) {
+    let _ = writeln!(out, "audit: multivariate class anomaly — {}", e.class_name);
+    let _ = writeln!(out, "  file:          {}", (ctx.display_path)(&e.class_file, ctx.root));
+    let _ = writeln!(out, "  WMC:           {}", e.wmc);
+    let _ = writeln!(out, "  TCC:           {:.3}", e.tcc);
+    let _ = writeln!(out, "  ATFD:          {}", e.atfd);
+    let _ = writeln!(out, "  N4:            {}", e.n4);
+    let _ = writeln!(out, "  distance²:     {:.2}", e.mahalanobis_sq);
+    let _ = writeln!(out, "  confidence:    {}", (ctx.confidence_str)(e.confidence));
+    write_action_row(out, ctx.action);
+    let _ = writeln!(out);
+}
+
+fn multivariate_json(
+    e: &MultivariateAnomalyEvidence,
+    root: Option<&Path>,
+    conf_fn: fn(ImportConfidence) -> &'static str,
+    path_fn: fn(&Path, Option<&Path>) -> String,
+) -> serde_json::Value {
+    serde_json::json!({
+        "kind": "MultivariateAnomaly",
+        "class_file": path_fn(&e.class_file, root),
+        "class_name": e.class_name,
+        "wmc": e.wmc,
+        "tcc": e.tcc,
+        "atfd": e.atfd,
+        "n4": e.n4,
+        "mahalanobis_sq": e.mahalanobis_sq,
         "confidence": conf_fn(e.confidence),
     })
 }

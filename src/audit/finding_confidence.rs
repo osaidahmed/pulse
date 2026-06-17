@@ -50,7 +50,8 @@ confidence_lookup!(named_smell_confidence {
     GodClass,
     ParallelInheritance,
     RefusedBequest,
-    LowConceptualCohesion
+    LowConceptualCohesion,
+    MultivariateAnomaly
 });
 
 confidence_lookup!(advisory_confidence { InjectionShape, NearDuplicate, UnnaturalCode, VulnerableCloneSibling });

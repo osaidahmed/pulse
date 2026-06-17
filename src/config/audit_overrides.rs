@@ -35,6 +35,17 @@ pub struct NamedSmellsConfig {
     pub god_class: GodClassConfig,
     #[serde(default)]
     pub refused_bequest: RefusedBequestConfig,
+    #[serde(default)]
+    pub multivariate_anomaly: MultivariateAnomalyConfig,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct MultivariateAnomalyConfig {
+    pub enabled: Option<bool>,
+    pub min_classes: Option<u32>,
+    pub distance_quantile: Option<f64>,
+    pub max_findings: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]

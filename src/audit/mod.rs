@@ -63,6 +63,7 @@ pub mod imports;
 pub mod inheritance;
 pub mod lang_kinds;
 pub mod martin;
+pub mod mcd;
 pub mod mdl;
 pub mod method_vocab;
 pub mod named_smells;

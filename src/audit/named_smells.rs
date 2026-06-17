@@ -99,6 +99,7 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
     all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
     all.extend(super::detector_conceptual_cohesion::detect(&ctx.registry, &ctx.graph, &ctx.method_vocab, thresholds));
+    all.extend(super::mcd::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     if thresholds.named_smells.refused_bequest.enabled {
         let rb = super::detector_refused_bequest::detect(
             &ctx.registry,

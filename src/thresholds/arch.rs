@@ -43,3 +43,15 @@ impl ConceptualCohesionThresholds {
 impl CommunityThresholds {
     pub const DEFAULTS: Self = Self { resolution: 1.0, max_passes: 20, min_split_files: 4, split_cohesion: 0.6 };
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MultivariateAnomalyThresholds {
+    pub enabled: bool,
+    pub min_classes: u32,
+    pub distance_quantile: f64,
+    pub max_findings: u32,
+}
+
+impl MultivariateAnomalyThresholds {
+    pub const DEFAULTS: Self = Self { enabled: true, min_classes: 8, distance_quantile: 11.143, max_findings: 10 };
+}
