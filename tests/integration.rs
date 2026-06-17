@@ -103,6 +103,8 @@ mod audit_centrality;
 mod audit_class_registry;
 #[path = "integration/audit_clones.rs"]
 mod audit_clones;
+#[path = "integration/audit_cohesion_corpus.rs"]
+mod audit_cohesion_corpus;
 #[path = "integration/audit_community.rs"]
 mod audit_community;
 #[path = "integration/audit_component_thresholds.rs"]

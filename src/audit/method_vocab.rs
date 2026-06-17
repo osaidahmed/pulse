@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use tree_sitter::Node;
 
 use crate::parse::Language;
-use crate::walk::node_text;
+use crate::walk::{node_text, DepthGuard};
 
 use super::call_walker::FUNCTION_KINDS;
 use super::corpus::CorpusFile;
@@ -22,6 +22,7 @@ pub fn method_vocab_from(file: &CorpusFile) -> VocabByMethod {
 }
 
 fn collect(node: Node, source: &str, lang: Language, path: &PathBuf, out: &mut VocabByMethod) {
+    let Some(_guard) = DepthGuard::enter() else { return };
     if FUNCTION_KINDS.contains(&node.kind()) {
         let line = node.start_position().row as u32 + 1;
         let mut tokens = Vec::new();
@@ -37,6 +38,7 @@ fn collect(node: Node, source: &str, lang: Language, path: &PathBuf, out: &mut V
 }
 
 fn gather_identifiers(node: Node, source: &str, lang: Language, out: &mut Vec<String>) {
+    let Some(_guard) = DepthGuard::enter() else { return };
     if is_identifier_kind(lang, node.kind()) {
         split_into_tokens(node_text(node, source), out);
         return;

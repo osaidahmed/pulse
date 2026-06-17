@@ -37,7 +37,7 @@ pub struct ConceptualCohesionThresholds {
 }
 
 impl ConceptualCohesionThresholds {
-    pub const DEFAULTS: Self = Self { enabled: true, min_methods: 5, min_vocab: 12, min_cohesion: 0.15 };
+    pub const DEFAULTS: Self = Self { enabled: true, min_methods: 5, min_vocab: 12, min_cohesion: 0.10 };
 }
 
 impl CommunityThresholds {

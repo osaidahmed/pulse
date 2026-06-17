@@ -15,3 +15,7 @@ fail-fast = false
 [[profile.release-test.overrides]]
 filter = "test(priors_sweep)"
 slow-timeout = { period = "3600s", terminate-after = 2 }
+
+[[profile.release-test.overrides]]
+filter = "test(scan_cohesion_corpus)"
+slow-timeout = { period = "3600s", terminate-after = 2 }
