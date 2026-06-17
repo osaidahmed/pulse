@@ -41,6 +41,7 @@ pub fn primary_file(finding: &AuditFinding) -> Option<&Path> {
         AuditKind::GodClass(e) => Some(&e.class_file),
         AuditKind::ParallelInheritance(e) => Some(&e.root_a.file),
         AuditKind::RefusedBequest(e) => Some(&e.subclass_file),
+        AuditKind::LowConceptualCohesion(e) => Some(&e.class_file),
         _ => None,
     }
 }

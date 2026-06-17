@@ -12,6 +12,12 @@ use super::lang_kinds::is_identifier_kind;
 
 const MIN_TOKEN_LEN: usize = 3;
 
+const EXTRA_METHOD_KINDS: &[&str] = &["singleton_method", "init_declaration", "deinit_declaration"];
+
+fn is_method_node(kind: &str) -> bool {
+    FUNCTION_KINDS.contains(&kind) || EXTRA_METHOD_KINDS.contains(&kind)
+}
+
 pub type VocabByMethod = HashMap<(PathBuf, u32), Vec<String>>;
 
 pub fn method_vocab_from(file: &CorpusFile) -> VocabByMethod {
@@ -23,7 +29,7 @@ pub fn method_vocab_from(file: &CorpusFile) -> VocabByMethod {
 
 fn collect(node: Node, source: &str, lang: Language, path: &PathBuf, out: &mut VocabByMethod) {
     let Some(_guard) = DepthGuard::enter() else { return };
-    if FUNCTION_KINDS.contains(&node.kind()) {
+    if is_method_node(node.kind()) {
         let line = node.start_position().row as u32 + 1;
         let mut tokens = Vec::new();
         gather_identifiers(node, source, lang, &mut tokens);
