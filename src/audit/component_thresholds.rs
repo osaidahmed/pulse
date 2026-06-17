@@ -33,16 +33,6 @@ pub fn nested_strata(corpus: &Corpus, root: &Path) -> Vec<Stratum> {
         .collect()
 }
 
-fn class_file_for(kind: &AuditKind) -> Option<&Path> {
-    match kind {
-        AuditKind::DivergentChange(e) => Some(&e.class_file),
-        AuditKind::GodClass(e) => Some(&e.class_file),
-        AuditKind::LowConceptualCohesion(e) => Some(&e.class_file),
-        AuditKind::MultivariateAnomaly(e) => Some(&e.class_file),
-        _ => None,
-    }
-}
-
 fn other_primary(kind: &AuditKind) -> Option<&Path> {
     match kind {
         AuditKind::ShotgunSurgery(e) => Some(&e.method_file),
@@ -54,7 +44,13 @@ fn other_primary(kind: &AuditKind) -> Option<&Path> {
 }
 
 pub fn primary_file(finding: &AuditFinding) -> Option<&Path> {
-    class_file_for(&finding.kind).or_else(|| other_primary(&finding.kind))
+    match &finding.kind {
+        AuditKind::DivergentChange(e) => Some(&e.class_file),
+        AuditKind::GodClass(e) => Some(&e.class_file),
+        AuditKind::LowConceptualCohesion(e) => Some(&e.class_file),
+        AuditKind::MultivariateAnomaly(e) => Some(&e.class_file),
+        _ => other_primary(&finding.kind),
+    }
 }
 
 pub fn owning_dir<'a>(file: &Path, strata: &'a [Stratum]) -> Option<&'a Path> {
