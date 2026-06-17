@@ -25,6 +25,7 @@ pub mod complexity_floor;
 pub mod component_thresholds;
 pub mod components;
 pub mod compound;
+pub mod conceptual_cohesion;
 pub mod confidence;
 pub mod constraint_smells;
 pub mod corpus;
