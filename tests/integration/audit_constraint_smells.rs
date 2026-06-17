@@ -130,6 +130,38 @@ fn matching_pin_and_lock_are_silent() {
 }
 
 #[test]
+fn composer_same_vendor_wildcard_is_an_exempt_monorepo_sibling() {
+    let dir =
+        project(&[("composer.json", r#"{"name": "acme/app", "require": {"acme/core": "*", "vendorx/lib": "*"}}"#)]);
+    let names: Vec<String> = constraint_problems(&run_deps(dir.path())).into_iter().map(|(n, _)| n).collect();
+    assert!(!names.contains(&"acme/core".to_string()), "a same-vendor wildcard is an intentional sibling: {names:?}");
+    assert!(names.contains(&"vendorx/lib".to_string()), "a foreign-vendor wildcard is still flagged: {names:?}");
+}
+
+#[test]
+fn composer_v_prefixed_and_partial_lock_versions_are_not_divergences() {
+    let dir = project(&[
+        ("composer.json", r#"{"name": "acme/app", "require": {"v/a": "1.2.3", "p/b": "2.2"}}"#),
+        (
+            "composer.lock",
+            r#"{"packages": [{"name": "v/a", "version": "v1.2.3"}, {"name": "p/b", "version": "2.2.0"}]}"#,
+        ),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert!(problems.is_empty(), "a `v` prefix and a partial pin both match the resolved version: {problems:?}");
+}
+
+#[test]
+fn composer_genuine_version_divergence_is_still_flagged() {
+    let dir = project(&[
+        ("composer.json", r#"{"name": "acme/app", "require": {"v/a": "5.2.4"}}"#),
+        ("composer.lock", r#"{"packages": [{"name": "v/a", "version": "2.8.2"}]}"#),
+    ]);
+    let problems = constraint_problems(&run_deps(dir.path()));
+    assert_eq!(problems.len(), 1, "a real major-version mismatch is a divergence: {problems:?}");
+}
+
+#[test]
 fn go_modules_are_exempt_from_pinning_smells() {
     let dir = project(&[(
         "go.mod",

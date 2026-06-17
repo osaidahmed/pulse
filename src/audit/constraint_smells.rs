@@ -27,8 +27,13 @@ fn declared(manifest: &Manifest) -> impl Iterator<Item = &DeclaredDep> {
 }
 
 fn wildcard_findings(manifest: &Manifest, internal: &HashSet<String>) -> Vec<AuditFinding> {
+    let own = own_vendor(manifest);
     declared(manifest)
-        .filter(|d| is_wildcard(&d.constraint) && !internal.contains(&normalize(&d.name)))
+        .filter(|d| {
+            is_wildcard(&d.constraint)
+                && !internal.contains(&normalize(&d.name))
+                && !same_vendor_sibling(manifest.ecosystem, &d.name, own.as_deref())
+        })
         .map(|d| {
             finding(
                 manifest,
@@ -38,6 +43,17 @@ fn wildcard_findings(manifest: &Manifest, internal: &HashSet<String>) -> Vec<Aud
             )
         })
         .collect()
+}
+
+fn own_vendor(manifest: &Manifest) -> Option<String> {
+    if manifest.ecosystem != Ecosystem::Composer {
+        return None;
+    }
+    manifest.deps.iter().find(|d| d.own).and_then(|d| d.name.split('/').next()).map(str::to_string)
+}
+
+fn same_vendor_sibling(eco: Ecosystem, name: &str, own_vendor: Option<&str>) -> bool {
+    eco == Ecosystem::Composer && own_vendor.is_some_and(|vendor| name.split('/').next() == Some(vendor))
 }
 
 fn is_wildcard(constraint: &str) -> bool {
@@ -84,6 +100,19 @@ fn strip_build(version: &str) -> &str {
     version.split('+').next().unwrap_or(version)
 }
 
+fn normalize_version(v: &str) -> &str {
+    strip_build(v.trim().trim_start_matches('v'))
+}
+
+fn versions_consistent(pin: &str, resolved: &str) -> bool {
+    let (p, r) = (normalize_version(pin), normalize_version(resolved));
+    p == r || boundary_prefix(p, r) || boundary_prefix(r, p)
+}
+
+fn boundary_prefix(short: &str, long: &str) -> bool {
+    long.strip_prefix(short).is_some_and(|rest| rest.starts_with('.'))
+}
+
 fn maven_exact(c: &str) -> Option<&str> {
     let inner = c.strip_prefix('[')?.strip_suffix(']')?;
     (!inner.is_empty() && !inner.contains(',')).then_some(inner)
@@ -100,7 +129,7 @@ fn divergence_findings(manifest: &Manifest, meta: &BuildMeta) -> Vec<AuditFindin
         .filter_map(|d| {
             let pin = exact_version(manifest.ecosystem, &d.constraint)?;
             let resolved = locked.get(&normalize(&d.name))?;
-            (!resolved.is_empty() && strip_build(resolved) != strip_build(pin)).then(|| {
+            (!resolved.is_empty() && !versions_consistent(pin, resolved)).then(|| {
                 finding(
                     manifest,
                     d,
