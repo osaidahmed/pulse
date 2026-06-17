@@ -227,6 +227,15 @@ fn gradle_kotlin_dsl_extracts_coordinates_and_skips_unresolvable() {
 }
 
 #[test]
+fn pnpm_workspace_members_are_discovered_from_yaml() {
+    let meta = discover(&meta_root("pnpm"));
+    let names: Vec<&str> = meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.as_str())).collect();
+    assert!(names.contains(&"lodash"), "root package deps present: {names:?}");
+    assert!(names.contains(&"axios"), "a packages/* glob member is discovered via pnpm-workspace.yaml: {names:?}");
+    assert!(names.contains(&"react"), "an explicit apps/web member is discovered: {names:?}");
+}
+
+#[test]
 fn empty_root_yields_empty_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let meta = discover(dir.path());

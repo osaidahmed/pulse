@@ -1,0 +1,1 @@
+{ "name": "monorepo-root", "dependencies": { "lodash": "^4.0.0" } }

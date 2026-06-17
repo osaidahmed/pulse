@@ -32,12 +32,47 @@ pub(super) fn parse_manifest(path: &Path, source: &str) -> Option<Manifest> {
         });
     }
     let base = path.parent().unwrap_or_else(|| std::path::Path::new("."));
-    let workspace_members = doc
+    let mut workspace_members = doc
         .get("workspaces")
         .and_then(|w| w.as_array().or_else(|| w.get("packages").and_then(|p| p.as_array())))
         .map(|arr| super::expand_members(arr.iter().filter_map(|m| m.as_str()), base, "package.json"))
         .unwrap_or_default();
+    if workspace_members.is_empty() {
+        workspace_members = pnpm_members(base);
+    }
     Some(Manifest { path: path.to_path_buf(), ecosystem: Ecosystem::Npm, deps, workspace_members })
+}
+
+fn pnpm_members(base: &Path) -> Vec<std::path::PathBuf> {
+    let Ok(source) = std::fs::read_to_string(base.join("pnpm-workspace.yaml")) else { return Vec::new() };
+    let globs = pnpm_package_globs(&source);
+    super::expand_members(globs.iter().map(String::as_str), base, "package.json")
+}
+
+fn pnpm_package_globs(source: &str) -> Vec<String> {
+    let mut globs = Vec::new();
+    let mut in_packages = false;
+    for line in source.lines() {
+        if line.trim_start().starts_with("packages:") {
+            in_packages = true;
+        } else if in_packages {
+            if let Some(glob) = package_list_glob(line) {
+                globs.push(glob);
+            } else if ends_packages_block(line) {
+                break;
+            }
+        }
+    }
+    globs
+}
+
+fn package_list_glob(line: &str) -> Option<String> {
+    let glob = line.trim().strip_prefix("- ")?.trim().trim_matches(['\'', '"']);
+    (!glob.is_empty() && !glob.starts_with('!')).then(|| glob.to_string())
+}
+
+fn ends_packages_block(line: &str) -> bool {
+    !line.trim().is_empty() && !line.starts_with(char::is_whitespace)
 }
 
 pub(super) fn parse_lockfile(path: &Path, source: &str) -> Option<Lockfile> {
