@@ -47,7 +47,7 @@ fn go_struct_pointer_qualified_and_generic_field_heads_resolve() {
         Some("Box"),
         "a generic_type field head resolves to the template name identifier"
     );
-    assert!(server.fields.get("count").is_none(), "a primitive int field is skipped by simple_head");
+    assert!(!server.fields.contains_key("count"), "a primitive int field is skipped by simple_head");
 }
 
 #[test]

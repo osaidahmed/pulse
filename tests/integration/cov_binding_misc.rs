@@ -234,7 +234,7 @@ fn env_builder_inserts_keeps_consistent_and_poisons_conflicts() {
     let env = builder.into_env(&std::collections::BTreeSet::new());
     assert_eq!(env.get("a").map(String::as_str), Some("Foo"), "an identical re-bind is a no-op");
     assert_eq!(env.get("b").map(String::as_str), Some("Bar"));
-    assert!(env.get("c").is_none(), "a conflicting bind poisons the name, and later binds to it are ignored");
+    assert!(!env.contains_key("c"), "a conflicting bind poisons the name, and later binds to it are ignored");
 }
 
 #[test]
@@ -245,7 +245,7 @@ fn env_builder_into_env_drops_type_variables() {
     let mut tvars = std::collections::BTreeSet::new();
     tvars.insert("T".to_string());
     let env = builder.into_env(&tvars);
-    assert!(env.get("item").is_none(), "a binding to a type variable is removed");
+    assert!(!env.contains_key("item"), "a binding to a type variable is removed");
     assert_eq!(env.get("real").map(String::as_str), Some("Concrete"), "a concrete binding survives");
 }
 
@@ -311,7 +311,7 @@ fn bind_c_decl_returns_early_when_type_head_yields_nothing() {
     let mut builder = EnvBuilder::default();
     bind_c_decl(decl, src, &mut builder, type_head_for_test);
     let env = builder.into_env(&std::collections::BTreeSet::new());
-    assert!(env.get("n").is_none(), "when the type head resolves to none, no binding is recorded");
+    assert!(!env.contains_key("n"), "when the type head resolves to none, no binding is recorded");
 }
 
 #[test]
@@ -324,8 +324,8 @@ fn collect_c_locals_recurses_and_honors_scope_boundaries() {
     let env = builder.into_env(&std::collections::BTreeSet::new());
     assert_eq!(env.get("a").map(String::as_str), Some("Foo"), "a top-level local is collected");
     assert_eq!(env.get("b").map(String::as_str), Some("Bar"), "a nested-block local is collected via recursion");
-    assert!(env.get("inner").is_none(), "a local inside a boundary node is not collected");
-    assert!(env.get("n").is_none(), "a primitive local is not bound");
+    assert!(!env.contains_key("inner"), "a local inside a boundary node is not collected");
+    assert!(!env.contains_key("n"), "a primitive local is not bound");
 }
 
 #[test]
@@ -376,8 +376,8 @@ fn swift_optional_array_and_dictionary_fields() {
     let w = out.classes.iter().find(|c| c.name == "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Bar"));
     assert_eq!(w.fields.get("maybe").map(String::as_str), Some("Baz"), "an optional field unwraps to its base type");
-    assert!(w.fields.get("many").is_none(), "an array field is not bound to its element type");
-    assert!(w.fields.get("map").is_none(), "a dictionary field is not bound to its value type");
+    assert!(!w.fields.contains_key("many"), "an array field is not bound to its element type");
+    assert!(!w.fields.contains_key("map"), "a dictionary field is not bound to its value type");
 }
 
 #[test]
@@ -443,7 +443,7 @@ fn rust_scoped_field_type_and_tuple_field_dropped() {
         Some("Service"),
         "a scoped type binds to its last segment"
     );
-    assert!(repo.fields.get("pair").is_none(), "a tuple-typed field is not bound");
+    assert!(!repo.fields.contains_key("pair"), "a tuple-typed field is not bound");
 }
 
 #[test]

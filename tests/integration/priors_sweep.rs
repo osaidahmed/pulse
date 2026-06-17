@@ -8,7 +8,7 @@ use pulse::config::IgnoreMatcher;
 
 use crate::common::t;
 
-const REPO_BUDGET: Duration = Duration::from_secs(600);
+const REPO_BUDGET: Duration = Duration::from_mins(10);
 
 #[test]
 fn bake_corpus_priors() {

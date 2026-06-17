@@ -76,7 +76,7 @@ fn collect_source_files(dir: &Path, cap: usize, out: &mut Vec<PathBuf>) {
 
 fn readable_source(path: &Path) -> Option<(Language, String)> {
     let lang = parse::detect_language(path)?;
-    if std::fs::metadata(path).map(|m| m.len() > MAX_FILE_BYTES).unwrap_or(true) {
+    if std::fs::metadata(path).map_or(true, |m| m.len() > MAX_FILE_BYTES) {
         return None;
     }
     Some((lang, std::fs::read_to_string(path).ok()?))

@@ -39,7 +39,7 @@ fn write_atomic_removes_temp_file_when_write_into_readonly_parent_fails() {
     let target = parent.join("cache.json");
     pulse::registry::write_atomic(&target, "payload");
     assert!(!target.exists(), "a write into a read-only parent leaves no cache file behind");
-    let leftover = std::fs::read_dir(&parent).map(|rd| rd.count()).unwrap_or(0);
+    let leftover = std::fs::read_dir(&parent).map_or(0, std::iter::Iterator::count);
     assert_eq!(leftover, 0, "the failed temp write is cleaned up via the else branch");
 
     let mut restore = std::fs::metadata(&parent).unwrap().permissions();

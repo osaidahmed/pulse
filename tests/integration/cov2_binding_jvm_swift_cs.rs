@@ -21,7 +21,7 @@ fn java_binds_params_locals_fields_and_parents() {
     assert!(run.get("inferred").is_none(), "var local not bound");
     let w = class_binding(&out, "Widget").expect("widget class");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Foo"), "object field binds");
-    assert!(w.fields.get("count").is_none(), "int primitive field not bound");
+    assert!(!w.fields.contains_key("count"), "int primitive field not bound");
     assert!(
         w.parents.contains(&"Base".to_string()) && w.parents.contains(&"Drawable".to_string()),
         "superclass and interface are both parents"
@@ -93,7 +93,7 @@ fn java_class_type_parameter_field_is_dropped() {
     let (_d, corpus) = one_source(src, "Sample.java", Language::Java);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box class");
-    assert!(b.fields.get("item").is_none(), "type-parameter-typed field is not bound to a class");
+    assert!(!b.fields.contains_key("item"), "type-parameter-typed field is not bound to a class");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Concrete"), "concrete field still binds");
 }
 
@@ -109,7 +109,7 @@ fn swift_binds_params_locals_fields_and_parents() {
     assert!(run.get("c").is_none(), "inferred local not bound");
     let w = class_binding(&out, "Widget").expect("widget class");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Bar"), "object field binds");
-    assert!(w.fields.get("count").is_none(), "Int field not bound");
+    assert!(!w.fields.contains_key("count"), "Int field not bound");
     assert!(
         w.parents.contains(&"Base".to_string()) && w.parents.contains(&"Drawable".to_string()),
         "inheritance specifiers become parents"
@@ -131,7 +131,7 @@ fn swift_class_type_parameter_field_is_dropped() {
     let (_d, corpus) = one_source(src, "Sample.swift", Language::Swift);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box class");
-    assert!(b.fields.get("item").is_none(), "type-parameter-typed field is not bound");
+    assert!(!b.fields.contains_key("item"), "type-parameter-typed field is not bound");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Concrete"), "concrete field still binds");
 }
 
@@ -141,7 +141,7 @@ fn swift_array_type_property_is_not_bound() {
     let (_d, corpus) = one_source(src, "Sample.swift", Language::Swift);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let c = class_binding(&out, "C").expect("class C");
-    assert!(c.fields.get("xs").is_none(), "an array_type property is not bound to its element type");
+    assert!(!c.fields.contains_key("xs"), "an array_type property is not bound to its element type");
     assert_eq!(c.fields.get("one").map(String::as_str), Some("Baz"), "a plain user_type property still binds");
 }
 
@@ -184,7 +184,7 @@ fn csharp_binds_params_locals_fields_and_parents() {
     assert!(run.get("inferred").is_none(), "var local not bound");
     let w = class_binding(&out, "Widget").expect("widget class");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Foo"), "object field binds");
-    assert!(w.fields.get("count").is_none(), "int primitive field not bound");
+    assert!(!w.fields.contains_key("count"), "int primitive field not bound");
     assert!(
         w.parents.contains(&"Base".to_string()) && w.parents.contains(&"Drawable".to_string()),
         "base list entries become parents"
@@ -202,7 +202,7 @@ fn csharp_property_member_binds_field() {
         Some("Foo"),
         "an object property declaration binds as a field"
     );
-    assert!(w.fields.get("Count").is_none(), "an int property is not bound");
+    assert!(!w.fields.contains_key("Count"), "an int property is not bound");
 }
 
 #[test]
@@ -272,6 +272,6 @@ fn csharp_class_type_parameter_field_is_dropped() {
     let (_d, corpus) = one_source(src, "Sample.cs", Language::CSharp);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box class");
-    assert!(b.fields.get("item").is_none(), "type-parameter-typed field is not bound");
+    assert!(!b.fields.contains_key("item"), "type-parameter-typed field is not bound");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Concrete"), "concrete field still binds");
 }

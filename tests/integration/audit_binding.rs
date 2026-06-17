@@ -149,7 +149,7 @@ fn class_type_parameter_does_not_bind_a_field() {
     let out = calls_and_bindings_from(only_file(&corpus));
     let box_class = out.classes.iter().find(|c| c.name == "Box").expect("box");
     assert!(
-        box_class.fields.get("item").is_none(),
+        !box_class.fields.contains_key("item"),
         "a field typed by a class type parameter is not bound to the same-named concrete class"
     );
 }

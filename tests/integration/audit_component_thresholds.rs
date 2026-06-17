@@ -82,7 +82,7 @@ fn nested_strata_discovers_member_config_with_resolved_thresholds() {
     let strata = nested_strata(&corpus, dir.path());
     assert_eq!(strata.len(), 1, "only the member dir carries a config");
     assert_eq!(strata[0].dir, dir.path().join("member"));
-    assert_eq!(strata[0].thresholds.named_smells.god_class.wmc, 999999, "member config overrides god_class.wmc");
+    assert_eq!(strata[0].thresholds.named_smells.god_class.wmc, 999_999, "member config overrides god_class.wmc");
 }
 
 #[test]

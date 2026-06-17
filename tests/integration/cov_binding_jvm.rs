@@ -182,8 +182,8 @@ fn kotlin_constructor_property_binds_non_primitive_only() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Bar"), "val ctor property binds");
-    assert!(w.fields.get("size").is_none(), "Int ctor property not bound");
-    assert!(w.fields.get("name").is_none(), "a plain (non-val/var) ctor param is not a property field");
+    assert!(!w.fields.contains_key("size"), "Int ctor property not bound");
+    assert!(!w.fields.contains_key("name"), "a plain (non-val/var) ctor param is not a property field");
 }
 
 #[test]
@@ -201,7 +201,7 @@ fn kotlin_vararg_constructor_property_is_not_bound() {
     let (_d, corpus) = one_source(src, "Sample.kt", Language::Kotlin);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let w = class_binding(&out, "Widget").expect("widget");
-    assert!(w.fields.get("items").is_none(), "a vararg ctor property is not bound");
+    assert!(!w.fields.contains_key("items"), "a vararg ctor property is not bound");
     assert_eq!(w.fields.get("single").map(String::as_str), Some("Item"), "a following non-vararg ctor property binds");
 }
 
@@ -212,7 +212,7 @@ fn kotlin_property_var_field_binds() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Bar"));
-    assert!(w.fields.get("size").is_none(), "Int property field not bound");
+    assert!(!w.fields.contains_key("size"), "Int property field not bound");
 }
 
 #[test]

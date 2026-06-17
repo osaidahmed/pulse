@@ -48,7 +48,7 @@ fn d_class_field_binds_object_type_and_drops_primitive() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let holder = class_binding(&out, "Holder").expect("holder class");
     assert_eq!(holder.fields.get("item").map(String::as_str), Some("Bar"), "object-typed field binds");
-    assert!(holder.fields.get("count").is_none(), "int primitive field is not bound");
+    assert!(!holder.fields.contains_key("count"), "int primitive field is not bound");
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn d_template_class_field_drops_type_parameter_but_keeps_concrete() {
     let (_d, corpus) = one_source("class Box(T) {\n  T item;\n  Bar real;\n}\n", "sample.d", Language::D);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box class");
-    assert!(b.fields.get("item").is_none(), "a field typed by the class template parameter T is dropped");
+    assert!(!b.fields.contains_key("item"), "a field typed by the class template parameter T is dropped");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Bar"), "a concrete field still binds");
 }
 

@@ -13,7 +13,7 @@ const MAX_SCAN_FILES: usize = 5000;
 const MAX_FILE_BYTES: u64 = 2_000_000;
 
 fn oversized(path: &Path) -> bool {
-    std::fs::metadata(path).map(|m| m.len() > MAX_FILE_BYTES).unwrap_or(false)
+    std::fs::metadata(path).is_ok_and(|m| m.len() > MAX_FILE_BYTES)
 }
 
 fn is_generated(source: &str) -> bool {

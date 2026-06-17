@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use pulse::audit::finding::{
     AuditFinding, AuditKind, BloatedDepEvidence, ConstraintEvidence, IfdefDensityEvidence, ImportConfidence,
@@ -30,7 +30,7 @@ fn human(kind: AuditKind, action: &'static str) -> String {
     out
 }
 
-fn human_rooted(kind: AuditKind, root: &PathBuf, action: &'static str) -> String {
+fn human_rooted(kind: AuditKind, root: &Path, action: &'static str) -> String {
     let f = finding_for(kind);
     let mut out = String::new();
     assert!(dispatch_human(&mut out, &f, Some(root), action));

@@ -33,7 +33,7 @@ fn identical_vocabularies_are_maximally_cohesive() {
 #[test]
 fn fewer_than_two_nonempty_methods_yields_no_score() {
     let a = v(&["alpha", "beta"]);
-    let model = VocabModel::build(&[a.clone()]);
+    let model = VocabModel::build(std::slice::from_ref(&a));
     assert!(model.cohesion(&[&a]).is_none(), "a single method has no pairwise cohesion");
     let empty: Vec<String> = Vec::new();
     assert!(model.cohesion(&[&a, &empty]).is_none(), "an empty-vocabulary method is dropped, leaving one");

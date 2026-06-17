@@ -27,7 +27,7 @@ fn csharp_property_declaration_is_bound_as_field() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("Prop").map(String::as_str), Some("Foo"), "property_declaration binds via bind_field");
-    assert!(w.fields.get("Count").is_none(), "int property not bound");
+    assert!(!w.fields.contains_key("Count"), "int property not bound");
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn csharp_generic_class_type_parameter_field_is_dropped() {
     let (_d, corpus) = one_source(src, "Sample.cs", Language::CSharp);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box");
-    assert!(b.fields.get("item").is_none(), "class type-parameter field not bound");
+    assert!(!b.fields.contains_key("item"), "class type-parameter field not bound");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Concrete"));
 }
 
@@ -149,7 +149,7 @@ fn cpp_qualified_and_template_field_types_use_head() {
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Foo"), "qualified_identifier binds to last segment");
     assert_eq!(w.fields.get("items").map(String::as_str), Some("Vector"), "template_type binds to its name head");
-    assert!(w.fields.get("count").is_none(), "primitive field not bound");
+    assert!(!w.fields.contains_key("count"), "primitive field not bound");
 }
 
 #[test]

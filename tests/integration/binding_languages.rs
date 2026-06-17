@@ -22,7 +22,7 @@ fn kotlin_binds_params_locals_fields_and_parents() {
     assert!(run.get("inf").is_none(), "inferred local not bound");
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Bar"));
-    assert!(w.fields.get("count").is_none(), "Int field not bound");
+    assert!(!w.fields.contains_key("count"), "Int field not bound");
     assert!(w.parents.contains(&"Base".to_string()) && w.parents.contains(&"Drawable".to_string()));
 }
 
@@ -32,7 +32,7 @@ fn kotlin_drops_class_type_parameter() {
         one_source("class Box<T>(val item: T) { val real: Concrete = c() }\n", "Sample.kt", Language::Kotlin);
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let b = class_binding(&out, "Box").expect("box");
-    assert!(b.fields.get("item").is_none(), "T type-parameter field not bound");
+    assert!(!b.fields.contains_key("item"), "T type-parameter field not bound");
     assert_eq!(b.fields.get("real").map(String::as_str), Some("Concrete"));
 }
 
@@ -47,7 +47,7 @@ fn typescript_binds_params_locals_fields_and_parents() {
     assert!(run.get("g").is_none(), "inferred const not bound");
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Helper"));
-    assert!(w.fields.get("count").is_none(), "number primitive field not bound");
+    assert!(!w.fields.contains_key("count"), "number primitive field not bound");
     assert!(w.parents.contains(&"Base".to_string()) && w.parents.contains(&"Drawable".to_string()));
 }
 
@@ -215,7 +215,7 @@ fn go_struct_named_fields_are_bound() {
     let out = calls_and_bindings_from(corpus.files.first().unwrap());
     let server = class_binding(&out, "Server").expect("Server class");
     assert_eq!(server.fields.get("conn").map(String::as_str), Some("Conn"));
-    assert!(server.fields.get("name").is_none(), "string primitive field not bound");
+    assert!(!server.fields.contains_key("name"), "string primitive field not bound");
 }
 
 #[test]
@@ -284,7 +284,7 @@ fn cpp_binds_class_members_and_parents() {
     let w = class_binding(&out, "Widget").expect("widget");
     assert_eq!(w.fields.get("helper").map(String::as_str), Some("Foo"));
     assert_eq!(w.fields.get("ptr").map(String::as_str), Some("Bar"), "pointer field binds to its pointee");
-    assert!(w.fields.get("count").is_none(), "primitive field not bound");
+    assert!(!w.fields.contains_key("count"), "primitive field not bound");
     assert!(w.parents.contains(&"Base".to_string()));
 }
 
