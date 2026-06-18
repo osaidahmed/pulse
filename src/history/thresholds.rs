@@ -33,8 +33,7 @@ pub struct SzzThresholds {
 }
 
 impl SzzThresholds {
-    pub const DEFAULTS: Self =
-        Self { enabled: false, min_inducing: 3, max_fix_commits: 150, max_findings_reported: 20 };
+    pub const DEFAULTS: Self = Self { enabled: true, min_inducing: 3, max_fix_commits: 150, max_findings_reported: 20 };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -34,8 +34,9 @@ fn disabled_szz_yields_no_findings() {
         CommitSpec { author: "a <a@x>", message: "add parser", writes: &[("foo.py", BUGGY)], deletes: &[] },
         CommitSpec { author: "a <a@x>", message: "fix parse crash", writes: &[("foo.py", FIXED)], deletes: &[] },
     ]);
-    let findings = szz::rank(repo.path(), &typed(repo.path(), "foo.py"), &SzzThresholds::DEFAULTS);
-    assert!(findings.is_empty(), "szz is off by default");
+    let off = SzzThresholds { enabled: false, ..SzzThresholds::DEFAULTS };
+    let findings = szz::rank(repo.path(), &typed(repo.path(), "foo.py"), &off);
+    assert!(findings.is_empty(), "a disabled detector emits nothing");
 }
 
 #[test]

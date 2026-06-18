@@ -26,7 +26,7 @@ fn cli(co: Option<u32>, hot: Option<u32>, ctr: Option<u32>) -> HistoryCliOverrid
         contributors_top: ctr,
         hist: false,
         arch_trend: false,
-        szz: false,
+        no_szz: false,
     }
 }
 

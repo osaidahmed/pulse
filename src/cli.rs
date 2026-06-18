@@ -128,9 +128,9 @@ pub struct HistoryArgs {
     #[arg(long = "arch-trend")]
     pub arch_trend: bool,
 
-    /// Flag defect-prone files via SZZ-lite (bug-fix blame to introducing commits, cosmetic-filtered; opt-in).
-    #[arg(long = "szz")]
-    pub szz: bool,
+    /// Disable the SZZ-lite defect-prone-file detector (on by default; skips its extra bug-fix blame git work).
+    #[arg(long = "no-szz")]
+    pub no_szz: bool,
 
     /// Compute and persist JIT edit-risk calibration (LT/AGE percentiles + change-entropy threshold) for the repo.
     #[arg(long = "jit-calibrate")]
