@@ -5,6 +5,9 @@ mod common;
 #[path = "integration/audit_common.rs"]
 mod audit_common;
 
+#[path = "integration/sweep_harness.rs"]
+mod sweep_harness;
+
 #[path = "integration/binding_common.rs"]
 mod binding_common;
 
@@ -315,6 +318,8 @@ mod cobol_smells;
 mod cobol_stress;
 #[path = "integration/config_tests.rs"]
 mod config_tests;
+#[path = "integration/corpus_df_sweep.rs"]
+mod corpus_df_sweep;
 #[path = "integration/cov2_audit_small.rs"]
 mod cov2_audit_small;
 #[path = "integration/cov2_binding_go.rs"]

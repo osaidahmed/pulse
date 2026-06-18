@@ -14,7 +14,7 @@ static BAKED: &[u8] = include_bytes!("corpus_df.bin");
 pub struct CorpusDf {
     depth: usize,
     width: usize,
-    counters: Vec<u8>,
+    counters: Vec<u16>,
     lang_totals: HashMap<u32, u64>,
 }
 
@@ -24,7 +24,7 @@ pub fn empty() -> CorpusDf {
 
 pub fn with_dims(depth: usize, width: usize) -> CorpusDf {
     assert!(width.is_power_of_two(), "width must be a power of two");
-    CorpusDf { depth, width, counters: vec![0u8; depth * width], lang_totals: HashMap::new() }
+    CorpusDf { depth, width, counters: vec![0u16; depth * width], lang_totals: HashMap::new() }
 }
 
 pub fn is_empty(df: &CorpusDf) -> bool {
@@ -48,6 +48,18 @@ fn cells(df: &CorpusDf, h1: usize, h2: usize) -> impl Iterator<Item = usize> + '
 
 pub fn set_lang_total(df: &mut CorpusDf, lang_tag: u32, total: u64) {
     df.lang_totals.insert(lang_tag, total);
+}
+
+pub fn merge(into: &mut CorpusDf, other: &CorpusDf) {
+    if into.depth != other.depth || into.width != other.width {
+        return;
+    }
+    for (a, b) in into.counters.iter_mut().zip(&other.counters) {
+        *a = a.saturating_add(*b);
+    }
+    for (&tag, &total) in &other.lang_totals {
+        *into.lang_totals.entry(tag).or_insert(0) += total;
+    }
 }
 
 pub fn add(df: &mut CorpusDf, lang_tag: u32, fingerprint: u64) {
@@ -79,7 +91,7 @@ pub fn file_frequency(df: &CorpusDf, lang: Language, fingerprint: u64) -> f64 {
 }
 
 pub fn to_bytes(df: &CorpusDf) -> Vec<u8> {
-    let mut out = Vec::with_capacity(HEADER_LEN + df.lang_totals.len() * 12 + df.counters.len());
+    let mut out = Vec::with_capacity(HEADER_LEN + df.lang_totals.len() * 12 + df.counters.len() * 2);
     out.extend_from_slice(MAGIC);
     out.push(VERSION);
     out.push(df.depth as u8);
@@ -91,7 +103,9 @@ pub fn to_bytes(df: &CorpusDf) -> Vec<u8> {
         out.extend_from_slice(&tag.to_le_bytes());
         out.extend_from_slice(&total.to_le_bytes());
     }
-    out.extend_from_slice(&df.counters);
+    for &c in &df.counters {
+        out.extend_from_slice(&c.to_le_bytes());
+    }
     out
 }
 
@@ -110,7 +124,9 @@ pub fn from_bytes(bytes: &[u8]) -> Option<CorpusDf> {
         lang_totals.insert(tag, total);
         pos += 12;
     }
-    let counters = bytes.get(pos..pos + depth.checked_mul(width)?)?.to_vec();
+    let cell_count = depth.checked_mul(width)?;
+    let raw = bytes.get(pos..pos + cell_count.checked_mul(2)?)?;
+    let counters = raw.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
     Some(CorpusDf { depth, width, counters, lang_totals })
 }
 
