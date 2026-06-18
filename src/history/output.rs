@@ -94,6 +94,12 @@ fn render_finding_line(out: &mut String, f: &HistoryFinding) {
             e.total_multi_file_commits,
             e.blob_ratio * 100.0
         )),
+        HistoryKind::DefectProneFile(e) => out.push_str(&format!(
+            "  {}   blamed by {} bug-fixes (from {} introducing commits)\n",
+            e.file.display(),
+            e.fix_count,
+            e.introducer_count
+        )),
         _ => render_evolution_line(out, f),
     }
 }

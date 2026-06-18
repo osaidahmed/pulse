@@ -8,6 +8,7 @@ pub struct HistoryThresholds {
     pub contributors: ContributorThresholds,
     pub hist: HistSmellThresholds,
     pub arch_trend: bool,
+    pub szz: SzzThresholds,
     pub max_commit_files: u32,
     pub jit: JitThresholds,
 }
@@ -21,6 +22,19 @@ pub struct BuildCoChangeThresholds {
 
 impl BuildCoChangeThresholds {
     pub const DEFAULTS: Self = Self { min_support: 3, min_ratio: 0.5, max_findings_reported: 15 };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SzzThresholds {
+    pub enabled: bool,
+    pub min_inducing: u32,
+    pub max_fix_commits: u32,
+    pub max_findings_reported: u32,
+}
+
+impl SzzThresholds {
+    pub const DEFAULTS: Self =
+        Self { enabled: false, min_inducing: 3, max_fix_commits: 150, max_findings_reported: 20 };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -86,6 +100,7 @@ impl HistoryThresholds {
         contributors: ContributorThresholds::DEFAULTS,
         hist: HistSmellThresholds::DEFAULTS,
         arch_trend: false,
+        szz: SzzThresholds::DEFAULTS,
         max_commit_files: 40,
         jit: JitThresholds::DEFAULTS,
     };

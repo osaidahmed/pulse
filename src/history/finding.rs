@@ -16,6 +16,14 @@ pub enum HistoryKind {
     CatalystWarning(CatalystEvidence),
     DecayTrend(DecayEvidence),
     BuildCoChange(BuildCoChangeEvidence),
+    DefectProneFile(DefectProneEvidence),
+}
+
+#[derive(Debug, Clone)]
+pub struct DefectProneEvidence {
+    pub file: PathBuf,
+    pub fix_count: u32,
+    pub introducer_count: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -103,7 +111,7 @@ pub struct VariantInfo {
     pub action: &'static str,
 }
 
-const VARIANT_TABLE: [VariantInfo; 8] = [
+const VARIANT_TABLE: [VariantInfo; 9] = [
     VariantInfo {
         pillar: HistoryPillar::Drift,
         slug: "architectural_drift",
@@ -152,6 +160,12 @@ const VARIANT_TABLE: [VariantInfo; 8] = [
         label: "build co-change coupling",
         action: "when you change this source file, check whether the build manifest needs updating too",
     },
+    VariantInfo {
+        pillar: HistoryPillar::Complexity,
+        slug: "defect_prone_file",
+        label: "defect-prone file",
+        action: "this file is the blamed source of repeated bug fixes — stabilize it with tests and review",
+    },
 ];
 
 pub fn variant_info(k: &HistoryKind) -> VariantInfo {
@@ -173,6 +187,7 @@ fn late_variant_index(k: &HistoryKind) -> usize {
         HistoryKind::ChangeShotgun(_) => 4,
         HistoryKind::CatalystWarning(_) => 5,
         HistoryKind::DecayTrend(_) => 6,
-        _ => 7,
+        HistoryKind::BuildCoChange(_) => 7,
+        _ => 8,
     }
 }

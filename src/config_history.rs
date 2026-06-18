@@ -49,6 +49,7 @@ pub struct HistoryCliOverrides {
     pub contributors_top: Option<u32>,
     pub hist: bool,
     pub arch_trend: bool,
+    pub szz: bool,
 }
 
 pub fn resolve_history_thresholds(config: Option<&PulseConfig>, overrides: HistoryCliOverrides) -> HistoryThresholds {
@@ -70,6 +71,9 @@ pub fn resolve_history_thresholds(config: Option<&PulseConfig>, overrides: Histo
     }
     if overrides.arch_trend {
         t.arch_trend = true;
+    }
+    if overrides.szz {
+        t.szz.enabled = true;
     }
     t
 }

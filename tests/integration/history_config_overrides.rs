@@ -20,7 +20,14 @@ fn defaults_ctr() -> u32 {
 }
 
 fn cli(co: Option<u32>, hot: Option<u32>, ctr: Option<u32>) -> HistoryCliOverrides {
-    HistoryCliOverrides { co_change_top: co, hotspot_top: hot, contributors_top: ctr, hist: false, arch_trend: false }
+    HistoryCliOverrides {
+        co_change_top: co,
+        hotspot_top: hot,
+        contributors_top: ctr,
+        hist: false,
+        arch_trend: false,
+        szz: false,
+    }
 }
 
 #[test]

@@ -125,6 +125,7 @@ fn run_history_cmd(args: cli::HistoryArgs, include_tests: bool) {
             contributors_top: args.contributors_top,
             hist: args.hist,
             arch_trend: args.arch_trend,
+            szz: args.szz,
         },
         include_tests,
     };

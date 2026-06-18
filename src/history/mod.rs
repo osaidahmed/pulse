@@ -15,6 +15,7 @@ pub mod jit_risk;
 pub mod jit_thresholds;
 pub mod output;
 pub mod output_json;
+pub mod szz;
 pub mod thresholds;
 
 use finding::HistoryFinding;
@@ -68,6 +69,7 @@ pub fn run_with_filter(
     findings.extend(build_drift);
     findings.extend(hotspots::rank(&commits, &typed_files, t));
     findings.extend(contributors::rank(&commits, &typed_paths, t));
+    findings.extend(szz::rank(&opts.root, &typed_files, &t.szz));
     findings.extend(hist);
     if t.arch_trend {
         findings.extend(arch_trend::catalyst_findings(&opts.root, &commits));

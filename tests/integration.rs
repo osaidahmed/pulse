@@ -480,6 +480,8 @@ mod history_negative_paths;
 mod history_orchestrator;
 #[path = "integration/history_output.rs"]
 mod history_output;
+#[path = "integration/history_szz.rs"]
+mod history_szz;
 #[path = "integration/hook_diff_filtering.rs"]
 mod hook_diff_filtering;
 #[path = "integration/hook_filtering.rs"]

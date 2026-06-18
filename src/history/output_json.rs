@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::finding::{
-    BlobEvidence, BuildCoChangeEvidence, CatalystEvidence, ChangeShotgunEvidence, DecayEvidence, DriftEvidence,
-    FragmentationEvidence, HistoryFinding, HistoryKind, HotspotEvidence,
+    BlobEvidence, BuildCoChangeEvidence, CatalystEvidence, ChangeShotgunEvidence, DecayEvidence, DefectProneEvidence,
+    DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind, HotspotEvidence,
 };
 
 pub fn finding_to_json(f: &HistoryFinding) -> serde_json::Value {
@@ -19,8 +19,18 @@ fn kind_to_json(kind: &HistoryKind) -> serde_json::Value {
         HistoryKind::Hotspot(e) => hotspot_to_json(e),
         HistoryKind::KnowledgeFragmentation(e) => ownership_to_json(e),
         HistoryKind::FileBlob(e) => blob_to_json(e),
+        HistoryKind::DefectProneFile(e) => defect_prone_to_json(e),
         _ => evolution_to_json(kind),
     }
+}
+
+fn defect_prone_to_json(e: &DefectProneEvidence) -> serde_json::Value {
+    serde_json::json!({
+        "kind": "defect_prone_file",
+        "file": e.file.display().to_string(),
+        "fix_count": e.fix_count,
+        "introducer_count": e.introducer_count,
+    })
 }
 
 fn evolution_to_json(kind: &HistoryKind) -> serde_json::Value {
