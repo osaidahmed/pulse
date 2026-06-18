@@ -29,6 +29,7 @@ pub mod conceptual_cohesion;
 pub mod confidence;
 pub mod constraint_smells;
 pub mod corpus;
+pub mod corpus_df;
 pub mod corpus_stats;
 pub mod coverage;
 pub mod cycle_shapes;

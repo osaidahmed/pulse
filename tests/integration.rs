@@ -117,6 +117,8 @@ mod audit_conceptual_cohesion;
 mod audit_conceptual_cohesion_e2e;
 #[path = "integration/audit_constraint_smells.rs"]
 mod audit_constraint_smells;
+#[path = "integration/audit_corpus_df.rs"]
+mod audit_corpus_df;
 #[path = "integration/audit_corpus_stats_unit.rs"]
 mod audit_corpus_stats_unit;
 #[path = "integration/audit_coverage_disclosure.rs"]

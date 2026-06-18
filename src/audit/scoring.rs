@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 
 use super::categorize;
+use super::corpus_df::{self, CorpusDf};
 use super::discovery::RawCluster;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, PatternCategory};
 use super::mdl::{self, CorpusScale};
@@ -17,6 +19,8 @@ pub struct ScoringCtx<'a> {
     pub kinds_by_fp: &'a KindIndex,
     pub size_by_fp: &'a HashMap<u64, u32>,
     pub corpus: CorpusScale,
+    pub corpus_df: &'a CorpusDf,
+    pub corpus_idiom_frequency: Option<f64>,
     pub floor: f64,
     pub max_findings: usize,
 }
@@ -53,9 +57,23 @@ fn build_categorized_finding(cluster: RawCluster, ctx: &ScoringCtx) -> Option<Au
     if gain < ctx.floor {
         return None;
     }
+    if cluster_is_corpus_idiom(&cluster, ctx) {
+        return None;
+    }
     let category =
         ctx.kinds_by_fp.get(&cluster.fingerprint).map_or(PatternCategory::Other, |kinds| categorize::categorize(kinds));
     Some(finding_from_cluster(cluster, Some(gain), category))
+}
+
+fn cluster_is_corpus_idiom(cluster: &RawCluster, ctx: &ScoringCtx) -> bool {
+    let Some(lang) = cluster.locations.first().and_then(|(f, _)| crate::parse::detect_language(f)) else {
+        return false;
+    };
+    corpus_idiom_suppressed(ctx.corpus_df, lang, cluster.fingerprint, ctx.corpus_idiom_frequency)
+}
+
+pub fn corpus_idiom_suppressed(df: &CorpusDf, lang: Language, fingerprint: u64, threshold: Option<f64>) -> bool {
+    threshold.is_some_and(|thr| corpus_df::file_frequency(df, lang, fingerprint) >= thr)
 }
 
 fn finding_from_cluster(cluster: RawCluster, score: Option<f64>, category: PatternCategory) -> AuditFinding {

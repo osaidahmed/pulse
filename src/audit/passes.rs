@@ -90,6 +90,8 @@ fn run_pattern_mining(shared: &corpus::Corpus, thresholds: &AuditThresholds) -> 
         kinds_by_fp: &bundle.kinds_by_fp,
         size_by_fp: &size_by_fp,
         corpus: mdl::CorpusScale { vocab, total_occurrences: filtered.len() as u64 },
+        corpus_df: super::corpus_df::corpus_df(),
+        corpus_idiom_frequency: thresholds.pattern_mining.corpus_idiom_frequency,
         floor: thresholds.pattern_mining.mdl.compression_floor_bits,
         max_findings: thresholds.pattern_mining.max_findings_reported,
     };
