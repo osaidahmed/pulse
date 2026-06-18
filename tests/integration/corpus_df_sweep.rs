@@ -84,3 +84,59 @@ fn drive_sweep(corpus_root: &Path) {
     std::fs::write(&blob, corpus_df::to_bytes(&acc)).unwrap();
     eprintln!("corpus_df baked from {merged} repos; {} crashed: {crashed:?}", crashed.len());
 }
+
+#[test]
+fn inspect_corpus_df_distribution() {
+    let Ok(corpus_root) = std::env::var("CORPUS_DF_CALIB") else { return };
+    let df = corpus_df::corpus_df();
+    let thresholds = t().audit;
+    let min_support = thresholds.pattern_mining.freqt_min_support;
+    let mut buckets = [0usize; 6];
+    let mut total = 0usize;
+    let repos = sweep_harness::repo_dirs(&PathBuf::from(&corpus_root));
+    let stride = (repos.len() / 50).max(1);
+    for repo in repos.iter().step_by(stride) {
+        let name = repo.to_string_lossy();
+        if name.contains("systemd") || name.contains("purchases-ios") {
+            continue;
+        }
+        let matcher = IgnoreMatcher::from_patterns(&[]);
+        let filter = IgnoreFilter::new(&matcher, repo);
+        let typed = walk_typed_source_files_filtered(repo, true, &filter);
+        let file_lang: HashMap<PathBuf, Language> = typed.iter().map(|(p, l)| (p.clone(), *l)).collect();
+        let records = record_extraction::records_only(&typed, &thresholds);
+        let mut support: HashMap<u64, usize> = HashMap::new();
+        let mut fp_lang: HashMap<u64, Language> = HashMap::new();
+        for record in &records {
+            *support.entry(record.fingerprint).or_insert(0) += 1;
+            if let Some(&lang) = file_lang.get(&record.file) {
+                fp_lang.entry(record.fingerprint).or_insert(lang);
+            }
+        }
+        for (fp, sup) in &support {
+            if *sup >= min_support {
+                if let Some(&lang) = fp_lang.get(fp) {
+                    buckets[bucket(corpus_df::file_frequency(df, lang, *fp))] += 1;
+                    total += 1;
+                }
+            }
+        }
+    }
+    eprintln!("project-frequent patterns n={total}; corpus-freq buckets [<.01,<.05,<.1,<.2,<.5,>=.5] = {buckets:?}");
+}
+
+fn bucket(freq: f64) -> usize {
+    if freq < 0.01 {
+        0
+    } else if freq < 0.05 {
+        1
+    } else if freq < 0.1 {
+        2
+    } else if freq < 0.2 {
+        3
+    } else if freq < 0.5 {
+        4
+    } else {
+        5
+    }
+}
