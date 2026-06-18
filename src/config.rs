@@ -15,7 +15,7 @@ mod audit_overrides;
 mod resolve;
 pub use audit_overrides::{
     CloneClusterConfig, GodClassConfig, MultivariateAnomalyConfig, NamedSmellsConfig, NaturalnessConfig,
-    PackageMetricsConfig, RefusedBequestConfig, TaintConfig,
+    PackageMetricsConfig, PatternMiningConfig, RefusedBequestConfig, TaintConfig,
 };
 pub use resolve::{resolve_base_thresholds, resolve_thresholds};
 
@@ -74,6 +74,8 @@ pub struct ConfigThresholds {
     pub naturalness: NaturalnessConfig,
     #[serde(default)]
     pub named_smells: NamedSmellsConfig,
+    #[serde(default)]
+    pub pattern_mining: PatternMiningConfig,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

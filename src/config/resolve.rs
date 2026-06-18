@@ -1,12 +1,14 @@
 use crate::parse::Language;
 use crate::thresholds::{
     AuditThresholds, CloneClusterThresholds, GodClassThresholds, MultivariateAnomalyThresholds, NamedSmellThresholds,
-    NaturalnessThresholds, PackageMetricsThresholds, RefusedBequestThresholds, TaintThresholds, Thresholds,
+    NaturalnessThresholds, PackageMetricsThresholds, PatternMiningThresholds, RefusedBequestThresholds,
+    TaintThresholds, Thresholds,
 };
 
 use super::{
     CloneClusterConfig, ConfigThresholds, CpgConfig, DuplicationThresholds, GodClassConfig, MultivariateAnomalyConfig,
-    NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig, PulseConfig, RefusedBequestConfig, TaintConfig,
+    NamedSmellsConfig, NaturalnessConfig, PackageMetricsConfig, PatternMiningConfig, PulseConfig, RefusedBequestConfig,
+    TaintConfig,
 };
 
 pub fn resolve_thresholds(config: Option<&PulseConfig>, lang: Language) -> Thresholds {
@@ -88,6 +90,14 @@ fn resolve_audit(base: &AuditThresholds, o: &ConfigThresholds) -> AuditThreshold
         clone_cluster: resolve_clone_cluster(&o.clone_cluster, &base.clone_cluster),
         naturalness: resolve_naturalness(&o.naturalness, &base.naturalness),
         named_smells: resolve_named_smells(&o.named_smells, &base.named_smells),
+        pattern_mining: resolve_pattern_mining(&o.pattern_mining, &base.pattern_mining),
+        ..*base
+    }
+}
+
+fn resolve_pattern_mining(o: &PatternMiningConfig, base: &PatternMiningThresholds) -> PatternMiningThresholds {
+    PatternMiningThresholds {
+        corpus_idiom_frequency: o.corpus_idiom_frequency.or(base.corpus_idiom_frequency),
         ..*base
     }
 }

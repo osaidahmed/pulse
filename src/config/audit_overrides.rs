@@ -50,6 +50,12 @@ pub struct MultivariateAnomalyConfig {
 
 #[derive(Debug, Deserialize, Default, Clone, Copy)]
 #[serde(deny_unknown_fields)]
+pub struct PatternMiningConfig {
+    pub corpus_idiom_frequency: Option<f64>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone, Copy)]
+#[serde(deny_unknown_fields)]
 pub struct RefusedBequestConfig {
     pub enabled: Option<bool>,
 }

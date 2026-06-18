@@ -67,10 +67,23 @@ fn rejects_garbage_blobs() {
 }
 
 #[test]
-fn baked_sketch_is_currently_an_inert_placeholder() {
+fn corpus_idiom_suppression_is_off_by_default_and_config_opts_in() {
+    let base = pulse::thresholds::Thresholds::default();
+    assert_eq!(base.audit.pattern_mining.corpus_idiom_frequency, None);
+
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join(".pulse.toml"), "[thresholds.pattern_mining]\ncorpus_idiom_frequency = 0.1\n")
+        .unwrap();
+    let cfg = pulse::config::load_config(dir.path()).expect("config loads");
+    let resolved = pulse::config::resolve_thresholds(Some(&cfg), Language::Rust);
+    assert_eq!(resolved.audit.pattern_mining.corpus_idiom_frequency, Some(0.1));
+}
+
+#[test]
+fn baked_sketch_is_populated() {
     let df = corpus_df::corpus_df();
-    assert!(corpus_df::is_empty(df), "shipped sketch is the placeholder until the corpus sweep bakes it");
-    assert!(!corpus_idiom_suppressed(df, Language::Rust, 0xFEED, Some(0.1)));
+    assert!(!corpus_df::is_empty(df), "the shipped sketch should be baked from the calibration corpus");
+    assert!(!corpus_idiom_suppressed(df, Language::Rust, 0xABCD_EF12_3456_789A, None));
 }
 
 #[test]
