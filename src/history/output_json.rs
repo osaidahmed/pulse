@@ -28,6 +28,7 @@ fn defect_prone_to_json(e: &DefectProneEvidence) -> serde_json::Value {
     serde_json::json!({
         "kind": "defect_prone_file",
         "file": e.file.display().to_string(),
+        "function": e.function,
         "fix_count": e.fix_count,
         "introducer_count": e.introducer_count,
     })

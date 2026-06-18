@@ -15,11 +15,11 @@ fn enabled() -> SzzThresholds {
     SzzThresholds { enabled: true, min_inducing: 1, ..SzzThresholds::DEFAULTS }
 }
 
-fn defect_prone_files(findings: &[pulse::history::finding::HistoryFinding]) -> Vec<(PathBuf, u32)> {
+fn defect_prone_files(findings: &[pulse::history::finding::HistoryFinding]) -> Vec<(PathBuf, String, u32)> {
     findings
         .iter()
         .filter_map(|f| match &f.kind {
-            HistoryKind::DefectProneFile(e) => Some((e.file.clone(), e.fix_count)),
+            HistoryKind::DefectProneFile(e) => Some((e.file.clone(), e.function.clone(), e.fix_count)),
             _ => None,
         })
         .collect()
@@ -46,9 +46,10 @@ fn file_whose_bug_was_fixed_is_flagged() {
         CommitSpec { author: "a <a@x>", message: "fix parse crash", writes: &[("foo.py", FIXED)], deletes: &[] },
     ]);
     let prone = defect_prone_files(&szz::rank(repo.path(), &typed(repo.path(), "foo.py"), &enabled()));
-    assert_eq!(prone.len(), 1, "the bug-fixed file should be flagged: {prone:?}");
+    assert_eq!(prone.len(), 1, "the bug-fixed function should be flagged: {prone:?}");
     assert!(prone[0].0.ends_with("foo.py"));
-    assert!(prone[0].1 >= 1, "fix_count should count the fixing commit");
+    assert_eq!(prone[0].1, "parse", "attribution should be function-level");
+    assert!(prone[0].2 >= 1, "fix_count should count the fixing commit");
 }
 
 #[test]

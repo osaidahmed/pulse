@@ -25,10 +25,11 @@ pub fn rank(root: &Path, typed: &[(PathBuf, Language)], t: &SzzThresholds) -> Ve
         return Vec::new();
     };
     let lang_by_rel = rel_lang_map(typed, &top);
-    let mut tallies: HashMap<String, Tally> = HashMap::new();
+    let mut tallies: HashMap<(String, String), Tally> = HashMap::new();
     let mut cosmetic: HashMap<(String, String), bool> = HashMap::new();
+    let mut attr = Attr { top: &top, lang_by_rel: &lang_by_rel, tallies: &mut tallies, cosmetic: &mut cosmetic };
     for fix in fix_commits(&top, t.max_fix_commits) {
-        attribute_fix(&top, &fix, &lang_by_rel, &mut tallies, &mut cosmetic);
+        attr.fix(&fix);
     }
     build_findings(&top, &tallies, t)
 }
@@ -65,27 +66,60 @@ fn is_fix(subject: &str) -> bool {
     subject.to_ascii_lowercase().split(|c: char| !c.is_ascii_alphanumeric()).any(|w| FIX_TOKENS.contains(&w))
 }
 
-fn attribute_fix(
-    top: &Path,
-    fix: &str,
-    lang_by_rel: &HashMap<String, Language>,
-    tallies: &mut HashMap<String, Tally>,
-    cosmetic: &mut HashMap<(String, String), bool>,
-) {
-    for rel in changed_files(top, fix, lang_by_rel) {
-        let ranges = deleted_ranges(top, fix, &rel);
-        if ranges.is_empty() {
-            continue;
-        }
-        for introducer in blame_introducers(top, fix, &rel, &ranges) {
-            if is_cosmetic(top, &introducer, &rel, lang_by_rel, cosmetic) {
+struct Attr<'a> {
+    top: &'a Path,
+    lang_by_rel: &'a HashMap<String, Language>,
+    tallies: &'a mut HashMap<(String, String), Tally>,
+    cosmetic: &'a mut HashMap<(String, String), bool>,
+}
+
+impl Attr<'_> {
+    fn fix(&mut self, fix: &str) {
+        for rel in changed_files(self.top, fix, self.lang_by_rel) {
+            let ranges = deleted_ranges(self.top, fix, &rel);
+            if ranges.is_empty() {
                 continue;
             }
-            let tally = tallies.entry(rel.clone()).or_default();
+            let Some(&lang) = self.lang_by_rel.get(&rel) else {
+                continue;
+            };
+            let spans = function_spans(self.top, &format!("{fix}^"), &rel, lang);
+            for range in ranges {
+                self.range(fix, &rel, range, &spans);
+            }
+        }
+    }
+
+    fn range(&mut self, fix: &str, rel: &str, range: (u32, u32), spans: &[(String, u32, u32)]) {
+        let Some(function) = function_at_line(spans, range.0) else {
+            return;
+        };
+        for introducer in blame_range(self.top, fix, rel, range) {
+            if is_cosmetic(self.top, &introducer, rel, self.lang_by_rel, self.cosmetic) {
+                continue;
+            }
+            let tally = self.tallies.entry((rel.to_string(), function.clone())).or_default();
             tally.fixes.insert(fix.to_string());
             tally.introducers.insert(introducer);
         }
     }
+}
+
+fn function_spans(top: &Path, rev: &str, rel: &str, lang: Language) -> Vec<(String, u32, u32)> {
+    let Some(src) = git_out(top, &["show", &format!("{rev}:{rel}")]) else {
+        return Vec::new();
+    };
+    parse::parse_and_walk_guarded(&src, lang)
+        .map(|m| m.functions.iter().map(|f| (f.name.clone(), f.start_line, f.end_line)).collect())
+        .unwrap_or_default()
+}
+
+fn function_at_line(spans: &[(String, u32, u32)], line: u32) -> Option<String> {
+    spans
+        .iter()
+        .filter(|(name, start, end)| !name.is_empty() && *start <= line && line <= *end)
+        .max_by_key(|(_, start, _)| *start)
+        .map(|(name, _, _)| name.clone())
 }
 
 fn changed_files(top: &Path, fix: &str, lang_by_rel: &HashMap<String, Language>) -> Vec<String> {
@@ -140,17 +174,10 @@ fn coalesce(mut lines: Vec<u32>) -> Vec<(u32, u32)> {
     ranges
 }
 
-fn blame_introducers(top: &Path, fix: &str, rel: &str, ranges: &[(u32, u32)]) -> HashSet<String> {
-    let parent = format!("{fix}^");
-    let mut out = HashSet::new();
-    for (start, end) in ranges {
-        let loc = format!("{start},{end}");
-        let blame = git_out(top, &["blame", "-w", "-M", "--porcelain", "-L", &loc, &parent, "--", rel]);
-        for sha in porcelain_shas(&blame.unwrap_or_default()) {
-            out.insert(sha);
-        }
-    }
-    out
+fn blame_range(top: &Path, fix: &str, rel: &str, range: (u32, u32)) -> HashSet<String> {
+    let loc = format!("{},{}", range.0, range.1);
+    let blame = git_out(top, &["blame", "-w", "-M", "--porcelain", "-L", &loc, &format!("{fix}^"), "--", rel]);
+    porcelain_shas(&blame.unwrap_or_default()).into_iter().collect()
 }
 
 fn porcelain_shas(blame: &str) -> Vec<String> {
@@ -199,17 +226,20 @@ fn fingerprints(source: &str, lang: Language) -> Vec<u64> {
     hashes
 }
 
-fn build_findings(top: &Path, tallies: &HashMap<String, Tally>, t: &SzzThresholds) -> Vec<HistoryFinding> {
+fn build_findings(top: &Path, tallies: &HashMap<(String, String), Tally>, t: &SzzThresholds) -> Vec<HistoryFinding> {
     let mut rows: Vec<DefectProneEvidence> = tallies
         .iter()
         .filter(|(_, tally)| tally.fixes.len() as u32 >= t.min_inducing)
-        .map(|(rel, tally)| DefectProneEvidence {
+        .map(|((rel, function), tally)| DefectProneEvidence {
             file: top.join(rel),
+            function: function.clone(),
             fix_count: tally.fixes.len() as u32,
             introducer_count: tally.introducers.len() as u32,
         })
         .collect();
-    rows.sort_by(|a, b| b.fix_count.cmp(&a.fix_count).then_with(|| a.file.cmp(&b.file)));
+    rows.sort_by(|a, b| {
+        b.fix_count.cmp(&a.fix_count).then_with(|| a.file.cmp(&b.file)).then_with(|| a.function.cmp(&b.function))
+    });
     rows.truncate(t.max_findings_reported as usize);
     rows.into_iter().map(|e| HistoryFinding { kind: HistoryKind::DefectProneFile(e), action_label: None }).collect()
 }

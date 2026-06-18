@@ -22,6 +22,7 @@ pub enum HistoryKind {
 #[derive(Debug, Clone)]
 pub struct DefectProneEvidence {
     pub file: PathBuf,
+    pub function: String,
     pub fix_count: u32,
     pub introducer_count: u32,
 }
