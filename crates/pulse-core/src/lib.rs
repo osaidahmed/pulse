@@ -193,3 +193,13 @@ pub fn hash_path(file_path: &str) -> u64 {
     file_path.hash(&mut hasher);
     hasher.finish()
 }
+
+pub fn analytics_dir() -> std::path::PathBuf {
+    if let Ok(dir) = std::env::var("PULSE_ANALYTICS_DIR") {
+        return std::path::PathBuf::from(dir);
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        return std::path::PathBuf::from(home).join(".local/share/pulse");
+    }
+    std::path::PathBuf::from("/tmp/pulse-analytics")
+}

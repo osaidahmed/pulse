@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
-use std::path::PathBuf;
 
 use crate::baselines;
 use crate::hook::HookInput;
@@ -10,15 +9,7 @@ use crate::walk::FunctionMetrics;
 
 const PRESERVED_THRESHOLD: f64 = 0.8;
 
-pub fn analytics_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("PULSE_ANALYTICS_DIR") {
-        return PathBuf::from(dir);
-    }
-    if let Some(home) = std::env::var_os("HOME") {
-        return PathBuf::from(home).join(".local/share/pulse");
-    }
-    PathBuf::from("/tmp/pulse-analytics")
-}
+pub use pulse_core::analytics_dir;
 
 pub fn save_session_id(hook: &HookInput) {
     let path = baselines::baseline_dir().join("session_id");

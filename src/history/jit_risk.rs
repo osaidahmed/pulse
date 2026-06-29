@@ -71,7 +71,7 @@ fn quantile(sorted: &[f64], q: f64) -> f64 {
 }
 
 pub fn calib_path(repo_root: &Path) -> PathBuf {
-    crate::analytics::analytics_dir().join("jit").join(format!("{}.json", repo_key(repo_root)))
+    pulse_core::analytics_dir().join("jit").join(format!("{}.json", repo_key(repo_root)))
 }
 
 fn repo_key(repo_root: &Path) -> String {
@@ -100,7 +100,7 @@ pub fn now_secs() -> i64 {
 }
 
 pub fn hook_advisory(source: &str, file_path: &Path) -> Option<String> {
-    if !crate::analytics::analytics_dir().join("jit").is_dir() {
+    if !pulse_core::analytics_dir().join("jit").is_dir() {
         return None;
     }
     let dir = file_path.parent()?;
