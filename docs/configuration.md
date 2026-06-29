@@ -120,11 +120,14 @@ file_function_count = 20
 file_total_cc = 100
 max_declarations = 20
 max_struct_fields = 12
+global_conditionals_max = 0
+global_nesting_depth = 3
 
 # duplication
 duplication_min_loc = 6
 skeleton_duplication_min_loc = 20
 duplication_min_group = 2
+duplication_min_distinct_kinds = 3
 
 # aggregate smells
 large_fn_loc = 40
@@ -132,10 +135,14 @@ large_fn_count = 3
 consecutive_asserts_max = 10
 primitive_ratio_threshold = 0.7
 primitive_min_typed_params = 4
+primitive_min_same_count = 2
+constructor_dep_injection_min = 4
+framework_dep_injection_min = 8
 lcom4_warning = 3
 short_var_min_fn_loc = 15
 short_var_max_count = 3
 max_string_match_arms = 5
+dup_assert_min = 6
 ```
 
 ## Disable Smells
@@ -169,6 +176,12 @@ smells = [
   "large_struct",
   "short_variable_names",
   "stringly_typed_switch",
+  "hallucinated_import",
+  "cross_file_duplication",
+  "unused_function",
+  "dead_store",
+  "use_before_def",
+  "unreachable_code",
 ]
 ```
 
@@ -194,6 +207,41 @@ arg_max = 7
 constructor_arg_max = 8
 ```
 
+## Detector Threshold Tables
+
+Sub-tables under `[thresholds]` tune the `pulse audit` detectors and the opt-in dataflow smells. All keys are optional.
+
+```toml
+# opt-in dataflow smells (off by default)
+[thresholds.cpg]
+enabled = false
+dead_store = true
+use_before_def = false
+unreachable_code = true
+
+# class smells
+[thresholds.named_smells.god_class]
+wmc = 47
+tcc = 0.33
+atfd = 5
+
+[thresholds.named_smells.refused_bequest]
+enabled = false
+
+[thresholds.named_smells.multivariate_anomaly]
+enabled = true
+min_classes = 8
+distance_quantile = 11.143
+max_findings = 10
+
+# cross-file pattern mining
+[thresholds.pattern_mining]
+corpus_idiom_frequency = 0.10   # opt-in: suppress patterns common across reference codebases
+
+# also available: [thresholds.taint], [thresholds.clone_cluster],
+# [thresholds.naturalness], [thresholds.package_metrics]
+```
+
 ## Audit Configuration
 
 `pulse audit` is an experimental surface. The `[audit]` table hides findings from its output. It does not change what gets detected.
@@ -205,12 +253,24 @@ hide_categories = ["literal_repetition", "method_call"]
 hide_patterns = ["*logger*", "build_*_response"]
 ```
 
-`hide_smells` drops named-smell and architecture findings by slug:
+`hide_smells` drops named-smell, architecture, dependency, and security findings by slug:
 
 ```
-distance_from_main_sequence  import_cycle  zero_edge_project
 shotgun_surgery  divergent_change  feature_envy
 god_class  parallel_inheritance  refused_bequest
+low_conceptual_cohesion  multivariate_anomaly
+
+distance_from_main_sequence  import_cycle  unstable_dependency
+hub_like_dependency  god_component  over_fragmentation
+compound_arch_smell  split_component  move_file
+merge_components  zero_edge_project
+
+bloated_dependency  phantom_dependency  undeclared_module_dependency
+unused_declared_dependency  constraint_smell  strictness_debt
+outdated_dependency  vulnerable_dependency
+
+ifdef_density  injection_shape  near_duplicate
+unnatural_code  vulnerable_clone_sibling
 ```
 
 `hide_categories` drops cross-file pattern findings by category:
@@ -241,10 +301,15 @@ max_findings = 10
 
 [history.contributors]
 max_findings = 20
+
+[history.jit]
+use_lt = true
+use_age = true
+use_entropy = true
 ```
 
 `ignore_paths` adds to `[ignore] paths` for history only, using the same glob syntax.
 
 `max_findings` caps how many findings each pass reports. Defaults are 20 for co-change, 10 for hotspot, 20 for contributors.
 
-The CLI flags `--co-change-top`, `--hotspot-top`, and `--contributors-top` override the matching `max_findings`. `--since`, `--max-commits`, and `--root` have no `.pulse.toml` equivalent.
+The CLI flags `--co-change-top`, `--hotspot-top`, and `--contributors-top` override the matching `max_findings`. `--hist` and `--arch-trend` enable the opt-in evolutionary and cycle-trend passes; `--no-szz` disables the on-by-default defect-prone-file pass (bug-fix blame); `--jit-calibrate` writes JIT edit-risk calibration for the repo. `--since`, `--max-commits`, and `--root` have no `.pulse.toml` equivalent.

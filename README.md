@@ -46,11 +46,15 @@ Three hooks fire at different points:
 
 The agent sees findings inline and fixes them before moving on. Target is under 10ms per analysis.
 
-## Smells (26)
+## Smells (29)
 
 Function-level: God Method, Complex Method, Large Method, Nested Conditional Chunks, Deep Nested Complexity, Complex Conditional, Excess Arguments, Constructor Over-Injection, Large Embedded Block, Primitive Obsession, Large Assertion Block, Empty Error Handler, Short Variable Names, Stringly-Typed Switch
 
 Module-level: File Too Large, Too Many Functions, Overall Code Complexity, God Class, Excessive Declarations, Global Conditionals, Deep Global Nesting, Code Duplication (exact + fuzzy), Duplicated Assertion Blocks, Low Cohesion (LCOM4), Overall Function Size, Large Struct
+
+Edit-time and cross-file: Hallucinated Import, Cross-File Duplication, Unused Function
+
+Opt-in dataflow (off by default): Dead Store, Use Before Definition, Unreachable Code
 
 ## Languages (22)
 
@@ -101,6 +105,7 @@ pulse budget --new       show thresholds for a new file
 pulse debug <file>       raw metrics dump
 pulse audit              cross-file analysis (experimental)
 pulse history            git-history mining (experimental)
+pulse calibrate          derive .pulse.toml thresholds from the codebase
 pulse --hook             PostToolUse hook (reads JSON stdin)
 pulse --stop             stop hook (regression detection)
 pulse --cleanup          clear baselines
@@ -109,7 +114,7 @@ pulse --version, -V      print version
 
 ## Experimental subcommands
 
-`pulse audit` runs cross-file structural analysis: duplication patterns, god classes, import cycles. `pulse history` mines git history for hotspots and files that keep changing together. I added both because I wanted Pulse to work as a standalone code-smell CLI, not only as an edit hook. Both are rough and produce false positives often enough that you should treat their output as leads to check by hand, not findings to fix. See [docs/configuration.md](docs/configuration.md) for what you can tune and suppress.
+`pulse audit` runs cross-file structural analysis: duplication patterns, god classes, import cycles, dependency reconciliation (unused, undeclared, vulnerable, and outdated dependencies), naturalness, and architecture metrics. `pulse history` mines git history for hotspots, files that keep changing together, knowledge fragmentation, build co-change coupling, and defect-prone files (bug-fix blame). `pulse calibrate` derives per-language thresholds from your codebase, blended with a baseline from reference codebases, and writes a `.pulse.toml`. I added these because I wanted Pulse to work as a standalone code-smell CLI. They are rough and produce false positives often enough that you should treat their output as leads to check by hand, not findings to fix. See [docs/configuration.md](docs/configuration.md) for what you can tune and suppress.
 
 ## Citation
 
