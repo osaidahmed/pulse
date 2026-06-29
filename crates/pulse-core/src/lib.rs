@@ -174,3 +174,22 @@ pub enum Location {
     Function { name: String, start_line: u32, end_line: u32 },
     Module,
 }
+
+pub fn baseline_dir() -> std::path::PathBuf {
+    if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
+        return std::path::PathBuf::from(dir);
+    }
+    std::path::PathBuf::from("/tmp/pulse-baselines")
+}
+
+pub fn file_key(file_path: &str) -> String {
+    format!("{:016x}", hash_path(file_path))
+}
+
+pub fn hash_path(file_path: &str) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    file_path.hash(&mut hasher);
+    hasher.finish()
+}

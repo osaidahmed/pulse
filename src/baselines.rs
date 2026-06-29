@@ -9,12 +9,8 @@ use crate::hook::HookInput;
 use crate::smells::{Finding, Location};
 use crate::{parse, smells};
 
-pub fn baseline_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
-        return PathBuf::from(dir);
-    }
-    PathBuf::from("/tmp/pulse-baselines")
-}
+use pulse_core::hash_path;
+pub use pulse_core::{baseline_dir, file_key};
 
 pub fn session_baseline_dir(session_id: &str) -> PathBuf {
     if let Ok(dir) = std::env::var("PULSE_BASELINE_DIR") {
@@ -92,18 +88,6 @@ pub fn append_manifest(file_path: &str) {
             .open(&manifest)
             .map(|mut f| writeln!(f, "{file_path}"));
     });
-}
-
-pub fn file_key(file_path: &str) -> String {
-    format!("{:016x}", hash_path(file_path))
-}
-
-fn hash_path(file_path: &str) -> u64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    file_path.hash(&mut hasher);
-    hasher.finish()
 }
 
 fn baseline_path(file_path: &str) -> PathBuf {
