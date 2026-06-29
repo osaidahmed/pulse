@@ -33,6 +33,6 @@ pub mod registry;
 pub mod session_clones;
 pub mod smells;
 pub mod test_detection;
-pub mod thresholds;
+pub use pulse_thresholds as thresholds;
 pub mod turn_scan;
 pub mod walk;

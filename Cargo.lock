@@ -736,6 +736,7 @@ dependencies = [
  "globset",
  "memchr",
  "pulse-core",
+ "pulse-thresholds",
  "rayon",
  "serde",
  "serde_json",
@@ -771,6 +772,10 @@ dependencies = [
 
 [[package]]
 name = "pulse-core"
+version = "0.3.0"
+
+[[package]]
+name = "pulse-thresholds"
 version = "0.3.0"
 
 [[package]]
