@@ -52,6 +52,7 @@ pulse-buildmeta = { path = "crates/pulse-buildmeta" }
 pulse-imports = { path = "crates/pulse-imports" }
 pulse-smells = { path = "crates/pulse-smells" }
 pulse-config = { path = "crates/pulse-config" }
+pulse-audit = { path = "crates/pulse-audit" }
 
 [dev-dependencies]
 tempfile = "3"

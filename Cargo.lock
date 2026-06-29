@@ -735,6 +735,7 @@ dependencies = [
  "criterion",
  "globset",
  "memchr",
+ "pulse-audit",
  "pulse-buildmeta",
  "pulse-config",
  "pulse-core",
@@ -772,6 +773,26 @@ dependencies = [
  "tree-sitter-typescript",
  "tree-sitter-zig",
  "ureq",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "pulse-audit"
+version = "0.3.0"
+dependencies = [
+ "clap",
+ "globset",
+ "memchr",
+ "pulse-buildmeta",
+ "pulse-config",
+ "pulse-core",
+ "pulse-imports",
+ "pulse-syntax",
+ "pulse-thresholds",
+ "rayon",
+ "serde",
+ "serde_json",
+ "tree-sitter",
  "xxhash-rust",
 ]
 

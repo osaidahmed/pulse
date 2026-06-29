@@ -37,7 +37,7 @@ const CLASS_SMELL_SYMBOLS: &[&str] = &[
 ];
 
 fn audit_source(file: &str) -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src").join("audit").join(file);
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates").join("pulse-audit").join("src").join(file);
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
 }
 
