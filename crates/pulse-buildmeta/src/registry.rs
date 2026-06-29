@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use crate::buildmeta::Ecosystem;
-pub use crate::thresholds::freshness::FreshnessThresholds;
+use crate::Ecosystem;
+pub use pulse_thresholds::freshness::FreshnessThresholds;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct VersionKey {

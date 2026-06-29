@@ -11,6 +11,7 @@ mod gradle;
 mod maven;
 mod npm;
 mod python;
+pub mod registry;
 pub mod stdlib;
 mod swiftpm;
 mod test_roots;

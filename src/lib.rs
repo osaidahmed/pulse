@@ -25,7 +25,7 @@ pub mod interaction;
 pub mod naturalness;
 pub mod output;
 pub mod refmine;
-pub mod registry;
+pub use pulse_buildmeta::registry;
 pub mod session_clones;
 pub use pulse_smells::{self as smells, duplication, module_smells};
 pub mod test_detection;
