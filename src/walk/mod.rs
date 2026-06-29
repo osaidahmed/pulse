@@ -177,9 +177,13 @@ mod metrics {
         pub string_match_arms: u32,
         pub cpg: Option<crate::cpg::CpgMetrics>,
     }
+
+    pub fn func_loc(f: &FunctionMetrics) -> crate::core::Location {
+        crate::core::Location::Function { name: f.name.clone(), start_line: f.start_line, end_line: f.end_line }
+    }
 }
 
-pub use metrics::FunctionMetrics;
+pub use metrics::{func_loc, FunctionMetrics};
 
 #[derive(Debug, Clone)]
 pub struct ModuleMetrics {

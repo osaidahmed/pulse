@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::smells::{Finding, Location, Smell};
+use crate::core::{Finding, Location, Smell};
 use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 

@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
+use crate::core::{Finding, Smell};
 use crate::cpg::cfg::{Cfg, NodeKind};
 use crate::cpg::defuse::DefUse;
 use crate::cpg::reaching::{self, Flow};
 use crate::cpg::CpgMetrics;
-use crate::smells::{func_loc, Finding, Smell};
 use crate::thresholds::Thresholds;
+use crate::walk::func_loc;
 use crate::walk::FunctionMetrics;
 
 pub fn detect_all(functions: &[FunctionMetrics], t: &Thresholds, out: &mut Vec<Finding>) {

@@ -11,6 +11,7 @@ pub mod buildmeta;
 pub mod calibrate;
 pub mod config;
 pub mod config_history;
+pub mod core;
 pub mod cpg;
 pub mod dead_function;
 pub mod duplication;

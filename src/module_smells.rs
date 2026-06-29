@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
+use crate::core::{Finding, Location, Smell};
 use crate::duplication::is_test_function;
-use crate::smells::{Finding, Location, Smell};
 use crate::thresholds::Thresholds;
 use crate::walk::FunctionMetrics;
 use crate::walk::ModuleMetrics;
