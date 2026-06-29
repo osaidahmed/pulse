@@ -736,6 +736,7 @@ dependencies = [
  "globset",
  "memchr",
  "pulse-core",
+ "pulse-syntax",
  "pulse-thresholds",
  "rayon",
  "serde",
@@ -773,6 +774,40 @@ dependencies = [
 [[package]]
 name = "pulse-core"
 version = "0.3.0"
+
+[[package]]
+name = "pulse-syntax"
+version = "0.3.0"
+dependencies = [
+ "memchr",
+ "pulse-core",
+ "pulse-thresholds",
+ "strum",
+ "tree-sitter",
+ "tree-sitter-c",
+ "tree-sitter-c-sharp",
+ "tree-sitter-cobol",
+ "tree-sitter-cpp",
+ "tree-sitter-d",
+ "tree-sitter-go",
+ "tree-sitter-groovy",
+ "tree-sitter-haskell",
+ "tree-sitter-java",
+ "tree-sitter-javascript",
+ "tree-sitter-kotlin-ng",
+ "tree-sitter-lua",
+ "tree-sitter-objc",
+ "tree-sitter-php",
+ "tree-sitter-python",
+ "tree-sitter-r",
+ "tree-sitter-ruby",
+ "tree-sitter-rust",
+ "tree-sitter-swift",
+ "tree-sitter-tcl",
+ "tree-sitter-typescript",
+ "tree-sitter-zig",
+ "xxhash-rust",
+]
 
 [[package]]
 name = "pulse-thresholds"

@@ -1,17 +1,12 @@
-[workspace]
-members = ["crates/*"]
-exclude = ["fuzz"]
-
 [package]
-name = "pulse"
+name = "pulse-syntax"
 version = "0.3.0"
 edition = "2021"
-description = "Fast code smell detector for agent hooks"
 license = "Apache-2.0"
-repository = "https://github.com/osaidahmed/pulse"
-homepage = "https://github.com/osaidahmed/pulse"
 
 [dependencies]
+pulse-core = { path = "../pulse-core" }
+pulse-thresholds = { path = "../pulse-thresholds" }
 tree-sitter = "0.25"
 tree-sitter-python = "0.23"
 tree-sitter-typescript = "0.23"
@@ -29,34 +24,15 @@ tree-sitter-objc = "3.0.2"
 tree-sitter-tcl = { git = "https://github.com/tree-sitter-grammars/tree-sitter-tcl", rev = "8f11ac7" }
 tree-sitter-kotlin-ng = "1.1.0"
 tree-sitter-haskell = "0.23"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-memchr = "2"
-toml = "0.8"
-globset = "0.4"
-xxhash-rust = { version = "0.8", features = ["xxh3"] }
-clap = { version = "4.6", features = ["derive"] }
 tree-sitter-lua = "0.5.0"
 tree-sitter-r = "1.2.0"
 tree-sitter-php = "0.24.2"
 tree-sitter-cobol = { git = "https://github.com/osaidahmed/tree-sitter-cobol", rev = "99d6233" }
 tree-sitter-d = "0.8"
 tree-sitter-groovy = "0.1.2"
+memchr = "2"
 strum = { version = "0.26", features = ["derive"] }
-rayon = "1"
-ureq = "2"
-pulse-core = { path = "crates/pulse-core" }
-pulse-thresholds = { path = "crates/pulse-thresholds" }
-pulse-syntax = { path = "crates/pulse-syntax" }
-
-[dev-dependencies]
-tempfile = "3"
-serde_json = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
-
-[[bench]]
-name = "analysis"
-harness = false
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -75,28 +51,3 @@ needless_pass_by_value = "allow"
 implicit_hasher = "allow"
 new_without_default = "allow"
 format_push_string = "allow"
-
-[profile.dev.package."*"]
-opt-level = 3
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-strip = true
-codegen-units = 1
-
-[profile.release-test]
-inherits = "release"
-lto = false
-codegen-units = 16
-incremental = true
-strip = false
-
-[profile.profiling]
-inherits = "release"
-debug = true
-strip = false
-
-[profile.dist]
-inherits = "release"
-lto = "thin"

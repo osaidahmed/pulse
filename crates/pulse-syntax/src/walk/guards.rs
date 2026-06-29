@@ -8,10 +8,10 @@ thread_local! {
     static CPG_ENABLED: Cell<bool> = const { Cell::new(false) };
 }
 
-pub(crate) struct DepthGuard;
+pub struct DepthGuard;
 
 impl DepthGuard {
-    pub(crate) fn enter() -> Option<Self> {
+    pub fn enter() -> Option<Self> {
         WALK_DEPTH.with(|d| {
             let cur = d.get();
             if cur >= MAX_WALK_DEPTH {

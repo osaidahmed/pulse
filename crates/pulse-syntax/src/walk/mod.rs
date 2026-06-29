@@ -38,8 +38,9 @@ pub use fingerprint::{
 pub use shared::is_catch_body_empty;
 pub use simhash::compute_simhash;
 
-pub(crate) use guards::{cpg_enabled, extras_enabled, DepthGuard, MAX_WALK_DEPTH};
+pub(crate) use guards::{cpg_enabled, extras_enabled};
 pub use guards::{with_cpg_enabled, with_edit_scope};
+pub use guards::{DepthGuard, MAX_WALK_DEPTH};
 
 use tree_sitter::Node;
 
@@ -178,8 +179,8 @@ mod metrics {
         pub cpg: Option<crate::cpg::CpgMetrics>,
     }
 
-    pub fn func_loc(f: &FunctionMetrics) -> crate::core::Location {
-        crate::core::Location::Function { name: f.name.clone(), start_line: f.start_line, end_line: f.end_line }
+    pub fn func_loc(f: &FunctionMetrics) -> pulse_core::Location {
+        pulse_core::Location::Function { name: f.name.clone(), start_line: f.start_line, end_line: f.end_line }
     }
 }
 

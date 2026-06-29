@@ -48,11 +48,15 @@ pub fn walk(tree: &Tree, source: &str) -> FileMetrics {
     FileMetrics { functions, module }
 }
 
-fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+fn for_each_child(node: Node, mut f: impl FnMut(Node)) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        dispatch_top_level(child, source, functions);
+        f(child);
     }
+}
+
+fn collect_functions(node: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
+    for_each_child(node, |child| dispatch_top_level(child, source, functions));
 }
 
 fn dispatch_top_level(child: Node, source: &str, functions: &mut Vec<FunctionMetrics>) {
@@ -77,10 +81,7 @@ pub(super) fn walk_body_pub(node: Node, source: &str, depth: u32, s: &mut WalkSt
 }
 
 fn walk_body(node: Node, source: &str, depth: u32, s: &mut WalkState) {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        walk_node(child, source, depth, s);
-    }
+    for_each_child(node, |child| walk_node(child, source, depth, s));
 }
 
 type NodeHandler = fn(Node, &str, u32, &mut WalkState);
