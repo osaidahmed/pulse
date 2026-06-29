@@ -80,7 +80,7 @@ fn drive_sweep(corpus_root: &Path) {
             }
         }
     }
-    let blob = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/audit/corpus_df.bin");
+    let blob = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates/pulse-audit/src/corpus_df.bin");
     std::fs::write(&blob, corpus_df::to_bytes(&acc)).unwrap();
     eprintln!("corpus_df baked from {merged} repos; {} crashed: {crashed:?}", crashed.len());
 }
