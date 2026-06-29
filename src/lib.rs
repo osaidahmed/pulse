@@ -28,6 +28,6 @@ pub mod refmine;
 pub use pulse_buildmeta::registry;
 pub mod session_clones;
 pub use pulse_smells::{self as smells, duplication, module_smells};
-pub mod test_detection;
+pub use pulse_syntax::test_detection;
 pub use pulse_thresholds as thresholds;
 pub mod turn_scan;
