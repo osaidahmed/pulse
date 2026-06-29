@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use crate::audit::graph::{ImportGraph, InputEdge};
-use crate::audit::imports;
-use crate::parse::{self, Language};
+use pulse_audit::graph::{ImportGraph, InputEdge};
+use pulse_audit::imports;
+use pulse_syntax::parse::{self, Language};
 
 pub fn build_graph(typed_files: &[(PathBuf, Language)], root: &Path) -> ImportGraph {
     let edges = collect_edges(typed_files, root);

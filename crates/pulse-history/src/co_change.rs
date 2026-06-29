@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::audit::graph::ImportGraph;
+use pulse_audit::graph::ImportGraph;
 
 use super::edges::directly_linked;
 use super::finding::{DriftEvidence, HistoryFinding, HistoryKind};

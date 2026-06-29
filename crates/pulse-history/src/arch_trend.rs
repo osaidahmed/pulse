@@ -1,13 +1,13 @@
 use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::audit::finding::{AuditKind, ImportConfidence};
-use crate::audit::graph::InputEdge;
-use crate::audit::imports;
-use crate::audit::martin::AbstractnessRecord;
-use crate::audit::package_metrics::{run_from_edges, ModuleProfile};
-use crate::parse::{self, Language};
-use crate::thresholds::{AuditThresholds, Thresholds};
+use pulse_audit::finding::{AuditKind, ImportConfidence};
+use pulse_audit::graph::InputEdge;
+use pulse_audit::imports;
+use pulse_audit::martin::AbstractnessRecord;
+use pulse_audit::package_metrics::{run_from_edges, ModuleProfile};
+use pulse_syntax::parse::{self, Language};
+use pulse_thresholds::{AuditThresholds, Thresholds};
 
 use super::finding::{CatalystEvidence, DecayEvidence, HistoryFinding, HistoryKind};
 use super::git;

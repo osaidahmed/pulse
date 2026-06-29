@@ -16,7 +16,7 @@ pub use pulse_syntax::{cpg, langkinds, parse, walk};
 pub mod dead_function;
 pub mod extract;
 pub mod framework;
-pub mod history;
+pub use pulse_history as history;
 pub mod hook;
 pub mod import_check;
 pub use pulse_imports as imports;

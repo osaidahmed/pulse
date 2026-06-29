@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::audit::components::component_of;
+use pulse_audit::components::component_of;
 
 use super::co_change::{CoChangeAgg, RevisionScope};
 use super::finding::{BlobEvidence, ChangeShotgunEvidence, HistoryFinding, HistoryKind};

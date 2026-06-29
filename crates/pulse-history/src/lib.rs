@@ -37,15 +37,15 @@ pub enum HistoryError {
 }
 
 pub fn run(opts: &HistoryOpts, t: &HistoryThresholds) -> Result<Vec<HistoryFinding>, HistoryError> {
-    let matcher = crate::config::IgnoreMatcher::from_patterns(&[]);
-    let filter = crate::audit::IgnoreFilter::new(&matcher, &opts.root);
+    let matcher = pulse_config::IgnoreMatcher::from_patterns(&[]);
+    let filter = pulse_audit::IgnoreFilter::new(&matcher, &opts.root);
     run_with_filter(opts, t, &filter)
 }
 
 pub fn run_with_filter(
     opts: &HistoryOpts,
     t: &HistoryThresholds,
-    filter: &crate::audit::IgnoreFilter<'_>,
+    filter: &pulse_audit::IgnoreFilter<'_>,
 ) -> Result<Vec<HistoryFinding>, HistoryError> {
     if !git::is_git_repo(&opts.root) {
         return Err(HistoryError::NotAGitRepo(opts.root.clone()));
@@ -57,7 +57,7 @@ pub fn run_with_filter(
         max_commit_files: t.max_commit_files,
     };
     let commits_rel = git::collect_commits(&git_opts)?;
-    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let typed_files = pulse_audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let commits = absolutize_commits(commits_rel, &opts.root);
     let typed_paths: HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let graph = edges::build_graph(&typed_files, &opts.root);
@@ -80,7 +80,7 @@ pub fn run_with_filter(
 pub fn calibrate_with_filter(
     opts: &HistoryOpts,
     t: &HistoryThresholds,
-    filter: &crate::audit::IgnoreFilter<'_>,
+    filter: &pulse_audit::IgnoreFilter<'_>,
     now_secs: i64,
 ) -> Result<jit_risk::JitCalibration, HistoryError> {
     if !git::is_git_repo(&opts.root) {
@@ -93,7 +93,7 @@ pub fn calibrate_with_filter(
         max_commit_files: t.max_commit_files,
     };
     let commits = absolutize_commits(git::collect_commits(&git_opts)?, &opts.root);
-    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let typed_files = pulse_audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     Ok(jit_risk::calibrate(&typed_files, &commits, now_secs, t.jit))
 }
 
@@ -102,15 +102,15 @@ pub fn calibrate(
     t: &HistoryThresholds,
     now_secs: i64,
 ) -> Result<jit_risk::JitCalibration, HistoryError> {
-    let matcher = crate::config::IgnoreMatcher::from_patterns(&[]);
-    let filter = crate::audit::IgnoreFilter::new(&matcher, &opts.root);
+    let matcher = pulse_config::IgnoreMatcher::from_patterns(&[]);
+    let filter = pulse_audit::IgnoreFilter::new(&matcher, &opts.root);
     calibrate_with_filter(opts, t, &filter, now_secs)
 }
 
 pub fn changeshotgun_files(
     opts: &HistoryOpts,
     t: &HistoryThresholds,
-    filter: &crate::audit::IgnoreFilter<'_>,
+    filter: &pulse_audit::IgnoreFilter<'_>,
 ) -> Option<HashSet<PathBuf>> {
     if !git::is_git_repo(&opts.root) {
         return None;
@@ -127,7 +127,7 @@ pub fn changeshotgun_files(
     }
     let mut ht = *t;
     ht.hist.enabled = true;
-    let typed_files = crate::audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
+    let typed_files = pulse_audit::walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let typed_paths: HashSet<PathBuf> = typed_files.iter().map(|(p, _)| p.clone()).collect();
     let pairs = co_change::mine(&commits, &ht);
     let scope = co_change::revisions_in_scope(&commits, &ht);

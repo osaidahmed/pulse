@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::process;
 
-use crate::audit;
-use crate::config;
+use pulse_audit as audit;
+use pulse_config as config;
 
 use super::{output, HistoryError, HistoryOpts};
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::parse::{self, Language};
+use pulse_syntax::parse::{self, Language};
 
 use super::finding::{HistoryFinding, HistoryKind, HotspotEvidence};
 use super::git::Commit;

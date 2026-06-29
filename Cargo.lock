@@ -739,6 +739,7 @@ dependencies = [
  "pulse-buildmeta",
  "pulse-config",
  "pulse-core",
+ "pulse-history",
  "pulse-imports",
  "pulse-smells",
  "pulse-syntax",
@@ -825,6 +826,20 @@ dependencies = [
 [[package]]
 name = "pulse-core"
 version = "0.3.0"
+
+[[package]]
+name = "pulse-history"
+version = "0.3.0"
+dependencies = [
+ "pulse-audit",
+ "pulse-config",
+ "pulse-core",
+ "pulse-syntax",
+ "pulse-thresholds",
+ "serde",
+ "serde_json",
+ "xxhash-rust",
+]
 
 [[package]]
 name = "pulse-imports"

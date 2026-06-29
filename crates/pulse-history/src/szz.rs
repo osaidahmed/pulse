@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::parse::{self, Language};
+use pulse_syntax::parse::{self, Language};
 
 use super::finding::{DefectProneEvidence, HistoryFinding, HistoryKind};
 use super::thresholds::SzzThresholds;

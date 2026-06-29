@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::parse::Language;
+use pulse_syntax::parse::Language;
 
 use super::git::Commit;
 use super::jit_thresholds::JitThresholds;
