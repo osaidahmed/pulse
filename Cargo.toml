@@ -1,3 +1,7 @@
+[workspace]
+members = ["crates/*"]
+exclude = ["fuzz"]
+
 [package]
 name = "pulse"
 version = "0.3.0"
@@ -41,6 +45,7 @@ tree-sitter-groovy = "0.1.2"
 strum = { version = "0.26", features = ["derive"] }
 rayon = "1"
 ureq = "2"
+pulse-core = { path = "crates/pulse-core" }
 
 [dev-dependencies]
 tempfile = "3"

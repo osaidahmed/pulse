@@ -735,6 +735,7 @@ dependencies = [
  "criterion",
  "globset",
  "memchr",
+ "pulse-core",
  "rayon",
  "serde",
  "serde_json",
@@ -767,6 +768,10 @@ dependencies = [
  "ureq",
  "xxhash-rust",
 ]
+
+[[package]]
+name = "pulse-core"
+version = "0.3.0"
 
 [[package]]
 name = "quote"
