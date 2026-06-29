@@ -4,13 +4,14 @@ use std::path::{Path, PathBuf};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use serde::Deserialize;
 
-use crate::smells::{self, Finding, Smell};
+use pulse_core::{smell_from_snake_case, Finding, Smell};
 
 pub use crate::config_history::{
     combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, HistoryConfig,
 };
 
 mod audit_overrides;
+pub mod config_history;
 mod resolve;
 pub use audit_overrides::{
     CloneClusterConfig, GodClassConfig, MultivariateAnomalyConfig, NamedSmellsConfig, NaturalnessConfig,
@@ -247,7 +248,7 @@ pub fn resolve_disabled(config: Option<&PulseConfig>) -> HashSet<Smell> {
     let Some(config) = config else {
         return HashSet::new();
     };
-    config.disable.smells.iter().filter_map(|s| smells::smell_from_snake_case(s)).collect()
+    config.disable.smells.iter().filter_map(|s| smell_from_snake_case(s)).collect()
 }
 
 pub fn filter_disabled(findings: &mut Vec<Finding>, disabled: &HashSet<Smell>) {

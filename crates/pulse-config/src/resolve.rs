@@ -1,5 +1,5 @@
-use crate::parse::Language;
-use crate::thresholds::{
+use pulse_syntax::parse::Language;
+use pulse_thresholds::{
     AuditThresholds, CloneClusterThresholds, GodClassThresholds, MultivariateAnomalyThresholds, NamedSmellThresholds,
     NaturalnessThresholds, PackageMetricsThresholds, PatternMiningThresholds, RefusedBequestThresholds,
     TaintThresholds, Thresholds,
@@ -37,7 +37,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
     let bm = &base.module;
     let ba = &base.analysis;
     Thresholds {
-        function: crate::thresholds::FunctionThresholds {
+        function: pulse_thresholds::FunctionThresholds {
             cc_warning: f.cc_warning.unwrap_or(bf.cc_warning),
             cc_alert: f.cc_alert.unwrap_or(bf.cc_alert),
             cogc_warning: f.cogc_warning.unwrap_or(bf.cogc_warning),
@@ -51,7 +51,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             compound_conditions: f.compound_conditions.unwrap_or(bf.compound_conditions),
             embedded_block_loc: f.embedded_block_loc.unwrap_or(bf.embedded_block_loc),
         },
-        module: crate::thresholds::ModuleThresholds {
+        module: pulse_thresholds::ModuleThresholds {
             file_loc_warning: m.file_loc_warning.unwrap_or(bm.file_loc_warning),
             file_loc_alert: m.file_loc_alert.unwrap_or(bm.file_loc_alert),
             file_function_count: m.file_function_count.unwrap_or(bm.file_function_count),
@@ -63,7 +63,7 @@ fn apply_overrides(base: &Thresholds, o: &ConfigThresholds) -> Thresholds {
             global_conditionals_max: m.global_conditionals_max.unwrap_or(bm.global_conditionals_max),
             global_nesting_depth: m.global_nesting_depth.unwrap_or(bm.global_nesting_depth),
         },
-        analysis: crate::thresholds::AnalysisThresholds {
+        analysis: pulse_thresholds::AnalysisThresholds {
             duplication: resolve_duplication(&o.duplication, &base.analysis.duplication),
             consecutive_asserts_max: a.consecutive_asserts_max.unwrap_or(ba.consecutive_asserts_max),
             primitive_ratio_threshold: a.primitive_ratio_threshold.unwrap_or(ba.primitive_ratio_threshold),
@@ -157,13 +157,13 @@ macro_rules! field_resolvers {
 }
 
 field_resolvers! {
-    fn resolve_cpg(CpgConfig => crate::thresholds::CpgThresholds) {
+    fn resolve_cpg(CpgConfig => pulse_thresholds::CpgThresholds) {
         enabled <- enabled,
         dead_store <- dead_store,
         use_before_def <- use_before_def,
         unreachable_code <- unreachable_code,
     }
-    fn resolve_duplication(DuplicationThresholds => crate::thresholds::DuplicationThresholds) {
+    fn resolve_duplication(DuplicationThresholds => pulse_thresholds::DuplicationThresholds) {
         min_loc <- duplication_min_loc,
         skeleton_min_loc <- skeleton_duplication_min_loc,
         min_group <- duplication_min_group,

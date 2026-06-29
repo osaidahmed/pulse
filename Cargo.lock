@@ -736,6 +736,7 @@ dependencies = [
  "globset",
  "memchr",
  "pulse-buildmeta",
+ "pulse-config",
  "pulse-core",
  "pulse-imports",
  "pulse-smells",
@@ -784,6 +785,18 @@ dependencies = [
  "serde_json",
  "toml",
  "tree-sitter",
+]
+
+[[package]]
+name = "pulse-config"
+version = "0.3.0"
+dependencies = [
+ "globset",
+ "pulse-core",
+ "pulse-syntax",
+ "pulse-thresholds",
+ "serde",
+ "toml",
 ]
 
 [[package]]

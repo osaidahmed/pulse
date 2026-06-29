@@ -1,8 +1,8 @@
 use serde::Deserialize;
 
-use crate::config::PulseConfig;
-use crate::history::jit_thresholds::JitThresholds;
-use crate::history::thresholds::HistoryThresholds;
+use crate::PulseConfig;
+use pulse_thresholds::jit::JitThresholds;
+use pulse_thresholds::HistoryThresholds;
 
 #[derive(Debug, Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]
