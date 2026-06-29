@@ -203,3 +203,7 @@ pub fn analytics_dir() -> std::path::PathBuf {
     }
     std::path::PathBuf::from("/tmp/pulse-analytics")
 }
+
+pub fn is_fixture_file(path: &str) -> bool {
+    path.replace('\\', "/").contains("/fixtures/")
+}

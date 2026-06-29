@@ -30,9 +30,7 @@ pub fn init_session_dir(session_id: Option<&str>) {
     }
 }
 
-pub fn is_fixture_file(path: &str) -> bool {
-    path.replace('\\', "/").contains("/fixtures/")
-}
+pub use pulse_core::is_fixture_file;
 
 pub fn cache_baseline(hook: &HookInput, cfg: Option<&config::PulseConfig>, current_source: &str) {
     let dominated = is_fixture_file(&hook.file_path) || baseline_path(&hook.file_path).exists();
