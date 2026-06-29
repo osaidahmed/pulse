@@ -738,6 +738,7 @@ dependencies = [
  "pulse-buildmeta",
  "pulse-core",
  "pulse-imports",
+ "pulse-smells",
  "pulse-syntax",
  "pulse-thresholds",
  "rayon",
@@ -795,6 +796,15 @@ version = "0.3.0"
 dependencies = [
  "pulse-buildmeta",
  "pulse-syntax",
+]
+
+[[package]]
+name = "pulse-smells"
+version = "0.3.0"
+dependencies = [
+ "pulse-core",
+ "pulse-syntax",
+ "pulse-thresholds",
 ]
 
 [[package]]

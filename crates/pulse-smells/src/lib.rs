@@ -1,9 +1,9 @@
-use crate::duplication;
-use crate::module_smells;
-use crate::thresholds::Thresholds;
-use crate::walk::{func_loc, FileMetrics, FunctionMetrics};
+pub mod duplication;
+pub mod module_smells;
+use pulse_syntax::walk::{func_loc, FileMetrics, FunctionMetrics};
+use pulse_thresholds::Thresholds;
 
-pub use crate::core::{smell_from_snake_case, Finding, Location, Smell, ALL_SMELLS};
+pub use pulse_core::{smell_from_snake_case, Finding, Location, Smell, ALL_SMELLS};
 
 pub fn detect(metrics: &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Finding> {
     let mut findings = Vec::new();
@@ -23,7 +23,7 @@ pub fn detect(metrics: &FileMetrics, _source: &str, t: &Thresholds) -> Vec<Findi
     detect_empty_error_handlers(&metrics.functions, &mut findings);
 
     if t.cpg.enabled {
-        crate::cpg::detect_all(&metrics.functions, t, &mut findings);
+        pulse_syntax::cpg::detect_all(&metrics.functions, t, &mut findings);
     }
 
     findings

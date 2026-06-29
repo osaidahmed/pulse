@@ -50,6 +50,7 @@ pulse-thresholds = { path = "crates/pulse-thresholds" }
 pulse-syntax = { path = "crates/pulse-syntax" }
 pulse-buildmeta = { path = "crates/pulse-buildmeta" }
 pulse-imports = { path = "crates/pulse-imports" }
+pulse-smells = { path = "crates/pulse-smells" }
 
 [dev-dependencies]
 tempfile = "3"

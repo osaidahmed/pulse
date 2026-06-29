@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::core::{Finding, Location, Smell};
 use crate::duplication::is_test_function;
-use crate::thresholds::Thresholds;
-use crate::walk::FunctionMetrics;
-use crate::walk::ModuleMetrics;
+use pulse_core::{Finding, Location, Smell};
+use pulse_syntax::walk::FunctionMetrics;
+use pulse_syntax::walk::ModuleMetrics;
+use pulse_thresholds::Thresholds;
 
 pub fn detect_module_smells(m: &ModuleMetrics, t: &Thresholds, has_god_method: bool, findings: &mut Vec<Finding>) {
     detect_size_smells(m, t, has_god_method, findings);

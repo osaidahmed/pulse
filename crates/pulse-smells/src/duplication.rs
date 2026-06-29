@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::{Finding, Location, Smell};
-use crate::thresholds::Thresholds;
-use crate::walk::FunctionMetrics;
+use pulse_core::{Finding, Location, Smell};
+use pulse_syntax::walk::FunctionMetrics;
+use pulse_thresholds::Thresholds;
 
 pub fn detect_code_duplication(functions: &[FunctionMetrics], t: &Thresholds, findings: &mut Vec<Finding>) {
     let eligible: Vec<usize> =
