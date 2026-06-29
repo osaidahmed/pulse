@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use tree_sitter::Node;
 
-use crate::parse::{parse_guarded, Language};
-use crate::walk::{find_child_by_kind, find_child_by_kinds, node_text};
+use pulse_syntax::parse::{parse_guarded, Language};
+use pulse_syntax::walk::{find_child_by_kind, find_child_by_kinds, node_text};
 
 use super::{DeclaredDep, DepScope, Ecosystem, Manifest};
 

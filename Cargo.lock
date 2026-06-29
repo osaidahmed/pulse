@@ -735,6 +735,7 @@ dependencies = [
  "criterion",
  "globset",
  "memchr",
+ "pulse-buildmeta",
  "pulse-core",
  "pulse-syntax",
  "pulse-thresholds",
@@ -769,6 +770,18 @@ dependencies = [
  "tree-sitter-zig",
  "ureq",
  "xxhash-rust",
+]
+
+[[package]]
+name = "pulse-buildmeta"
+version = "0.3.0"
+dependencies = [
+ "pulse-core",
+ "pulse-syntax",
+ "serde",
+ "serde_json",
+ "toml",
+ "tree-sitter",
 ]
 
 [[package]]

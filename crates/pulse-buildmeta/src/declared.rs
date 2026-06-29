@@ -5,7 +5,7 @@ use std::time::UNIX_EPOCH;
 use serde::{Deserialize, Serialize};
 
 use super::{discover, Ecosystem};
-use crate::baselines;
+use pulse_core::{baseline_dir, file_key};
 
 const ECOSYSTEM_MANIFESTS: &[(Ecosystem, &[&str])] = &[
     (Ecosystem::Cargo, &["Cargo.toml"]),
@@ -39,8 +39,7 @@ struct CachedDeclared {
 
 pub fn declared_names_for(root: &Path) -> HashSet<String> {
     let stamp = dir_stamp(root);
-    let cache_path =
-        baselines::baseline_dir().join(format!("{}.buildmeta", baselines::file_key(&root.to_string_lossy())));
+    let cache_path = baseline_dir().join(format!("{}.buildmeta", file_key(&root.to_string_lossy())));
     if let Some(cached) = load_cache(&cache_path, stamp) {
         return cached;
     }
@@ -48,7 +47,7 @@ pub fn declared_names_for(root: &Path) -> HashSet<String> {
     let names: Vec<String> = meta.declared_names().iter().map(|n| (*n).to_string()).collect();
     let record = CachedDeclared { root_stamp: stamp, names: names.clone() };
     if let Ok(json) = serde_json::to_string(&record) {
-        let _ = std::fs::create_dir_all(baselines::baseline_dir());
+        let _ = std::fs::create_dir_all(baseline_dir());
         let _ = std::fs::write(&cache_path, json);
     }
     names.into_iter().collect()

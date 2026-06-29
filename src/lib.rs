@@ -7,7 +7,7 @@ pub mod applicability;
 pub mod audit;
 pub mod baseline_ratchet;
 pub mod baselines;
-pub mod buildmeta;
+pub use pulse_buildmeta as buildmeta;
 pub mod calibrate;
 pub mod config;
 pub mod config_history;

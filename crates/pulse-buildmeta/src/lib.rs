@@ -199,7 +199,7 @@ fn handle_csproj_entry(path: &Path, depth: usize, out: &mut Vec<Manifest>) {
     }
 }
 
-pub(super) fn expand_members<'a>(
+pub(crate) fn expand_members<'a>(
     patterns: impl Iterator<Item = &'a str>,
     base: &Path,
     manifest_name: &str,
@@ -235,7 +235,7 @@ fn read_capped(path: &Path) -> Option<String> {
     std::fs::read_to_string(path).ok()
 }
 
-pub(crate) fn line_of(source: &str, needle: &str) -> u32 {
+pub fn line_of(source: &str, needle: &str) -> u32 {
     for (i, line) in source.lines().enumerate() {
         let mut rest = line;
         while let Some(pos) = rest.find(needle) {
@@ -255,7 +255,7 @@ fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_' || b == b'-'
 }
 
-pub(super) fn strip_xml_comments(source: &str) -> String {
+pub(crate) fn strip_xml_comments(source: &str) -> String {
     let mut out = String::with_capacity(source.len());
     let mut rest = source;
     while let Some(start) = rest.find("<!--") {

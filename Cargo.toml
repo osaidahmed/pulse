@@ -48,6 +48,7 @@ ureq = "2"
 pulse-core = { path = "crates/pulse-core" }
 pulse-thresholds = { path = "crates/pulse-thresholds" }
 pulse-syntax = { path = "crates/pulse-syntax" }
+pulse-buildmeta = { path = "crates/pulse-buildmeta" }
 
 [dev-dependencies]
 tempfile = "3"

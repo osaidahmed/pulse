@@ -3,8 +3,8 @@ use std::path::Path;
 use serde_json::Value;
 use tree_sitter::Node;
 
-use crate::parse::{parse_guarded, Language};
-use crate::walk::node_text;
+use pulse_syntax::parse::{parse_guarded, Language};
+use pulse_syntax::walk::node_text;
 
 use super::{DeclaredDep, DepScope, Ecosystem, Lockfile, Manifest};
 
