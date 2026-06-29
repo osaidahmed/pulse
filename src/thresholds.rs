@@ -1,12 +1,14 @@
-use crate::history::thresholds::HistoryThresholds;
-
 mod arch;
 mod features;
+pub mod freshness;
+pub mod history;
+pub mod jit;
 pub use arch::{
     CommunityThresholds, ConceptualCohesionThresholds, FragmentationThresholds, MultivariateAnomalyThresholds,
     PageRankThresholds,
 };
 pub use features::{CloneClusterThresholds, CpgThresholds, NaturalnessThresholds};
+pub use history::HistoryThresholds;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Thresholds {
@@ -84,7 +86,7 @@ pub struct AuditThresholds {
     pub ifdef_min_conditionals: u32,
     pub ifdef_max_findings: u32,
     pub reflexion_max_findings: u32,
-    pub freshness: crate::registry::FreshnessThresholds,
+    pub freshness: freshness::FreshnessThresholds,
     pub max_locations_per_finding: usize,
     pub cross_validate_history: bool,
 }
@@ -362,7 +364,7 @@ impl AuditThresholds {
         ifdef_min_conditionals: 40,
         ifdef_max_findings: 12,
         reflexion_max_findings: 20,
-        freshness: crate::registry::FreshnessThresholds::DEFAULTS,
+        freshness: freshness::FreshnessThresholds::DEFAULTS,
         max_locations_per_finding: 10,
         cross_validate_history: false,
     };
