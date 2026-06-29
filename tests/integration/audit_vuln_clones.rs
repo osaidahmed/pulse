@@ -1,6 +1,7 @@
 use pulse::audit::finding::{AuditFinding, AuditKind, VulnCloneEvidence};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{AuditSuppression, IgnoreMatcher};
+use pulse::config::IgnoreMatcher;
 
 use crate::audit_common::*;
 

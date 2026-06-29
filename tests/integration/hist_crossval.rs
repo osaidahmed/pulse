@@ -5,8 +5,9 @@ use pulse::audit::finding::{
     AuditFinding, AuditKind, DivergentChangeEvidence, GodClassEvidence, ImportConfidence, ShotgunSurgeryEvidence,
 };
 use pulse::audit::hist_crossval::{apply_crossval, crossval_confidence};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{resolve_base_thresholds, AuditSuppression, IgnoreMatcher, PulseConfig};
+use pulse::config::{resolve_base_thresholds, IgnoreMatcher, PulseConfig};
 use pulse::history::thresholds::HistoryThresholds;
 use pulse::history::{changeshotgun_files, HistoryOpts};
 use pulse::thresholds::AuditThresholds;

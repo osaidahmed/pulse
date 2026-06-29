@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use pulse::audit::component_thresholds::{nested_strata, owning_dir, Stratum};
 use pulse::audit::corpus::Corpus;
 use pulse::audit::finding::{AuditFinding, AuditKind};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{AuditSuppression, IgnoreMatcher};
+use pulse::config::IgnoreMatcher;
 use pulse::parse::Language;
 use pulse::thresholds::AuditThresholds;
 

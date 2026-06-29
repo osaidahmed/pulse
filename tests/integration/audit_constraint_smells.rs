@@ -1,6 +1,6 @@
 use pulse::audit::finding::{AuditFinding, AuditKind};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, AuditOpts, PassChoice};
-use pulse::config::AuditSuppression;
 use std::path::Path;
 
 use crate::audit_common::t;

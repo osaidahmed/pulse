@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use pulse::audit::finding::{AuditFinding, AuditKind, PatternCategory};
 use pulse::audit::output::format_findings_filtered;
-use pulse::config::{AuditConfig, AuditSuppression, IgnoreMatcher};
+use pulse::audit::suppression::AuditSuppression;
+use pulse::config::{AuditConfig, IgnoreMatcher};
 
 use crate::audit_common::{plain_ctx, t};
 

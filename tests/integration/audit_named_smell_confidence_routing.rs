@@ -6,7 +6,7 @@ use pulse::audit::finding::{
     ShotgunSurgeryEvidence,
 };
 use pulse::audit::output::{format_findings_filtered, format_findings_json_filtered};
-use pulse::config::AuditSuppression;
+use pulse::audit::suppression::AuditSuppression;
 
 use crate::audit_common::{plain_ctx, t};
 

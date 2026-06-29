@@ -2,8 +2,9 @@ use std::fs;
 use std::path::Path;
 
 use pulse::audit::finding::{AuditFinding, AuditKind};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{AuditSuppression, IgnoreMatcher};
+use pulse::config::IgnoreMatcher;
 use pulse::thresholds::AuditThresholds;
 
 use crate::audit_common::t;

@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{self, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{AuditSuppression, IgnoreMatcher};
+use pulse::config::IgnoreMatcher;
 
 use crate::audit_common::t;
 

@@ -10,9 +10,10 @@ use pulse::audit::finding::{
 };
 use pulse::audit::fragmentation::detect;
 use pulse::audit::graph::{ImportGraph, InputEdge};
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::vuln_clones::run_from as vuln_run_from;
 use pulse::audit::{run_with_filter_online, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{AuditSuppression, IgnoreMatcher};
+use pulse::config::IgnoreMatcher;
 use pulse::parse::Language;
 
 use crate::audit_common::t;

@@ -8,7 +8,7 @@ pub fn t() -> Thresholds {
     Thresholds::default()
 }
 
-pub fn plain_ctx(suppression: &pulse::config::AuditSuppression) -> pulse::audit::output::RenderCtx<'_> {
+pub fn plain_ctx(suppression: &pulse::audit::suppression::AuditSuppression) -> pulse::audit::output::RenderCtx<'_> {
     pulse::audit::output::RenderCtx { root: None, show_noise: false, suppression, cpg_enabled: false }
 }
 

@@ -1,10 +1,10 @@
 use pulse::audit::discovery::freqt_mine;
 use pulse::audit::output::{format_findings, format_findings_json};
 use pulse::audit::scoring::apply_idf;
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::walker::{ShapeMetrics, SubtreeRecord};
 use pulse::audit::{extract_subtrees_for_dir, walk_typed_source_files};
 use pulse::audit::{AuditOpts, PassChoice};
-use pulse::config::AuditSuppression;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 use std::path::PathBuf;

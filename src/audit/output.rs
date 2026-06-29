@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use crate::config::AuditSuppression;
+use super::suppression::AuditSuppression;
 use crate::thresholds::AuditThresholds;
 
 use super::finding::{

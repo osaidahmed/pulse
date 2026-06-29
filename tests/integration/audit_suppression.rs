@@ -2,7 +2,8 @@ use pulse::audit::finding::{
     AuditFinding, AuditKind, AuditLocation, ImportConfidence, PatternCategory, ShotgunSurgeryEvidence,
 };
 use pulse::audit::output::{format_findings_filtered, format_findings_json_filtered};
-use pulse::config::{AuditConfig, AuditSuppression};
+use pulse::audit::suppression::AuditSuppression;
+use pulse::config::AuditConfig;
 use std::path::PathBuf;
 
 use crate::audit_common::{plain_ctx, t};

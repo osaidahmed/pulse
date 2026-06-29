@@ -1,5 +1,5 @@
+use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::{walk_typed_source_files, AuditOpts};
-use pulse::config::AuditSuppression;
 use pulse::parse::Language;
 use pulse::thresholds::Thresholds;
 use std::fs;

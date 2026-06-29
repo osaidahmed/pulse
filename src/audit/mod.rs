@@ -89,6 +89,7 @@ pub mod reflexion;
 pub mod remodularization;
 pub mod scoring;
 pub mod strictness;
+pub mod suppression;
 pub mod swap_significance;
 pub mod taint;
 pub mod vendor_filter;
@@ -98,13 +99,14 @@ pub mod walker;
 
 use std::path::{Path, PathBuf};
 
-use crate::config::{AuditSuppression, IgnoreMatcher};
+use crate::config::IgnoreMatcher;
 use crate::parse::{self, Language};
 use crate::test_detection;
 use crate::thresholds::AuditThresholds;
 use finding::{action_for_kind, finding_confidence, AuditFinding};
 use graph::InputEdge;
 use package_metrics::ModuleProfile;
+use suppression::AuditSuppression;
 use walker::SubtreeRecord;
 
 pub struct AuditOpts {

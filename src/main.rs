@@ -148,7 +148,7 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
     let ignore_patterns: &[String] = cfg_ref.map_or(&[][..], |c| &c.ignore.paths);
     let matcher = config::IgnoreMatcher::from_patterns(ignore_patterns);
     let filter = audit::IgnoreFilter::new(&matcher, &ignore_base);
-    let suppression = config::AuditSuppression::from_config(cfg_ref.map(|c| &c.audit));
+    let suppression = audit::suppression::AuditSuppression::from_config(cfg_ref.map(|c| &c.audit));
     let opts = audit::AuditOpts {
         root: root.clone(),
         pass: args.pass,
