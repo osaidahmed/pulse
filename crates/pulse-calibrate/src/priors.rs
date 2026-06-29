@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::stats::{count_quantile, WeightedHist};
 use super::Census;
-use crate::parse::Language;
-use crate::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
+use pulse_syntax::parse::Language;
+use pulse_syntax::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
 
 pub const QUANTILE_PROBES: &[f64] = &[0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99, 0.995];
 

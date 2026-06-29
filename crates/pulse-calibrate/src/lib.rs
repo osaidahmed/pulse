@@ -8,13 +8,13 @@ use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
 
-use crate::audit::corpus_stats::PerFileFeatures;
-use crate::audit::{corpus_stats, record_extraction, vendor_filter, walk_typed_source_files_filtered, IgnoreFilter};
-use crate::baselines;
-use crate::parse::{self, Language};
-use crate::test_detection;
-use crate::thresholds::{AuditThresholds, Thresholds};
-use crate::walk::{FunctionMetrics, ModuleMetrics};
+use pulse_audit::corpus_stats::PerFileFeatures;
+use pulse_audit::{corpus_stats, record_extraction, vendor_filter, walk_typed_source_files_filtered, IgnoreFilter};
+
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::test_detection;
+use pulse_syntax::walk::{FunctionMetrics, ModuleMetrics};
+use pulse_thresholds::{AuditThresholds, Thresholds};
 
 pub struct Census {
     pub cpg_enabled: bool,
@@ -33,7 +33,7 @@ pub struct FileCensus {
 pub fn collect(root: &Path, thresholds: &Thresholds, filter: &IgnoreFilter) -> Census {
     let typed: Vec<(PathBuf, Language)> = walk_typed_source_files_filtered(root, true, filter)
         .into_iter()
-        .filter(|(path, _)| !baselines::is_fixture_file(&path.to_string_lossy()))
+        .filter(|(path, _)| !pulse_core::is_fixture_file(&path.to_string_lossy()))
         .collect();
     let streamed: Vec<(FileCensus, PerFileFeatures)> =
         typed.par_iter().filter_map(|(path, lang)| measure_file(path, *lang, &thresholds.audit)).collect();
@@ -84,7 +84,7 @@ pub fn accumulate(
 ) -> AccumSummary {
     let typed: Vec<(PathBuf, Language)> = walk_typed_source_files_filtered(root, true, filter)
         .into_iter()
-        .filter(|(path, _)| !baselines::is_fixture_file(&path.to_string_lossy()))
+        .filter(|(path, _)| !pulse_core::is_fixture_file(&path.to_string_lossy()))
         .collect();
     let contributions: Vec<FileContribution> =
         typed.par_iter().filter_map(|(path, lang)| contribution(path, *lang, &thresholds.audit)).collect();

@@ -8,7 +8,7 @@ pub use pulse_audit as audit;
 pub mod baseline_ratchet;
 pub mod baselines;
 pub use pulse_buildmeta as buildmeta;
-pub mod calibrate;
+pub use pulse_calibrate as calibrate;
 pub use pulse_config as config;
 pub use pulse_config::config_history;
 pub use pulse_core as core;

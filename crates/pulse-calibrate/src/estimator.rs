@@ -106,7 +106,7 @@ fn threshold_for(
 }
 
 fn editorial_defaults() -> Vec<(&'static str, u32, u32)> {
-    let t = crate::thresholds::Thresholds::default();
+    let t = pulse_thresholds::Thresholds::default();
     let (f, m, a) = (&t.function, &t.module, &t.analysis);
     vec![
         ("cc", f.cc_warning, f.cc_alert),

@@ -55,7 +55,7 @@ fn drive_sweep(corpus_root: &Path) {
             merged += 1;
         }
     }
-    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate");
+    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates/pulse-calibrate/src");
     std::fs::write(calibrate_dir.join("priors_histogram.json"), builder.to_json()).unwrap();
     write_priors_json(&builder, &calibrate_dir);
     eprintln!("priors written from {merged} repos; {} crashed: {crashed:?}", crashed.len());
@@ -72,7 +72,7 @@ fn rebake_priors_json_from_histogram() {
     if std::env::var("REBAKE_PRIORS_JSON").is_err() {
         return;
     }
-    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/calibrate");
+    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates/pulse-calibrate/src");
     let mut builder = PriorsBuilder::default();
     let histogram = std::fs::read_to_string(calibrate_dir.join("priors_histogram.json")).unwrap();
     assert!(builder.merge_json(&histogram), "committed histogram must parse");

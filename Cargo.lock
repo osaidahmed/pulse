@@ -737,6 +737,7 @@ dependencies = [
  "memchr",
  "pulse-audit",
  "pulse-buildmeta",
+ "pulse-calibrate",
  "pulse-config",
  "pulse-core",
  "pulse-history",
@@ -809,6 +810,19 @@ dependencies = [
  "toml",
  "tree-sitter",
  "ureq",
+]
+
+[[package]]
+name = "pulse-calibrate"
+version = "0.3.0"
+dependencies = [
+ "pulse-audit",
+ "pulse-core",
+ "pulse-syntax",
+ "pulse-thresholds",
+ "rayon",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
