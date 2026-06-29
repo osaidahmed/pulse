@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::buildmeta::{declared, discover, DepScope, Ecosystem};
-use crate::import_check::{ecosystem_for, normalize};
+use crate::imports::{ecosystem_for, normalize};
 use crate::parse::Language;
 
 const DI_FRAMEWORKS: &[&str] = &[

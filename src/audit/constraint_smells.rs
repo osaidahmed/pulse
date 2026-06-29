@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::buildmeta::{self, BuildMeta, DeclaredDep, Ecosystem, Manifest};
-use crate::import_check::normalize;
+use crate::imports::normalize;
 use crate::thresholds::AuditThresholds;
 
 use super::finding::{AuditFinding, AuditKind, ConstraintEvidence, ImportConfidence};

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::buildmeta::{self, BuildMeta, DeclaredDep, DepScope, Ecosystem, Manifest};
-use crate::import_check::{ecosystem_for, external_root, normalize};
+use crate::imports::{ecosystem_for, external_root, normalize};
 use crate::thresholds::AuditThresholds;
 
 use super::corpus::Corpus;

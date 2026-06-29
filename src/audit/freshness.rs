@@ -2,7 +2,7 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::buildmeta::{self, BuildMeta, DeclaredDep, DepScope, Ecosystem, Manifest};
-use crate::import_check::normalize;
+use crate::imports::normalize;
 use crate::registry::{self, FreshnessThresholds, PackageInfo, VersionInfo};
 
 use super::finding::{AuditFinding, AuditKind, ImportConfidence, OutdatedDepEvidence};

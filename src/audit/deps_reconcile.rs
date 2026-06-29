@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::buildmeta::{self, stdlib, BuildMeta, DepScope, Ecosystem};
-use crate::import_check::{ecosystem_for, external_root, normalize, PYTHON_IMPORT_ALIASES};
+use crate::imports::{ecosystem_for, external_root, normalize, PYTHON_IMPORT_ALIASES};
 use crate::parse::Language;
 use crate::thresholds::AuditThresholds;
 

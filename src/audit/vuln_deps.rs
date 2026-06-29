@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::import_check::normalize;
+use crate::imports::normalize;
 use crate::registry;
 
 use super::corpus::Corpus;
