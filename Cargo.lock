@@ -737,6 +737,7 @@ dependencies = [
  "memchr",
  "pulse-buildmeta",
  "pulse-core",
+ "pulse-imports",
  "pulse-syntax",
  "pulse-thresholds",
  "rayon",
@@ -787,6 +788,14 @@ dependencies = [
 [[package]]
 name = "pulse-core"
 version = "0.3.0"
+
+[[package]]
+name = "pulse-imports"
+version = "0.3.0"
+dependencies = [
+ "pulse-buildmeta",
+ "pulse-syntax",
+]
 
 [[package]]
 name = "pulse-syntax"

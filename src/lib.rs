@@ -20,7 +20,7 @@ pub mod framework;
 pub mod history;
 pub mod hook;
 pub mod import_check;
-pub mod imports;
+pub use pulse_imports as imports;
 pub mod intensity;
 pub mod interaction;
 pub mod module_smells;

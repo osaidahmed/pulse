@@ -1,7 +1,7 @@
-use crate::buildmeta::Ecosystem;
-use crate::parse::Language;
+use pulse_buildmeta::Ecosystem;
+use pulse_syntax::parse::Language;
 
-pub(crate) const PYTHON_IMPORT_ALIASES: &[(&str, &str)] = &[
+pub const PYTHON_IMPORT_ALIASES: &[(&str, &str)] = &[
     ("attr", "attrs"),
     ("bs4", "beautifulsoup4"),
     ("cv2", "opencv-python"),
@@ -26,7 +26,7 @@ pub(crate) const PYTHON_IMPORT_ALIASES: &[(&str, &str)] = &[
     ("usb", "pyusb"),
     ("yaml", "pyyaml"),
 ];
-pub(crate) fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
+pub fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
     match lang {
         Language::Python => Some(Ecosystem::Pip),
         Language::TypeScript | Language::JavaScript => Some(Ecosystem::Npm),
@@ -39,7 +39,7 @@ pub(crate) fn ecosystem_for(lang: Language) -> Option<Ecosystem> {
     }
 }
 
-pub(crate) fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
+pub fn external_root(eco: Ecosystem, target: &str) -> Option<String> {
     if is_local_path(target) {
         return None;
     }
@@ -85,6 +85,6 @@ fn npm_root(target: &str) -> Option<String> {
     }
     Some(target.split('/').next().unwrap_or(target).to_string())
 }
-pub(crate) fn normalize(name: &str) -> String {
+pub fn normalize(name: &str) -> String {
     name.to_lowercase().replace('_', "-")
 }
