@@ -12,7 +12,7 @@ use pulse::audit::fragmentation::detect;
 use pulse::audit::graph::{ImportGraph, InputEdge};
 use pulse::audit::suppression::AuditSuppression;
 use pulse::audit::vuln_clones::run_from as vuln_run_from;
-use pulse::audit::{run_with_filter_online, AuditOpts, IgnoreFilter, PassChoice};
+use pulse::audit::{run_with_filter_online, AuditOpts, IgnoreFilter, PassChoice, RunCtx};
 use pulse::config::IgnoreMatcher;
 use pulse::parse::Language;
 
@@ -441,7 +441,8 @@ fn run_pass_in(dir: &Path, pass: Option<PassChoice>, online: bool) -> Vec<AuditF
     };
     let filter = IgnoreFilter::new(&matcher, dir);
     let cache = tempfile::tempdir().unwrap();
-    run_with_filter_online(&opts, &t().audit, &filter, online, cache.path())
+    let run = RunCtx { online, cache_dir: cache.path(), cross_validator: None };
+    run_with_filter_online(&opts, &t().audit, &filter, &run)
 }
 
 #[test]

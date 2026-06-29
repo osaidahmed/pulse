@@ -156,52 +156,48 @@ pub fn run(opts: &AuditOpts, thresholds: &AuditThresholds) -> Vec<AuditFinding> 
     run_with_filter(opts, thresholds, &filter)
 }
 
+pub type CrossValidator<'a> = &'a dyn Fn(&Path, bool, &IgnoreFilter) -> Option<std::collections::HashSet<PathBuf>>;
+
+pub struct RunCtx<'a> {
+    pub online: bool,
+    pub cache_dir: &'a Path,
+    pub cross_validator: Option<CrossValidator<'a>>,
+}
+
 pub fn run_with_filter(opts: &AuditOpts, thresholds: &AuditThresholds, filter: &IgnoreFilter) -> Vec<AuditFinding> {
-    run_with_filter_online(opts, thresholds, filter, false, &std::env::temp_dir())
+    let tmp = std::env::temp_dir();
+    let run = RunCtx { online: false, cache_dir: &tmp, cross_validator: None };
+    run_with_filter_online(opts, thresholds, filter, &run)
 }
 
 pub fn run_with_filter_online(
     opts: &AuditOpts,
     thresholds: &AuditThresholds,
     filter: &IgnoreFilter,
-    online: bool,
-    cache_dir: &Path,
+    run: &RunCtx,
 ) -> Vec<AuditFinding> {
     let typed_files = walk_typed_source_files_filtered(&opts.root, opts.include_tests, filter);
     let shared = corpus::Corpus::load(&typed_files);
     let active = active_passes(opts.pass);
-    let ctx =
-        passes::PassCtx { shared: &shared, typed_files: &typed_files, root: &opts.root, thresholds, online, cache_dir };
+    let ctx = passes::PassCtx {
+        shared: &shared,
+        typed_files: &typed_files,
+        root: &opts.root,
+        thresholds,
+        online: run.online,
+        cache_dir: run.cache_dir,
+    };
     let mut findings: Vec<AuditFinding> = Vec::new();
     passes::run_selected_passes(&mut findings, &active, &ctx);
-    maybe_cross_validate(&mut findings, opts, thresholds, filter, &active);
+    if thresholds.cross_validate_history && active.contains(&PassChoice::NamedSmells) {
+        if let Some(cross_validate) = run.cross_validator {
+            let flagged = cross_validate(&opts.root, opts.include_tests, filter);
+            hist_crossval::apply_crossval(&mut findings, flagged.as_ref());
+        }
+    }
     populate_action_labels(&mut findings);
     findings.sort_by_key(|f| std::cmp::Reverse(finding_confidence(f)));
     findings
-}
-
-fn maybe_cross_validate(
-    findings: &mut [AuditFinding],
-    opts: &AuditOpts,
-    thresholds: &AuditThresholds,
-    filter: &IgnoreFilter,
-    passes: &[PassChoice],
-) {
-    if !thresholds.cross_validate_history || !passes.contains(&PassChoice::NamedSmells) {
-        return;
-    }
-    let hist_opts = crate::history::HistoryOpts {
-        root: opts.root.clone(),
-        include_tests: opts.include_tests,
-        since: None,
-        max_commits: None,
-    };
-    let flagged = crate::history::changeshotgun_files(
-        &hist_opts,
-        &crate::history::thresholds::HistoryThresholds::DEFAULTS,
-        filter,
-    );
-    hist_crossval::apply_crossval(findings, flagged.as_ref());
 }
 
 fn populate_action_labels(findings: &mut [AuditFinding]) {

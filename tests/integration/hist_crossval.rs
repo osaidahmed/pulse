@@ -252,7 +252,13 @@ fn audit_with_cross_validation_runs_deterministically_on_a_git_repo() {
     };
     let thresholds = AuditThresholds { cross_validate_history: true, ..t().audit };
 
-    let r1 = audit::run_with_filter(&opts, &thresholds, &filter);
-    let r2 = audit::run_with_filter(&opts, &thresholds, &filter);
+    let cross_validator = |root: &std::path::Path, include_tests: bool, filter: &IgnoreFilter| {
+        let hist_opts = HistoryOpts { root: root.to_path_buf(), include_tests, since: None, max_commits: None };
+        changeshotgun_files(&hist_opts, &HistoryThresholds::default(), filter)
+    };
+    let tmp = std::env::temp_dir();
+    let run = audit::RunCtx { online: false, cache_dir: &tmp, cross_validator: Some(&cross_validator) };
+    let r1 = audit::run_with_filter_online(&opts, &thresholds, &filter, &run);
+    let r2 = audit::run_with_filter_online(&opts, &thresholds, &filter, &run);
     assert_eq!(r1.len(), r2.len(), "cross-validation over a git repo must be deterministic");
 }

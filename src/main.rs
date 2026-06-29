@@ -158,7 +158,13 @@ fn run_audit_cmd(args: cli::AuditArgs, include_tests: bool) {
         suppression,
     };
     let cache_dir = pulse::registry::cache_dir();
-    let findings = audit::run_with_filter_online(&opts, &thresholds.audit, &filter, args.online, &cache_dir);
+    let cross_validator = |root: &std::path::Path, include_tests: bool, filter: &audit::IgnoreFilter| {
+        let hist_opts =
+            history::HistoryOpts { root: root.to_path_buf(), include_tests, since: None, max_commits: None };
+        history::changeshotgun_files(&hist_opts, &history::thresholds::HistoryThresholds::DEFAULTS, filter)
+    };
+    let run = audit::RunCtx { online: args.online, cache_dir: &cache_dir, cross_validator: Some(&cross_validator) };
+    let findings = audit::run_with_filter_online(&opts, &thresholds.audit, &filter, &run);
     let ctx = audit::output::RenderCtx {
         root: Some(&root),
         show_noise: opts.show_noise,
