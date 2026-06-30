@@ -1,31 +1,18 @@
 [package]
 name = "pulse-corpus"
-version = "0.3.0"
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
-pulse-thresholds = { path = "../pulse-thresholds" }
-pulse-syntax = { path = "../pulse-syntax" }
-pulse-config = { path = "../pulse-config" }
-pulse-buildmeta = { path = "../pulse-buildmeta" }
-rayon = "1"
-tree-sitter = "0.25"
+pulse-thresholds = { workspace = true }
+pulse-syntax = { workspace = true }
+pulse-config = { workspace = true }
+pulse-buildmeta = { workspace = true }
+rayon = { workspace = true }
+tree-sitter = { workspace = true }
 
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-pedantic = { level = "warn", priority = -1 }
-cast_possible_truncation = "allow"
-cast_sign_loss = "allow"
-cast_precision_loss = "allow"
-module_name_repetitions = "allow"
-must_use_candidate = "allow"
-missing_errors_doc = "allow"
-missing_panics_doc = "allow"
-missing_docs_in_private_items = "allow"
-needless_pass_by_value = "allow"
-implicit_hasher = "allow"
-new_without_default = "allow"
-format_push_string = "allow"
+[lints]
+workspace = true

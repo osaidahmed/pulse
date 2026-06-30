@@ -2,16 +2,14 @@
 members = ["crates/*"]
 exclude = ["fuzz"]
 
-[package]
-name = "pulse"
+[workspace.package]
 version = "0.3.0"
 edition = "2021"
-description = "Fast code smell detector for agent hooks"
 license = "Apache-2.0"
 repository = "https://github.com/osaidahmed/pulse"
 homepage = "https://github.com/osaidahmed/pulse"
 
-[dependencies]
+[workspace.dependencies]
 tree-sitter = "0.25"
 tree-sitter-python = "0.23"
 tree-sitter-typescript = "0.23"
@@ -29,6 +27,12 @@ tree-sitter-objc = "3.0.2"
 tree-sitter-tcl = { git = "https://github.com/tree-sitter-grammars/tree-sitter-tcl", rev = "8f11ac7" }
 tree-sitter-kotlin-ng = "1.1.0"
 tree-sitter-haskell = "0.23"
+tree-sitter-lua = "0.5.0"
+tree-sitter-r = "1.2.0"
+tree-sitter-php = "0.24.2"
+tree-sitter-cobol = { git = "https://github.com/osaidahmed/tree-sitter-cobol", rev = "99d6233" }
+tree-sitter-d = "0.8"
+tree-sitter-groovy = "0.1.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 memchr = "2"
@@ -36,39 +40,28 @@ toml = "0.8"
 globset = "0.4"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 clap = { version = "4.6", features = ["derive"] }
-tree-sitter-lua = "0.5.0"
-tree-sitter-r = "1.2.0"
-tree-sitter-php = "0.24.2"
-tree-sitter-cobol = { git = "https://github.com/osaidahmed/tree-sitter-cobol", rev = "99d6233" }
-tree-sitter-d = "0.8"
-tree-sitter-groovy = "0.1.2"
 strum = { version = "0.26", features = ["derive"] }
 rayon = "1"
 ureq = "2"
-pulse-core = { path = "crates/pulse-core" }
-pulse-thresholds = { path = "crates/pulse-thresholds" }
-pulse-syntax = { path = "crates/pulse-syntax" }
-pulse-buildmeta = { path = "crates/pulse-buildmeta" }
-pulse-imports = { path = "crates/pulse-imports" }
-pulse-smells = { path = "crates/pulse-smells" }
-pulse-config = { path = "crates/pulse-config" }
-pulse-audit = { path = "crates/pulse-audit" }
-pulse-history = { path = "crates/pulse-history" }
-pulse-calibrate = { path = "crates/pulse-calibrate" }
-
-[dev-dependencies]
 tempfile = "3"
-serde_json = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
+pulse-core = { path = "crates/pulse-core", version = "0.3.0" }
+pulse-thresholds = { path = "crates/pulse-thresholds", version = "0.3.0" }
+pulse-syntax = { path = "crates/pulse-syntax", version = "0.3.0" }
+pulse-buildmeta = { path = "crates/pulse-buildmeta", version = "0.3.0" }
+pulse-imports = { path = "crates/pulse-imports", version = "0.3.0" }
+pulse-corpus = { path = "crates/pulse-corpus", version = "0.3.0" }
+pulse-smells = { path = "crates/pulse-smells", version = "0.3.0" }
+pulse-config = { path = "crates/pulse-config", version = "0.3.0" }
+pulse-audit = { path = "crates/pulse-audit", version = "0.3.0" }
+pulse-history = { path = "crates/pulse-history", version = "0.3.0" }
+pulse-calibrate = { path = "crates/pulse-calibrate", version = "0.3.0" }
+pulse-testkit = { path = "crates/pulse-testkit", version = "0.3.0" }
 
-[[bench]]
-name = "analysis"
-harness = false
-
-[lints.rust]
+[workspace.lints.rust]
 unsafe_code = "forbid"
 
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
@@ -82,6 +75,72 @@ needless_pass_by_value = "allow"
 implicit_hasher = "allow"
 new_without_default = "allow"
 format_push_string = "allow"
+
+[package]
+name = "pulse"
+version.workspace = true
+edition.workspace = true
+description = "Fast code smell detector for agent hooks"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+tree-sitter = { workspace = true }
+tree-sitter-python = { workspace = true }
+tree-sitter-typescript = { workspace = true }
+tree-sitter-javascript = { workspace = true }
+tree-sitter-rust = { workspace = true }
+tree-sitter-c = { workspace = true }
+tree-sitter-cpp = { workspace = true }
+tree-sitter-java = { workspace = true }
+tree-sitter-c-sharp = { workspace = true }
+tree-sitter-go = { workspace = true }
+tree-sitter-swift = { workspace = true }
+tree-sitter-zig = { workspace = true }
+tree-sitter-ruby = { workspace = true }
+tree-sitter-objc = { workspace = true }
+tree-sitter-tcl = { workspace = true }
+tree-sitter-kotlin-ng = { workspace = true }
+tree-sitter-haskell = { workspace = true }
+tree-sitter-lua = { workspace = true }
+tree-sitter-r = { workspace = true }
+tree-sitter-php = { workspace = true }
+tree-sitter-cobol = { workspace = true }
+tree-sitter-d = { workspace = true }
+tree-sitter-groovy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+memchr = { workspace = true }
+toml = { workspace = true }
+globset = { workspace = true }
+xxhash-rust = { workspace = true }
+clap = { workspace = true }
+strum = { workspace = true }
+rayon = { workspace = true }
+ureq = { workspace = true }
+pulse-core = { workspace = true }
+pulse-thresholds = { workspace = true }
+pulse-syntax = { workspace = true }
+pulse-buildmeta = { workspace = true }
+pulse-imports = { workspace = true }
+pulse-smells = { workspace = true }
+pulse-config = { workspace = true }
+pulse-audit = { workspace = true }
+pulse-history = { workspace = true }
+pulse-calibrate = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+serde_json = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "analysis"
+harness = false
+
+[lints]
+workspace = true
 
 [profile.dev.package."*"]
 opt-level = 3
