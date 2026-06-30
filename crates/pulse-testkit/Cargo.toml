@@ -1,0 +1,11 @@
+[package]
+name = "pulse-testkit"
+version = "0.3.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+pulse-thresholds = { path = "../pulse-thresholds" }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -907,6 +907,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pulse-testkit"
+version = "0.3.0"
+dependencies = [
+ "pulse-thresholds",
+]
+
+[[package]]
 name = "pulse-thresholds"
 version = "0.3.0"
 
