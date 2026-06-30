@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use pulse::history::git::{file_at_commit, files_at_commit, repo_toplevel};
+use pulse_history::git::{file_at_commit, files_at_commit, repo_toplevel};
 
 use crate::history_common::{build_repo, CommitSpec};
 

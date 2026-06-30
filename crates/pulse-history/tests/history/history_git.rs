@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use pulse::history::git::{collect_commits, is_git_repo, parse_log_output, GitOpts};
-use pulse::history::HistoryError;
-use pulse::thresholds::Thresholds;
+use pulse_history::git::{collect_commits, is_git_repo, parse_log_output, GitOpts};
+use pulse_history::HistoryError;
+use pulse_thresholds::Thresholds;
 
 use crate::history_common::{build_repo, CommitSpec};
 

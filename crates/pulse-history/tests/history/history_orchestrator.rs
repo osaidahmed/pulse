@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use pulse::history::finding::{HistoryFinding, HistoryKind, HistoryPillar};
-use pulse::history::{run, HistoryError, HistoryOpts};
-use pulse::thresholds::Thresholds;
+use pulse_history::finding::{HistoryFinding, HistoryKind, HistoryPillar};
+use pulse_history::{run, HistoryError, HistoryOpts};
+use pulse_thresholds::Thresholds;
 
 use crate::history_common::{build_repo, noise_commits, CommitSpec};
 
@@ -15,7 +15,7 @@ fn opts(root: PathBuf) -> HistoryOpts {
 }
 
 fn count_pillar(findings: &[HistoryFinding], pillar: HistoryPillar) -> usize {
-    findings.iter().filter(|f| pulse::history::finding::variant_info(&f.kind).pillar == pillar).count()
+    findings.iter().filter(|f| pulse_history::finding::variant_info(&f.kind).pillar == pillar).count()
 }
 
 #[test]

@@ -46,6 +46,7 @@ mod mutation_hardening;
 mod turn_scan_backstop;
 
 #[path = "integration/history_common.rs"]
+#[allow(dead_code)]
 mod history_common;
 
 #[path = "integration/advisory_channel.rs"]
@@ -322,10 +323,6 @@ mod cov_detector_parallel_inheritance_workaround;
 mod cov_history;
 #[path = "integration/cov_history_cmd_calibrate.rs"]
 mod cov_history_cmd_calibrate;
-#[path = "integration/cov_history_git_subprocess.rs"]
-mod cov_history_git_subprocess;
-#[path = "integration/cov_history_output_blob_shotgun.rs"]
-mod cov_history_output_blob_shotgun;
 #[path = "integration/cov_import_php.rs"]
 mod cov_import_php;
 #[path = "integration/cov_import_preprocessor_branches.rs"]
@@ -382,18 +379,12 @@ mod groovy_stress;
 mod haskell_smells;
 #[path = "integration/haskell_stress.rs"]
 mod haskell_stress;
-#[path = "integration/hist_crossval.rs"]
-mod hist_crossval;
 #[path = "integration/history_cli.rs"]
 mod history_cli;
 #[path = "integration/history_cli_overrides.rs"]
 mod history_cli_overrides;
-#[path = "integration/history_git.rs"]
-mod history_git;
 #[path = "integration/history_ignore_paths.rs"]
 mod history_ignore_paths;
-#[path = "integration/history_orchestrator.rs"]
-mod history_orchestrator;
 #[path = "integration/hook_diff_filtering.rs"]
 mod hook_diff_filtering;
 #[path = "integration/hook_filtering.rs"]
@@ -414,8 +405,6 @@ mod java_stress;
 mod javascript_smells;
 #[path = "integration/javascript_stress.rs"]
 mod javascript_stress;
-#[path = "integration/jit_calibration.rs"]
-mod jit_calibration;
 #[path = "integration/kotlin_smells.rs"]
 mod kotlin_smells;
 #[path = "integration/kotlin_stress.rs"]

@@ -1,16 +1,16 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use pulse::audit::finding::{
+use pulse_audit::finding::{
     AuditFinding, AuditKind, DivergentChangeEvidence, GodClassEvidence, ImportConfidence, ShotgunSurgeryEvidence,
 };
-use pulse::audit::hist_crossval::{apply_crossval, crossval_confidence};
-use pulse::audit::suppression::AuditSuppression;
-use pulse::audit::{self, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
-use pulse::config::{resolve_base_thresholds, IgnoreMatcher, PulseConfig};
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::history::{changeshotgun_files, HistoryOpts};
-use pulse::thresholds::AuditThresholds;
+use pulse_audit::hist_crossval::{apply_crossval, crossval_confidence};
+use pulse_audit::suppression::AuditSuppression;
+use pulse_audit::{self as audit, walk_typed_source_files_filtered, AuditOpts, IgnoreFilter, PassChoice};
+use pulse_config::{resolve_base_thresholds, IgnoreMatcher, PulseConfig};
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_history::{changeshotgun_files, HistoryOpts};
+use pulse_thresholds::AuditThresholds;
 
 use crate::audit_common::t;
 use crate::history_common::{build_repo, CommitSpec};

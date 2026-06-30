@@ -34,3 +34,24 @@ mod history_negative_paths;
 mod history_output;
 #[path = "history/history_szz.rs"]
 mod history_szz;
+
+#[path = "history/audit_common.rs"]
+mod audit_common;
+
+#[path = "history/history_git.rs"]
+mod history_git;
+
+#[path = "history/history_orchestrator.rs"]
+mod history_orchestrator;
+
+#[path = "history/cov_history_git_subprocess.rs"]
+mod cov_history_git_subprocess;
+
+#[path = "history/cov_history_output_blob_shotgun.rs"]
+mod cov_history_output_blob_shotgun;
+
+#[path = "history/jit_calibration.rs"]
+mod jit_calibration;
+
+#[path = "history/hist_crossval.rs"]
+mod hist_crossval;

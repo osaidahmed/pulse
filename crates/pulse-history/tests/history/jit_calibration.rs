@@ -1,9 +1,9 @@
-use pulse::config::{resolve_history_thresholds, HistoryCliOverrides, PulseConfig};
-use pulse::history::jit_risk::{
+use pulse_config::{resolve_history_thresholds, HistoryCliOverrides, PulseConfig};
+use pulse_history::jit_risk::{
     calib_path, hook_advisory, percentiles, read_calibration, write_calibration, JitCalibration, Quintiles,
 };
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::history::{calibrate, HistoryOpts};
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_history::{calibrate, HistoryOpts};
 
 use crate::history_common::{build_repo, commit_file_dated, CommitSpec};
 

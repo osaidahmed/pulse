@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use pulse::history::finding::{BlobEvidence, ChangeShotgunEvidence, HistoryFinding, HistoryKind};
-use pulse::history::output::{format_findings, format_findings_json};
+use pulse_history::finding::{BlobEvidence, ChangeShotgunEvidence, HistoryFinding, HistoryKind};
+use pulse_history::output::{format_findings, format_findings_json};
 
 fn blob(file: &str, multi: u32, total: u32, ratio: f64) -> HistoryFinding {
     HistoryFinding {
