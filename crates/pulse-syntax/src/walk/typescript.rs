@@ -29,8 +29,6 @@ const GLOBAL_CFG: GlobalMetricsConfig = GlobalMetricsConfig {
     recurse: &["export_statement"],
 };
 
-/// Walk a TypeScript (or JavaScript) AST. When `has_types` is true, type annotations
-/// are analyzed for primitive obsession. JavaScript callers pass false.
 pub fn walk(tree: &Tree, source: &str, has_types: bool) -> FileMetrics {
     let root = tree.root_node();
     let total_loc = count_code_lines(source, COMMENT_PREFIXES);

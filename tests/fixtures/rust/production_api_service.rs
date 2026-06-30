@@ -1,4 +1,4 @@
-/// Realistic Rust API service with intentional smells for testing.
+
 
 struct AppConfig {
     host: String,
