@@ -17,9 +17,6 @@ mod cov3_stragglers;
 #[path = "integration/boundaries.rs"]
 mod boundaries;
 
-#[path = "integration/buildmeta.rs"]
-mod buildmeta;
-
 #[path = "integration/buildmeta_corpus.rs"]
 mod buildmeta_corpus;
 
@@ -350,8 +347,6 @@ mod cov_binding_cfamily;
 mod cov_binding_jvm;
 #[path = "integration/cov_binding_misc.rs"]
 mod cov_binding_misc;
-#[path = "integration/cov_buildmeta.rs"]
-mod cov_buildmeta;
 #[path = "integration/cov_calibrate.rs"]
 mod cov_calibrate;
 #[path = "integration/cov_config_empty_branches.rs"]

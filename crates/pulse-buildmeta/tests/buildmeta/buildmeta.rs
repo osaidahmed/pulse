@@ -1,11 +1,11 @@
-use pulse::buildmeta::{discover, DepScope, Ecosystem};
+use pulse_buildmeta::{discover, DepScope, Ecosystem};
 use std::path::PathBuf;
 
 fn meta_root(eco: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join("buildmeta").join(eco)
+    pulse_testkit::workspace_root().join("tests").join("fixtures").join("buildmeta").join(eco)
 }
 
-fn dep<'a>(meta: &'a pulse::buildmeta::BuildMeta, name: &str) -> &'a pulse::buildmeta::DeclaredDep {
+fn dep<'a>(meta: &'a pulse_buildmeta::BuildMeta, name: &str) -> &'a pulse_buildmeta::DeclaredDep {
     meta.manifests
         .iter()
         .flat_map(|m| &m.deps)
@@ -310,7 +310,7 @@ fn compile_db_extracts_defines_and_includes_from_both_forms() {
       {\"directory\":\".\",\"command\":\"cc -DDEBUG -DLEVEL=2 -I/usr/inc -c a.c\",\"file\":\"/p/a.c\"},\
       {\"directory\":\".\",\"arguments\":[\"cc\",\"-D\",\"SEPARATED\",\"-I\",\"/sep/inc\",\"-c\",\"b.c\"],\"file\":\"/p/b.c\"}]";
     std::fs::write(dir.path().join("compile_commands.json"), ccj).unwrap();
-    let db = pulse::buildmeta::compile_db(dir.path()).expect("compile_commands.json parsed");
+    let db = pulse_buildmeta::compile_db(dir.path()).expect("compile_commands.json parsed");
     assert_eq!(db.entries.len(), 2);
     assert!(db.entries[0].defines.contains(&"DEBUG".to_string()), "{:?}", db.entries[0].defines);
     assert!(db.entries[0].defines.contains(&"LEVEL".to_string()), "=value is stripped to the macro name");

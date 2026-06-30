@@ -1,12 +1,12 @@
-use pulse::buildmeta::declared::{declared_names_for, manifest_names, nearest_manifest_root};
-use pulse::buildmeta::{discover, DepScope, Ecosystem};
+use pulse_buildmeta::declared::{declared_names_for, manifest_names, nearest_manifest_root};
+use pulse_buildmeta::{discover, DepScope, Ecosystem};
 use std::path::PathBuf;
 
 fn write_pkg(dir: &std::path::Path, body: &str) {
     std::fs::write(dir.join("package.json"), body).unwrap();
 }
 
-fn dep_named<'a>(meta: &'a pulse::buildmeta::BuildMeta, name: &str) -> &'a pulse::buildmeta::DeclaredDep {
+fn dep_named<'a>(meta: &'a pulse_buildmeta::BuildMeta, name: &str) -> &'a pulse_buildmeta::DeclaredDep {
     meta.manifests
         .iter()
         .flat_map(|m| &m.deps)
@@ -14,7 +14,7 @@ fn dep_named<'a>(meta: &'a pulse::buildmeta::BuildMeta, name: &str) -> &'a pulse
         .unwrap_or_else(|| panic!("dep {name} not extracted: {:?}", meta.manifests))
 }
 
-fn dep_names(meta: &pulse::buildmeta::BuildMeta) -> Vec<String> {
+fn dep_names(meta: &pulse_buildmeta::BuildMeta) -> Vec<String> {
     meta.manifests.iter().flat_map(|m| m.deps.iter().map(|d| d.name.clone())).collect()
 }
 

@@ -804,9 +804,11 @@ version = "0.3.0"
 dependencies = [
  "pulse-core",
  "pulse-syntax",
+ "pulse-testkit",
  "pulse-thresholds",
  "serde",
  "serde_json",
+ "tempfile",
  "toml",
  "tree-sitter",
  "ureq",
