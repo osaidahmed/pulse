@@ -112,9 +112,9 @@ fn three_distinct_smells_raise_combined_severity_and_sort_first() {
 
     match &out[0].kind {
         AuditKind::CompoundArchSmell(e) => {
-            assert!(e.constituent_kinds.contains(&"god_component"));
-            assert!(e.constituent_kinds.contains(&"unstable_dependency"));
-            assert!(e.constituent_kinds.contains(&"hub_like_dependency"));
+            assert!(e.constituent_kinds.iter().any(|k| k == "god_component"));
+            assert!(e.constituent_kinds.iter().any(|k| k == "unstable_dependency"));
+            assert!(e.constituent_kinds.iter().any(|k| k == "hub_like_dependency"));
         }
         _ => panic!("expected a compound finding"),
     }

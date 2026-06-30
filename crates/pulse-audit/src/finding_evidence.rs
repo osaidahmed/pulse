@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 use super::finding::{AuditLocation, ImportConfidence};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InjectionEvidence {
     pub file: PathBuf,
     pub function: String,
@@ -15,7 +17,7 @@ pub struct InjectionEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CloneClusterEvidence {
     pub members: Vec<AuditLocation>,
     pub member_count: u32,
@@ -24,7 +26,7 @@ pub struct CloneClusterEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NaturalnessEvidence {
     pub file: PathBuf,
     pub function: String,
@@ -34,7 +36,7 @@ pub struct NaturalnessEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HubLikeEvidence {
     pub component: PathBuf,
     pub afferent: u32,
@@ -44,7 +46,7 @@ pub struct HubLikeEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GodComponentEvidence {
     pub component: PathBuf,
     pub loc: u32,
@@ -54,15 +56,15 @@ pub struct GodComponentEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompoundEvidence {
     pub component: PathBuf,
-    pub constituent_kinds: Vec<&'static str>,
+    pub constituent_kinds: Vec<String>,
     pub combined_severity: f64,
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SplitComponentEvidence {
     pub component: PathBuf,
     pub file_count: u32,
@@ -71,7 +73,7 @@ pub struct SplitComponentEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MoveFileEvidence {
     pub file: PathBuf,
     pub current_dir: PathBuf,
@@ -81,14 +83,14 @@ pub struct MoveFileEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MergeComponentsEvidence {
     pub components: Vec<PathBuf>,
     pub community_files: u32,
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UnstableDepEvidence {
     pub component: PathBuf,
     pub instability: f64,
@@ -100,7 +102,7 @@ pub struct UnstableDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VulnCloneEvidence {
     pub file: PathBuf,
     pub line: u32,
@@ -110,7 +112,7 @@ pub struct VulnCloneEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BloatedDepEvidence {
     pub manifest: PathBuf,
     pub line: u32,
@@ -119,7 +121,7 @@ pub struct BloatedDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OutdatedDepEvidence {
     pub manifest: PathBuf,
     pub line: u32,
@@ -131,7 +133,7 @@ pub struct OutdatedDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VulnDepEvidence {
     pub manifest: PathBuf,
     pub line: u32,
@@ -142,7 +144,7 @@ pub struct VulnDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PhantomDepEvidence {
     pub file: PathBuf,
     pub line: u32,
@@ -150,7 +152,7 @@ pub struct PhantomDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConstraintEvidence {
     pub manifest: PathBuf,
     pub line: u32,
@@ -160,7 +162,7 @@ pub struct ConstraintEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StrictnessEvidence {
     pub file: PathBuf,
     pub line: u32,
@@ -168,7 +170,7 @@ pub struct StrictnessEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct IfdefDensityEvidence {
     pub file: PathBuf,
     pub line: u32,
@@ -176,7 +178,7 @@ pub struct IfdefDensityEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UndeclaredModuleDepEvidence {
     pub from_component: String,
     pub to_component: String,
@@ -186,7 +188,7 @@ pub struct UndeclaredModuleDepEvidence {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UnusedDeclaredDepEvidence {
     pub manifest: PathBuf,
     pub line: u32,

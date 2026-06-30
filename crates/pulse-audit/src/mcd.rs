@@ -6,6 +6,7 @@ use super::class_registry::{class_atfd, class_tcc, class_wmc, ClassIndex, ClassR
 use super::definitions::DefinitionRecord;
 use super::finding::{AuditFinding, AuditKind, ImportConfidence};
 use pulse_thresholds::AuditThresholds;
+use serde::{Deserialize, Serialize};
 
 const DIMS: usize = 4;
 const C_STEPS: usize = 20;
@@ -15,7 +16,7 @@ type Vec4 = [f64; DIMS];
 type Mat4 = [[f64; DIMS]; DIMS];
 type Aug4 = [[f64; DIMS * 2]; DIMS];
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultivariateAnomalyEvidence {
     pub class_file: PathBuf,
     pub class_name: String,

@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use pulse_thresholds::AuditThresholds;
+use serde::{Deserialize, Serialize};
 
 use super::components::component_of;
 use super::finding::{AuditFinding, AuditKind, AuditLocation, ImportConfidence};
 use super::graph::{ImportGraph, NodeIndex};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OverFragmentationEvidence {
     pub component: PathBuf,
     pub coupled_files: u32,

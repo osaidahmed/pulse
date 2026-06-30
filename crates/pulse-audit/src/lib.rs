@@ -10,6 +10,7 @@ pub mod call_walker;
 pub mod calls;
 pub mod categorize;
 pub mod centrality;
+pub mod class_evidence;
 pub mod class_registry;
 pub mod community;
 pub mod complexity_floor;

@@ -216,8 +216,8 @@ fn two_components_lack_a_distribution_for_god_detection() {
 fn component_with_two_co_occurring_smells_is_a_compound() {
     let cs = compounds(&unstable_hub_edges());
     let s = cs.iter().find(|e| e.component.as_path() == Path::new("s")).expect("s is a compound");
-    assert!(s.constituent_kinds.contains(&"unstable_dependency"));
-    assert!(s.constituent_kinds.contains(&"hub_like_dependency"));
+    assert!(s.constituent_kinds.iter().any(|k| k == "unstable_dependency"));
+    assert!(s.constituent_kinds.iter().any(|k| k == "hub_like_dependency"));
     assert!(s.combined_severity > 0.0);
     assert_eq!(s.confidence, ImportConfidence::Medium);
 }
@@ -239,9 +239,9 @@ fn a_lone_smell_is_not_a_compound() {
 fn god_component_joins_a_compound() {
     let cs = compounds_with_loc(&unstable_hub_edges(), |p| if p.starts_with("s") { 900 } else { 100 });
     let s = cs.iter().find(|e| e.component.as_path() == Path::new("s")).expect("s is a compound");
-    assert!(s.constituent_kinds.contains(&"god_component"));
-    assert!(s.constituent_kinds.contains(&"unstable_dependency"));
-    assert!(s.constituent_kinds.contains(&"hub_like_dependency"));
+    assert!(s.constituent_kinds.iter().any(|k| k == "god_component"));
+    assert!(s.constituent_kinds.iter().any(|k| k == "unstable_dependency"));
+    assert!(s.constituent_kinds.iter().any(|k| k == "hub_like_dependency"));
     assert!(s.combined_severity > 0.0);
     assert_eq!(s.confidence, ImportConfidence::Medium);
 }

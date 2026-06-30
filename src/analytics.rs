@@ -6,10 +6,42 @@ use crate::hook::HookInput;
 use crate::interaction::tier_for;
 use crate::smells::{Finding, Location, Smell};
 use crate::walk::FunctionMetrics;
+use serde::{Deserialize, Serialize};
 
 const PRESERVED_THRESHOLD: f64 = 0.8;
 
 pub use pulse_core::analytics_dir;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FindingRecord {
+    pub ts: u64,
+    pub file: String,
+    pub path: String,
+    pub lang: Option<String>,
+    pub smell: String,
+    pub tier: String,
+    #[serde(rename = "fn")]
+    pub function: Option<String>,
+    pub line: Option<u32>,
+    pub hash: Option<u64>,
+    pub detail: String,
+    pub rarity: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutcomeRecord {
+    pub ts: u64,
+    pub session: String,
+    pub file: String,
+    pub lang: Option<String>,
+    pub smell: String,
+    pub tier: String,
+    #[serde(rename = "fn")]
+    pub function: Option<String>,
+    pub detail: String,
+    pub rarity: Option<f64>,
+    pub outcome: String,
+}
 
 pub fn save_session_id(hook: &HookInput) {
     let path = baselines::baseline_dir().join("session_id");
@@ -46,20 +78,20 @@ pub fn log_findings(
             Location::Function { name, start_line, .. } => (Some(name.as_str()), Some(*start_line)),
             Location::Module => (None, None),
         };
-        let record = serde_json::json!({
-            "ts": ts,
-            "file": filename,
-            "path": hook.file_path,
-            "lang": lang,
-            "smell": f.smell.as_str(),
-            "tier": tier_for(f.smell).as_str(),
-            "fn": func_name,
-            "line": start_line,
-            "hash": meta.map(|fm| fm.structural_hash),
-            "detail": f.detail,
-            "rarity": serde_json::Value::Null,
-        });
-        let _ = writeln!(file, "{record}");
+        let record = FindingRecord {
+            ts,
+            file: filename.to_string(),
+            path: hook.file_path.clone(),
+            lang: lang.map(str::to_string),
+            smell: f.smell.as_str().to_string(),
+            tier: tier_for(f.smell).as_str().to_string(),
+            function: func_name.map(str::to_string),
+            line: start_line,
+            hash: meta.map(|fm| fm.structural_hash),
+            detail: f.detail.clone(),
+            rarity: None,
+        };
+        let _ = writeln!(file, "{}", serde_json::to_string(&record).unwrap_or_default());
     }
 }
 
@@ -219,19 +251,19 @@ fn body_preservation(entry: &serde_json::Value, file_path: &str) -> Option<f64> 
 }
 
 fn write_outcome(out: &mut std::fs::File, entry: &serde_json::Value, outcome: &str, session_id: &str, ts: u64) {
-    let record = serde_json::json!({
-        "ts": ts,
-        "session": session_id,
-        "file": entry.get("file").and_then(|v| v.as_str()).unwrap_or(""),
-        "lang": entry.get("lang").and_then(|v| v.as_str()),
-        "smell": entry.get("smell").and_then(|v| v.as_str()).unwrap_or(""),
-        "tier": entry.get("tier").and_then(|v| v.as_str()).unwrap_or(""),
-        "fn": entry.get("fn").and_then(|v| v.as_str()),
-        "detail": entry.get("detail").and_then(|v| v.as_str()).unwrap_or(""),
-        "rarity": entry.get("rarity").cloned().unwrap_or(serde_json::Value::Null),
-        "outcome": outcome,
-    });
-    let _ = writeln!(out, "{record}");
+    let record = OutcomeRecord {
+        ts,
+        session: session_id.to_string(),
+        file: entry.get("file").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        lang: entry.get("lang").and_then(|v| v.as_str()).map(str::to_string),
+        smell: entry.get("smell").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        tier: entry.get("tier").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        function: entry.get("fn").and_then(|v| v.as_str()).map(str::to_string),
+        detail: entry.get("detail").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        rarity: entry.get("rarity").and_then(serde_json::Value::as_f64),
+        outcome: outcome.to_string(),
+    };
+    let _ = writeln!(out, "{}", serde_json::to_string(&record).unwrap_or_default());
 }
 
 fn timestamp_secs() -> u64 {

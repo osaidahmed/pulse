@@ -1,12 +1,15 @@
 use std::path::PathBuf;
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryFinding {
     pub kind: HistoryKind,
+    #[serde(skip)]
     pub action_label: Option<&'static str>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HistoryKind {
     ArchitecturalDrift(DriftEvidence),
     Hotspot(HotspotEvidence),
@@ -19,7 +22,7 @@ pub enum HistoryKind {
     DefectProneFile(DefectProneEvidence),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DefectProneEvidence {
     pub file: PathBuf,
     pub function: String,
@@ -27,7 +30,7 @@ pub struct DefectProneEvidence {
     pub introducer_count: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildCoChangeEvidence {
     pub build_file: PathBuf,
     pub source_file: PathBuf,
@@ -38,7 +41,7 @@ pub struct BuildCoChangeEvidence {
     pub distinct_authors: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriftEvidence {
     pub file_a: PathBuf,
     pub file_b: PathBuf,
@@ -51,7 +54,7 @@ pub struct DriftEvidence {
     pub distinct_authors: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HotspotEvidence {
     pub file: PathBuf,
     pub revisions: u32,
@@ -59,7 +62,7 @@ pub struct HotspotEvidence {
     pub score: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FragmentationEvidence {
     pub file: PathBuf,
     pub total_contributors: u32,
@@ -68,7 +71,7 @@ pub struct FragmentationEvidence {
     pub top_minor_authors: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlobEvidence {
     pub file: PathBuf,
     pub multi_file_commits: u32,
@@ -76,7 +79,7 @@ pub struct BlobEvidence {
     pub blob_ratio: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeShotgunEvidence {
     pub file: PathBuf,
     pub partner_count: u32,
@@ -84,19 +87,19 @@ pub struct ChangeShotgunEvidence {
     pub packages: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CatalystEvidence {
     pub members: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecayEvidence {
     pub members: Vec<PathBuf>,
     pub previous_size: u32,
     pub current_size: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HistoryPillar {
     Drift,
     Complexity,

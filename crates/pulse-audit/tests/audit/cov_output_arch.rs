@@ -147,7 +147,7 @@ fn hub_like_dependency_human_and_json() {
 fn compound_arch_smell_human_and_json() {
     let e = CompoundEvidence {
         component: PathBuf::from("src/legacy"),
-        constituent_kinds: vec!["god_component", "unstable_dependency"],
+        constituent_kinds: vec!["god_component".to_string(), "unstable_dependency".to_string()],
         combined_severity: 0.7654,
         confidence: ImportConfidence::Low,
     };

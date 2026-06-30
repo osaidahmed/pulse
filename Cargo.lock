@@ -848,6 +848,9 @@ dependencies = [
 [[package]]
 name = "pulse-core"
 version = "0.3.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "pulse-corpus"

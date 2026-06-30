@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 use super::finding::ImportConfidence;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConceptualCohesionEvidence {
     pub class_file: PathBuf,
     pub class_line: u32,

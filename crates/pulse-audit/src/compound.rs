@@ -32,7 +32,7 @@ fn compound_for(component: PathBuf, group: &[&AuditFinding]) -> Option<AuditFind
     let confidence = group.iter().map(|f| finding_confidence(f)).min().unwrap_or(ImportConfidence::Medium);
     let evidence = CompoundEvidence {
         component: component.clone(),
-        constituent_kinds: kinds.clone(),
+        constituent_kinds: kinds.iter().map(|k| (*k).to_string()).collect(),
         combined_severity: group.iter().map(|f| arch_severity(f)).sum(),
         confidence,
     };

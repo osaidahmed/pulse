@@ -76,7 +76,7 @@ fn architecture_kinds() -> Vec<AuditKind> {
         }),
         AuditKind::CompoundArchSmell(CompoundEvidence {
             component,
-            constituent_kinds: vec!["unstable_dependency", "hub_like_dependency"],
+            constituent_kinds: vec!["unstable_dependency".to_string(), "hub_like_dependency".to_string()],
             combined_severity: 1.0,
             confidence: medium(),
         }),

@@ -1,6 +1,8 @@
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(usize)]
 pub enum Smell {
     GodMethod,
@@ -162,14 +164,14 @@ impl fmt::Display for Smell {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Finding {
     pub smell: Smell,
     pub location: Location,
     pub detail: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Location {
     Function { name: String, start_line: u32, end_line: u32 },
     Module,

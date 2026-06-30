@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditLocation {
     pub file: PathBuf,
     pub line: u32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AuditKind {
     UncategorizedPattern { fingerprint: u64 },
     DistanceFromMainSequence(MartinMetrics),
@@ -43,6 +45,10 @@ pub enum AuditKind {
     MultivariateAnomaly(MultivariateAnomalyEvidence),
 }
 
+pub use super::class_evidence::{
+    ClassIdentityRef, DivergentChangeEvidence, FeatureEnvyEvidence, GodClassEvidence, ParallelInheritanceEvidence,
+    RefusedBequestEvidence, ShotgunSurgeryEvidence,
+};
 pub use super::conceptual_cohesion::ConceptualCohesionEvidence;
 pub use super::finding_evidence::{
     BloatedDepEvidence, CloneClusterEvidence, CompoundEvidence, ConstraintEvidence, GodComponentEvidence,
@@ -53,82 +59,7 @@ pub use super::finding_evidence::{
 pub use super::fragmentation::OverFragmentationEvidence;
 pub use super::mcd::MultivariateAnomalyEvidence;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct DivergentChangeEvidence {
-    pub class_file: PathBuf,
-    pub class_name: String,
-    pub changing_classes: u32,
-    pub fanout: u32,
-    pub method_count: u32,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct FeatureEnvyEvidence {
-    pub method_file: PathBuf,
-    pub method_class: Option<String>,
-    pub method_name: String,
-    pub method_line: u32,
-    pub atfd: u32,
-    pub foreign_call_count: u32,
-    pub intra_call_count: u32,
-    pub envied_class: Option<String>,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct GodClassEvidence {
-    pub class_file: PathBuf,
-    pub class_name: String,
-    pub wmc: u32,
-    pub tcc: f64,
-    pub atfd: u32,
-    pub method_count: u32,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ClassIdentityRef {
-    pub file: PathBuf,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ParallelInheritanceEvidence {
-    pub root_a: ClassIdentityRef,
-    pub root_b: ClassIdentityRef,
-    pub matched_descendants: Vec<(String, String)>,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct RefusedBequestEvidence {
-    pub subclass_file: PathBuf,
-    pub subclass_name: String,
-    pub parent_file: PathBuf,
-    pub parent_name: String,
-    pub override_count: u32,
-    pub parent_method_count: u32,
-    pub override_ratio: f64,
-    pub confidence: ImportConfidence,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ShotgunSurgeryEvidence {
-    pub method_file: PathBuf,
-    pub method_class: Option<String>,
-    pub method_name: String,
-    pub method_line: u32,
-    pub changing_classes: u32,
-    pub changing_methods: u32,
-    pub fanout: u32,
-    pub confidence: ImportConfidence,
-    pub caller_samples: Vec<AuditLocation>,
-    pub name_collision_count: u32,
-    pub additional_definitions: Vec<AuditLocation>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MartinMetrics {
     pub module: PathBuf,
     pub afferent: u32,
@@ -140,14 +71,14 @@ pub struct MartinMetrics {
     pub confidence: ImportConfidence,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MartinTier {
     Healthy,
     Warning,
     Alert,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CycleMembership {
     pub members: Vec<PathBuf>,
     pub edges: Vec<(PathBuf, PathBuf)>,
@@ -157,7 +88,7 @@ pub struct CycleMembership {
     pub feedback_edge: Option<(PathBuf, PathBuf)>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CycleShape {
     Tiny,
     Circle,
@@ -166,7 +97,7 @@ pub enum CycleShape {
     Clique,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ImportConfidence {
     NaAbstraction,
     BestEffort,
@@ -186,7 +117,7 @@ impl ImportConfidence {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum PatternCategory {
     PrimitiveObsession = 0,
@@ -304,13 +235,14 @@ impl PatternCategory {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditFinding {
     pub kind: AuditKind,
     pub representative_snippet: String,
     pub support: u32,
     pub file_count: u32,
     pub idf_score: Option<f64>,
+    #[serde(skip)]
     pub action_label: Option<&'static str>,
     pub locations: Vec<AuditLocation>,
     pub pattern_category: Option<PatternCategory>,
@@ -327,7 +259,7 @@ struct VariantInfo {
     pillar: AuditPillar,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuditPillar {
     Architecture,
     ClassSmells,
