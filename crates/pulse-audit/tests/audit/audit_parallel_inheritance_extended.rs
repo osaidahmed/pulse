@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use pulse_audit::call_graph::{CallGraph, MethodIdentity};
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_parallel_inheritance::detect;
+use pulse_audit::detector::parallel_inheritance::detect;
 use pulse_audit::finding::{AuditFinding, AuditKind, ParallelInheritanceEvidence};
 use pulse_audit::inheritance::build_inheritance_graph;
 

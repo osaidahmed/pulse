@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use pulse_audit::class_registry::ClassIdentity;
-use pulse_audit::detector_parallel_inheritance::unused_class_workaround;
+use pulse_audit::detector::parallel_inheritance::unused_class_workaround;
 
 #[test]
 fn unused_class_workaround_accepts_class_identity() {

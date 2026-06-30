@@ -5,8 +5,8 @@ use pulse_audit::finding::{
     OutdatedDepEvidence, OverFragmentationEvidence, PhantomDepEvidence, StrictnessEvidence,
     UndeclaredModuleDepEvidence, UnusedDeclaredDepEvidence, VulnDepEvidence,
 };
-use pulse_audit::output_arch::{arch_json, write_arch};
-use pulse_audit::output_deps::{dispatch_human, dispatch_json};
+use pulse_audit::output::arch::{arch_json, write_arch};
+use pulse_audit::output::deps::{dispatch_human, dispatch_json};
 
 fn finding_for(kind: AuditKind) -> AuditFinding {
     AuditFinding {

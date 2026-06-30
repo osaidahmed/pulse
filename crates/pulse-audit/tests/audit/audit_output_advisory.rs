@@ -4,7 +4,7 @@ use pulse_audit::finding::{
     AuditFinding, AuditKind, AuditLocation, CloneClusterEvidence, ImportConfidence, InjectionEvidence,
     NaturalnessEvidence, VulnCloneEvidence,
 };
-use pulse_audit::output_advisory::{dispatch_human, dispatch_json};
+use pulse_audit::output::advisory::{dispatch_human, dispatch_json};
 use pulse_thresholds::AuditThresholds;
 
 fn wrap(kind: AuditKind) -> AuditFinding {

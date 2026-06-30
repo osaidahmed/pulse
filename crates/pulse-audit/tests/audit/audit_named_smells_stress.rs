@@ -6,11 +6,11 @@ use pulse_audit::call_walker::LocatedCall;
 use pulse_audit::calls::RawCall;
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_divergent_change as dc;
-use pulse_audit::detector_feature_envy as fe;
-use pulse_audit::detector_god_class as gc;
-use pulse_audit::detector_parallel_inheritance as pi;
-use pulse_audit::detector_refused_bequest as rb;
+use pulse_audit::detector::divergent_change as dc;
+use pulse_audit::detector::feature_envy as fe;
+use pulse_audit::detector::god_class as gc;
+use pulse_audit::detector::parallel_inheritance as pi;
+use pulse_audit::detector::refused_bequest as rb;
 use pulse_audit::inheritance::build_inheritance_graph;
 
 use crate::audit_common::t;

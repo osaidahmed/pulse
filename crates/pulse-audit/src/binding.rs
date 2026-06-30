@@ -1,3 +1,14 @@
+pub mod cpp;
+pub mod csharp;
+pub mod d;
+pub mod extract;
+pub mod go;
+pub mod java;
+pub mod kotlin;
+pub mod objc;
+pub mod rust;
+pub mod swift;
+pub mod typescript;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 
@@ -124,63 +135,63 @@ struct LangBinder {
 const BINDERS: &[LangBinder] = &[
     LangBinder {
         lang: Language::Java,
-        method_var_types: super::binding_java::method_var_types,
-        class_field_types: super::binding_java::class_field_types,
-        class_parents: super::binding_java::class_parents,
+        method_var_types: super::binding::java::method_var_types,
+        class_field_types: super::binding::java::class_field_types,
+        class_parents: super::binding::java::class_parents,
     },
     LangBinder {
         lang: Language::Kotlin,
-        method_var_types: super::binding_kotlin::method_var_types,
-        class_field_types: super::binding_kotlin::class_field_types,
-        class_parents: super::binding_kotlin::class_parents,
+        method_var_types: super::binding::kotlin::method_var_types,
+        class_field_types: super::binding::kotlin::class_field_types,
+        class_parents: super::binding::kotlin::class_parents,
     },
     LangBinder {
         lang: Language::TypeScript,
-        method_var_types: super::binding_typescript::method_var_types,
-        class_field_types: super::binding_typescript::class_field_types,
-        class_parents: super::binding_typescript::class_parents,
+        method_var_types: super::binding::typescript::method_var_types,
+        class_field_types: super::binding::typescript::class_field_types,
+        class_parents: super::binding::typescript::class_parents,
     },
     LangBinder {
         lang: Language::Swift,
-        method_var_types: super::binding_swift::method_var_types,
-        class_field_types: super::binding_swift::class_field_types,
-        class_parents: super::binding_swift::class_parents,
+        method_var_types: super::binding::swift::method_var_types,
+        class_field_types: super::binding::swift::class_field_types,
+        class_parents: super::binding::swift::class_parents,
     },
     LangBinder {
         lang: Language::CSharp,
-        method_var_types: super::binding_csharp::method_var_types,
-        class_field_types: super::binding_csharp::class_field_types,
-        class_parents: super::binding_csharp::class_parents,
+        method_var_types: super::binding::csharp::method_var_types,
+        class_field_types: super::binding::csharp::class_field_types,
+        class_parents: super::binding::csharp::class_parents,
     },
     LangBinder {
         lang: Language::Rust,
-        method_var_types: super::binding_rust::method_var_types,
-        class_field_types: super::binding_rust::class_field_types,
-        class_parents: super::binding_rust::class_parents,
+        method_var_types: super::binding::rust::method_var_types,
+        class_field_types: super::binding::rust::class_field_types,
+        class_parents: super::binding::rust::class_parents,
     },
     LangBinder {
         lang: Language::D,
-        method_var_types: super::binding_d::method_var_types,
-        class_field_types: super::binding_d::class_field_types,
-        class_parents: super::binding_d::class_parents,
+        method_var_types: super::binding::d::method_var_types,
+        class_field_types: super::binding::d::class_field_types,
+        class_parents: super::binding::d::class_parents,
     },
     LangBinder {
         lang: Language::Go,
-        method_var_types: super::binding_go::method_var_types,
-        class_field_types: super::binding_go::class_field_types,
-        class_parents: super::binding_go::class_parents,
+        method_var_types: super::binding::go::method_var_types,
+        class_field_types: super::binding::go::class_field_types,
+        class_parents: super::binding::go::class_parents,
     },
     LangBinder {
         lang: Language::Cpp,
-        method_var_types: super::binding_cpp::method_var_types,
-        class_field_types: super::binding_cpp::class_field_types,
-        class_parents: super::binding_cpp::class_parents,
+        method_var_types: super::binding::cpp::method_var_types,
+        class_field_types: super::binding::cpp::class_field_types,
+        class_parents: super::binding::cpp::class_parents,
     },
     LangBinder {
         lang: Language::ObjectiveC,
-        method_var_types: super::binding_objc::method_var_types,
-        class_field_types: super::binding_objc::class_field_types,
-        class_parents: super::binding_objc::class_parents,
+        method_var_types: super::binding::objc::method_var_types,
+        class_field_types: super::binding::objc::class_field_types,
+        class_parents: super::binding::objc::class_parents,
     },
 ];
 
@@ -202,7 +213,7 @@ pub fn class_parents(class_node: Node, source: &str, lang: Language) -> Vec<Stri
 
 pub fn caller_class(method_node: Node, source: &str, lang: Language) -> Option<String> {
     match lang {
-        Language::Go => super::binding_go::caller_class(method_node, source),
+        Language::Go => super::binding::go::caller_class(method_node, source),
         _ => None,
     }
 }

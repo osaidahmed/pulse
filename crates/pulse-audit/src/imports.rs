@@ -5,9 +5,7 @@ use tree_sitter::{Node, Tree};
 use pulse_syntax::parse::Language;
 
 use super::finding::ImportConfidence;
-use super::{
-    import_call_form, import_command_form, import_jsts, import_kinds, import_php, import_preprocessor, import_python,
-};
+use super::import;
 
 #[derive(Debug, Clone)]
 pub struct RawImport {
@@ -124,24 +122,24 @@ fn dispatch_group(lang: Language) -> DispatchGroup {
 
 fn candidate_paths(raw: &str, source_file: &Path, project_root: &Path, lang: Language) -> Vec<PathBuf> {
     match dispatch_group(lang) {
-        DispatchGroup::CallForm => import_call_form::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::CommandForm => import_command_form::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::Preprocessor => import_preprocessor::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::Python => import_python::candidates(raw, source_file, project_root),
-        DispatchGroup::Php => import_php::candidates(raw, source_file, project_root),
-        DispatchGroup::JsTs => import_jsts::candidates(raw, source_file, project_root, lang),
-        DispatchGroup::StructuredImport => import_kinds::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::CallForm => import::call_form::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::CommandForm => import::command_form::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::Preprocessor => import::preprocessor::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::Python => import::python::candidates(raw, source_file, project_root),
+        DispatchGroup::Php => import::php::candidates(raw, source_file, project_root),
+        DispatchGroup::JsTs => import::jsts::candidates(raw, source_file, project_root, lang),
+        DispatchGroup::StructuredImport => import::kinds::candidates(raw, source_file, project_root, lang),
     }
 }
 
 fn path_suffix_for(raw: &str, lang: Language) -> Option<String> {
     if lang == Language::Python {
-        return import_python::path_suffix(raw);
+        return import::python::path_suffix(raw);
     }
     if lang == Language::Php {
-        return import_php::path_suffix(raw);
+        return import::php::path_suffix(raw);
     }
-    import_kinds::path_suffix_for(raw, lang)
+    import::kinds::path_suffix_for(raw, lang)
 }
 
 fn visit(node: Node, source: &str, lang: Language, out: &mut Vec<RawImport>) {
@@ -157,24 +155,24 @@ fn visit(node: Node, source: &str, lang: Language, out: &mut Vec<RawImport>) {
 fn match_node_for_lang(node: Node, source: &str, lang: Language) -> Option<RawImport> {
     let group = dispatch_group(lang);
     if group == DispatchGroup::Python {
-        return import_python::match_node(node, source);
+        return import::python::match_node(node, source);
     }
     if group == DispatchGroup::Php {
-        return import_php::match_node(node, source);
+        return import::php::match_node(node, source);
     }
     if group == DispatchGroup::JsTs {
-        return import_jsts::match_node(node, source);
+        return import::jsts::match_node(node, source);
     }
     if group == DispatchGroup::CallForm {
-        return import_call_form::match_node(node, source, lang);
+        return import::call_form::match_node(node, source, lang);
     }
     if group == DispatchGroup::CommandForm {
-        return import_command_form::match_node(node, source, lang);
+        return import::command_form::match_node(node, source, lang);
     }
     if group == DispatchGroup::Preprocessor {
-        return import_preprocessor::match_node(node, source, lang);
+        return import::preprocessor::match_node(node, source, lang);
     }
-    import_kinds::match_node(node, source, lang)
+    import::kinds::match_node(node, source, lang)
 }
 
 pub(super) fn node_text(node: Node, source: &str) -> String {

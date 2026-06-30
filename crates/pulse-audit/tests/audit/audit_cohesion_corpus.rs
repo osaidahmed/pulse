@@ -5,7 +5,7 @@ use pulse_audit::call_graph::CallGraph;
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::corpus::Corpus;
 use pulse_audit::definitions::definitions_from;
-use pulse_audit::detector_conceptual_cohesion;
+use pulse_audit::detector;
 use pulse_audit::finding::AuditKind;
 use pulse_audit::method_vocab::{method_vocab_from, VocabByMethod};
 use pulse_audit::walk_typed_source_files;
@@ -42,7 +42,7 @@ fn scan_repo(repo: &Path, file_cap: usize, audit: &pulse_thresholds::AuditThresh
     }
     let graph = CallGraph::build(defs.clone(), Vec::new());
     let registry = ClassRegistry::from_definitions(&defs, &graph.registry);
-    detector_conceptual_cohesion::detect(&registry, &graph, &vocab, audit)
+    detector::conceptual_cohesion::detect(&registry, &graph, &vocab, audit)
         .into_iter()
         .filter_map(|f| match f.kind {
             AuditKind::LowConceptualCohesion(e) => Some((e.class_name, e.cohesion, e.method_count)),

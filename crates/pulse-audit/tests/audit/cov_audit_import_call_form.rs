@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use pulse_audit::import_call_form;
+use pulse_audit::import;
 use pulse_audit::imports::extract_imports;
 use pulse_syntax::parse::{parse_only, Language};
 
@@ -25,7 +25,7 @@ fn lua_indexed_callee_is_not_identifier_yields_no_import() {
 fn candidates_for_unsupported_lang_returns_empty() {
     let dir = tempfile::tempdir().unwrap();
     let source_file = dir.path().join("a.py");
-    let out = import_call_form::candidates("foo", &source_file, dir.path(), Language::Python);
+    let out = import::call_form::candidates("foo", &source_file, dir.path(), Language::Python);
     assert!(out.is_empty());
 }
 
@@ -33,7 +33,7 @@ fn candidates_for_unsupported_lang_returns_empty() {
 fn candidates_for_another_unsupported_lang_returns_empty() {
     let dir = tempfile::tempdir().unwrap();
     let source_file = dir.path().join("a.go");
-    let out = import_call_form::candidates("pkg.mod", &source_file, dir.path(), Language::Go);
+    let out = import::call_form::candidates("pkg.mod", &source_file, dir.path(), Language::Go);
     assert!(out.is_empty());
 }
 
@@ -41,7 +41,7 @@ fn candidates_for_another_unsupported_lang_returns_empty() {
 fn match_node_for_unsupported_lang_returns_none() {
     let src = "print(\"hello\")\n";
     let tree = parse_only(src, Language::Python).expect("parse");
-    let result = import_call_form::match_node(tree.root_node(), src, Language::Python);
+    let result = import::call_form::match_node(tree.root_node(), src, Language::Python);
     assert!(result.is_none());
 }
 
@@ -49,7 +49,7 @@ fn match_node_for_unsupported_lang_returns_none() {
 fn match_node_for_unsupported_call_lang_on_call_node_returns_none() {
     let src = "func main() { fmt.Println(\"x\") }\n";
     let tree = parse_only(src, Language::Go).expect("parse");
-    let result = import_call_form::match_node(tree.root_node(), src, Language::Go);
+    let result = import::call_form::match_node(tree.root_node(), src, Language::Go);
     assert!(result.is_none());
 }
 
@@ -81,7 +81,7 @@ fn lua_empty_string_require_does_not_panic_and_yields_import() {
 fn candidates_for_supported_lua_lang_is_nonempty_for_contrast() {
     let dir = tempfile::tempdir().unwrap();
     let source_file = dir.path().join("main.lua");
-    let out = import_call_form::candidates("helpers", &source_file, dir.path(), Language::Lua);
+    let out = import::call_form::candidates("helpers", &source_file, dir.path(), Language::Lua);
     assert!(!out.is_empty());
 }
 
@@ -89,7 +89,7 @@ fn candidates_for_supported_lua_lang_is_nonempty_for_contrast() {
 fn match_node_on_non_call_node_for_supported_lang_returns_none() {
     let src = "local x = 1\n";
     let tree = parse_only(src, Language::Lua).expect("parse");
-    let result = import_call_form::match_node(tree.root_node(), src, Language::Lua);
+    let result = import::call_form::match_node(tree.root_node(), src, Language::Lua);
     let _ = result;
     let _ = Path::new(".");
 }

@@ -1,4 +1,4 @@
-use pulse_audit::import_preprocessor;
+use pulse_audit::import;
 use pulse_audit::imports::{extract_imports, RawImport};
 use pulse_syntax::parse::{parse_only, Language};
 
@@ -11,7 +11,7 @@ fn extract(source: &str, lang: Language) -> Vec<RawImport> {
 fn candidates_unsupported_language_returns_empty() {
     let dir = tempfile::tempdir().unwrap();
     let source_file = dir.path().join("main.rs");
-    let result = import_preprocessor::candidates("foo", &source_file, dir.path(), Language::Rust);
+    let result = import::preprocessor::candidates("foo", &source_file, dir.path(), Language::Rust);
     assert!(result.is_empty());
 }
 
@@ -19,7 +19,7 @@ fn candidates_unsupported_language_returns_empty() {
 fn candidates_python_language_returns_empty() {
     let dir = tempfile::tempdir().unwrap();
     let source_file = dir.path().join("main.py");
-    let result = import_preprocessor::candidates("foo", &source_file, dir.path(), Language::Python);
+    let result = import::preprocessor::candidates("foo", &source_file, dir.path(), Language::Python);
     assert!(result.is_empty());
 }
 

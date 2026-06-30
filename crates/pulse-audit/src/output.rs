@@ -1,3 +1,15 @@
+pub mod advisory;
+pub mod arch;
+pub mod clones;
+pub mod deps;
+pub mod grouped;
+pub mod helpers;
+pub mod named_smells;
+pub mod naturalness;
+pub mod package_metrics;
+pub mod sections;
+pub mod taint;
+pub mod vuln_clones;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
@@ -7,17 +19,17 @@ use pulse_thresholds::AuditThresholds;
 use super::finding::{
     action_for_kind, finding_confidence, pass_for, AuditFinding, AuditKind, PatternCategory, ShotgunSurgeryEvidence,
 };
-use super::output_helpers::{confidence_str, display_path, write_capped_list, ListLayout};
-use super::output_named_smells::WriterCtx;
-use super::output_package_metrics::{
+use super::output::helpers::{confidence_str, display_path, write_capped_list, ListLayout};
+use super::output::named_smells::WriterCtx;
+use super::output::package_metrics::{
     cycle_json, martin_json, write_cycle, write_martin, write_zero_edge, zero_edge_json,
 };
 
 pub fn format_findings(findings: &[AuditFinding], root: Option<&Path>, thresholds: &AuditThresholds) -> String {
     let mut out = String::new();
     let collected: Vec<&AuditFinding> = findings.iter().collect();
-    let (pattern_findings, other_findings) = super::output_grouped::split(&collected);
-    super::output_grouped::render(&mut out, &pattern_findings, root, thresholds, render_pattern_human);
+    let (pattern_findings, other_findings) = super::output::grouped::split(&collected);
+    super::output::grouped::render(&mut out, &pattern_findings, root, thresholds, render_pattern_human);
     for f in other_findings {
         render_human(&mut out, f, root, thresholds);
     }
@@ -38,13 +50,13 @@ pub fn format_findings_filtered(findings: &[AuditFinding], thresholds: &AuditThr
     }
     let mut out = String::new();
     write_human_header(&mut out, findings, &visible, ctx);
-    let pillar_ctx = super::output_sections::PillarCtx {
+    let pillar_ctx = super::output::sections::PillarCtx {
         root: ctx.root,
         thresholds,
         render_pattern: render_pattern_human,
         render_other: render_human,
     };
-    super::output_sections::render_pillars(&mut out, &visible, &pillar_ctx);
+    super::output::sections::render_pillars(&mut out, &visible, &pillar_ctx);
     out
 }
 
@@ -186,17 +198,17 @@ fn dispatch_known_variants_human(out: &mut String, f: &AuditFinding, root: Optio
         write_shotgun(out, e, root, t, action);
         return true;
     }
-    if super::output_arch::write_arch(out, &f.kind, root, action) {
+    if super::output::arch::write_arch(out, &f.kind, root, action) {
         return true;
     }
-    if super::output_advisory::dispatch_human(out, f, root, t, action) {
+    if super::output::advisory::dispatch_human(out, f, root, t, action) {
         return true;
     }
-    if super::output_deps::dispatch_human(out, f, root, action) {
+    if super::output::deps::dispatch_human(out, f, root, action) {
         return true;
     }
     let ctx = WriterCtx { root, confidence_str, display_path, action };
-    super::output_named_smells::dispatch_human(out, &f.kind, &ctx)
+    super::output::named_smells::dispatch_human(out, &f.kind, &ctx)
 }
 
 fn render_pattern_human(out: &mut String, f: &AuditFinding, root: Option<&Path>, t: &AuditThresholds) {
@@ -223,7 +235,7 @@ fn render_json(f: &AuditFinding, root: Option<&Path>) -> serde_json::Value {
     if let Some(v) = dispatch_known_variants_json(f, root) {
         return v;
     }
-    if let Some(v) = super::output_named_smells::dispatch_json(&f.kind, root, confidence_str, display_path) {
+    if let Some(v) = super::output::named_smells::dispatch_json(&f.kind, root, confidence_str, display_path) {
         return v;
     }
     let AuditKind::UncategorizedPattern { fingerprint } = &f.kind else { unreachable!() };
@@ -240,16 +252,16 @@ fn dispatch_known_variants_json(f: &AuditFinding, root: Option<&Path>) -> Option
     if let AuditKind::ZeroEdgeProject { module_count } = &f.kind {
         return Some(zero_edge_json(*module_count));
     }
-    if let Some(v) = super::output_deps::dispatch_json(f, root) {
+    if let Some(v) = super::output::deps::dispatch_json(f, root) {
         return Some(v);
     }
     if let AuditKind::ShotgunSurgery(e) = &f.kind {
         return Some(shotgun_json(e, root));
     }
-    if let Some(v) = super::output_arch::arch_json(&f.kind, root) {
+    if let Some(v) = super::output::arch::arch_json(&f.kind, root) {
         return Some(v);
     }
-    if let Some(v) = super::output_advisory::dispatch_json(f, root) {
+    if let Some(v) = super::output::advisory::dispatch_json(f, root) {
         return Some(v);
     }
     None

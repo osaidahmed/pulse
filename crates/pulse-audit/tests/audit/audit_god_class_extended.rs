@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use pulse_audit::call_graph::{CallGraph, MethodIdentity};
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_god_class::{build_method_idx_lookup, detect};
+use pulse_audit::detector::god_class::{build_method_idx_lookup, detect};
 use pulse_audit::finding::{AuditFinding, AuditKind, GodClassEvidence};
 
 use crate::audit_common::t;

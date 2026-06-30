@@ -54,7 +54,7 @@ pub fn run_from(corpus: &Corpus, root: &Path, thresholds: &AuditThresholds) -> V
     }
     let graph = CallGraph::build_with_bindings(definitions.clone(), calls, &bindings);
     let registry = ClassRegistry::from_definitions(&definitions, &graph.registry);
-    let method_idx_lookup = super::detector_god_class::build_method_idx_lookup(&graph, &definitions);
+    let method_idx_lookup = super::detector::god_class::build_method_idx_lookup(&graph, &definitions);
     let inh = super::inheritance::build_inheritance_graph(&registry);
     let ctx = NamedContext { corpus, definitions, graph, registry, method_idx_lookup, inh, bindings, method_vocab };
     let strata = component_thresholds::nested_strata(corpus, root);
@@ -94,14 +94,14 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
     };
     let mut all = Vec::new();
     all.extend(detect_shotgun_surgery(&ctx.graph, thresholds));
-    all.extend(super::detector_divergent_change::detect(&ctx.registry, &ctx.graph, thresholds));
-    all.extend(super::detector_feature_envy::detect(&ctx.definitions, &ctx.graph, thresholds));
-    all.extend(super::detector_god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
-    all.extend(super::detector_parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
-    all.extend(super::detector_conceptual_cohesion::detect(&ctx.registry, &ctx.graph, &ctx.method_vocab, thresholds));
+    all.extend(super::detector::divergent_change::detect(&ctx.registry, &ctx.graph, thresholds));
+    all.extend(super::detector::feature_envy::detect(&ctx.definitions, &ctx.graph, thresholds));
+    all.extend(super::detector::god_class::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
+    all.extend(super::detector::parallel_inheritance::detect(&ctx.registry, &ctx.inh, thresholds));
+    all.extend(super::detector::conceptual_cohesion::detect(&ctx.registry, &ctx.graph, &ctx.method_vocab, thresholds));
     all.extend(super::mcd::detect(&ctx.registry, &ctx.definitions, &ctx.method_idx_lookup, thresholds));
     if thresholds.named_smells.refused_bequest.enabled {
-        let rb = super::detector_refused_bequest::detect(
+        let rb = super::detector::refused_bequest::detect(
             &ctx.registry,
             &ctx.definitions,
             &ctx.graph,
@@ -109,7 +109,7 @@ fn detect_named(ctx: &NamedContext, thresholds: &AuditThresholds) -> Vec<AuditFi
             thresholds,
         );
         all.extend(
-            rb.into_iter().filter(|f| !super::detector_refused_bequest::is_suppressed_wrapper(f, &ctx.bindings)),
+            rb.into_iter().filter(|f| !super::detector::refused_bequest::is_suppressed_wrapper(f, &ctx.bindings)),
         );
     }
     all

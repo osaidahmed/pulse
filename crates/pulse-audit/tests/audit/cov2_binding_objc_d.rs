@@ -1,6 +1,6 @@
+use pulse_audit::binding;
 use pulse_audit::binding::TypeEnv;
 use pulse_audit::call_walker::calls_and_bindings_from;
-use pulse_audit::{binding_d, binding_objc};
 use pulse_syntax::parse::{parse_only, Language};
 use pulse_syntax::walk::{find_child_by_kind, node_text};
 
@@ -22,7 +22,7 @@ fn find_kind<'a>(node: tree_sitter::Node<'a>, kind: &str) -> Option<tree_sitter:
 #[test]
 fn objc_class_field_types_directly_returns_empty_env() {
     let tree = parse_only("@implementation Repo\n- (void)run {}\n@end\n", Language::ObjectiveC).expect("objc parse");
-    let env = binding_objc::class_field_types(tree.root_node(), "@implementation Repo\n- (void)run {}\n@end\n");
+    let env = binding::objc::class_field_types(tree.root_node(), "@implementation Repo\n- (void)run {}\n@end\n");
     assert!(env.is_empty(), "objc class_field_types is an unconditional empty TypeEnv");
 }
 
@@ -30,7 +30,7 @@ fn objc_class_field_types_directly_returns_empty_env() {
 fn objc_class_parents_directly_returns_empty_vec() {
     let src = "@interface Widget : Base\n@end\n";
     let tree = parse_only(src, Language::ObjectiveC).expect("objc parse");
-    let parents = binding_objc::class_parents(tree.root_node(), src);
+    let parents = binding::objc::class_parents(tree.root_node(), src);
     assert!(parents.is_empty(), "objc class_parents is an unconditional empty Vec");
 }
 
@@ -38,7 +38,7 @@ fn objc_class_parents_directly_returns_empty_vec() {
 fn objc_class_field_types_is_empty_for_any_node() {
     let tree = parse_only("@implementation A\n@end\n", Language::ObjectiveC).expect("objc parse");
     let nested = find_kind(tree.root_node(), "class_implementation").unwrap_or(tree.root_node());
-    let env: TypeEnv = binding_objc::class_field_types(nested, "@implementation A\n@end\n");
+    let env: TypeEnv = binding::objc::class_field_types(nested, "@implementation A\n@end\n");
     assert_eq!(env.len(), 0, "objc fields are never extracted regardless of which node is passed");
 }
 
@@ -134,7 +134,7 @@ fn d_method_var_types_directly_on_class_node_returns_empty() {
     let src = "class Box(T) {}\n";
     let tree = parse_only(src, Language::D).expect("d parse");
     let class_node = find_kind(tree.root_node(), "class_declaration").expect("class_declaration node");
-    let env = binding_d::method_var_types(class_node, src);
+    let env = binding::d::method_var_types(class_node, src);
     assert!(env.is_empty(), "a class node carries no parameters node, so collect_params bails to an empty env");
 }
 
@@ -143,7 +143,7 @@ fn d_class_field_types_directly_extracts_object_field() {
     let src = "class Holder {\n  Bar item;\n}\n";
     let tree = parse_only(src, Language::D).expect("d parse");
     let class_node = find_kind(tree.root_node(), "class_declaration").expect("class_declaration node");
-    let fields = binding_d::class_field_types(class_node, src);
+    let fields = binding::d::class_field_types(class_node, src);
     assert_eq!(fields.get("item").map(String::as_str), Some("Bar"), "the aggregate body field is extracted");
 
     let aggregate = find_child_by_kind(class_node, "aggregate_body").expect("aggregate body");
@@ -157,6 +157,6 @@ fn d_class_parents_directly_collects_base_class() {
     let src = "class Widget : Base {}\n";
     let tree = parse_only(src, Language::D).expect("d parse");
     let class_node = find_kind(tree.root_node(), "class_declaration").expect("class_declaration node");
-    let parents = binding_d::class_parents(class_node, src);
+    let parents = binding::d::class_parents(class_node, src);
     assert!(parents.contains(&"Base".to_string()), "a single base class is collected directly");
 }

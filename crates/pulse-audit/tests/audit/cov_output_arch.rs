@@ -4,7 +4,7 @@ use pulse_audit::finding::{
     AuditKind, CompoundEvidence, GodComponentEvidence, HubLikeEvidence, ImportConfidence, MergeComponentsEvidence,
     MoveFileEvidence, SplitComponentEvidence, UnstableDepEvidence,
 };
-use pulse_audit::output_arch::{arch_json, write_arch};
+use pulse_audit::output::arch::{arch_json, write_arch};
 
 #[test]
 fn god_component_human_and_json() {

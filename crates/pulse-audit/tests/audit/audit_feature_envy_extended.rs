@@ -4,7 +4,7 @@ use pulse_audit::call_graph::{CallGraph, MethodIdentity};
 use pulse_audit::call_walker::LocatedCall;
 use pulse_audit::calls::RawCall;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_feature_envy::detect;
+use pulse_audit::detector::feature_envy::detect;
 use pulse_audit::finding::{AuditFinding, AuditKind, FeatureEnvyEvidence, ImportConfidence};
 
 use crate::audit_common::t;

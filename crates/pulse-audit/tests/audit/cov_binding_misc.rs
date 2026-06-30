@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use tree_sitter::Node;
 
+use pulse_audit::binding::extract::{bind_c_decl, c_declarator_name, collect_c_locals, head_of, EnvBuilder};
 use pulse_audit::binding::{self, BindingTable, ClassBinding, TypeEnv};
-use pulse_audit::binding_extract::{bind_c_decl, c_declarator_name, collect_c_locals, head_of, EnvBuilder};
 use pulse_audit::call_graph::MethodIdentity;
 use pulse_audit::call_walker::calls_and_bindings_from;
 use pulse_syntax::parse::{parse_only, Language};

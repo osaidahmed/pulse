@@ -21,11 +21,11 @@ const ARCH_MODULES: &[&str] = &[
 
 const CLASS_SMELL_SYMBOLS: &[&str] = &[
     "named_smells",
-    "detector_god_class",
-    "detector_feature_envy",
-    "detector_divergent_change",
-    "detector_parallel_inheritance",
-    "detector_refused_bequest",
+    "detector::god_class",
+    "detector::feature_envy",
+    "detector::divergent_change",
+    "detector::parallel_inheritance",
+    "detector::refused_bequest",
     "class_registry",
     "ClassRegistry",
     "GodClassEvidence",

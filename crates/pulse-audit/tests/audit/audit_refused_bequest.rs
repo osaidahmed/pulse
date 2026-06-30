@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use pulse_audit::call_graph::{CallGraph, MethodIdentity};
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_refused_bequest::detect;
+use pulse_audit::detector::refused_bequest::detect;
 use pulse_audit::finding::{AuditKind, RefusedBequestEvidence};
 
 use crate::audit_common::t;
@@ -222,7 +222,7 @@ fn bindings_with_field(field_type: &str) -> pulse_audit::binding::BindingTable {
 
 #[test]
 fn decorator_wrapping_its_parent_is_recognized() {
-    use pulse_audit::detector_refused_bequest::is_decorator_wrapper;
+    use pulse_audit::detector::refused_bequest::is_decorator_wrapper;
     assert!(
         is_decorator_wrapper(&wrapper_evidence(), &bindings_with_field("Base")),
         "a subclass holding a field typed as its parent is a wrapper, not a refusal"
@@ -231,20 +231,20 @@ fn decorator_wrapping_its_parent_is_recognized() {
 
 #[test]
 fn subclass_without_ancestor_typed_field_is_not_a_wrapper() {
-    use pulse_audit::detector_refused_bequest::is_decorator_wrapper;
+    use pulse_audit::detector::refused_bequest::is_decorator_wrapper;
     assert!(!is_decorator_wrapper(&wrapper_evidence(), &bindings_with_field("Logger")));
 }
 
 #[test]
 fn subclass_with_no_field_bindings_is_not_a_wrapper() {
-    use pulse_audit::detector_refused_bequest::is_decorator_wrapper;
+    use pulse_audit::detector::refused_bequest::is_decorator_wrapper;
     assert!(!is_decorator_wrapper(&wrapper_evidence(), &pulse_audit::binding::BindingTable::default()));
 }
 
 #[test]
 fn subclass_inheriting_the_wrapped_field_from_a_base_wrapper_is_recognized() {
     use pulse_audit::binding::{BindingTable, ClassBinding};
-    use pulse_audit::detector_refused_bequest::is_decorator_wrapper;
+    use pulse_audit::detector::refused_bequest::is_decorator_wrapper;
     let mut bindings = BindingTable::default();
     let mut wrapped = std::collections::BTreeMap::new();
     wrapped.insert("delegate".to_string(), "Base".to_string());

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use pulse_audit::call_graph::{CallGraph, MethodIdentity};
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_refused_bequest::detect;
+use pulse_audit::detector::refused_bequest::detect;
 use pulse_audit::finding::{AuditFinding, AuditKind, RefusedBequestEvidence};
 
 use crate::audit_common::t;

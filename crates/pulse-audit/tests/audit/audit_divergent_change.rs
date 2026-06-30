@@ -5,7 +5,7 @@ use pulse_audit::call_walker::LocatedCall;
 use pulse_audit::calls::RawCall;
 use pulse_audit::class_registry::ClassRegistry;
 use pulse_audit::definitions::DefinitionRecord;
-use pulse_audit::detector_divergent_change::detect;
+use pulse_audit::detector::divergent_change::detect;
 use pulse_audit::finding::{AuditKind, DivergentChangeEvidence};
 
 use crate::audit_common::t;
