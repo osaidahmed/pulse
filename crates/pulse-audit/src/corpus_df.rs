@@ -9,7 +9,7 @@ const MAGIC: &[u8; 4] = b"PCDF";
 const VERSION: u8 = 1;
 const HEADER_LEN: usize = 12;
 
-static BAKED: &[u8] = include_bytes!("corpus_df.bin");
+static BAKED: &[u8] = include_bytes!("../assets/corpus_df.bin");
 
 pub struct CorpusDf {
     depth: usize,

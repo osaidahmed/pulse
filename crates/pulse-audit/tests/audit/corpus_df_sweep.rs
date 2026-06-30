@@ -80,7 +80,7 @@ fn drive_sweep(corpus_root: &Path) {
             }
         }
     }
-    let blob = pulse_testkit::workspace_root().join("crates/pulse-audit/src/corpus_df.bin");
+    let blob = pulse_testkit::workspace_root().join("crates/pulse-audit/assets/corpus_df.bin");
     std::fs::write(&blob, corpus_df::to_bytes(&acc)).unwrap();
     eprintln!("corpus_df baked from {merged} repos; {} crashed: {crashed:?}", crashed.len());
 }
