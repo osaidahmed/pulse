@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use pulse::history::finding::HistoryKind;
-use pulse::history::szz;
-use pulse::history::thresholds::SzzThresholds;
-use pulse::parse::Language;
+use pulse_history::finding::HistoryKind;
+use pulse_history::szz;
+use pulse_history::thresholds::SzzThresholds;
+use pulse_syntax::parse::Language;
 
 use crate::history_common::{build_repo, CommitSpec};
 
@@ -15,7 +15,7 @@ fn enabled() -> SzzThresholds {
     SzzThresholds { enabled: true, min_inducing: 1, ..SzzThresholds::DEFAULTS }
 }
 
-fn defect_prone_files(findings: &[pulse::history::finding::HistoryFinding]) -> Vec<(PathBuf, String, u32)> {
+fn defect_prone_files(findings: &[pulse_history::finding::HistoryFinding]) -> Vec<(PathBuf, String, u32)> {
     findings
         .iter()
         .filter_map(|f| match &f.kind {

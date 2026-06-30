@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use pulse::history::finding::{HistoryFinding, HistoryKind};
-use pulse::history::git::Commit;
-use pulse::history::hotspots::{rank, revisions_per_file};
-use pulse::parse::Language;
-use pulse::thresholds::Thresholds;
+use pulse_history::finding::{HistoryFinding, HistoryKind};
+use pulse_history::git::Commit;
+use pulse_history::hotspots::{rank, revisions_per_file};
+use pulse_syntax::parse::Language;
+use pulse_thresholds::Thresholds;
 
 fn t() -> Thresholds {
     Thresholds::default()

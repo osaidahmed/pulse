@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use pulse::history::co_change;
-use pulse::history::finding::{BlobEvidence, ChangeShotgunEvidence, HistoryFinding, HistoryKind};
-use pulse::history::git::Commit;
-use pulse::history::hist_smells::rank;
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::thresholds::Thresholds;
+use pulse_history::co_change;
+use pulse_history::finding::{BlobEvidence, ChangeShotgunEvidence, HistoryFinding, HistoryKind};
+use pulse_history::git::Commit;
+use pulse_history::hist_smells::rank;
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_thresholds::Thresholds;
 
 fn hist_t() -> HistoryThresholds {
     let mut h = Thresholds::default().history;

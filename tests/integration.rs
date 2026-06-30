@@ -442,46 +442,16 @@ mod haskell_smells;
 mod haskell_stress;
 #[path = "integration/hist_crossval.rs"]
 mod hist_crossval;
-#[path = "integration/history_arch_trend.rs"]
-mod history_arch_trend;
-#[path = "integration/history_build_co_change.rs"]
-mod history_build_co_change;
 #[path = "integration/history_cli.rs"]
 mod history_cli;
 #[path = "integration/history_cli_overrides.rs"]
 mod history_cli_overrides;
-#[path = "integration/history_co_change.rs"]
-mod history_co_change;
-#[path = "integration/history_config_overrides.rs"]
-mod history_config_overrides;
-#[path = "integration/history_contributors.rs"]
-mod history_contributors;
-#[path = "integration/history_e2e_scenarios.rs"]
-mod history_e2e_scenarios;
-#[path = "integration/history_edge_cases.rs"]
-mod history_edge_cases;
-#[path = "integration/history_edges.rs"]
-mod history_edges;
-#[path = "integration/history_finding.rs"]
-mod history_finding;
 #[path = "integration/history_git.rs"]
 mod history_git;
-#[path = "integration/history_hist_smells.rs"]
-mod history_hist_smells;
-#[path = "integration/history_hotspots.rs"]
-mod history_hotspots;
 #[path = "integration/history_ignore_paths.rs"]
 mod history_ignore_paths;
-#[path = "integration/history_languages_static_link.rs"]
-mod history_languages_static_link;
-#[path = "integration/history_negative_paths.rs"]
-mod history_negative_paths;
 #[path = "integration/history_orchestrator.rs"]
 mod history_orchestrator;
-#[path = "integration/history_output.rs"]
-mod history_output;
-#[path = "integration/history_szz.rs"]
-mod history_szz;
 #[path = "integration/hook_diff_filtering.rs"]
 mod hook_diff_filtering;
 #[path = "integration/hook_filtering.rs"]

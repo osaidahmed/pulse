@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use pulse::history::git::{parse_log_output, Commit};
-use pulse::history::{run, HistoryError, HistoryOpts};
-use pulse::thresholds::Thresholds;
+use pulse_history::git::{parse_log_output, Commit};
+use pulse_history::{run, HistoryError, HistoryOpts};
+use pulse_thresholds::Thresholds;
 
 fn t() -> Thresholds {
     Thresholds::default()

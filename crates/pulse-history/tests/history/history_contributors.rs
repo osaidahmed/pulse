@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use pulse::history::contributors::{author_counts_per_file, rank};
-use pulse::history::finding::{HistoryFinding, HistoryKind};
-use pulse::history::git::Commit;
-use pulse::thresholds::Thresholds;
+use pulse_history::contributors::{author_counts_per_file, rank};
+use pulse_history::finding::{HistoryFinding, HistoryKind};
+use pulse_history::git::Commit;
+use pulse_thresholds::Thresholds;
 
 fn t() -> Thresholds {
     Thresholds::default()
@@ -18,7 +18,7 @@ fn typed(paths: &[&str]) -> HashSet<PathBuf> {
     paths.iter().map(PathBuf::from).collect()
 }
 
-fn extract_evidence(f: &HistoryFinding) -> &pulse::history::finding::FragmentationEvidence {
+fn extract_evidence(f: &HistoryFinding) -> &pulse_history::finding::FragmentationEvidence {
     let HistoryKind::KnowledgeFragmentation(e) = &f.kind else { panic!("expected fragmentation finding") };
     e
 }

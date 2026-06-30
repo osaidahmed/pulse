@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use pulse::history::finding::{
+use pulse_history::finding::{
     CatalystEvidence, DecayEvidence, DriftEvidence, FragmentationEvidence, HistoryFinding, HistoryKind, HotspotEvidence,
 };
 
@@ -55,7 +55,7 @@ fn decay_renders_json() {
     assert!(out.contains("previous_size"), "got: {out}");
     assert!(out.contains("current_size"), "got: {out}");
 }
-use pulse::history::output::{format_findings, format_findings_json};
+use pulse_history::output::{format_findings, format_findings_json};
 
 fn drift(a: &str, b: &str, support: u32) -> HistoryFinding {
     HistoryFinding {

@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use pulse::audit::graph::{ImportGraph, InputEdge};
-use pulse::history::co_change::{mine, rank_drift, revisions_in_scope};
-use pulse::history::finding::{HistoryFinding, HistoryKind};
-use pulse::history::git::Commit;
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::parse::Language;
-use pulse::thresholds::Thresholds;
+use pulse_audit::graph::{ImportGraph, InputEdge};
+use pulse_history::co_change::{mine, rank_drift, revisions_in_scope};
+use pulse_history::finding::{HistoryFinding, HistoryKind};
+use pulse_history::git::Commit;
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_syntax::parse::Language;
+use pulse_thresholds::Thresholds;
 
 fn t() -> Thresholds {
     Thresholds::default()

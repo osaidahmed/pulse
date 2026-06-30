@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use pulse::history::edges::{build_graph, directly_linked};
-use pulse::parse::Language;
+use pulse_history::edges::{build_graph, directly_linked};
+use pulse_syntax::parse::Language;
 use tempfile::TempDir;
 
 fn write_file(root: &Path, rel: &str, content: &str) -> PathBuf {

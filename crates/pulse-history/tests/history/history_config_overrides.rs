@@ -1,5 +1,5 @@
-use pulse::config::{combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, PulseConfig};
-use pulse::history::thresholds::HistoryThresholds;
+use pulse_config::{combined_history_ignore_patterns, resolve_history_thresholds, HistoryCliOverrides, PulseConfig};
+use pulse_history::thresholds::HistoryThresholds;
 
 fn parse(s: &str) -> PulseConfig {
     toml::from_str(s).unwrap_or_else(|e| panic!("toml parse failed: {e}\n---\n{s}"))

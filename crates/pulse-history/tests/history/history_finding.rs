@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use pulse::history::finding::{
+use pulse_history::finding::{
     variant_info, BlobEvidence, ChangeShotgunEvidence, DriftEvidence, FragmentationEvidence, HistoryKind,
     HistoryPillar, HotspotEvidence,
 };

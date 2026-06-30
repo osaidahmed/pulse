@@ -1,7 +1,7 @@
-use pulse::history::arch_trend::edges_at_commit;
-use pulse::history::finding::HistoryKind;
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::history::HistoryOpts;
+use pulse_history::arch_trend::edges_at_commit;
+use pulse_history::finding::HistoryKind;
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_history::HistoryOpts;
 
 use crate::history_common::{build_repo, CommitSpec};
 
@@ -26,7 +26,7 @@ fn opts_for(repo: &tempfile::TempDir) -> HistoryOpts {
     HistoryOpts { root: repo.path().to_path_buf(), include_tests: true, since: None, max_commits: None }
 }
 
-fn has_catalyst(findings: &[pulse::history::finding::HistoryFinding]) -> bool {
+fn has_catalyst(findings: &[pulse_history::finding::HistoryFinding]) -> bool {
     findings.iter().any(|f| matches!(f.kind, HistoryKind::CatalystWarning(_)))
 }
 
@@ -34,7 +34,7 @@ fn has_catalyst(findings: &[pulse::history::finding::HistoryFinding]) -> bool {
 fn catalyst_flags_a_newly_introduced_cycle() {
     let repo = cyclic_repo();
     let t = HistoryThresholds { arch_trend: true, ..HistoryThresholds::default() };
-    let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
+    let findings = pulse_history::run(&opts_for(&repo), &t).expect("history run");
     assert!(has_catalyst(&findings), "expected a catalyst warning for the freshly-introduced cycle");
 }
 
@@ -55,7 +55,7 @@ fn decay_flags_a_growing_cycle() {
         },
     ]);
     let t = HistoryThresholds { arch_trend: true, ..HistoryThresholds::default() };
-    let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
+    let findings = pulse_history::run(&opts_for(&repo), &t).expect("history run");
 
     assert!(
         findings.iter().any(|f| matches!(f.kind, HistoryKind::DecayTrend(_))),
@@ -71,7 +71,7 @@ fn decay_flags_a_growing_cycle() {
 fn catalyst_is_silent_without_the_flag() {
     let repo = cyclic_repo();
     let t = HistoryThresholds::default();
-    let findings = pulse::history::run(&opts_for(&repo), &t).expect("history run");
+    let findings = pulse_history::run(&opts_for(&repo), &t).expect("history run");
     assert!(!has_catalyst(&findings), "catalyst must stay opt-in behind --arch-trend");
 }
 

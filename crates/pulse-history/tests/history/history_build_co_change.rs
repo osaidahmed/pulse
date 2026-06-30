@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use pulse::history::build_co_change::{is_build_file, rank_build_drift};
-use pulse::history::co_change::{mine, revisions_in_scope};
-use pulse::history::finding::{HistoryFinding, HistoryKind};
-use pulse::history::git::Commit;
-use pulse::history::thresholds::HistoryThresholds;
-use pulse::history::{run, HistoryOpts};
-use pulse::thresholds::Thresholds;
+use pulse_history::build_co_change::{is_build_file, rank_build_drift};
+use pulse_history::co_change::{mine, revisions_in_scope};
+use pulse_history::finding::{HistoryFinding, HistoryKind};
+use pulse_history::git::Commit;
+use pulse_history::thresholds::HistoryThresholds;
+use pulse_history::{run, HistoryOpts};
+use pulse_thresholds::Thresholds;
 
 use crate::history_common::{build_repo, CommitSpec};
 
