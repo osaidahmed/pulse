@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use pulse_audit::IgnoreFilter;
 use pulse_calibrate::priors::PriorsBuilder;
 use pulse_config::IgnoreMatcher;
+use pulse_corpus::IgnoreFilter;
 
 use crate::common::t;
 use crate::sweep_harness;

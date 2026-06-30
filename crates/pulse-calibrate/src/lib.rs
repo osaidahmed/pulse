@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
 
-use pulse_audit::corpus_stats::PerFileFeatures;
-use pulse_audit::{corpus_stats, record_extraction, vendor_filter, walk_typed_source_files_filtered, IgnoreFilter};
+use pulse_corpus::corpus_stats::PerFileFeatures;
+use pulse_corpus::{corpus_stats, record_extraction, vendor_filter, walk_typed_source_files_filtered, IgnoreFilter};
 
 use pulse_syntax::parse::{self, Language};
 use pulse_syntax::test_detection;

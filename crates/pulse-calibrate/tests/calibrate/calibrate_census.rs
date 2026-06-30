@@ -1,9 +1,9 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
-use pulse_audit::IgnoreFilter;
 use pulse_calibrate::{self as calibrate, Census};
 use pulse_config::IgnoreMatcher;
+use pulse_corpus::IgnoreFilter;
 
 use crate::common::t;
 

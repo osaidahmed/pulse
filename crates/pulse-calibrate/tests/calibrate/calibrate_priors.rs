@@ -2,10 +2,10 @@
 
 use std::path::Path;
 
-use pulse_audit::IgnoreFilter;
 use pulse_calibrate::priors::{corpus_priors, MetricPrior, PriorsBuilder, QUANTILE_PROBES};
 use pulse_calibrate::stats::{count_quantile, weighted_quantile, WeightedHist};
 use pulse_config::IgnoreMatcher;
+use pulse_corpus::IgnoreFilter;
 
 use crate::common::t;
 

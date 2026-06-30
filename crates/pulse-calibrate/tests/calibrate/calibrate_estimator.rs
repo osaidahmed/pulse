@@ -78,7 +78,7 @@ fn estimate_against_the_real_corpus_respects_floors() {
     )
     .unwrap();
     let matcher = pulse_config::IgnoreMatcher::from_patterns(&[]);
-    let filter = pulse_audit::IgnoreFilter::new(&matcher, dir.path());
+    let filter = pulse_corpus::IgnoreFilter::new(&matcher, dir.path());
     let census = pulse_calibrate::collect(dir.path(), &t(), &filter);
     let out = estimate(&census, corpus_priors(), &cfg());
     let py = out.main.get("python").expect("python thresholds");

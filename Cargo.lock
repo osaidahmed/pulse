@@ -788,6 +788,7 @@ dependencies = [
  "pulse-buildmeta",
  "pulse-config",
  "pulse-core",
+ "pulse-corpus",
  "pulse-imports",
  "pulse-syntax",
  "pulse-testkit",
@@ -820,9 +821,9 @@ dependencies = [
 name = "pulse-calibrate"
 version = "0.3.0"
 dependencies = [
- "pulse-audit",
  "pulse-config",
  "pulse-core",
+ "pulse-corpus",
  "pulse-syntax",
  "pulse-testkit",
  "pulse-thresholds",
@@ -847,6 +848,18 @@ dependencies = [
 [[package]]
 name = "pulse-core"
 version = "0.3.0"
+
+[[package]]
+name = "pulse-corpus"
+version = "0.3.0"
+dependencies = [
+ "pulse-buildmeta",
+ "pulse-config",
+ "pulse-syntax",
+ "pulse-thresholds",
+ "rayon",
+ "tree-sitter",
+]
 
 [[package]]
 name = "pulse-history"
