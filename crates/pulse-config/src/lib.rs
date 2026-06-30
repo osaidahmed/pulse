@@ -195,7 +195,8 @@ fn expand_pattern(raw: &str) -> Vec<String> {
 }
 
 pub fn find_config(start: &Path) -> Option<PathBuf> {
-    let mut dir = if start.is_file() { start.parent()? } else { start };
+    let abs = absolutize(start);
+    let mut dir = if abs.is_file() { abs.parent()? } else { abs.as_path() };
     loop {
         let candidate = dir.join(CONFIG_FILENAME);
         if candidate.is_file() {
@@ -203,6 +204,13 @@ pub fn find_config(start: &Path) -> Option<PathBuf> {
         }
         dir = dir.parent()?;
     }
+}
+
+fn absolutize(p: &Path) -> PathBuf {
+    if p.is_absolute() {
+        return p.to_path_buf();
+    }
+    std::env::current_dir().map_or_else(|_| p.to_path_buf(), |cwd| cwd.join(p))
 }
 
 pub fn local_config(dir: &Path) -> Option<PathBuf> {
