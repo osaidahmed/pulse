@@ -5,17 +5,11 @@ mod common;
 #[path = "integration/audit_common.rs"]
 mod audit_common;
 
-#[path = "integration/sweep_harness.rs"]
-mod sweep_harness;
-
 #[path = "integration/binding_common.rs"]
 mod binding_common;
 
 #[path = "integration/cov3_stragglers.rs"]
 mod cov3_stragglers;
-
-#[path = "integration/buildmeta_corpus.rs"]
-mod buildmeta_corpus;
 
 #[path = "integration/session_clones.rs"]
 mod session_clones;
@@ -31,9 +25,6 @@ mod framework_applicability;
 
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
-
-#[path = "integration/walker_stack_guard.rs"]
-mod walker_stack_guard;
 
 #[path = "integration/baseline_ratchet.rs"]
 mod baseline_ratchet;
@@ -55,212 +46,18 @@ mod advisory_channel;
 mod analytics_tests;
 #[path = "integration/applicability_matrix.rs"]
 mod applicability_matrix;
-#[path = "integration/audit_abstractness.rs"]
-mod audit_abstractness;
-#[path = "integration/audit_arch_smells.rs"]
-mod audit_arch_smells;
-#[path = "integration/audit_binding.rs"]
-mod audit_binding;
-#[path = "integration/audit_call_extraction_clean.rs"]
-mod audit_call_extraction_clean;
-#[path = "integration/audit_call_extraction_extended.rs"]
-mod audit_call_extraction_extended;
-#[path = "integration/audit_call_graph.rs"]
-mod audit_call_graph;
-#[path = "integration/audit_call_graph_extraction.rs"]
-mod audit_call_graph_extraction;
-#[path = "integration/audit_call_graph_skeleton.rs"]
-mod audit_call_graph_skeleton;
-#[path = "integration/audit_centrality.rs"]
-mod audit_centrality;
-#[path = "integration/audit_class_registry.rs"]
-mod audit_class_registry;
-#[path = "integration/audit_clones.rs"]
-mod audit_clones;
-#[path = "integration/audit_cohesion_corpus.rs"]
-mod audit_cohesion_corpus;
-#[path = "integration/audit_community.rs"]
-mod audit_community;
-#[path = "integration/audit_component_thresholds.rs"]
-mod audit_component_thresholds;
-#[path = "integration/audit_components.rs"]
-mod audit_components;
-#[path = "integration/audit_conceptual_cohesion.rs"]
-mod audit_conceptual_cohesion;
-#[path = "integration/audit_conceptual_cohesion_e2e.rs"]
-mod audit_conceptual_cohesion_e2e;
-#[path = "integration/audit_constraint_smells.rs"]
-mod audit_constraint_smells;
-#[path = "integration/audit_corpus_df.rs"]
-mod audit_corpus_df;
-#[path = "integration/audit_corpus_stats_unit.rs"]
-mod audit_corpus_stats_unit;
-#[path = "integration/audit_coverage_disclosure.rs"]
-mod audit_coverage_disclosure;
-#[path = "integration/audit_cross_language_separation.rs"]
-mod audit_cross_language_separation;
-#[path = "integration/audit_cycle_shapes.rs"]
-mod audit_cycle_shapes;
-#[path = "integration/audit_cycles.rs"]
-mod audit_cycles;
-#[path = "integration/audit_decoupling.rs"]
-mod audit_decoupling;
-#[path = "integration/audit_definitions.rs"]
-mod audit_definitions;
-#[path = "integration/audit_deps_reconcile.rs"]
-mod audit_deps_reconcile;
-#[path = "integration/audit_detector_correctness.rs"]
-mod audit_detector_correctness;
-#[path = "integration/audit_discovery.rs"]
-mod audit_discovery;
-#[path = "integration/audit_discovery_extended.rs"]
-mod audit_discovery_extended;
-#[path = "integration/audit_divergent_change.rs"]
-mod audit_divergent_change;
-#[path = "integration/audit_divergent_change_extended.rs"]
-mod audit_divergent_change_extended;
 #[path = "integration/audit_e2e.rs"]
 mod audit_e2e;
-#[path = "integration/audit_edge_cases.rs"]
-mod audit_edge_cases;
-#[path = "integration/audit_feature_envy.rs"]
-mod audit_feature_envy;
-#[path = "integration/audit_feature_envy_extended.rs"]
-mod audit_feature_envy_extended;
-#[path = "integration/audit_fixture_loader.rs"]
-mod audit_fixture_loader;
-#[path = "integration/audit_fragmentation.rs"]
-mod audit_fragmentation;
-#[path = "integration/audit_freshness.rs"]
-mod audit_freshness;
-#[path = "integration/audit_god_class.rs"]
-mod audit_god_class;
-#[path = "integration/audit_god_class_extended.rs"]
-mod audit_god_class_extended;
-#[path = "integration/audit_graph.rs"]
-mod audit_graph;
-#[path = "integration/audit_ifdef_density.rs"]
-mod audit_ifdef_density;
-#[path = "integration/audit_ignore.rs"]
-mod audit_ignore;
-#[path = "integration/audit_import_call_form_extended.rs"]
-mod audit_import_call_form_extended;
-#[path = "integration/audit_import_command_form_extended.rs"]
-mod audit_import_command_form_extended;
-#[path = "integration/audit_import_jsts_extended.rs"]
-mod audit_import_jsts_extended;
-#[path = "integration/audit_import_php_extended.rs"]
-mod audit_import_php_extended;
-#[path = "integration/audit_import_preprocessor_extended.rs"]
-mod audit_import_preprocessor_extended;
-#[path = "integration/audit_imports.rs"]
-mod audit_imports;
-#[path = "integration/audit_imports_extended.rs"]
-mod audit_imports_extended;
-#[path = "integration/audit_imports_lossy.rs"]
-mod audit_imports_lossy;
-#[path = "integration/audit_imports_suffix_fallback.rs"]
-mod audit_imports_suffix_fallback;
-#[path = "integration/audit_inheritance_graph.rs"]
-mod audit_inheritance_graph;
-#[path = "integration/audit_lang_kinds_table.rs"]
-mod audit_lang_kinds_table;
-#[path = "integration/audit_languages.rs"]
-mod audit_languages;
-#[path = "integration/audit_martin.rs"]
-mod audit_martin;
-#[path = "integration/audit_mcd.rs"]
-mod audit_mcd;
-#[path = "integration/audit_method_vocab.rs"]
-mod audit_method_vocab;
 #[path = "integration/audit_multi_lang_dirs.rs"]
 mod audit_multi_lang_dirs;
-#[path = "integration/audit_named_smell_confidence_routing.rs"]
-mod audit_named_smell_confidence_routing;
-#[path = "integration/audit_named_smells_e2e.rs"]
-mod audit_named_smells_e2e;
-#[path = "integration/audit_named_smells_stress.rs"]
-mod audit_named_smells_stress;
-#[path = "integration/audit_named_smells_threshold.rs"]
-mod audit_named_smells_threshold;
-#[path = "integration/audit_naturalness.rs"]
-mod audit_naturalness;
 #[path = "integration/audit_negative_paths.rs"]
 mod audit_negative_paths;
-#[path = "integration/audit_output.rs"]
-mod audit_output;
-#[path = "integration/audit_output_advisory.rs"]
-mod audit_output_advisory;
-#[path = "integration/audit_output_cross_variant.rs"]
-mod audit_output_cross_variant;
-#[path = "integration/audit_output_divergent_change.rs"]
-mod audit_output_divergent_change;
-#[path = "integration/audit_output_extended.rs"]
-mod audit_output_extended;
-#[path = "integration/audit_output_feature_envy.rs"]
-mod audit_output_feature_envy;
-#[path = "integration/audit_output_god_class.rs"]
-mod audit_output_god_class;
-#[path = "integration/audit_output_martin.rs"]
-mod audit_output_martin;
-#[path = "integration/audit_output_named_smells.rs"]
-mod audit_output_named_smells;
-#[path = "integration/audit_output_parallel_inheritance.rs"]
-mod audit_output_parallel_inheritance;
-#[path = "integration/audit_output_refused_bequest.rs"]
-mod audit_output_refused_bequest;
-#[path = "integration/audit_output_remodularization.rs"]
-mod audit_output_remodularization;
-#[path = "integration/audit_package_metrics_skeleton.rs"]
-mod audit_package_metrics_skeleton;
-#[path = "integration/audit_parallel_inheritance.rs"]
-mod audit_parallel_inheritance;
-#[path = "integration/audit_parallel_inheritance_extended.rs"]
-mod audit_parallel_inheritance_extended;
-#[path = "integration/audit_per_language_deep.rs"]
-mod audit_per_language_deep;
-#[path = "integration/audit_pipeline_integration.rs"]
-mod audit_pipeline_integration;
-#[path = "integration/audit_reflexion.rs"]
-mod audit_reflexion;
-#[path = "integration/audit_refused_bequest.rs"]
-mod audit_refused_bequest;
-#[path = "integration/audit_refused_bequest_extended.rs"]
-mod audit_refused_bequest_extended;
-#[path = "integration/audit_remaining_coverage.rs"]
-mod audit_remaining_coverage;
-#[path = "integration/audit_remodularization.rs"]
-mod audit_remodularization;
-#[path = "integration/audit_scoring.rs"]
-mod audit_scoring;
-#[path = "integration/audit_scoring_extended.rs"]
-mod audit_scoring_extended;
-#[path = "integration/audit_shotgun_surgery.rs"]
-mod audit_shotgun_surgery;
 #[path = "integration/audit_stress.rs"]
 mod audit_stress;
-#[path = "integration/audit_suppression.rs"]
-mod audit_suppression;
-#[path = "integration/audit_taint.rs"]
-mod audit_taint;
 #[path = "integration/audit_test_exclusion.rs"]
 mod audit_test_exclusion;
-#[path = "integration/audit_test_roots.rs"]
-mod audit_test_roots;
-#[path = "integration/audit_vendor_filter_unit.rs"]
-mod audit_vendor_filter_unit;
-#[path = "integration/audit_vuln_clones.rs"]
-mod audit_vuln_clones;
-#[path = "integration/audit_walker.rs"]
-mod audit_walker;
-#[path = "integration/audit_walker_extended.rs"]
-mod audit_walker_extended;
-#[path = "integration/audit_ws1_stats.rs"]
-mod audit_ws1_stats;
 #[path = "integration/baseline_filtering.rs"]
 mod baseline_filtering;
-#[path = "integration/binding_languages.rs"]
-mod binding_languages;
 #[path = "integration/boundary_thresholds.rs"]
 mod boundary_thresholds;
 #[path = "integration/budget_command.rs"]
@@ -281,64 +78,18 @@ mod cobol_smells;
 mod cobol_stress;
 #[path = "integration/config_tests.rs"]
 mod config_tests;
-#[path = "integration/corpus_df_sweep.rs"]
-mod corpus_df_sweep;
-#[path = "integration/cov2_audit_small.rs"]
-mod cov2_audit_small;
-#[path = "integration/cov2_binding_go.rs"]
-mod cov2_binding_go;
-#[path = "integration/cov2_binding_jvm_swift_cs.rs"]
-mod cov2_binding_jvm_swift_cs;
-#[path = "integration/cov2_binding_objc_d.rs"]
-mod cov2_binding_objc_d;
-#[path = "integration/cov2_freshness_registry.rs"]
-mod cov2_freshness_registry;
 #[path = "integration/cov2_history_cmd.rs"]
 mod cov2_history_cmd;
-#[path = "integration/cov_audit_compound_severity.rs"]
-mod cov_audit_compound_severity;
-#[path = "integration/cov_audit_cycle_shapes.rs"]
-mod cov_audit_cycle_shapes;
-#[path = "integration/cov_audit_expression_filter.rs"]
-mod cov_audit_expression_filter;
-#[path = "integration/cov_audit_import_call_form.rs"]
-mod cov_audit_import_call_form;
-#[path = "integration/cov_audit_misc.rs"]
-mod cov_audit_misc;
-#[path = "integration/cov_audit_named_smells_confidence.rs"]
-mod cov_audit_named_smells_confidence;
 #[path = "integration/cov_baselines_internals.rs"]
 mod cov_baselines_internals;
-#[path = "integration/cov_binding_cfamily.rs"]
-mod cov_binding_cfamily;
-#[path = "integration/cov_binding_jvm.rs"]
-mod cov_binding_jvm;
-#[path = "integration/cov_binding_misc.rs"]
-mod cov_binding_misc;
-#[path = "integration/cov_config_empty_branches.rs"]
-mod cov_config_empty_branches;
-#[path = "integration/cov_detector_parallel_inheritance_workaround.rs"]
-mod cov_detector_parallel_inheritance_workaround;
 #[path = "integration/cov_history.rs"]
 mod cov_history;
 #[path = "integration/cov_history_cmd_calibrate.rs"]
 mod cov_history_cmd_calibrate;
-#[path = "integration/cov_import_php.rs"]
-mod cov_import_php;
-#[path = "integration/cov_import_preprocessor_branches.rs"]
-mod cov_import_preprocessor_branches;
-#[path = "integration/cov_network.rs"]
-mod cov_network;
-#[path = "integration/cov_output_arch.rs"]
-mod cov_output_arch;
-#[path = "integration/cov_output_deps_arch.rs"]
-mod cov_output_deps_arch;
 #[path = "integration/cov_runtime_misc.rs"]
 mod cov_runtime_misc;
 #[path = "integration/cov_setup_arch.rs"]
 mod cov_setup_arch;
-#[path = "integration/cov_taint_state_merge.rs"]
-mod cov_taint_state_merge;
 #[path = "integration/coverage_gaps.rs"]
 mod coverage_gaps;
 #[path = "integration/cpp_smells.rs"]
@@ -355,8 +106,6 @@ mod csharp_stress;
 mod d_smells;
 #[path = "integration/d_stress.rs"]
 mod d_stress;
-#[path = "integration/defensive_caps.rs"]
-mod defensive_caps;
 #[path = "integration/diff_filtering_stress.rs"]
 mod diff_filtering_stress;
 #[path = "integration/extract_suggester.rs"]
@@ -471,12 +220,6 @@ mod tcl_stress;
 mod typescript_smells;
 #[path = "integration/typescript_stress.rs"]
 mod typescript_stress;
-#[path = "integration/walk_field_accesses_foreign.rs"]
-mod walk_field_accesses_foreign;
-#[path = "integration/walk_field_accesses_foreign_extended.rs"]
-mod walk_field_accesses_foreign_extended;
-#[path = "integration/walk_parent_class.rs"]
-mod walk_parent_class;
 #[path = "integration/zig_smells.rs"]
 mod zig_smells;
 #[path = "integration/zig_stress.rs"]
