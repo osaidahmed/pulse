@@ -1,9 +1,9 @@
 #![allow(clippy::float_cmp)]
 
-use pulse::calibrate::priors::{MetricPrior, PriorsBuilder, QUANTILE_PROBES};
-use pulse::calibrate::stats::{count_quantile, weighted_quantile, Bin, WeightedHist};
-use pulse::parse::Language;
-use pulse::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
+use pulse_calibrate::priors::{MetricPrior, PriorsBuilder, QUANTILE_PROBES};
+use pulse_calibrate::stats::{count_quantile, weighted_quantile, Bin, WeightedHist};
+use pulse_syntax::parse::Language;
+use pulse_syntax::walk::{FileMetrics, FunctionMetrics, ModuleMetrics};
 
 fn empty_module() -> ModuleMetrics {
     ModuleMetrics {

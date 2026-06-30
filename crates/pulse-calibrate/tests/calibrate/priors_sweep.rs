@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use pulse::audit::IgnoreFilter;
-use pulse::calibrate::priors::PriorsBuilder;
-use pulse::config::IgnoreMatcher;
+use pulse_audit::IgnoreFilter;
+use pulse_calibrate::priors::PriorsBuilder;
+use pulse_config::IgnoreMatcher;
 
 use crate::common::t;
 use crate::sweep_harness;
@@ -23,7 +23,7 @@ fn bake_single_repo(repo: &Path, out: &Path) {
     let matcher = IgnoreMatcher::from_patterns(&[]);
     let filter = IgnoreFilter::new(&matcher, repo);
     let mut builder = PriorsBuilder::default();
-    let summary = pulse::calibrate::accumulate(repo, &thresholds, &filter, &mut builder);
+    let summary = pulse_calibrate::accumulate(repo, &thresholds, &filter, &mut builder);
     std::fs::write(out, builder.to_json()).unwrap();
     eprintln!(
         "censused {} ({} main, {} test, {} vendored)",
@@ -36,7 +36,7 @@ fn bake_single_repo(repo: &Path, out: &Path) {
 
 fn drive_sweep(corpus_root: &Path) {
     let exe = std::env::current_exe().unwrap();
-    let snapshot_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/priors-snapshots");
+    let snapshot_dir = pulse_testkit::workspace_root().join("target/priors-snapshots");
     let crashed = sweep_harness::drive_per_repo(corpus_root, &snapshot_dir, "json", |repo, out| {
         Command::new(&exe)
             .args(["priors_sweep::bake_corpus_priors", "--exact", "--nocapture"])
@@ -55,7 +55,7 @@ fn drive_sweep(corpus_root: &Path) {
             merged += 1;
         }
     }
-    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates/pulse-calibrate/src");
+    let calibrate_dir = pulse_testkit::workspace_root().join("crates/pulse-calibrate/src");
     std::fs::write(calibrate_dir.join("priors_histogram.json"), builder.to_json()).unwrap();
     write_priors_json(&builder, &calibrate_dir);
     eprintln!("priors written from {merged} repos; {} crashed: {crashed:?}", crashed.len());
@@ -72,7 +72,7 @@ fn rebake_priors_json_from_histogram() {
     if std::env::var("REBAKE_PRIORS_JSON").is_err() {
         return;
     }
-    let calibrate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crates/pulse-calibrate/src");
+    let calibrate_dir = pulse_testkit::workspace_root().join("crates/pulse-calibrate/src");
     let mut builder = PriorsBuilder::default();
     let histogram = std::fs::read_to_string(calibrate_dir.join("priors_histogram.json")).unwrap();
     assert!(builder.merge_json(&histogram), "committed histogram must parse");

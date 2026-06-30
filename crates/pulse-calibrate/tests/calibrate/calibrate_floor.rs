@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
-use pulse::calibrate::estimator::{estimate_languages, EstimatorConfig};
-use pulse::calibrate::priors::corpus_priors;
-use pulse::parse::Language;
+use pulse_calibrate::estimator::{estimate_languages, EstimatorConfig};
+use pulse_calibrate::priors::corpus_priors;
+use pulse_syntax::parse::Language;
 
 const CONTINUOUS: [&str; 4] = ["cc", "cogc", "fn_loc", "embedded_block_loc"];
 

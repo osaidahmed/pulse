@@ -1,4 +1,4 @@
-use pulse::calibrate::priors::corpus_priors;
+use pulse_calibrate::priors::corpus_priors;
 
 #[test]
 fn cdf_is_monotone_and_bounded_for_every_metric() {

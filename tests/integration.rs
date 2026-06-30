@@ -17,17 +17,6 @@ mod cov3_stragglers;
 #[path = "integration/buildmeta_corpus.rs"]
 mod buildmeta_corpus;
 
-#[path = "integration/calibrate_census.rs"]
-mod calibrate_census;
-
-#[path = "integration/calibrate_estimator.rs"]
-mod calibrate_estimator;
-
-#[path = "integration/calibrate_cdf.rs"]
-mod calibrate_cdf;
-#[path = "integration/calibrate_floor.rs"]
-mod calibrate_floor;
-
 #[path = "integration/session_clones.rs"]
 mod session_clones;
 
@@ -42,12 +31,6 @@ mod framework_applicability;
 
 #[path = "integration/calibrate_emit.rs"]
 mod calibrate_emit;
-
-#[path = "integration/calibrate_priors.rs"]
-mod calibrate_priors;
-
-#[path = "integration/priors_sweep.rs"]
-mod priors_sweep;
 
 #[path = "integration/walker_stack_guard.rs"]
 mod walker_stack_guard;
@@ -331,8 +314,6 @@ mod cov_binding_cfamily;
 mod cov_binding_jvm;
 #[path = "integration/cov_binding_misc.rs"]
 mod cov_binding_misc;
-#[path = "integration/cov_calibrate.rs"]
-mod cov_calibrate;
 #[path = "integration/cov_config_empty_branches.rs"]
 mod cov_config_empty_branches;
 #[path = "integration/cov_detector_parallel_inheritance_workaround.rs"]

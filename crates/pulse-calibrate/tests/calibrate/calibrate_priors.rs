@@ -2,17 +2,17 @@
 
 use std::path::Path;
 
-use pulse::audit::IgnoreFilter;
-use pulse::calibrate::priors::{corpus_priors, MetricPrior, PriorsBuilder, QUANTILE_PROBES};
-use pulse::calibrate::stats::{count_quantile, weighted_quantile, WeightedHist};
-use pulse::config::IgnoreMatcher;
+use pulse_audit::IgnoreFilter;
+use pulse_calibrate::priors::{corpus_priors, MetricPrior, PriorsBuilder, QUANTILE_PROBES};
+use pulse_calibrate::stats::{count_quantile, weighted_quantile, WeightedHist};
+use pulse_config::IgnoreMatcher;
 
 use crate::common::t;
 
-fn project_census(root: &Path) -> pulse::calibrate::Census {
+fn project_census(root: &Path) -> pulse_calibrate::Census {
     let matcher = IgnoreMatcher::from_patterns(&[]);
     let filter = IgnoreFilter::new(&matcher, root);
-    pulse::calibrate::collect(root, &t(), &filter)
+    pulse_calibrate::collect(root, &t(), &filter)
 }
 
 #[test]
@@ -77,11 +77,11 @@ fn streaming_accumulate_matches_collect_then_add() {
     let filter = IgnoreFilter::new(&matcher, dir.path());
 
     let mut by_collect = PriorsBuilder::default();
-    by_collect.add_census(&pulse::calibrate::collect(dir.path(), &t(), &filter));
+    by_collect.add_census(&pulse_calibrate::collect(dir.path(), &t(), &filter));
     let collected = serde_json::to_string(&by_collect.build(false)).unwrap();
 
     let mut by_stream = PriorsBuilder::default();
-    pulse::calibrate::accumulate(dir.path(), &t(), &filter, &mut by_stream);
+    pulse_calibrate::accumulate(dir.path(), &t(), &filter, &mut by_stream);
     let streamed = serde_json::to_string(&by_stream.build(false)).unwrap();
 
     assert_eq!(collected, streamed);

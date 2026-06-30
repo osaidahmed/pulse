@@ -2,8 +2,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use pulse::calibrate::estimator::{estimate, estimate_languages, EstimatorConfig};
-use pulse::calibrate::priors::{corpus_priors, LanguagePriors, MetricPrior};
+use pulse_calibrate::estimator::{estimate, estimate_languages, EstimatorConfig};
+use pulse_calibrate::priors::{corpus_priors, LanguagePriors, MetricPrior};
 
 use crate::common::t;
 
@@ -77,9 +77,9 @@ fn estimate_against_the_real_corpus_respects_floors() {
         "def alpha(x):\n    if x > 1:\n        return x\n    return 0\n\ndef beta(y):\n    return y + 1\n",
     )
     .unwrap();
-    let matcher = pulse::config::IgnoreMatcher::from_patterns(&[]);
-    let filter = pulse::audit::IgnoreFilter::new(&matcher, dir.path());
-    let census = pulse::calibrate::collect(dir.path(), &t(), &filter);
+    let matcher = pulse_config::IgnoreMatcher::from_patterns(&[]);
+    let filter = pulse_audit::IgnoreFilter::new(&matcher, dir.path());
+    let census = pulse_calibrate::collect(dir.path(), &t(), &filter);
     let out = estimate(&census, corpus_priors(), &cfg());
     let py = out.main.get("python").expect("python thresholds");
     let cc = py["cc"];
