@@ -1,4 +1,4 @@
-use pulse::parse::{self, Language};
+use pulse_syntax::parse::{self, Language};
 
 const ALL_LANGS: &[(Language, &str, &str)] = &[
     (Language::Python, "py", "def f():\n    return 1\n"),
@@ -151,7 +151,7 @@ fn parse_only_independent_of_walk_only() {
 
 #[test]
 fn analyze_via_split_matches_combined_for_realistic_python() {
-    let src = include_str!("../fixtures/python/production_service.py");
+    let src = include_str!("../../../../tests/fixtures/python/production_service.py");
     let combined = parse::parse_and_walk(src, Language::Python).unwrap();
     let tree = parse::parse_only(src, Language::Python).unwrap();
     let split = parse::walk_only(&tree, src, Language::Python);

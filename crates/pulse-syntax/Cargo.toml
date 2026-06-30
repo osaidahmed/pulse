@@ -34,6 +34,9 @@ memchr = "2"
 strum = { version = "0.26", features = ["derive"] }
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
+[dev-dependencies]
+pulse-testkit = { path = "../pulse-testkit" }
+
 [lints.rust]
 unsafe_code = "forbid"
 

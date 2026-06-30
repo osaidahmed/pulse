@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-use pulse::parse::{detect_language, parse_and_walk};
-use pulse::walk::FunctionMetrics;
+use pulse_syntax::parse::{detect_language, parse_and_walk};
+use pulse_syntax::walk::FunctionMetrics;
 
 const MIN_NONTRIVIAL_FUNCTIONS: usize = 2;
 
 fn fixture_path(lang_dir: &str, fixture: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join(lang_dir).join(fixture)
+    pulse_testkit::workspace_root().join("tests").join("fixtures").join(lang_dir).join(fixture)
 }
 
 fn is_nontrivial(f: &FunctionMetrics) -> bool {

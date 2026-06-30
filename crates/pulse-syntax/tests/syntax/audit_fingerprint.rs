@@ -1,5 +1,5 @@
-use pulse::parse::{self, Language};
-use pulse::walk::fingerprint;
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::walk::fingerprint;
 use tree_sitter::Node;
 
 fn parse_python(src: &str) -> tree_sitter::Tree {

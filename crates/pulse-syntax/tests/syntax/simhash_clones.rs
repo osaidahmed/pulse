@@ -1,5 +1,5 @@
-use pulse::parse::Language;
-use pulse::walk::simhash::simhash_of;
+use pulse_syntax::parse::Language;
+use pulse_syntax::walk::simhash::simhash_of;
 
 fn hamming(a: u64, b: u64) -> u32 {
     (a ^ b).count_ones()

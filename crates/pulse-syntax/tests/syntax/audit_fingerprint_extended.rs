@@ -1,5 +1,5 @@
-use pulse::parse::{self, Language};
-use pulse::walk::fingerprint::{compute_subtree_fingerprint, compute_subtree_fingerprint_seeded};
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::walk::fingerprint::{compute_subtree_fingerprint, compute_subtree_fingerprint_seeded};
 use tree_sitter::Node;
 
 fn root(src: &str, lang: Language) -> tree_sitter::Tree {

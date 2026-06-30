@@ -1,5 +1,5 @@
-use pulse::langkinds::{block_kinds, control_flow_kinds, function_kinds};
-use pulse::parse::Language;
+use pulse_syntax::langkinds::{block_kinds, control_flow_kinds, function_kinds};
+use pulse_syntax::parse::Language;
 
 #[test]
 fn every_language_returns_a_slice_without_panicking() {

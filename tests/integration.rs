@@ -67,8 +67,6 @@ mod cpg_mutation_hardening;
 mod mutation_hardening;
 #[path = "integration/negative_controls.rs"]
 mod negative_controls;
-#[path = "integration/parity.rs"]
-mod parity;
 #[path = "integration/turn_scan_backstop.rs"]
 mod turn_scan_backstop;
 
@@ -153,10 +151,6 @@ mod audit_edge_cases;
 mod audit_feature_envy;
 #[path = "integration/audit_feature_envy_extended.rs"]
 mod audit_feature_envy_extended;
-#[path = "integration/audit_fingerprint.rs"]
-mod audit_fingerprint;
-#[path = "integration/audit_fingerprint_extended.rs"]
-mod audit_fingerprint_extended;
 #[path = "integration/audit_fixture_loader.rs"]
 mod audit_fixture_loader;
 #[path = "integration/audit_fragmentation.rs"]
@@ -265,8 +259,6 @@ mod audit_remodularization;
 mod audit_scoring;
 #[path = "integration/audit_scoring_extended.rs"]
 mod audit_scoring_extended;
-#[path = "integration/audit_seeded_fingerprint.rs"]
-mod audit_seeded_fingerprint;
 #[path = "integration/audit_shotgun_surgery.rs"]
 mod audit_shotgun_surgery;
 #[path = "integration/audit_stress.rs"]
@@ -371,20 +363,12 @@ mod cov_network;
 mod cov_output_arch;
 #[path = "integration/cov_output_deps_arch.rs"]
 mod cov_output_deps_arch;
-#[path = "integration/cov_r_walker_assignment_forms.rs"]
-mod cov_r_walker_assignment_forms;
 #[path = "integration/cov_runtime_misc.rs"]
 mod cov_runtime_misc;
 #[path = "integration/cov_setup_arch.rs"]
 mod cov_setup_arch;
 #[path = "integration/cov_taint_state_merge.rs"]
 mod cov_taint_state_merge;
-#[path = "integration/cov_typescript_walker.rs"]
-mod cov_typescript_walker;
-#[path = "integration/cov_walk_cpp.rs"]
-mod cov_walk_cpp;
-#[path = "integration/cov_walk_csharp.rs"]
-mod cov_walk_csharp;
 #[path = "integration/coverage_gaps.rs"]
 mod coverage_gaps;
 #[path = "integration/cpp_smells.rs"]
@@ -397,8 +381,6 @@ mod cross_lang_complexity;
 mod csharp_smells;
 #[path = "integration/csharp_stress.rs"]
 mod csharp_stress;
-#[path = "integration/csharp_walker_extended.rs"]
-mod csharp_walker_extended;
 #[path = "integration/d_smells.rs"]
 mod d_smells;
 #[path = "integration/d_stress.rs"]
@@ -415,8 +397,6 @@ mod extract_suggester;
 mod false_positive_reduction;
 #[path = "integration/fused_equivalence.rs"]
 mod fused_equivalence;
-#[path = "integration/fuzz_corpus.rs"]
-mod fuzz_corpus;
 #[path = "integration/fuzzy_duplication.rs"]
 mod fuzzy_duplication;
 #[path = "integration/go_smells.rs"]
@@ -471,52 +451,38 @@ mod jit_calibration;
 mod kotlin_smells;
 #[path = "integration/kotlin_stress.rs"]
 mod kotlin_stress;
-#[path = "integration/langkinds.rs"]
-mod langkinds;
 #[path = "integration/lua_smells.rs"]
 mod lua_smells;
 #[path = "integration/lua_stress.rs"]
 mod lua_stress;
 #[path = "integration/module_boundary_thresholds.rs"]
 mod module_boundary_thresholds;
-#[path = "integration/multi_lang_walker_extended.rs"]
-mod multi_lang_walker_extended;
 #[path = "integration/new_smells_stress.rs"]
 mod new_smells_stress;
 #[path = "integration/objc_smells.rs"]
 mod objc_smells;
 #[path = "integration/objc_stress.rs"]
 mod objc_stress;
-#[path = "integration/parse_refactor.rs"]
-mod parse_refactor;
 #[path = "integration/path_ignore.rs"]
 mod path_ignore;
 #[path = "integration/php_smells.rs"]
 mod php_smells;
 #[path = "integration/php_stress.rs"]
 mod php_stress;
-#[path = "integration/php_walker_extended.rs"]
-mod php_walker_extended;
 #[path = "integration/production_fixtures.rs"]
 mod production_fixtures;
 #[path = "integration/production_fixtures_new_smells.rs"]
 mod production_fixtures_new_smells;
-#[path = "integration/property_invariants.rs"]
-mod property_invariants;
 #[path = "integration/python_future_smells.rs"]
 mod python_future_smells;
 #[path = "integration/python_smells.rs"]
 mod python_smells;
 #[path = "integration/python_stress.rs"]
 mod python_stress;
-#[path = "integration/python_walker_extended.rs"]
-mod python_walker_extended;
 #[path = "integration/r_smells.rs"]
 mod r_smells;
 #[path = "integration/r_stress.rs"]
 mod r_stress;
-#[path = "integration/r_walker_extended.rs"]
-mod r_walker_extended;
 #[path = "integration/refmine.rs"]
 mod refmine;
 #[path = "integration/regression_detection.rs"]
@@ -535,8 +501,6 @@ mod scoped_cache_isolation;
 mod setup_idempotency;
 #[path = "integration/setup_tests.rs"]
 mod setup_tests;
-#[path = "integration/simhash_clones.rs"]
-mod simhash_clones;
 #[path = "integration/swift_smells.rs"]
 mod swift_smells;
 #[path = "integration/swift_stress.rs"]
@@ -545,8 +509,6 @@ mod swift_stress;
 mod tcl_smells;
 #[path = "integration/tcl_stress.rs"]
 mod tcl_stress;
-#[path = "integration/test_file_detection.rs"]
-mod test_file_detection;
 #[path = "integration/typescript_smells.rs"]
 mod typescript_smells;
 #[path = "integration/typescript_stress.rs"]
@@ -557,8 +519,6 @@ mod walk_field_accesses_foreign;
 mod walk_field_accesses_foreign_extended;
 #[path = "integration/walk_parent_class.rs"]
 mod walk_parent_class;
-#[path = "integration/walker_structural_completeness.rs"]
-mod walker_structural_completeness;
 #[path = "integration/zig_smells.rs"]
 mod zig_smells;
 #[path = "integration/zig_stress.rs"]

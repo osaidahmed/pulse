@@ -1,12 +1,12 @@
 use crate::common::*;
-use pulse::parse::{parse_and_walk, Language};
-use pulse::walk::FileMetrics;
+use pulse_syntax::parse::{parse_and_walk, Language};
+use pulse_syntax::walk::FileMetrics;
 
 fn walk_cpp(src: &str) -> FileMetrics {
     parse_and_walk(src, Language::Cpp).expect("cpp source should parse")
 }
 
-fn find_fn<'a>(fm: &'a FileMetrics, name: &str) -> Option<&'a pulse::walk::FunctionMetrics> {
+fn find_fn<'a>(fm: &'a FileMetrics, name: &str) -> Option<&'a pulse_syntax::walk::FunctionMetrics> {
     fm.functions.iter().find(|f| f.name == name)
 }
 

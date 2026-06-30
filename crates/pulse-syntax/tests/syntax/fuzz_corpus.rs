@@ -1,4 +1,4 @@
-use pulse::parse::{parse_and_walk_guarded, parse_guarded, Language, MAX_INPUT_LINES, MAX_LINE_BYTES};
+use pulse_syntax::parse::{parse_and_walk_guarded, parse_guarded, Language, MAX_INPUT_LINES, MAX_LINE_BYTES};
 
 fn adversarial_inputs() -> Vec<(&'static str, String)> {
     vec![

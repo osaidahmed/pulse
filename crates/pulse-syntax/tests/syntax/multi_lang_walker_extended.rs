@@ -1,6 +1,6 @@
-use pulse::parse::{parse_and_walk, Language};
+use pulse_syntax::parse::{parse_and_walk, Language};
 
-fn analyze(source: &str, lang: Language) -> pulse::walk::FileMetrics {
+fn analyze(source: &str, lang: Language) -> pulse_syntax::walk::FileMetrics {
     parse_and_walk(source, lang).unwrap_or_else(|| panic!("parse {lang:?}"))
 }
 

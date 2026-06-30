@@ -1,4 +1,4 @@
-use pulse::test_detection::is_test_file;
+use pulse_syntax::test_detection::is_test_file;
 
 type Cases<'a> = &'a [(&'a str, bool, &'a str)];
 

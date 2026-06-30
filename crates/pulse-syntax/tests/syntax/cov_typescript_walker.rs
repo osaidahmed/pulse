@@ -1,10 +1,10 @@
-use pulse::parse::{parse_and_walk, parse_and_walk_scoped, Language};
+use pulse_syntax::parse::{parse_and_walk, parse_and_walk_scoped, Language};
 
-fn ts(source: &str) -> pulse::walk::FileMetrics {
+fn ts(source: &str) -> pulse_syntax::walk::FileMetrics {
     parse_and_walk(source, Language::TypeScript).expect("parse TypeScript")
 }
 
-fn js(source: &str) -> pulse::walk::FileMetrics {
+fn js(source: &str) -> pulse_syntax::walk::FileMetrics {
     parse_and_walk(source, Language::JavaScript).expect("parse JavaScript")
 }
 

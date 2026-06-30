@@ -1,5 +1,5 @@
-use pulse::parse::{self, Language};
-use pulse::walk::FunctionMetrics;
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::walk::FunctionMetrics;
 use std::ops::RangeInclusive;
 use std::path::PathBuf;
 
@@ -74,7 +74,7 @@ fn band_for(lang: Language, shape: &str) -> Option<Band> {
 }
 
 fn parity_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join("parity")
+    pulse_testkit::workspace_root().join("tests").join("fixtures").join("parity")
 }
 
 fn normalize(name: &str) -> String {

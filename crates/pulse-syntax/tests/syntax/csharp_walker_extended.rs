@@ -1,8 +1,8 @@
-use pulse::parse::{parse_and_walk, Language};
+use pulse_syntax::parse::{parse_and_walk, Language};
 
 use crate::common::t;
 
-fn analyze(source: &str) -> pulse::walk::FileMetrics {
+fn analyze(source: &str) -> pulse_syntax::walk::FileMetrics {
     parse_and_walk(source, Language::CSharp).expect("parse C#")
 }
 

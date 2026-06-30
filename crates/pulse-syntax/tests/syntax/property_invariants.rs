@@ -1,5 +1,5 @@
-use pulse::parse::{parse_and_walk, Language};
-use pulse::walk::FunctionMetrics;
+use pulse_syntax::parse::{parse_and_walk, Language};
+use pulse_syntax::walk::FunctionMetrics;
 
 fn first_fn(src: &str) -> FunctionMetrics {
     parse_and_walk(src, Language::Python).expect("parse").functions.into_iter().next().expect("a function")

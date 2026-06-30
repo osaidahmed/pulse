@@ -1,5 +1,5 @@
-use pulse::parse::{self, Language};
-use pulse::walk::fingerprint::compute_subtree_fingerprint_seeded;
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::walk::fingerprint::compute_subtree_fingerprint_seeded;
 
 fn root_node_hash(src: &str, lang: Language, seed: u64) -> u64 {
     let tree = parse::parse_only(src, lang).unwrap();
