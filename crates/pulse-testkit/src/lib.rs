@@ -1,5 +1,3 @@
-//! Shared, binary-free test helpers for the pulse workspace crates.
-//! Binary-driven helpers (run_check, lang_helpers!) stay in the umbrella test binary.
 #![allow(dead_code)]
 
 use std::path::PathBuf;
@@ -10,8 +8,6 @@ pub fn t() -> Thresholds {
     Thresholds::default()
 }
 
-/// Walks up from this crate's manifest dir to the workspace root (the Cargo.toml
-/// declaring `[workspace]`), so per-crate tests can reach the shared fixtures.
 pub fn workspace_root() -> PathBuf {
     let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     loop {
