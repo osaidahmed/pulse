@@ -95,13 +95,13 @@ summary)
   echo "running tests with coverage..."
   echo ""
   # shellcheck disable=SC2086
-  cargo llvm-cov nextest $cov_flags 2>&1
+  cargo llvm-cov nextest --workspace $cov_flags 2>&1
   ;;
 
 html)
   echo "generating HTML coverage report..."
   # shellcheck disable=SC2086
-  cargo llvm-cov nextest --html $cov_flags 2>&1
+  cargo llvm-cov nextest --workspace --html $cov_flags 2>&1
 
   if [ "$open_report" = true ]; then
     echo ""
@@ -118,11 +118,11 @@ html)
 
 json)
   # shellcheck disable=SC2086
-  cargo llvm-cov nextest --json $cov_flags 2>&1
+  cargo llvm-cov nextest --workspace --json $cov_flags 2>&1
   ;;
 
 lcov)
   # shellcheck disable=SC2086
-  cargo llvm-cov nextest --lcov $cov_flags 2>&1
+  cargo llvm-cov nextest --workspace --lcov $cov_flags 2>&1
   ;;
 esac
