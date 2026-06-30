@@ -14,9 +14,6 @@ mod binding_common;
 #[path = "integration/cov3_stragglers.rs"]
 mod cov3_stragglers;
 
-#[path = "integration/boundaries.rs"]
-mod boundaries;
-
 #[path = "integration/buildmeta_corpus.rs"]
 mod buildmeta_corpus;
 
@@ -40,9 +37,6 @@ mod dead_function;
 #[path = "integration/dead_function_corpus.rs"]
 mod dead_function_corpus;
 
-#[path = "integration/cpg_corpus.rs"]
-mod cpg_corpus;
-
 #[path = "integration/framework_applicability.rs"]
 mod framework_applicability;
 
@@ -65,8 +59,6 @@ mod baseline_ratchet;
 mod cpg_mutation_hardening;
 #[path = "integration/mutation_hardening.rs"]
 mod mutation_hardening;
-#[path = "integration/negative_controls.rs"]
-mod negative_controls;
 #[path = "integration/turn_scan_backstop.rs"]
 mod turn_scan_backstop;
 
@@ -389,14 +381,10 @@ mod d_stress;
 mod defensive_caps;
 #[path = "integration/diff_filtering_stress.rs"]
 mod diff_filtering_stress;
-#[path = "integration/duplication_extended.rs"]
-mod duplication_extended;
 #[path = "integration/extract_suggester.rs"]
 mod extract_suggester;
 #[path = "integration/false_positive_reduction.rs"]
 mod false_positive_reduction;
-#[path = "integration/fused_equivalence.rs"]
-mod fused_equivalence;
 #[path = "integration/fuzzy_duplication.rs"]
 mod fuzzy_duplication;
 #[path = "integration/go_smells.rs"]

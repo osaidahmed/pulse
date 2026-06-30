@@ -1,7 +1,7 @@
-use pulse::duplication::detect_code_duplication;
-use pulse::smells::{Finding, Smell};
-use pulse::thresholds::Thresholds;
-use pulse::walk::FunctionMetrics;
+use pulse_smells::duplication::detect_code_duplication;
+use pulse_smells::{Finding, Smell};
+use pulse_syntax::walk::FunctionMetrics;
+use pulse_thresholds::Thresholds;
 
 use crate::common::t;
 
@@ -264,11 +264,11 @@ fn many_groups_each_emitted_independently() {
 fn already_reported_filter_handles_invalid_line_format() {
     let mut findings = vec![Finding {
         smell: Smell::CodeDuplication,
-        location: pulse::smells::Location::Module,
+        location: pulse_smells::Location::Module,
         detail: "no line markers here".to_string(),
     }];
     let funcs = vec![fn_with("a", 1, 30, 0xAAA, 0xFEED), fn_with("b", 50, 79, 0xBBB, 0xFEED)];
-    pulse::duplication::detect_code_duplication(&funcs, &t(), &mut findings);
+    pulse_smells::duplication::detect_code_duplication(&funcs, &t(), &mut findings);
 }
 
 #[test]
@@ -298,9 +298,9 @@ fn skeleton_finding_does_not_duplicate_already_reported_exact() {
 fn extract_line_numbers_handles_multiple_locations() {
     let mut findings = vec![Finding {
         smell: Smell::CodeDuplication,
-        location: pulse::smells::Location::Module,
+        location: pulse_smells::Location::Module,
         detail: "foo (L10-30), bar (L100-130)".to_string(),
     }];
     let funcs = vec![fn_with("a", 200, 240, 0xAAA, 0xFEED), fn_with("b", 300, 340, 0xBBB, 0xFEED)];
-    pulse::duplication::detect_code_duplication(&funcs, &t(), &mut findings);
+    pulse_smells::duplication::detect_code_duplication(&funcs, &t(), &mut findings);
 }

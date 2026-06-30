@@ -1,6 +1,6 @@
-use pulse::parse::{self, Language};
-use pulse::smells::{self, Finding, Smell};
-use pulse::walk::{FileMetrics, FunctionMetrics};
+use pulse_smells::{self as smells, Finding, Smell};
+use pulse_syntax::parse::{self, Language};
+use pulse_syntax::walk::{FileMetrics, FunctionMetrics};
 
 use crate::common::t;
 

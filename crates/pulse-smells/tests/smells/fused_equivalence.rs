@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use pulse::parse;
-use pulse::smells::{self, Finding, Location};
-use pulse::thresholds::Thresholds;
-use pulse::walk::{FunctionMetrics, ModuleMetrics};
+use pulse_smells::{self as smells, Finding, Location};
+use pulse_syntax::parse;
+use pulse_syntax::walk::{FunctionMetrics, ModuleMetrics};
+use pulse_thresholds::Thresholds;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 struct FnSnap {
@@ -113,7 +113,7 @@ fn finding_snaps(findings: &[Finding]) -> Vec<FindingSnap> {
 }
 
 fn fixtures_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures")
+    pulse_testkit::workspace_root().join("tests").join("fixtures")
 }
 
 fn collect_source_files(dir: &Path, out: &mut Vec<PathBuf>) {

@@ -1,5 +1,5 @@
-use pulse::parse::{self, Language};
-use pulse::smells::{self, Finding};
+use pulse_smells::{self as smells, Finding};
+use pulse_syntax::parse::{self, Language};
 
 use crate::common::t;
 

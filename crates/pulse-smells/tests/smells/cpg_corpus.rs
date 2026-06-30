@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use pulse::parse::{self, Language};
-use pulse::smells::{self, Location, Smell};
-use pulse::thresholds::Thresholds;
+use pulse_smells::{self as smells, Location, Smell};
+use pulse_syntax::parse::{self, Language};
+use pulse_thresholds::Thresholds;
 
 const MAX_FILE_BYTES: u64 = 2_000_000;
 const SKIP_DIRS: &[&str] =
