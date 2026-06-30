@@ -1,4 +1,4 @@
-use pulse::thresholds::{AuditThresholds, Thresholds};
+use pulse_thresholds::{AuditThresholds, Thresholds};
 
 fn t() -> Thresholds {
     Thresholds::default()
