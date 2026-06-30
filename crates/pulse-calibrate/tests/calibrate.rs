@@ -6,20 +6,20 @@ mod common;
 #[path = "calibrate/sweep_harness.rs"]
 mod sweep_harness;
 
-#[path = "calibrate/calibrate_cdf.rs"]
-mod calibrate_cdf;
+#[path = "calibrate/cdf.rs"]
+mod cdf;
 
-#[path = "calibrate/calibrate_census.rs"]
-mod calibrate_census;
+#[path = "calibrate/census.rs"]
+mod census;
 
-#[path = "calibrate/calibrate_estimator.rs"]
-mod calibrate_estimator;
+#[path = "calibrate/estimator.rs"]
+mod estimator;
 
-#[path = "calibrate/calibrate_floor.rs"]
-mod calibrate_floor;
+#[path = "calibrate/floor.rs"]
+mod floor;
 
-#[path = "calibrate/calibrate_priors.rs"]
-mod calibrate_priors;
+#[path = "calibrate/priors.rs"]
+mod priors;
 
 #[path = "calibrate/cov_calibrate.rs"]
 mod cov_calibrate;

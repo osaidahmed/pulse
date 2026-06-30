@@ -1,48 +1,48 @@
 #![allow(dead_code, unused_imports)]
 
+#[path = "history/arch_trend.rs"]
+mod arch_trend;
+#[path = "history/build_co_change.rs"]
+mod build_co_change;
+#[path = "history/co_change.rs"]
+mod co_change;
 #[path = "history/common.rs"]
 mod common;
-#[path = "history/history_arch_trend.rs"]
-mod history_arch_trend;
-#[path = "history/history_build_co_change.rs"]
-mod history_build_co_change;
-#[path = "history/history_co_change.rs"]
-mod history_co_change;
+#[path = "history/config_overrides.rs"]
+mod config_overrides;
+#[path = "history/contributors.rs"]
+mod contributors;
+#[path = "history/e2e_scenarios.rs"]
+mod e2e_scenarios;
+#[path = "history/edge_cases.rs"]
+mod edge_cases;
+#[path = "history/edges.rs"]
+mod edges;
+#[path = "history/finding.rs"]
+mod finding;
+#[path = "history/hist_smells.rs"]
+mod hist_smells;
 #[path = "history/history_common.rs"]
 mod history_common;
-#[path = "history/history_config_overrides.rs"]
-mod history_config_overrides;
-#[path = "history/history_contributors.rs"]
-mod history_contributors;
-#[path = "history/history_e2e_scenarios.rs"]
-mod history_e2e_scenarios;
-#[path = "history/history_edge_cases.rs"]
-mod history_edge_cases;
-#[path = "history/history_edges.rs"]
-mod history_edges;
-#[path = "history/history_finding.rs"]
-mod history_finding;
-#[path = "history/history_hist_smells.rs"]
-mod history_hist_smells;
-#[path = "history/history_hotspots.rs"]
-mod history_hotspots;
-#[path = "history/history_languages_static_link.rs"]
-mod history_languages_static_link;
-#[path = "history/history_negative_paths.rs"]
-mod history_negative_paths;
-#[path = "history/history_output.rs"]
-mod history_output;
-#[path = "history/history_szz.rs"]
-mod history_szz;
+#[path = "history/hotspots.rs"]
+mod hotspots;
+#[path = "history/languages_static_link.rs"]
+mod languages_static_link;
+#[path = "history/negative_paths.rs"]
+mod negative_paths;
+#[path = "history/output.rs"]
+mod output;
+#[path = "history/szz.rs"]
+mod szz;
 
 #[path = "history/audit_common.rs"]
 mod audit_common;
 
-#[path = "history/history_git.rs"]
-mod history_git;
+#[path = "history/git.rs"]
+mod git;
 
-#[path = "history/history_orchestrator.rs"]
-mod history_orchestrator;
+#[path = "history/orchestrator.rs"]
+mod orchestrator;
 
 #[path = "history/cov_history_git_subprocess.rs"]
 mod cov_history_git_subprocess;
