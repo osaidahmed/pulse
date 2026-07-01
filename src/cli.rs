@@ -29,7 +29,12 @@ pub enum SubCmd {
         uninstall: bool,
     },
     /// Analyze a single file (or use -a for whole project).
-    Check { file: Option<String> },
+    Check {
+        file: Option<String>,
+        /// Emit findings as a JSON array instead of text.
+        #[arg(long)]
+        json: bool,
+    },
     /// Dump raw per-function metrics for a file.
     Debug { file: String },
     /// Report threshold budgets for a file or for new files.
@@ -142,8 +147,8 @@ pub enum Dispatch {
     Stop,
     Cleanup,
     Setup { uninstall: bool },
-    Check(String),
-    CheckAll { include_tests: bool },
+    Check { file: String, json: bool },
+    CheckAll { include_tests: bool, json: bool },
     Debug(String),
     Budget(Option<String>),
     Audit { args: AuditArgs, include_tests: bool },
@@ -178,7 +183,7 @@ fn dispatch_from_clap(cli: Cli) -> Dispatch {
     let include_tests = cli.include_tests;
     match cli.command {
         Some(sub) => dispatch_subcmd(sub, all, include_tests),
-        None if all => Dispatch::CheckAll { include_tests },
+        None if all => Dispatch::CheckAll { include_tests, json: false },
         None => Dispatch::UsageError,
     }
 }
@@ -186,7 +191,12 @@ fn dispatch_from_clap(cli: Cli) -> Dispatch {
 fn dispatch_subcmd(sub: SubCmd, all: bool, include_tests: bool) -> Dispatch {
     match sub {
         SubCmd::Setup { uninstall } => Dispatch::Setup { uninstall },
-        SubCmd::Check { file } => fileful_dispatch(file, all, Dispatch::Check, || Dispatch::CheckAll { include_tests }),
+        SubCmd::Check { file, json } => fileful_dispatch(
+            file,
+            all,
+            |f| Dispatch::Check { file: f, json },
+            || Dispatch::CheckAll { include_tests, json },
+        ),
         SubCmd::Debug { file } => Dispatch::Debug(file),
         SubCmd::Budget { file, new } => {
             fileful_dispatch(file, new, |f| Dispatch::Budget(Some(f)), || Dispatch::Budget(None))

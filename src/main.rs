@@ -56,8 +56,8 @@ fn dispatch_subcommand(d: cli::Dispatch) {
             setup::run_setup(uninstall);
             process::exit(0);
         }
-        cli::Dispatch::Check(p) => run_check(&p),
-        cli::Dispatch::CheckAll { include_tests } => run_check_all(include_tests),
+        cli::Dispatch::Check { file, json } => run_check(&file, json),
+        cli::Dispatch::CheckAll { include_tests, json } => run_check_all(include_tests, json),
         cli::Dispatch::Debug(p) => run_debug(&p),
         cli::Dispatch::Budget(p) => p.as_deref().map_or_else(run_budget_new, run_budget),
         other => dispatch_analysis(other),
@@ -221,9 +221,17 @@ fn run_debug(file_path: &str) {
     }
 }
 
-fn run_check(file_path: &str) {
+fn run_check(file_path: &str, json: bool) {
     let cfg = config::load_config(Path::new(file_path));
-    let Some(result) = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::check()) else {
+    let result = analyze::analyze_file(file_path, cfg.as_ref(), analyze::ScanOptions::check());
+    if json {
+        let records: Vec<output::CheckFinding> = result
+            .as_ref()
+            .map_or_else(Vec::new, |r| r.findings.iter().map(|f| output::to_check_finding(&r.filename, f)).collect());
+        println!("{}", output::format_check_json(&records));
+        process::exit(i32::from(!records.is_empty()));
+    }
+    let Some(result) = result else {
         process::exit(0);
     };
     if result.findings.is_empty() {
@@ -279,21 +287,31 @@ fn run_budget_new() {
     );
 }
 
-fn run_check_all(include_tests: bool) {
+fn run_check_all(include_tests: bool, json: bool) {
     let (cfg, root) = config::load_config_with_root(Path::new(".")).map_or((None, None), |(c, r)| (Some(c), Some(r)));
     let matcher = cfg.as_ref().map(|c| config::IgnoreMatcher::from_patterns(&c.ignore.paths));
     let mut total = 0;
+    let mut records: Vec<output::CheckFinding> = Vec::new();
     for entry in walk_source_files(Path::new(".")) {
         let path_str = entry.to_string_lossy();
         if should_skip_walk_entry(&entry, &path_str, include_tests, matcher.as_ref(), root.as_deref()) {
             continue;
         }
-        if let Some(result) = analyze::analyze_file(&path_str, cfg.as_ref(), analyze::ScanOptions::check()) {
-            if !result.findings.is_empty() {
-                total += result.findings.len();
-                print!("{}", output::format(&result.findings, &result.filename));
-            }
+        let Some(result) = analyze::analyze_file(&path_str, cfg.as_ref(), analyze::ScanOptions::check()) else {
+            continue;
+        };
+        if result.findings.is_empty() {
+            continue;
         }
+        total += result.findings.len();
+        if json {
+            records.extend(result.findings.iter().map(|f| output::to_check_finding(&result.filename, f)));
+        } else {
+            print!("{}", output::format(&result.findings, &result.filename));
+        }
+    }
+    if json {
+        println!("{}", output::format_check_json(&records));
     }
     if total > 0 {
         process::exit(1);

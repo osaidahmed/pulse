@@ -70,6 +70,8 @@ mod c_smells;
 mod c_stress;
 #[path = "integration/cfg_construction.rs"]
 mod cfg_construction;
+#[path = "integration/cli_check_json.rs"]
+mod cli_check_json;
 #[path = "integration/cli_clap_migration.rs"]
 mod cli_clap_migration;
 #[path = "integration/cli_commands.rs"]

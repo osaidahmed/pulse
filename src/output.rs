@@ -1,6 +1,41 @@
 use std::fmt::Write;
 
+use serde::Serialize;
+
 use crate::smells::{Finding, Location, Smell};
+
+#[derive(Serialize)]
+pub struct CheckFinding {
+    pub file: String,
+    pub smell: String,
+    pub scope: &'static str,
+    pub function: Option<String>,
+    pub start_line: Option<u32>,
+    pub end_line: Option<u32>,
+    pub detail: String,
+}
+
+pub fn to_check_finding(file: &str, f: &Finding) -> CheckFinding {
+    let (scope, function, start_line, end_line) = match &f.location {
+        Location::Function { name, start_line, end_line } => {
+            ("function", Some(name.clone()), Some(*start_line), Some(*end_line))
+        }
+        Location::Module => ("module", None, None, None),
+    };
+    CheckFinding {
+        file: file.to_string(),
+        smell: f.smell.to_string(),
+        scope,
+        function,
+        start_line,
+        end_line,
+        detail: f.detail.clone(),
+    }
+}
+
+pub fn format_check_json(records: &[CheckFinding]) -> String {
+    serde_json::to_string_pretty(records).unwrap_or_else(|_| "[]".to_string())
+}
 
 pub fn format(findings: &[Finding], filename: &str) -> String {
     let mut out = String::new();
