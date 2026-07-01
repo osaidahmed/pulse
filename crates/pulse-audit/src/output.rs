@@ -62,17 +62,17 @@ pub fn format_findings_filtered(findings: &[AuditFinding], thresholds: &AuditThr
 
 pub fn format_findings_json(findings: &[AuditFinding], root: Option<&Path>) -> String {
     let entries: Vec<serde_json::Value> = findings.iter().map(|f| enrich_json(render_json(f, root), f)).collect();
-    serde_json::Value::Array(entries).to_string()
+    serde_json::to_string_pretty(&serde_json::Value::Array(entries)).unwrap_or_default()
 }
 
 pub fn format_findings_json_filtered(findings: &[AuditFinding], ctx: &RenderCtx) -> String {
     let visible = filter_visible(findings, ctx.show_noise, ctx.suppression);
     let entries: Vec<serde_json::Value> = visible.iter().map(|f| enrich_json(render_json(f, ctx.root), f)).collect();
     if findings.is_empty() {
-        return serde_json::Value::Array(entries).to_string();
+        return serde_json::to_string_pretty(&serde_json::Value::Array(entries)).unwrap_or_default();
     }
     let summary = build_summary(findings, &visible, ctx);
-    serde_json::json!({"summary": summary, "findings": entries}).to_string()
+    serde_json::to_string_pretty(&serde_json::json!({"summary": summary, "findings": entries})).unwrap_or_default()
 }
 
 fn filter_visible<'a>(
