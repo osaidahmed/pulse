@@ -55,3 +55,5 @@ mod jit_calibration;
 
 #[path = "history/hist_crossval.rs"]
 mod hist_crossval;
+#[path = "history/serde_roundtrip.rs"]
+mod serde_roundtrip;

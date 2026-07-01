@@ -387,5 +387,7 @@ mod walk_field_accesses_foreign;
 #[path = "audit/walk_parent_class.rs"]
 mod walk_parent_class;
 
+#[path = "audit/serde_roundtrip.rs"]
+mod serde_roundtrip;
 #[path = "audit/walker_stack_guard.rs"]
 mod walker_stack_guard;

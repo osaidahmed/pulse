@@ -787,7 +787,6 @@ dependencies = [
  "memchr",
  "pulse-buildmeta",
  "pulse-config",
- "pulse-core",
  "pulse-corpus",
  "pulse-imports",
  "pulse-syntax",
@@ -850,6 +849,7 @@ name = "pulse-core"
 version = "0.3.0"
 dependencies = [
  "serde",
+ "serde_json",
 ]
 
 [[package]]

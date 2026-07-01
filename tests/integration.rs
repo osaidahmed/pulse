@@ -42,6 +42,8 @@ mod history_common;
 
 #[path = "integration/advisory_channel.rs"]
 mod advisory_channel;
+#[path = "integration/analytics_serde.rs"]
+mod analytics_serde;
 #[path = "integration/analytics_tests.rs"]
 mod analytics_tests;
 #[path = "integration/applicability_matrix.rs"]
