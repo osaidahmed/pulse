@@ -7,7 +7,6 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-pulse-core = { workspace = true }
 pulse-thresholds = { workspace = true }
 pulse-syntax = { workspace = true }
 pulse-buildmeta = { workspace = true }
