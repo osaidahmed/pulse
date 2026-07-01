@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use pulse::audit::PassChoice;
 
-pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check <file> | debug <file> | budget <file> | -a/--all [--include-tests] | audit | history | calibrate | --version";
+pub const USAGE: &str = "usage: pulse setup | --hook | --stop | --cleanup | check [--json] <file> | debug <file> | budget <file> | -a/--all [--include-tests] [--json] | audit | history | calibrate | --version";
 
 /// Pulse — fast code smell detector and refactoring auditor.
 #[derive(Parser, Debug)]
@@ -28,7 +28,7 @@ pub enum SubCmd {
         #[arg(long)]
         uninstall: bool,
     },
-    /// Analyze a single file (or use -a for whole project).
+    /// Analyze a file, or the whole project with -a; add --json for machine-readable output.
     Check {
         file: Option<String>,
         /// Emit findings as a JSON array instead of text.
